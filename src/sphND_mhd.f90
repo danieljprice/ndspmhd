@@ -53,7 +53,9 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-3D-v5-1'
+    version = 'NDSPMHD-3D-v5-2'
+!   * 1D turbulence setup revised/set_powerspec
+!    version = 'NDSPMHD-3D-v5-1'
 !   * smoothing length iteration on single particles works 
 !   * conservative2primitive and primitive2conservative
 !   * eos rehashed

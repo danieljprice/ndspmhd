@@ -40,7 +40,7 @@ SUBROUTINE get_rates
  REAL :: rij,rij2
  REAL :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav,rhoav1,rhoij
  REAL :: pmassi,pmassj
- REAL :: pri,prj,pr2i,pr2j,Prho2i,Prho2j,prterm
+ REAL :: pri,prj,Prho2i,Prho2j,prterm
  REAL :: hi,hi1,hj,hj1,hi2,hi21,hj2,hj21,hi3,hj3,hav,h2,h3,hav1,h21
  REAL :: drhodti,drhodtj
  REAL :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
@@ -48,7 +48,7 @@ SUBROUTINE get_rates
 !
 !  (velocity)
 !      
- REAL, DIMENSION(ndimV) :: veli,velj,dvel,vrho2i,vrho2j
+ REAL, DIMENSION(ndimV) :: veli,velj,dvel
  REAL, DIMENSION(ndimV) :: vterm,prvterm
  REAL, DIMENSION(ndimV) :: dr
  REAL :: dvdotr,projprv,projvterm,v2i,v2j
@@ -59,7 +59,7 @@ SUBROUTINE get_rates
  REAL, DIMENSION(ndimB) :: faniso,fmagi,fmagj,fcorr
  REAL, DIMENSION(ndimB) :: curlBi
  REAL :: fiso,divBonrho
- REAL :: valfveni,valfvenj,valfven2i,valfven2j
+ REAL :: valfven2i,valfven2j
  REAL :: BidotdB,BjdotdB,Brho2i,Brho2j
  REAL :: projBrhoi,projBrhoj,projBi,projBj,projdB
  REAL :: prvaniso,prvaniso2  
@@ -180,11 +180,9 @@ SUBROUTINE get_rates
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i       
        pri = pr(i)
-       pr2i = pr(i)*pr(i)
        Prho2i = pr(i)*rho21i
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
-       vrho2i(:) = veli(:)*rho21i
        pmassi = pmass(i)
        alphai = alpha(i)
        phii = phi(i)
@@ -199,7 +197,6 @@ SUBROUTINE get_rates
 ! mhd definitions
        Brho2i = DOT_PRODUCT(Brhoi,Brhoi)
        valfven2i = Brho2i*rhoi
-       valfveni = SQRT(valfven2i)
               
        gradhi = 1./(1. - gradh(i))
 !       IF (gradhi.LE.0.5) THEN
@@ -302,11 +299,9 @@ SUBROUTINE get_rates
 		rho21j = rho1j*rho1j
 	        rhoj5 = SQRT(rhoj)
 		rhoij = rhoi*rhoj
-		prj = pr(j)
-		pr2j = pr(j)*pr(j)		
+		prj = pr(j)		
 	        Prho2j = pr(j)*rho21j
 		spsoundj = spsound(j)
-		vrho2j(:) = velj(:)*rho21j
 	        pmassj = pmass(j)
 		alphaav = 0.5*(alphai + alpha(j))
 		phii_on_phij = phii/phi(j)
@@ -328,7 +323,6 @@ SUBROUTINE get_rates
 		 projBrhoj = DOT_PRODUCT(Brhoj,dr)
 		 Brho2j = DOT_PRODUCT(Brhoj,Brhoj)
 		 valfven2j = Brho2j*rhoj
-		 valfvenj = SQRT(valfven2j)
                 ENDIF
 !
 !--artificial viscosity terms
@@ -338,7 +332,7 @@ SUBROUTINE get_rates
 !--maximum velocity for timestep control
 		vmag = SQRT(DOT_PRODUCT(dvel,dvel))
 !		vsigdtc = vmag + spsoundi + spsoundj  	&
-!			       + valfveni + valfvenj
+!			       + sqrt(valfven2i) + sqrt(valfven2j)
 		vsig = 0.
 		viss = 0.
 		visc = 0.
@@ -508,8 +502,8 @@ SUBROUTINE get_rates
 		     wabjoe = wabjoei*hfacwab
 		     Rjoe = 0.5*eps*(wab/wabjoe)**neps
 !		     IF (Rjoe.GT.0.1) PRINT*,'Rjoe = ',Rjoe,i,j,wab,wabjoe
-!		     faniso(:) = faniso(:) - Rjoe*faniso(:)  
-		     faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
+		     faniso(:) = faniso(:) - Rjoe*faniso(:)  
+!		     faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
 		  ENDIF
 !
 !--add contributions to magnetic force
