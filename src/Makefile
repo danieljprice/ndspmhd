@@ -10,9 +10,10 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C =  g95
-F90FLAGS =  -O
-LDFLAGS = ##-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
+F90C =  ifc
+F90FLAGS =  -O -C -WB -r8
+LDFLAGS = -Vaxlib
+##LDFLAGS = -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 # Fortran flags same as F90
@@ -79,11 +80,11 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 SOURCES = sphND_mhd.f90   \
          boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
-	 defaults.f90 densityND.f90 \
-	 densityND_partial.f90 \
+	 defaults.f90 \
+         get_neighbour_lists.f90 \
+         density_sums.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces.f90 \
-	 get_neighbour_listND.f90 get_neighbour_listND_partial.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90 \
 	 iterate_density.f90 kernelND.f90 \

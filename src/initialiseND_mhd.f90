@@ -57,7 +57,12 @@ SUBROUTINE initialise
  ELSE
     dndim = 1./REAL(ndim)
     hpower = dndim 
- ENDIF   
+ ENDIF
+ time = 0.
+ nsteps = 0
+ xmin = 0.
+ xmax = 0.
+ nbpts = 0
 !
 !--read parameters from the infile
 !

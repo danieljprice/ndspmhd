@@ -24,6 +24,7 @@ subroutine iterate_density
   use part
   use part_in   ! for rhoin on fixed particles
   use setup_params
+  use density_summations
 !
 !--define local variables
 !
@@ -80,6 +81,7 @@ subroutine iterate_density
      if (ncalc.eq.npart) then
         call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
      else
+        print*,'calling density_partial'
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
      endif
      
@@ -92,6 +94,7 @@ subroutine iterate_density
      if (ihvar.ne.0) then
         do j=1,ncalcprev
            i = redolistprev(j)
+
            if (itype(i).ne.1) then
               if (rho(i).le.1.e-3) then
                  if (rho(i).le.0.) then
@@ -102,9 +105,13 @@ subroutine iterate_density
                  endif
               endif
               
+              if (i.eq.140) then
+                 print*,'gradh(140) = ',gradh(140),rho(140),hh(140)
+                 read*
+              endif
               gradh(i) = gradh(i)/rho(i)    ! now that rho is known
               if (abs(1.-gradh(i)).lt.1.e-5) then
-                 print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
+                 print*,'warning: 1-gradh < 1.e-5 ',i,1.-gradh(i),gradh(i),rho(i)
                  if (abs(1.-gradh(i)).eq.0.) call quit
               endif
 !
@@ -136,7 +143,7 @@ subroutine iterate_density
 !
                  if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) then
 !!                    print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
-                    hh(i) = hnew                    
+                    !!hh(i) = hnew                    
                  endif
                  if (hnew.gt.hhmax) then
                     redolink = .true.
@@ -146,7 +153,7 @@ subroutine iterate_density
         enddo
         
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
-           write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
+           write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc !!,':',redolist(1:ncalc)
         endif
         
      endif

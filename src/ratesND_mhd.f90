@@ -24,6 +24,7 @@ subroutine get_rates
   
  use fmagarray
  use derivB
+ use get_neighbour_lists
 !
 !--define local variables
 !
