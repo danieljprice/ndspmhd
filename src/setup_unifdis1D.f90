@@ -31,14 +31,14 @@ SUBROUTINE setup
 ! 	    
  ibound = 0	! periodic boundaries
  nbpts = 0		! use ghosts not fixed
- xmin(1) = -1.0	! set position of boundaries
- xmax(1) = 1.0
+ xmin(1) = -0.5	! set position of boundaries
+ xmax(1) = 0.5
  imax = INT((xmax(1)-xmin(1))/psep)
  
- totmass = 4./3.
+ totmass = 1.0	!4./3.
  massp = totmass/imax	! average particle mass
  sigma = 1./SQRT(2.)
- itoystar = 1
+ itoystar = 0
 !
 !--allocate memory here
 !
@@ -51,7 +51,7 @@ SUBROUTINE setup
     pmass(i) = massp
     uuin(i) = 0.3
     hhin(i) = hfact*(massp/rhoin(i))**hpower	 ! ie constant everywhere
-    IF (imhd.GE.1) THEN 
+    IF (imhd.NE.0) THEN 
        Bin(1,i) = 0.
        Bin(2,i) = sigma*rhoin(i)
        Bin(3,i) = 0.

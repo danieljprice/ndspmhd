@@ -30,26 +30,30 @@ LDFLAGS =
 SOURCES1D = dimen1D.f90 
 SOURCES2D = dimen2D.f90
 SOURCES25D = dimen25D.f90
+SOURCES3D = dimen3D.f90
 
 ######################################################################
 ########### choose the setup file in each dimension here #############
 
-#SETUP1D = setup_unifdis1D.f90
+SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
 
-SETUP2D = setup_orszagtang2D_mhd.f90
+#SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_blast2D_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_currentsheet2D_mhd.f90
+SETUP2D = setup_unifdisND.f90
 
 SETUP25D = setup_alfvenwaveND.f90
+
+SETUP3D = setup_unifdisND.f90
 
 ######################################################################
 
@@ -77,6 +81,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 OBJECTS1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP1D:.f90=.o)
 OBJECTS2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP2D:.f90=.o)
 OBJECTS25D = $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP25D:.f90=.o)
+OBJECTS3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP3D:.f90=.o)
 
 1D: $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
@@ -86,6 +91,9 @@ OBJECTS25D = $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP25D:.f90=.o)
 
 25D : $(OBJECTS25D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../25DSPMHD $(OBJECTS25D)
+
+3D : $(OBJECTS3D)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 		
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
@@ -100,5 +108,7 @@ edit2D:
 	nedit $(SETUP2D) &
 edit25D:
 	nedit $(SETUP25D) &
+edit3D:
+	nedit $(SETUP3D) &
 clean:
 	rm *.o *.mod

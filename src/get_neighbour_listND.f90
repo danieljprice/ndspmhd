@@ -18,67 +18,99 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
 !
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: icell
- INTEGER, DIMENSION(3*2**(ndim-1) - 1), INTENT(OUT) :: neighcell
  INTEGER, DIMENSION(*), INTENT(OUT) :: listneigh
  INTEGER, INTENT(OUT) :: nneigh
- INTEGER :: nneighcell,ipart
+ INTEGER, DIMENSION(3*2**(ndim-1) - 1), INTENT(OUT) :: neighcell
+ INTEGER :: nneighcell,ipart,ncellsxy
  INTEGER :: i,j,k
-
+ LOGICAL :: debugging
+ LOGICAL :: leftmost,rightmost,toprow,endblock
 !
 !--allow for tracing flow (removed for speed)
 !      
 ! IF (trace) WRITE(iprint,*) ' Entering subroutine get_neighbour_list'
+ IF (idebug(1:4).EQ.'neig') debugging = .true.
+!
+!--work out whether cell is near a boundary
+!
+ leftmost = .false.
+ rightmost = .false.
+ toprow = .false.
+ endblock = .false.
 
- neighcell(1) = icell		! first neighbouring cell (itself)
- neighcell(2) = icell + 1	! cell to the right
- 
+ IF (MOD(icell,ncellsx(1)).EQ.1) leftmost = .true.
+ IF (MOD(icell,ncellsx(1)).EQ.0) rightmost = .true.
  IF (ndim.GE.2) THEN
-    neighcell(3) = icell + ncellsx(1)		! above
-    neighcell(4) = icell + ncellsx(1) + 1	! above, one to right
-    neighcell(5) = icell + ncellsx(1) - 1	! above, one to left
-    IF (ndim.GE.3) THEN
-        neighcell(6) = icell + ncellsx(1)*ncellsx(2)	 ! next block
-	neighcell(7) = icell + ncellsx(1)*ncellsx(2) + 1 ! next block,right
-	neighcell(8) = icell + ncellsx(1)*ncellsx(2) - 1 ! next block,left	
-	neighcell(9) = icell + ncellsx(1)*ncellsx(2) + ncellsx(1) !  " ", above
-	neighcell(10) = icell + ncellsx(1)*ncellsx(2) + ncellsx(1) + 1 ! " ", above,right
-	neighcell(11) = icell + ncellsx(1)*ncellsx(2) + ncellsx(1) - 1 ! " ", above,left
+    ncellsxy = ncellsx(2)*ncellsx(1)
+    IF (MOD(icell-1,ncellsxy).GT.(ncellsxy-ncellsx(1)-1)) toprow = .true.
+    IF (ndim.GE.3 .AND. (ncells-icell.LT.ncellsxy)) endblock = .true.    
+ ENDIF
+!
+!--then work out which cells current cell should interact with
+!
+ nneighcell = 1
+ neighcell(1) = icell	! always interacts with itself
+ 
+ IF (.NOT.rightmost) THEN			! cell to the right
+    nneighcell = nneighcell + 1
+    neighcell(nneighcell) = icell + 1
+ ENDIF
+ IF (ndim.GE.2 .AND..NOT.toprow) THEN	! above		
+    IF (.NOT.leftmost) THEN			! above, left
+       nneighcell = nneighcell + 1
+       neighcell(nneighcell) = icell + ncellsx(1) - 1
+    ENDIF
+    nneighcell = nneighcell + 1			! above
+    neighcell(nneighcell) = icell + ncellsx(1)
+    IF (.NOT.rightmost) THEN			! above, right
+       nneighcell = nneighcell + 1
+       neighcell(nneighcell) = icell + ncellsx(1) + 1
     ENDIF
  ENDIF
- nneighcell = 3*2**(ndim-1) - 1        ! number of cells to interact with
+ IF (ndim.EQ.3 .AND..NOT.endblock) THEN	 ! next block
+    IF (.NOT.leftmost) THEN 			! next block, left
+       nneighcell = nneighcell + 1
+       neighcell(nneighcell) = icell + ncellsxy - 1    
+    ENDIF   
+    nneighcell = nneighcell + 1			! next block
+    neighcell(nneighcell) = icell + ncellsxy
+    IF (.NOT.rightmost) THEN 			! next block, right  
+       nneighcell = nneighcell + 1
+       neighcell(nneighcell) = icell + ncellsxy + 1
+    ENDIF
+    IF (.NOT.toprow) THEN		! next block, above
+       IF (.NOT.leftmost) THEN			! next block, above left
+          nneighcell = nneighcell + 1
+          neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) - 1
+       ENDIF
+       nneighcell = nneighcell + 1		! next block, above	
+       neighcell(nneighcell) = icell + ncellsxy + ncellsx(1)
+       IF (.NOT.rightmost) THEN			! next block, above right
+          nneighcell = nneighcell + 1
+          neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) + 1
+       ENDIF	  
+    ENDIF
+ ENDIF
 
- IF (ndim.GE.2 .AND. MOD(icell,ncellsx(1)).EQ.1) THEN
-    nneighcell = nneighcell - 1	! for leftmost cells, no cells above left
- ELSEIF (MOD(icell,ncellsx(1)).EQ.0) THEN
-    nneighcell = nneighcell - ndim	! for rightmost cells, no cells to right
-    neighcell(2) = icell + ncellsx(1) - 1	! above, one to left
- ENDIF
- 
- IF (ndim.GE.2 .AND. icell.GE.ncells-ncellsx(1)) THEN
-!!--for top cells and no boundaries, no cells above
-    nneighcell = 2
-    IF (icell.EQ.ncells) nneighcell = 1
- ENDIF
-! IF ((icell.EQ.1).AND.(ibound.GT.1)) THEN	! if first cell and 
-!    nneighcell = 3				! ghosts set, they are in
-!    neighcell(3) = icell - 1			! cell to left (cell 0)  		
-! ELSEIF (icell.EQ.ncells) THEN
-!    IF (ibound.GT.1) THEN	! if ghosts set, they are in ncells+1
-!       nneighcell = 2		! last cell has itself and ghost cell
-!    ELSE
-!       nneighcell = 1		! for last cell, just itself
-!    ENDIF
-! ENDIF
-	 
-! PRINT*,'cell ',icell,' first particle = ',ifirstincell(icell)
+ IF (debugging) THEN
+    PRINT*,' current cell = ',icell,' first particle = ',ifirstincell(icell)
+    IF (rightmost) PRINT*,'rightmost'
+    IF (leftmost) PRINT*,'leftmost'
+    IF (toprow) PRINT*,'toprow'
+    IF (endblock) PRINT*,'endblock'
+    PRINT*,' number of neighbouring cells = ',nneighcell
+    PRINT*, (neighcell(i),i=1,nneighcell)
+    READ*
+ ENDIF	 
 !
 !--construct list of neighbours for particles in the current cell
+!  using the link lists from the neighbouring cells
 !	 
  j=0
  DO k = 1,nneighcell		! construct list of neighbours
     IF (neighcell(k).GT.ncells) THEN
       PRINT*,' k, neighcell = ',k,neighcell(1:nneighcell),ncells
-      STOP 'error: cell > ncells'      
+      STOP 'get_neighbour_list: error: cell > ncells'      
     ENDIF   
     ipart = ifirstincell(neighcell(k))
 !   PRINT*,'neighbouring cell = ',neighcell(k)

@@ -10,6 +10,7 @@ all:
 	cd src;  make 1D
 	cd src; make clean; make 2D
 	cd src; make clean; make 25D
+	cd src; make clean; make 3D
 	cd plot; make dansph; make mrbsph	
 	cd evplot; make
 	cd utils; make sametime
@@ -33,6 +34,9 @@ multirun:
 25D:
 	cd src; make 25D
 
+3D:
+	cd src; make 3D
+
 clean:
 	cd src; rm *.o *.mod
 
@@ -44,6 +48,9 @@ edit2D:
 	
 edit25D:
 	cd src; make edit25D
+
+edit3D:
+	cd src; make edit3D
 
 editev:
 	cd evplot; nedit evsupersph.f &

@@ -25,7 +25,6 @@ SUBROUTINE setup
 !--allow for tracing flow
 !
  IF (trace) WRITE(iprint,*) ' Entering subroutine setup(unifdis)'
- IF (ndim .GT. 1) STOP 'unifdis not implemented for ndim > 1'
 !
 !--set boundaries
 ! 	    

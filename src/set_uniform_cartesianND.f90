@@ -53,6 +53,8 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 !  (in 3D, 2D this is the same as body centred)
 !
  CASE(2)
+ 
+    IF (ndim.EQ.3) STOP 'close packed not implemented in 3D'
 !
 !--determine number of particles
 ! 
@@ -75,7 +77,6 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     
     CALL alloc(ntot,1)
     npart = ntot
-    ntotal = ntot
 
     ystart = 0.5*deltay		!psepy
     ipart = 0
@@ -151,7 +152,6 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 
     CALL alloc(ntot,1)
     npart = ntot
-    ntotal = ntot
 
     ipart = 0
     DO k=1,npartz
@@ -170,6 +170,10 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     ENDDO
      
  END SELECT
+!
+!--set total number of particles = npart
+!
+ ntotal = npart
 !
 !--allow for tracing flow
 !

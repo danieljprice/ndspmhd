@@ -65,6 +65,7 @@ PROGRAM SUPERSPMHD_ND
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
 !   * equations use general alternative formulation
+!   * compiles in 3D
 !   version = 'SPMHD-ND-v3.6_22_10_2003'
 !   * bug fix in thermal conductivity in thermal energy equation
 !   * bug fix in source term for artificial stress in total energy equation
@@ -221,11 +222,12 @@ PROGRAM SUPERSPMHD_ND
 !   * individual common blocks 
  
  trace = .false.		! set tracing flow (prints entry into subroutine)
- trace = .true.
+! trace = .true.
+ idebug = 'none' 
 ! idebug = 'density'
-! idebug = 'none'
+! idebug = 'neighb'
 ! idebug = 'link'
- 
+  
 ! itemp = 40000		! debug one particular particle
 
  CALL logun     	! set logical unit numbers to use for input/output
