@@ -109,7 +109,7 @@ subroutine get_rates
 !
 !--div B correction
 ! 
- real :: gradpsiterm,dtcourant2
+ real :: gradpsiterm,vsig2,dtcourant2
 
 !
 !--allow for tracing flow
@@ -376,7 +376,8 @@ subroutine get_rates
 !
     valfven2i = 0.
     if (imhd.ne.0) valfven2i = dot_product(Bfield(:,i),Bfield(:,i))*rho1i
-    vsig = sqrt(spsound(i)**2 + valfven2i)      ! approximate vsig only
+    vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
+    vsig = SQRT(vsig2)
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
 !--calculate time derivative of alpha (artificial dissipation coefficients)
@@ -422,7 +423,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -0.8*vsig*divB(i) - psidecayfact*psi(i)*vsig/hh(i)          
+          dpsidt(i) = -vsig2*divB(i) - psidecayfact*psi(i)*vsig/hh(i)          
        case DEFAULT
           dpsidt(i) = 0.
     end select
