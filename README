@@ -1,8 +1,8 @@
------------------------------------------------------------------------------
-NSPMHD is an Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
+-------------------------------------------------------------------------------
+NDSPMHD is an Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
 fluid dynamics simulations in 1, 2 and 3 spatial dimensions.
 It should eventually handle arbitrary co-ordinate systems.
------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 The code is written in Fortran 90/95 
 by Daniel Price, dprice@astro.ex.ac.uk
 
