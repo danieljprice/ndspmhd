@@ -103,7 +103,6 @@ SUBROUTINE setup
        enin(i) = enleft
        pmass(i) = massp
        vel(:,i) = vleft(:)	! overwrite vx
-       hh(i) = hfact*(pmass(i)/densleft)**hpower
        IF (imhd.NE.0) THEN
           Bfield(1,i) = Bxinit
           Bfield(2,i) = Byleft
@@ -139,7 +138,6 @@ SUBROUTINE setup
        x(1,ipart) = x(1,ipart-2) + 2.*(massp/dens(ipart-1))**hpower
        x(2,ipart) = xmin(2) + (j-1)*psep + ystart
        pmass(ipart) = massp
-       hh(ipart) = hfact*(massp/dens(ipart))**hpower
        Bfield(1,ipart) = Bxinit
     ENDDO
     ipart = ipart - 1      ! remove the one that is over the xmax boundary

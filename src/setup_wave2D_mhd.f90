@@ -118,7 +118,6 @@ SUBROUTINE setup
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    hh(i) = hfact*(pmass(i)/denszero)**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(:,i) = Bzero
     ENDIF 
@@ -228,10 +227,6 @@ SUBROUTINE setup
     Bfield(2,i) = Bzero(2) + Bamply*SIN(wk*ri)
     Bfield(3,i) = Bzero(3) + Bamplz*SIN(wk*ri)
     dens(i) = dens(i)*(1.+ampl*SIN(wk*ri))
-
-    IF (ihvar.NE.0) THEN
-       hh(i) = hfact*(pmass(i)/dens(i))**hpower	! if variable smoothing length
-    ENDIF
 
  ENDDO
 

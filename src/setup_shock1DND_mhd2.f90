@@ -132,7 +132,6 @@ SUBROUTINE setup
     uu(i) = uuleft
     pmass(i) = massp
     vel(:,i) = vleft(:)
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower
     alpha(i) = alphamin
     IF (imhd.NE.0) THEN
        Bfield(1,i) = Bxinit
@@ -198,7 +197,6 @@ SUBROUTINE setup
        Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
     pmass(j) = massp
-    hh(j) = hfact*(pmass(j)/dens(j))**hpower	!denshalf
     Bfield(1,j) = Bxinit
  ENDDO
 

@@ -101,7 +101,6 @@ SUBROUTINE setup
     ENDIF  
     pri = przero 
     uu(ipart) = pri/(gam1*denszero)
-    hh(ipart) = hfact*(pmass(ipart)/dens(ipart))**hpower	 ! ie constant everywhere
     Bfield(:,ipart) = Bzero(:)
  ENDDO
 !

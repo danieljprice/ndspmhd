@@ -143,7 +143,6 @@ SUBROUTINE setup
     IF (ndimV.GT.1) vel(2:3,i) = 0.
     pmass(i) = massp
     uu(i) = polyk*dens(i)**(gam1)/gam1
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,i) = 0.0	!SQRT(1.5)
        Bfield(2,i) = dens(i)*sigma
