@@ -5,21 +5,26 @@
 !
 program plotmeagraph
   use f90_unix
+  use transforms
   use prompting
   implicit none
   integer :: ncol
-  integer, parameter :: maxfile=21
-  integer, parameter :: maxstep=300000
+  integer, parameter :: maxfile=101
+  integer, parameter :: maxstep=30000
   integer, parameter :: maxcol=21        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,iprev,nfiles,ifile,ifilesteps
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,int_from_string
   integer :: ichange, iongraph, ipt
-  integer :: iplotx(maxcol),iploty(maxcol), nplots
-  integer :: multiplotx(maxcol),multiploty(maxcol),nplotsmulti
-  integer :: nstepsfile(maxfile)
-  real :: evdata(maxstep,maxcol,maxfile),evplot(maxstep)
+  integer :: nplots
+  integer, dimension(maxcol) :: iplotx,iploty,itrans
+  integer, dimension(maxcol) :: multiplotx,multiploty
+  integer :: nplotsmulti
+  integer, dimension(maxfile) :: nstepsfile
+  real, dimension(maxstep,maxcol,maxfile) :: evdata
+  real, dimension(maxstep) :: evplot,xplot,yplot
   real :: lim(maxcol,2)
+  real :: xmin, xmax, ymin, ymax
   real :: hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*120, legendtext*120
   character(len=125) :: filename
@@ -44,6 +49,7 @@ program plotmeagraph
   do i=1,maxcol
      multiploty(i) = i+1
   enddo
+  itrans = 0
   
   !
   !--get filename(s)
@@ -109,6 +115,7 @@ program plotmeagraph
      print*,'error reading from legend file'
      close(unit=50)
 22   continue
+     print*,'legend file not found'
      legendtext(1:nfiles) = rootname(1:nfiles)
 23   continue
 
@@ -178,6 +185,11 @@ program plotmeagraph
      label(21) = '% particles with omega < 0.01 '
   endif
 
+  if (ANY(itrans.ne.0)) then
+     do i=1,ncol
+        label(i) = transform_label(label(i),itrans(i))
+     enddo
+  endif
   title = ' '
 !
 !--print data menu (in two columns)
@@ -295,8 +307,13 @@ program plotmeagraph
      if (ichange.gt.0) then
         call prompt(' Enter '//trim(label(ichange))//' min:',lim(ichange,1))
         call prompt(' Enter '//trim(label(ichange))//' max:',lim(ichange,2))
+        call prompt(' Enter transformation (1=log,2=abs,3=sqrt,4=1/x):',itrans(ichange),0,4)
      endif
      cycle menuloop
+!  case('r','R')
+!     ichange = 0
+!     call prompt('Enter plot number to apply transformation',ichange,0,ncol)
+     
   case('c','C')
      imhd = .not.imhd
      print "(a,L1)", ' MHD data = ',imhd
@@ -389,6 +406,13 @@ program plotmeagraph
   else
      do i=1,nplots
         !
+        !--apply transformations to plot limits
+        !
+        call transform_limits(lim(iplotx(i),1),lim(iplotx(i),2), &
+                              xmin,xmax,itrans(iplotx(i)))
+        call transform_limits(lim(iploty(i),1),lim(iploty(i),2), &
+                              ymin,ymax,itrans(iploty(i)))
+        !
         !--setup plotting page
         !
         if (nplots.gt.1 .and. isameXaxis .and. isameYaxis) then
@@ -398,7 +422,7 @@ program plotmeagraph
            call pgsls(1)
            call pgslw(3)
            call danpgtile(i,nacross,ndown,  &
-               lim(iplotx(i),1),lim(iplotx(i),2),lim(iploty(i),1),lim(iploty(i),2), &
+               xmin,xmax,ymin,ymax, &
                label(iplotx(i)),label(iploty(i)),title,0,0)
         else
            !
@@ -408,8 +432,7 @@ program plotmeagraph
            if (nplots.gt.1) call pgsch(1.5) ! increase character height
            call pgpage
            call pgsvp(0.2,0.99,0.2,0.99)
-           call pgswin(lim(iplotx(i),1),lim(iplotx(i),2), &
-                lim(iploty(i),1),lim(iploty(i),2))
+           call pgswin(xmin,xmax,ymin,ymax)
            call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
            !call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
            !     lim(iploty(i),1),lim(iploty(i),2),0,1)
@@ -426,8 +449,16 @@ program plotmeagraph
            if (i.eq.iongraph .and. nfiles.gt.1) call legend(ifile,legendtext(ifile),hpos,vpos)
            !call PGSCI(ifile) ! or change line colour between plots
            
-           call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
-                evdata(1:nstepsfile(ifile),iploty(i),ifile))
+           !
+           !--apply transformations to plot data
+           !
+           call transform(evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+                xplot(1:nstepsfile(ifile)),itrans(iplotx(i)),nstepsfile(ifile))
+           call transform(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
+                yplot(1:nstepsfile(ifile)),itrans(iploty(i)),nstepsfile(ifile))
+           
+           call PGLINE(nstepsfile(ifile),xplot(1:nstepsfile(ifile)), &
+                yplot(1:nstepsfile(ifile)))
            !
            !--if more than 5 files, plot points on the line to make a new
            !  line style
@@ -436,8 +467,7 @@ program plotmeagraph
               call pgsls(1)
               do ipt=1,nstepsfile(ifile)
                  if (mod(ipt,10).eq.0) then
-                    call PGPT(1,evdata(ipt,iplotx(i),ifile), &
-                         evdata(ipt,iploty(i),ifile),mod(ifile,5) + 1)
+                    call PGPT(1,xplot(ipt),yplot(ipt),mod(ifile,5) + 1)
                  endif
               enddo
            endif

@@ -22,7 +22,7 @@ FFLAGS = $(F90FLAGS)
 
 SOURCES= evsupersph.f90
 
-OBJECTS = prompting.o danpgtile.o int_from_string.o $(SOURCES:.f90=.o)
+OBJECTS = prompting.o transforms.o danpgtile.o int_from_string.o $(SOURCES:.f90=.o)
 
 ../evsupersph: $(OBJECTS)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) /h/neil/software/pgplot95/libpgplot.a
@@ -32,6 +32,9 @@ danpgtile.o :
 
 prompting.o :
 	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@ 
+
+transforms.o :
+	$(F90C) -c $(F90FLAGS) ../plot/transform.f90 -o $@ 
 
 int_from_string.o :
 	$(F90C) -c $(F90FLAGS) ../plot/int_from_string.f90 -o $@ 
