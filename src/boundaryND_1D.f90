@@ -21,7 +21,7 @@ SUBROUTINE boundary
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,nnew,nsub,nsubtemp,jdim
+ INTEGER :: i,nnew,nsub,nsubtemp,jdim,npartin
  REAL :: psepleft,psepright
  LOGICAL :: debugging
 !
@@ -40,6 +40,8 @@ SUBROUTINE boundary
     IF (ndim.GT.1) THEN    
 !       WRITE(iprint,*) 'warning: inflow/outflow not implemented in ND'
     ELSE
+    
+    npartin = npart
 !
 !--this is just pulled straight from the 1D code - needs to be
 !  modified if applied in 2 or 3D since it assumes that particles
@@ -132,18 +134,23 @@ SUBROUTINE boundary
        x(1,npart) = x(1,npart-1) + psepright
        call copy_particle(npart,npart-1)
        itype(npart) = 1
-       itype(npart-nbpts-1) = 0
+       itype(npart-nbpts) = 0
        
     ENDIF
 !
-!  adjust ireal
+!  adjust ireal and itype if particles have been added/subtracted
 !    
-    ireal = 0
-    ireal(1:nbpts) = nbpts+1
-    ireal(npart-nbpts+1:npart) = npart-nbpts
+    IF (npartin.ne.npart) THEN
+       ireal = 0
+       itype = 0
+       itype(1:nbpts) = 1
+       ireal(1:nbpts) = nbpts+1
+       itype(npart-nbpts+1:npart) = 1
+       ireal(npart-nbpts+1:npart) = npart-nbpts
+!       WRITE(iprint,*) ' New number of particles = ',npart
+    ENDIF
 
     ntotal = npart
-!    WRITE(iprint,*) ' New number of particles = ',npart
 !
 !--make sure all the initial quantities are the same
 !
