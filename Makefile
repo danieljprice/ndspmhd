@@ -55,6 +55,10 @@ edit3D:
 editev:
 	cd evplot; nedit evsupersph.f &
 
+scripts:	## makes symbolic links to scripts
+	ln -s run2D ./scripts/run2D.tcsh
+	ln -s run3D ./scripts/run3D.tcsh
+
 tag:
 	cvs -q tag `cat version`_`date +%d_%m_%Y`
 	

@@ -47,7 +47,7 @@ SUBROUTINE setup
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
  rblast = 0.05		! radius of the initial blast
- rbuffer = rblast+20.*psep		! radius of the smoothed front
+ rbuffer = rblast	!+20.*psep		! radius of the smoothed front
  Bzero(:) = 0.0
  IF (imhd.NE.0) THEN
     Bzero(1) = 10.0*const	! uniform field in Bx direction
@@ -59,12 +59,13 @@ SUBROUTINE setup
  gam1 = gamma - 1.
  IF (abs(gam1).lt.1.e-3) STOP 'eos cannot be isothermal for this setup'
 
- WRITE(iprint,*) ndim,' dimensional adiabatic MHD blast wave problem '
- WRITE(iprint,10) prblast,rblast,rhozero,przero
- WRITE(iprint,20) Bzero
-10 FORMAT(/,' Central pressure  = ',f10.3,', blast radius = ',f6.3,/, &
-            ,' density = ',f6.3,', pressure = ',f6.3,/)
-20 FORMAT(' Initial B   = ',3(f6.3,1x))
+ WRITE(iprint,10) ndim
+ WRITE(iprint,20) prblast,rblast,rhozero,przero
+ WRITE(iprint,30) Bzero
+10 FORMAT(/,1x,i1,'-dimensional adiabatic MHD blast wave problem'
+20 FORMAT(/,' Central pressure  = ',f10.3,', blast radius = ',f6.3,/, &
+            ' density = ',f6.3,', pressure = ',f6.3,/)
+30 FORMAT(' Initial B   = ',3(f6.3,1x))
 !
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
