@@ -39,7 +39,7 @@ SUBROUTINE setup
  ibound = 3	! reflective ghosts (boundaries not important in this problem)
  nbpts = 0	! no fixed particles
  xmin(:) = -0.5	! unit square
- xmax(:) = 0.5
+ xmax(:) = 1.5
  const = SQRT(4.*pi) 
 !
 !--setup parameters for the problem
