@@ -6,7 +6,7 @@
 program plotmeagraph
   implicit none
   integer :: ncol
-  integer, parameter :: maxfile=8
+  integer, parameter :: maxfile=22
   integer, parameter :: maxstep=100000
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
   integer i,iprev,nfiles,ifile,ifilesteps
@@ -17,14 +17,14 @@ program plotmeagraph
   integer nstepsfile(maxfile)
   real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real lim(maxcol,2)
-  real hpos,vpos
+  real hpos,vpos, freq
   character, dimension(maxfile) :: rootname*20, legendtext*120
   character*23 :: filename
   character*24 :: title,label(maxcol)
   character*40 :: labely
   character*1 ans
-  logical icycle
-  print*,' Welcome to Dan''s supersphplotev 2003... '
+  logical :: icycle, igetfreq
+  print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
   ncol = 21
@@ -32,6 +32,7 @@ program plotmeagraph
   hpos = 0.4
   vpos = 8.0
   iongraph = 1
+  igetfreq = .false.
   !
   !--get filename(s)
   !
@@ -132,6 +133,13 @@ program plotmeagraph
   enddo
   lim(1,1) = 0.0
 
+!
+!--open file for frequency output
+!
+  if (igetfreq) then
+     open(unit=8,file=trim(rootname(1))//'.freq',status='replace')
+  endif
+
 !------------------------------------------      
 !  menu
 200 continue
@@ -176,10 +184,11 @@ program plotmeagraph
   print 12
   print 13,ncol+3,'Read new data'
   print 13,ncol+4,'Change number of timesteps read'
-  print 13,ncol+5,'Adjust legend position'
-  print 13,ncol+6,'Adjust plot limits'
-  print 13,ncol+7,'Do auto update'          
-  print 13,ncol+8,'Exit supersphplotev'
+  print 13,ncol+5,'Get frequencies'
+  print 13,ncol+6,'Adjust legend position'
+  print 13,ncol+7,'Adjust plot limits'
+  print 13,ncol+8,'Do auto update'          
+  print 13,ncol+9,'Exit supersphplotev'
   print 12
   print*,'Enter y axis or selection: '
 11 format(1x,i2,')',1x,a)
@@ -191,7 +200,10 @@ program plotmeagraph
      print*,'Enter x axis: '
      read*,ipickx
   endif
-  if ((ipick.ge.ncol+8).or.(ipick.lt.1)) stop
+  if ((ipick.ge.ncol+8).or.(ipick.lt.1)) then
+     close(8)
+     stop
+  endif
 
   if (ipick.eq.ncol+1) then
      if (nplotsmulti.eq.0) ipick = ncol+2
@@ -236,6 +248,10 @@ program plotmeagraph
      print *,' Steps = ',mysteps
      goto 200
   elseif (ipick.eq.ncol+5) then
+     igetfreq = .not.igetfreq
+     print*,'frequencies = ',igetfreq
+     goto 200
+  elseif (ipick.eq.ncol+6) then
      print*,'Enter horizontal position as fraction of x axis:'
      read*,hpos
      print*,'Enter vertical offset from top of graph in character heights:'
@@ -247,7 +263,7 @@ program plotmeagraph
      close(51)	 
 43   continue     
      goto 200
-  elseif (ipick.eq.ncol+6) then
+  elseif (ipick.eq.ncol+7) then
      print*,'Enter plot number to change limits'
      read*,ichange
      if (ichange.gt.0 .and. ichange.le.ncol) then
@@ -257,7 +273,7 @@ program plotmeagraph
         read*,lim(ichange,2)
      endif
      goto 200
-  elseif (ipick.eq.ncol+7) then
+  elseif (ipick.eq.ncol+8) then
      icycle = .not.icycle
      print *,' cycle = ',icycle
      goto 200	  
@@ -365,6 +381,24 @@ program plotmeagraph
 	         endif
 	      enddo
 	   endif
+	   
+	   !
+           !--work out period of oscillation from spacing of minima/maxima
+	   !
+           if (igetfreq .and. iplotx(i).eq.1) then
+	      call getmax(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
+	                  evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+		          nstepsfile(ifile),freq)
+	   
+ 	   !
+           !--output this to a file
+           !
+	      print*,'writing to frequency file'
+	      write(8,*) freq,rootname(ifile)
+	   endif
+	   
+	   
+	   
 	enddo
         call pgslw(1)
 
@@ -417,7 +451,8 @@ program plotmeagraph
   
 ! ------------------------------------------------------------------------      
   
-999 continue                 
+999 continue  
+    close(8)               
 end program plotmeagraph
 
 subroutine readev(nsteps,evdata,ncols,rootname)
@@ -459,8 +494,13 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   return
 end subroutine readev
 
-
-subroutine getmax(datain,time,max)
+!
+! subroutine to work out the positions of maxima and minima in the
+!  quantity plotted. Works out the period from the distance between two
+!  minima or two maxima
+!
+!
+subroutine getmax(datain,time,max,freq2)
   implicit none
   integer i,max,nmax,nmin
   real datain(max),time(max),timeprev,timeprev2
@@ -481,7 +521,7 @@ subroutine getmax(datain,time,max)
         nmax = nmax + 1
         if (mod(nmax,2).eq.0) then
            period = time(i)-timeprev            
-           print*,' max: time, period = ',time(i),period
+           print 10,'max',time(i),period,1./period
            timeprev = time(i)
            avper = avper + period
         endif
@@ -493,7 +533,7 @@ subroutine getmax(datain,time,max)
         if (mod(nmin,2).eq.1) then
            if (nmin.gt.1) then
               period = time(i)-timeprev2            
-              print*,' min: time, period = ',time(i),period
+              print 10,'min',time(i),period,1./period
               avper2 = avper2 + period
            endif
            timeprev2 = time(i)	       
@@ -501,6 +541,7 @@ subroutine getmax(datain,time,max)
         
      endif
   enddo
+10 format(a,' at t = ',f8.4,' period = ',f8.4,' freq = ',f8.4)
   
   nmin = nmin - 1
   avper = avper/(nmax/2)
@@ -509,8 +550,9 @@ subroutine getmax(datain,time,max)
   freq2 = 1./avper2
   omega = 2.*pi*freq
   omega2 = 2.*pi*freq2
-  print*,' average max p,f,w = ',avper,freq,omega,nmax
-  print*,' average min p,f,w = ',avper2,freq2,omega2,nmin
+  print 20,'average max ',avper,freq,omega,nmax
+  print 20,'average min ',avper2,freq2,omega2,nmin
+20 format(a,' period = ',f8.4,' freq = ',f8.4,' omega = ',f8.4,' using ',i3,' values')  
   
   return
 end subroutine getmax
