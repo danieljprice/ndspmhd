@@ -901,7 +901,15 @@ contains
        !--add contributions to magnetic force
        !        
        fmagi(:) = faniso(:) - fiso*dr(:)
-       
+    
+    elseif (imagforce.eq.3) then  ! alternative symmetric formulation on aniso
+
+       rhoij = rhoi*rhoj
+       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+       ! faniso is        B*div B        +    B dot grad B
+       faniso(:) = (Bi(:)*projBj*grkerni + Bj(:)*projBi*grkernj)/rhoij
+       fmagi(:) = faniso(:) - fiso*dr(:)   
+    
     elseif (imagforce.eq.5) then      ! Morris' Hybrid form
        
        rhoij = rhoi*rhoj
@@ -916,6 +924,8 @@ contains
     !
     divB(i) = divB(i) - pmassj*projdB*grkern
     divB(j) = divB(j) - pmassi*projdB*grkern
+    !divB(i) = divB(i) + pmassj*projBrhoj*grkerni
+    !divB(j) = divB(j) - pmassi*projBrhoi*grkernj
     !
     !--compute rho * current density J
     !
@@ -948,11 +958,16 @@ contains
     !   (evolving B/rho)
     !
     if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
-       if (imhd.eq.3) then   ! conservative form (explicitly symmetric)
+       if (imhd.eq.4) then   ! conservative form (explicitly symmetric)
           dBconsdt(:,i) = dBconsdt(:,i)            &
                + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
           dBconsdt(:,j) = dBconsdt(:,j)             &
-               - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj             
+               - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
+       elseif (imhd.eq.3) then   ! goes with imagforce = 3
+          dBconsdt(:,i) = dBconsdt(:,i)         &
+               - pmassj*projBrhoj*dvel(:)*grkerni 
+          dBconsdt(:,j) = dBconsdt(:,j)         &
+               - pmassi*projBrhoi*dvel(:)*grkernj            
        elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
           dBconsdt(:,i) = dBconsdt(:,i)            &
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
