@@ -416,6 +416,7 @@ SUBROUTINE get_rates
 		   envisc = 0.5*alphaav*vsig*(vissv+vissB)*rhoav1*grkern!*abs(rx)
 	           uvisc = 0.5*alphaav*vsig*vissu*rhoav1*grkern		   
 		   ELSEIF (iav.EQ.2) THEN
+		   STOP 'crap av choice'
 !--viscosity (kinetic energy term)
 		   vsigii = vsigi + 0.5*beta*viss
 		   vsigjj = vsigj + 0.5*beta*viss   
@@ -453,8 +454,8 @@ SUBROUTINE get_rates
 !
 !--pressure term (generalised form)
 !
-       	        prterm = phij_on_phii*Prho2i*grkerni 		&
-     		       + phii_on_phij*Prho2j*grkernj	   	   
+       	        prterm = phii_on_phij*Prho2i*grkerni 		&
+     		       + phij_on_phii*Prho2j*grkernj	   	   
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
@@ -471,8 +472,11 @@ SUBROUTINE get_rates
 !--time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - gives divv for art vis.
 !
-	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni
-		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
+!	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni
+!		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
+	        drhodti = pmassj*dvdotr*grkerni
+		drhodtj = pmassi*dvdotr*grkernj
+
 				
 		drhodt(i) = drhodt(i) + drhodti
 		drhodt(j) = drhodt(j) + drhodtj
@@ -606,11 +610,11 @@ SUBROUTINE get_rates
 		   Bidotvj = DOT_PRODUCT(Brhoi,velj)
 		   Bjdotvi = DOT_PRODUCT(Brhoj,veli)
 ! (isotropic stress)
-		   prvterm(:) = (Prho2i+0.5*Brho2i)*phij_on_phii*velj(:)*grkerni &
-                              + (Prho2j+0.5*Brho2j)*phii_on_phij*veli(:)*grkernj
+		   prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*grkerni &
+                              + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*grkernj
 ! (anisotropic stress)
-		   prvaniso =  - Bidotvj*projBrhoi*phij_on_phii*grkerni	& 
-		               - Bjdotvi*projBrhoj*phii_on_phij*grkernj
+		   prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
+		               - Bjdotvi*projBrhoj*phij_on_phii*grkernj
 		   projprv = DOT_PRODUCT(prvterm,dr)		   
 ! (add source term for anticlumping term)		   
 		   IF (ianticlump.EQ.1 .AND. imagforce.EQ.2) THEN
@@ -622,10 +626,10 @@ SUBROUTINE get_rates
                       Bidotvj = DOT_PRODUCT(Brhoi(1:ndim),velj(1:ndim))
 		      Bjdotvj = DOT_PRODUCT(Brhoj(1:ndim),velj(1:ndim))
 		      
- 		      prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phij_on_phii*grkerni &
-		                         -Bjdotvi*projBrhoj*phii_on_phij*grkernj)
-		      prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phij_on_phii*grkerni &
-		     			 -Bjdotvj*projBrhoj*phii_on_phij*grkernj)
+ 		      prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phii_on_phij*grkerni &
+		                         -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
+		      prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phii_on_phij*grkerni &
+		     			 -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
 		   ENDIF	   
 ! (dissipation term)
 		   IF (ndimV.GT.ndim) THEN
