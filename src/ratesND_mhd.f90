@@ -402,7 +402,7 @@ subroutine get_rates
        !
        if (iavlim(1).ne.0) then
           source = max(drhodt(i)*rho1i,0.0)
-          if (iavlim(1).eq.1) source = source*(2.0-alpha(1,i))      
+          if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))      
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        endif
        !
