@@ -111,6 +111,7 @@ SUBROUTINE initialise
  fmag = 0.
  psi = 0.
  sqrtg = 1.
+ if (imhd.eq.0) Bfield = 0.  ! zero mag field if turned off
 !
 !--if using fixed particle boundaries, set them up
 !
