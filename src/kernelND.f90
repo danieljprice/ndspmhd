@@ -409,7 +409,11 @@ SUBROUTINE setkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-       cnormk = 3./5.
+       cnormk = 3./5. ! normalisation is probably wrong
+      CASE(2)
+       cnormk = 1/(pi)
+      CASE(3)
+       cnormk = 105/(16.*pi)
       CASE DEFAULT
        write(iprint,666)
        STOP
@@ -418,9 +422,10 @@ SUBROUTINE setkern
       q2 = i*dq2table
       q = SQRT(q2)
       IF (q.LT.2.0) THEN
-         wij(i) = (1.+0.5*q)*(1.-0.5*q)**3
-         grwij(i) = (0.5*(1.-0.5*q)**3 - 1.5*(1.+0.5*q)*(1.-0.5*q)**2)
-         grgrwij(i) = (-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+         wij(i) = (1.+1.5*q)*(1.-0.5*q)**3
+         grwij(i) = (1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2)
+         !--note second deriv is wrong
+         grgrwij(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
       ELSE
          wij(i) = 0.0
          grwij(i) = 0.0

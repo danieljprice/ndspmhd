@@ -28,10 +28,10 @@ contains
 !--define local variables
 !
     implicit none
-    integer, intent(IN) :: npart
-    real, dimension(ndim,*), intent(IN) :: x
-    real, dimension(*), intent(IN) :: pmass, hh
-    real, dimension(*), intent(OUT) :: rho, gradh
+    integer, intent(in) :: npart
+    real, dimension(ndim,*), intent(in) :: x
+    real, dimension(*), intent(in) :: pmass, hh
+    real, dimension(*), intent(out) :: rho, gradh
  
     integer :: i,j,n,idim
     integer :: icell,iprev,nneigh
@@ -246,12 +246,12 @@ contains
 !--define local variables
 !
     implicit none
-    integer, intent(IN) :: npart
-    real, dimension(ndim,*), intent(IN) :: x
-    real, dimension(*), intent(IN) :: pmass, hh
-    real, dimension(*), intent(OUT) :: rho, gradh
-    integer, intent(IN) :: nlist
-    integer, intent(IN), dimension(:) :: ipartlist
+    integer, intent(in) :: npart
+    real, dimension(ndim,*), intent(in) :: x
+    real, dimension(*), intent(in) :: pmass, hh
+    real, dimension(*), intent(out) :: rho, gradh
+    integer, intent(in) :: nlist
+    integer, intent(in), dimension(:) :: ipartlist
 
     integer :: i,j,n,idim
     integer :: icell,ipart,nneigh,minneigh,minpart
