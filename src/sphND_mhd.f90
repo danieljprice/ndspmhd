@@ -54,8 +54,9 @@ PROGRAM SUPERSPMHD_ND
 !--version number
 !
     version = 'NDSPMHD-3D-v5-2'
-!    *** this version used to obtain sound wave
-!    and hydro shock results for thesis 10/5/04 ***
+!    *** this version used to obtain swave and hydro shocks for thesis 10/5/04 ***
+!    *** this version used to obtain 1D MHD shock tube results for thesis 13/5/04
+!    *** also used for Bx peak test in thesis/paper III 17/5/04
 !   * 1D turbulence setup revised/set_powerspec
 !   * fixed particle boundaries work in >1D, initialise cleaned up
 !   * hyperbolic/parabolic divergence cleaning

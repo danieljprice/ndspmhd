@@ -74,7 +74,15 @@ SUBROUTINE step
 !    alphain(:,i) = alpha(:,i)
 !    psiin(i) = psi(i)
 ! ENDDO         
-
+!
+!--if doing divergence correction then do correction to magnetic field
+! 
+ IF (idivBzero.EQ.10 .AND. MOD(nsteps,10).EQ.0) THEN
+    CALL divBcorrect(npart,ntotal)
+    Bconsin(:,1:ntotal) = Bcons(:,1:ntotal)
+    IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
+ ENDIF
+  
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
@@ -283,7 +291,7 @@ SUBROUTINE step
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
-! IF (idivBzero.NE.0) CALL divBcorrect
+! IF (idivBzero.EQ.1 .and. MOD(nsteps,10.EQ.0) .AND. ALL(ibound.EQ.0)) CALL divBcorrect
 !
  IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
 !
