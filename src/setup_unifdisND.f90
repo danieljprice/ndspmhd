@@ -34,7 +34,7 @@ SUBROUTINE setup
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(4,psep,xmin,xmax,.false.)
+ CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass
@@ -48,7 +48,7 @@ SUBROUTINE setup
 ! 
  DO i=1,ntotal
     vel(:,i) = 0.
-    vel(1,i) = x(1,i)
+    !!!vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0	! isothermal

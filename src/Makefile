@@ -54,11 +54,11 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-#SETUP2D = setup_unifdisND.f90
+SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-SETUP2D = setup_toystarND_static.f90
+#SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -80,6 +80,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 SOURCES = sphND_mhd.f90 geometry.f90 \
          allocateND.f90 readwrite_dumps.f90 \
+         readwrite_infile.f90 \
          boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
@@ -92,11 +93,11 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 outputND_mhd.f90 \
 	 random.f90 ratesND_mhd.f90 \
-	 read_infile_mhd.f90 riemannsolver.f90 \
+	 riemannsolver.f90 \
 	 set_fixedbound.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 sobolsequence.f90 substep_divB.f90 utils.f90 \
-	 write_infile_mhd.f90 write_headerND_mhd.f90 \
+	 write_headerND_mhd.f90 \
 	 divBcorrect.f90 get_divB.f90 get_curl.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90
 

@@ -94,16 +94,16 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--general options on form of equations
 !
-    WRITE (iprint,50) iener, icty, iprterm, iav, imhd
+    WRITE (iprint,50) iener, icty, iprterm, iav, imhd, iexternal_force
 50 FORMAT(' Options: ',/,                                                &
       6x,' Energy equation  : ',i2,5x,' Continuity Equation  :',i2,/,        &
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,        &
-      6x,' Magnetic fields  : ',i2,/)
+      6x,' Magnetic fields  : ',i2,5x,' External forces      :',i2/)
 
     WRITE (iprint,60) ihvar, ikernav, hfact, ndim
 60 FORMAT(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*m/rho**(1/',i1,')',/)
+      6x,' h = ',f4.2,'*(m/rho)**(1/',i1,')',/)
 
     IF (imhd.NE.0) THEN
        WRITE (iprint,70) imagforce,idivBzero,ianticlump,eps,neps

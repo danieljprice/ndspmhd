@@ -23,7 +23,8 @@ SUBROUTINE initialise
  USE part_in
  USE setup_params
  
- USE dumpfiles
+ USE infiles, only:read_infile
+ USE dumpfiles, only:read_dump
 !
 !--define local variables
 !      

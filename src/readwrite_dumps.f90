@@ -11,6 +11,7 @@ subroutine write_dump(t,dumpfile)
  use dimen_mhd
  use loguns
  
+ use bound
  use eos
  use options
  use part
@@ -48,7 +49,8 @@ subroutine write_dump(t,dumpfile)
     ndata = ndim + 8 + ndimV
     if (igeom.ne.0) ndata = ndata + 2 + ndimV
  endif
- write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata,igeom,iformat
+ write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
+                             ndata,igeom,iformat,ibound,xmin,xmax
  if (ierr /= 0) then
     write(iprint,*) '*** error writing timestep header to dumpfile ',trim(dumpfile)
  endif
@@ -160,7 +162,8 @@ subroutine read_dump(dumpfile,tfile)
 ! read(ireadf,iostat=ierr) tfile,npartfile,nprintfile,gammafile,hfactfile, &
 !      ndimfile,ndimvfile,ncolumns,igeomfile,iformat
  read(ireadf,iostat=ierr) tfile,npartfile,nprintfile,gammafile,hfactfile, &
-      ndimfile,ndimvfile,ncolumns
+                          ndimfile,ndimvfile,ncolumns,igeomfile,iformat, &
+                          ibound(1:ndimfile),xmin(1:ndimfile),xmax(1:ndimfile)
  if (ierr /= 0) then
     write(iprint,*) 'error reading header from dump file: ',trim(dumpfile)
     stop 
@@ -257,14 +260,6 @@ subroutine read_dump(dumpfile,tfile)
  
  
  write(iprint,*) 'finished reading setup file: everything is aok'
-
-!
-!--set bounds of setup
-!                   
- xmax = 0.   ! irrelevant
- xmin = 0.
- ibound = 0	! no boundaries 
- iexternal_force = 1	! use toy star force
 
  if (igeom.eq.2) then
     ibound(1) = 2 ! reflective in r

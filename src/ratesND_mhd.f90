@@ -334,7 +334,7 @@ subroutine get_rates
 !!    vsigmax = vsigdtc !!!SQRT(vsig2max)
     vsig2max = vsigmax**2
  endif
- print*,'vsigmax = ',sqrt(vsig2max)
+! print*,'vsigmax = ',sqrt(vsig2max)
 ! read*
  
  do i=1,npart
