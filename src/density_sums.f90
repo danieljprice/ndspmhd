@@ -23,6 +23,7 @@ contains
     use linklist
     use options
     use setup_params
+    use matrixcorr
 !
 !--define local variables
 !
@@ -32,7 +33,7 @@ contains
     real, dimension(*), intent(IN) :: pmass, hh
     real, dimension(*), intent(OUT) :: rho, gradh
  
-    integer :: i,j,n
+    integer :: i,j,n,idim
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh
     integer :: idone
@@ -42,7 +43,7 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2
     real :: hfacwab,hfacwabi,hfacwabj
-    real, dimension(ndim) :: dx
+    real, dimension(ndim) :: dx,dr
 !
 !  (kernel quantities)
 !
@@ -59,10 +60,13 @@ contains
 !
     listneigh = 0
     numneigh = 0
+    dwdhi = 0.
+    dwdhj = 0.
 
     do i=1,npart
        rho(i) = 0.
        gradh(i) = 0.
+       gradmatrix(:,:,i) = 0.
     enddo
 !
 !--Loop over all the link-list cells
@@ -101,6 +105,11 @@ contains
          
              rij2 = dot_product(dx,dx)
              rij = sqrt(rij2)
+             IF (i.NE.j) THEN
+                dr(:) = dx(:)/rij
+             ELSE
+                dr(:) = 0.
+             ENDIF
              q2i = rij2/hi2
              q2j = rij2/hj2       
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
@@ -136,6 +145,8 @@ contains
                    grkern = grkern*hfacwab*hav1
                    wabi = wab
                    wabj = wab
+                   grkerni = grkern
+                   grkernj = grkern
                 else
               !
               !--calculate both kernels if using the anticlumping term
@@ -154,6 +165,9 @@ contains
                       wab = 0.5*(wabi + wabj)
                       wabi = wab
                       wabj = wab
+                      grkern = 0.5*(grkerni + grkernj)
+                      grkerni = grkern
+                      grkernj = grkern
                    endif
               !
               !--derivative w.r.t. h for grad h correction terms (and dhdrho)
@@ -177,6 +191,16 @@ contains
                    gradh(i) = gradh(i) + pmass(j)*weight*dwdhi
                    gradh(j) = gradh(j) + pmass(i)*weight*dwdhj
                 endif
+                
+                if (i.ne.j) then
+                do idim=1,ndim
+                   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
+                               + 2.*pmass(j)*(dx(:))*dr(idim)*grkerni
+                   gradmatrix(:,idim,j) = gradmatrix(:,idim,j) &
+                               + 2.*pmass(i)*(dx(:))*dr(idim)*grkernj
+                enddo
+                endif
+
 !        ELSE
 !           PRINT*,' r/h > 2 '      
         
@@ -222,6 +246,7 @@ contains
     use bound
     use kernel
     use linklist
+    use matrixcorr
 !
 !--define local variables
 !
@@ -233,7 +258,7 @@ contains
     integer, intent(IN) :: nlist
     integer, intent(IN), dimension(:) :: ipartlist
 
-    integer :: i,j,n
+    integer :: i,j,n,idim
     integer :: icell,ipart,nneigh,minneigh,minpart
     integer, dimension(npart) :: listneigh
     integer :: icellprev
@@ -243,7 +268,7 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hi2
     real :: hfacwabi,hfacgrkerni
-    real, dimension(ndim) :: dx
+    real, dimension(ndim) :: dx,dr
 !
 !  (kernel quantities)
 !
@@ -263,6 +288,7 @@ contains
        i = ipartlist(ipart)
        rho(i) = 0.
        gradh(i) = 0.
+       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
     enddo
     icellprev = 0
@@ -304,6 +330,11 @@ contains
 !                           
           rij2 = dot_product(dx,dx)
           rij = sqrt(rij2)
+          IF (i.NE.j) THEN
+             dr(:) = dx(:)/rij
+          ELSE
+             dr(:) = 0.
+          ENDIF
           q2i = rij2/hi2
 !      
 !--do interaction if r/h < compact support size
@@ -331,6 +362,11 @@ contains
 !  need to divide by rho once rho is known
 
              gradh(i) = gradh(i) + pmass(j)*dwdhi
+          
+             do idim=1,ndim
+                gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
+                            + 2.*pmass(j)*(dx(:))*dr(idim)*grkerni
+             enddo
        
           endif
           
@@ -340,8 +376,8 @@ contains
 
     !print*,'finished density_partial, rho, gradh, h =',rho(1),gradh(1),hh(1),numneigh(1)
     !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
-    print*,'minimum number of neighbours = ',MINVAL(numneigh(1:npart)), &
-           MINLOC(numneigh(1:npart)),rho(MINLOC(numneigh(1:npart)))
+    !print*,'minimum number of neighbours = ',MINVAL(numneigh(1:npart)), &
+    !       MINLOC(numneigh(1:npart)),rho(MINLOC(numneigh(1:npart)))
 
     !minneigh = 100000
     !minpart = 1

@@ -13,6 +13,7 @@ subroutine copy_particle(i,j)
   use part
   use rates
   use xsph
+  use matrixcorr
   implicit none
   integer :: i,j
 
@@ -44,6 +45,8 @@ subroutine copy_particle(i,j)
   xsphterm(:,i) = xsphterm(:,j) ! after here not crucial
   fmag(:,i) = fmag(:,j)
   divB(i) = divB(j)
-  curlB(:,i) = curlB(:,j) 
+  curlB(:,i) = curlB(:,j)
+  
+  gradmatrix(:,:,i) = gradmatrix(:,:,j)
  
 end subroutine copy_particle
