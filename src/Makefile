@@ -45,15 +45,15 @@ SETUP1D = setup_unifdisND.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
-#SETUP2D = setup_blast2D_mhd.f90
+#SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-#SETUP2D = setup_currentsheet2D_mhd.f90
 SETUP2D = setup_unifdisND.f90
 
 SETUP25D = setup_alfvenwaveND.f90
 
-SETUP3D = setup_unifdisND.f90
+#SETUP3D = setup_unifdisND.f90
+SETUP3D = setup_sphericalblastND_mhd.f90
 
 ######################################################################
 
