@@ -115,7 +115,10 @@ subroutine iterate_density
               if (abs(1.-gradh(i)).lt.1.e-5) then
                  print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
                  if (abs(1.-gradh(i)).eq.0.) call quit
-              endif
+              elseif (abs(1.-gradhaniso(i)).lt.1.e-5) then
+                 print*,'warning: 1-gradhaniso < 1.e-5 ',1.-gradhaniso(i)
+                 if (abs(1.-gradhaniso(i)).eq.0.) call quit	      
+	      endif
 !
 !--perform Newton-Raphson iteration on rho
 !      
