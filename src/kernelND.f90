@@ -11,10 +11,8 @@
 !!  5) a general class of quintic splines (max r/h = 2)
 !!
 !!  Note in the ND case, the normalisation constants are right
-!!  only for the cubic spline in > 1D.
+!!  only for the cubic and quintic splines in > 1D.
 !!
-!! Changes log:
-!! 4/8/03 - select case and variable ikernel
 !!-----------------------------------------------------------------
 
 SUBROUTINE setkern  
@@ -44,7 +42,7 @@ SUBROUTINE setkern
  iplot = .false. 	! plot kernel using PGPLOT
 
  SELECT CASE(ikernel)
-  CASE(1)
+  CASE(2)
 !
 !--this is the usual spline based kernel modified for r/h < 2/3 to
 !   prevent particles from clumping (see Thomas & Couchman '92)
@@ -88,9 +86,9 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
 
-  CASE(2)
+  CASE(3)
 !
-!--this is the quintic spline (see e.g. Morris 1996, PhD thesis)
+!--this is the M_6 quintic spline (see e.g. Morris 1996, PhD thesis)
 !
     kernelname = 'quintic spline'  
     radkern = 3.0
@@ -99,6 +97,8 @@ SUBROUTINE setkern
     SELECT CASE(ndim)
       CASE(1) 
        cnormk = 0.5/60.
+      CASE(2)
+       cnormk = 7./(478*pi)
       CASE DEFAULT
        STOP ' normalisation constant not defined in kernel '
     END SELECT
@@ -128,7 +128,7 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
 
-  CASE(3)
+  CASE(4)
 !
 !--this is my squashed quintic spline (quintic rescaled to radius 2)
 !
@@ -168,7 +168,7 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
 
-  CASE(4)
+  CASE(5)
 !
 !--this is the squashed quintic spline from Bonet & Kulesegaram
 !
@@ -202,7 +202,7 @@ SUBROUTINE setkern
       ENDIF
     ENDDO  
 
-  CASE(5)
+  CASE(6)
 !
 !--this is the Do-It-Yourself quintic kernel (general class of quintic splines)
 !
@@ -268,7 +268,7 @@ SUBROUTINE setkern
       ENDIF
     ENDDO
     
-  CASE (6)
+  CASE (7)
 !
 !--(1-r^2)^2
 !    
