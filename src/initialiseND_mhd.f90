@@ -100,18 +100,10 @@ SUBROUTINE initialise
 !  (initial smoothing length, dissipation parameter, gradh terms)
 !    
  DO i=1,npart
-!
-!--set smoothing length (h) according to the initial value of the density
-!    
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower
-!    hh(i) = hhin(i)	! uncomment if h set in setup
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower	! set using density
     hhin(i) = hh(i)
     IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
-    IF (iavlim.NE.1) THEN
-       alpha(i) = alphamin
-    ELSE
-       alpha(i) = alphamin       	! remove if set in setup
-    ENDIF
+    alpha(i) = alphamin       	! remove if set in setup
     gradh(i) = 0.
  ENDDO
 !
@@ -160,13 +152,10 @@ SUBROUTINE initialise
 !--set initial pressure, vsound from eos (also u if polytropic)
 !      
     CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
- ENDDO
 !
 !--calculate the conserved variables from the primitive variables
 !  (this calculates en, B/rho from the thermal energy and B)
 !
- IF (trace) WRITE(iprint,*) 'calculating conservative variables...'      
- DO i=1,npart
     CALL primitive2conservative(rho(i),vel(:,i),uu(i),en(i), &
     				Bfield(:,i),Bcons(:,i),ierr)
  ENDDO	! (note energy and B/rho are not set for ghosts yet)
