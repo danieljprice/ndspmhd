@@ -390,6 +390,7 @@ subroutine get_rates
 !--calculate time derivative of alpha (artificial dissipation coefficients)
 !  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
 !     
+    daldt(:,i) = 0.   
     if (iavlim.ne.0 .or. iaulim.ne.0 .or. iaBlim.ne.0) then
        tdecay1 = (avdecayconst*vsig)/hh(i)      ! 1/decay time (use vsig)
        !
@@ -399,8 +400,6 @@ subroutine get_rates
           source = max(drhodt(i)*rho1i,0.0)
           if (iavlim.eq.2) source = source*(2.0-alpha(1,i))      
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
-       else
-          daldt(1,i) = 0.
        endif
        !
        !--artificial thermal conductivity parameter
@@ -409,8 +408,6 @@ subroutine get_rates
           sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
           if (iaulim.eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
-       else
-          daldt(2,i) = 0.
        endif
        !
        !--artificial resistivity parameter if iavlim > 10
@@ -419,14 +416,10 @@ subroutine get_rates
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = abs(divB(i))*SQRT(rho1i)
-	  sourceB = 2.0*MAX(sourceJ,sourcedivB)
+	  sourceB = MAX(sourceJ,sourcedivB)
           if (iaBlim.eq.2) sourceB = sourceB*(2.0-alpha(3,i))
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
-       else
-          daldt(3,i) = 0.
        endif
-    else
-       daldt(:,i) = 0.
     endif
 !
 !--calculate time derivative of divergence correction parameter psi
@@ -651,7 +644,7 @@ contains
 !  grad u term for dissipation switch
 !------------------------------------------------------------------------
 
-    if (iav.ne.0) then
+    if (iav.ne.0 .and. iaulim.ne.0) then
        graduterm = uu(j)-uu(i)
        gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
        gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
@@ -738,12 +731,12 @@ contains
        if (dvdotr.lt.0) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
-          qdiff = qdiff - alphaav*0.5*(v2j-v2i)
+          qdiff = qdiff + alphaav*0.5*(v2i-v2j)
        endif
        !
        !  thermal energy terms - applied everywhere
        !
-       qdiff = qdiff - alphau*(uu(i)-uu(j))
+       qdiff = qdiff + alphau*(uu(i)-uu(j))
        !
        !  magnetic energy terms - applied everywhere
        !
@@ -754,12 +747,12 @@ contains
           B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
           B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
        endif
-       qdiff = qdiff - alphaB*0.5*(B2i-B2j)*rhoav1
+       qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
        !
        !  add to total energy equation
        !
-       dendt(i) = dendt(i) - pmassj*term*qdiff
-       dendt(j) = dendt(j) + pmassi*term*qdiff                 
+       dendt(i) = dendt(i) + pmassj*term*qdiff
+       dendt(j) = dendt(j) - pmassi*term*qdiff                 
 
     !--------------------------------------------------
     !   thermal energy equation
