@@ -2,7 +2,7 @@ subroutine kernelstability1D
   use kernel
   implicit none
   integer, parameter :: nh = 100, nkx = 100, npart = 20, ncont = 40
-  integer :: i,j,ipart,mm,pp,nc
+  integer :: i,j,ipart,mm,pp,nc,icall
   real, parameter :: pi = 3.1415926536
   real, dimension(nh,nkx) :: dat
   real, dimension(nh) :: harray
@@ -12,9 +12,12 @@ subroutine kernelstability1D
   real, dimension(6) :: trans
   real :: xmin, psep, pmass, rhozero, cs2
   real :: hmin, hmax, dh, dkx, kxmin, kxmax, h, kx
-  real :: datmin, datmax, dcont, omegasq1D
+  real :: datmin, datmax, dcont, omegasq, omegasq1D
   character(len=5) :: string
-
+  save icall
+  
+  icall = icall + 1
+  print*,'icall = ',icall
   cs2 = 1.0
   rhozero = 1.0
   psep = 1.0
@@ -53,7 +56,8 @@ subroutine kernelstability1D
      h = harray(j)*psep
      do i=1,nkx
         kx = kxarray(i)/psep
-        dat(i,j) = 0.5*omegasq1D(h,kxarray(i),cs2,pmass,rhozero,x,npart,ipart)/(kx**2*cs2)
+	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,x,npart,ipart)
+        dat(i,j) = 0.5*omegasq/(kx**2*cs2)
 !       print*,i,j,' kx = ',kx,' h = ',harray(j),h,' dat = ',dat(i,j)
      enddo
   enddo
@@ -61,8 +65,10 @@ subroutine kernelstability1D
 !--now plot this using PGPLOT
 !
 !!  call pgbegin(0,'?',1,1)
-  call pgenv(kxmin,kxmax,hmin,hmax,0,1)
-  call pglabel('kx','h',TRIM(kernelname))
+!  call pgsch(1.2)
+  call danpgtile(icall,3,2,kxmin,kxmax,hmin,hmax-0.001,'kx','h',TRIM(kernelname),0)
+!  call pgenv(kxmin,kxmax,hmin,hmax,0,1)
+!  call pglabel('kx','h',TRIM(kernelname))
   call pgsci(1)
   trans(1) = kxmin - 0.5*dkx               ! this is for the pgimag call
   trans(2) = dkx                  ! see help for pgimag/pggray/pgcont
@@ -90,9 +96,9 @@ subroutine kernelstability1D
      PP=nint(log10(levels(i))-log10(levels(i)*100))
      call pgnumb(MM,PP,1,string,nc)
      !!print*,'level = ',levels(i),string(1:nc)
-     call pgsch(0.75) ! character height
-     call pgconl(dat,nkx,nh,1,nkx,1,nh,levels(i),trans,string(1:nc),30,20)
-     call pgsch(1.0)
+     call pgsch(0.5) ! character height
+     call pgconl(dat,nkx,nh,1,nkx,1,nh,levels(i),trans,string(1:nc),35,20)
+     call pgsch(0.6)
   enddo
 !!  call pgend
 
@@ -130,7 +136,6 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,x,npart,ipart)
      sum1 = sum1 + (1. - COS(kx*dx))*gradgradW  ! times unit vector in x dir (=1)
      sum2 = sum2 + SIN(kx*dx)*gradW
   enddo
-
   omegasq1D = (2.*cs2*pmass/rhozero)*sum1 - cs2*(pmass/rhozero*sum2)**2
 
 end function omegasq1D
