@@ -80,7 +80,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 SOURCES = sphND_mhd.f90 geometry.f90 \
          allocateND.f90 readwrite_dumps.f90 \
-         readwrite_infile.f90 \
+         readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
@@ -95,7 +95,6 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
 	 set_fixedbound.f90 \
-	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 sobolsequence.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
 	 divBcorrect.f90 get_divB.f90 get_curl.f90 get_divBgradpsi.f90 \
