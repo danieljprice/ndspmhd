@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/bin/env perl
 #
 #
 #
@@ -18,17 +18,27 @@ if ($#ARGV !=2) {
 
 my ($rootname,$nruns,$nsteps) = @ARGV;
 
+# make a new directory for the run
+print "making new directory $rootname";
+system "mkdir $rootname";
+# copy files to this directory
+system "cp multirun.in ./$rootname";
+system "cp 1DSPMHD ./$rootname";
+system "cp defaults ./$rootname";
+system "cd $rootname; ln -s ../supersphplot ./supersphplot";
+system "cd $rootname; ln -s ../evsupersph ./evsupersph";
+
 # call the multirun program to generate the input files
-system "multi/multirun $rootname $nruns";
+system "cd $rootname; ../multi/multirun $rootname $nruns";
 
 # write appropriate runnames to 'runname' and execute program
 for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
-    system "1DSPMHD $rootname$n";
+    system "cd $rootname; ./1DSPMHD $rootname$n";
 }
 
 # call the sametime program to write simultaneous data steps
-system "utils/sametime $rootname $nruns $nsteps";
+system "cd $rootname; ../utils/sametime $rootname $nruns $nsteps";
 
 print "finished $rootname";
 
