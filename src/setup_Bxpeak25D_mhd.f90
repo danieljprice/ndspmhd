@@ -36,15 +36,15 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound = 3	! reflective ghosts (boundaries not important in this problem)
- nbpts = 0	! no fixed particles
- xmin(:) = -0.5	! unit square
+ ibound = 3     ! reflective ghosts (boundaries not important in this problem)
+ nbpts = 0      ! no fixed particles
+ xmin(:) = -0.5 ! unit square
  xmax(:) = 1.5
  const = SQRT(4.*pi) 
 !
 !--setup parameters for the problem
 ! 
- xorigin(:) = 0.0	! co-ordinates of the centre of the initial blast
+ xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
  rbump = 0.125		! radius of the initial bump
  Bzero(:) = 0.
  IF (imhd.NE.0) Bzero(3) = 1.0/const	! uniform field in Bz direction
