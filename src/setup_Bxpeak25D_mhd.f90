@@ -76,8 +76,8 @@ SUBROUTINE setup
     dx(:) = x(:,ipart)-xorigin(:) 
     rr = DOT_PRODUCT(dx,dx)
     Bfield(:,ipart) = Bzero(:)
-    IF (SQRT(rr).LE.rbump) THEN
-       Bfield(1,ipart) = (4096.*rr**2 - 128.*rr + 1.)/const
+    IF (rr.LE.rbump) THEN
+       Bfield(1,ipart) = (4096.*rr**4 - 128.*rr**2 + 1.)/const
     ENDIF  
     pmass(ipart) = massp
     dens(ipart) = denszero
