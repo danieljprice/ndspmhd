@@ -12,7 +12,7 @@
 
 ## Compiler flags
 F90C =  g95
-F90FLAGS =  -O -r8
+F90FLAGS =  -O -Wall
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 .SUFFIXES:
@@ -86,4 +86,4 @@ prompting.o :
 	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@
 
 clean :
-	rm *.o *.mod *.bp *.lreg
+	rm *.o *.mod
