@@ -91,8 +91,8 @@ subroutine get_rates
 !
 !  (joe's mhd fix)
 !
- real :: wabjoe,wabjoei,grkernjoe
- real :: Rjoe,q2joe
+ real :: wabjoe_fixed,wabjoe,wabjoei,wabjoej,grkernjoe
+ real :: Rjoe, Rjoei, Rjoej, q2joe
 !
 !  (time step criteria)
 !      
@@ -185,9 +185,9 @@ subroutine get_rates
  !
  if (ianticlump.eq.1) then
   q2joe = (1./1.5)**2      ! 1/hfact is initial particle spacing in units of h 
-  call interpolate_kernel(q2joe,wabjoei,grkernjoe)
+  call interpolate_kernel(q2joe,wabjoe_fixed,grkernjoe)
  endif
- ! print*,'wabjoe = ',wabjoei
+ ! print*,'wabjoe = ',wabjoe_fixed
  
 !
 !--Loop over all the link-list cells
@@ -810,20 +810,39 @@ contains
        fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
        !
        !--anisotropic force (including variable smoothing length terms)
-       !
-       faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
-            + Brhoj(:)*projBrhoj*phii_on_phij*grkernj               
-       !
-       !--Joe's correction term (preserves momentum conservation)
-       !  in 1D we only do this in the x-direction
+       !  (also including Joe's correction term which preserves momentum conservation)
+       !   in 1D we only do this in the x-direction
        !
        if (ianticlump.eq.1) then
-          wabjoe = wabjoei*hfacwab
-          Rjoe = 0.5*eps*(wab/wabjoe)**neps
-          !if (Rjoe.gt.0.1) print*,'Rjoe = ',Rjoe,i,j,wab,wabjoe
-          !faniso(:) = faniso(:) - Rjoe*faniso(:)  
-          faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
+          wabjoe = wabjoe_fixed*hfacwab
+          wabjoei = wabjoe_fixed*hfacwabi
+          wabjoej = wabjoe_fixed*hfacwabj
+          Rjoei = 0.5*eps*(wabi/wabjoei)**neps
+          Rjoej = 0.5*eps*(wabj/wabjoej)**neps
+          if (ikernav.eq.2) then
+             Rjoe = 0.5*(Rjoei + Rjoej)
+             Rjoei = Rjoe
+             Rjoej = Rjoe
+          elseif (ikernav.eq.1) then
+             Rjoe = 0.5*eps*(wab/wabjoe)**neps
+             Rjoei = Rjoe
+             Rjoej = Rjoe
+          endif   
+          !!if (Rjoei.gt.0.1) print*,'Rjoei,Rjoej = ',Rjoei,Rjoej,wabi/wabjoei,wabj/wabjoej
+
+          faniso(1:ndimV) = Brhoi(1:ndimV)*projBrhoi*phij_on_phii*grkerni*(1.-Rjoei)  &
+                         + Brhoj(1:ndimV)*projBrhoj*phii_on_phij*grkernj*(1.-Rjoej)               
+          
+          !if (ndimV.gt.ndim) then
+          !   faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
+          !                      + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
+          !endif
+
+       else
+          faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
+                    + Brhoj(:)*projBrhoj*phii_on_phij*grkernj               
        endif
+
        !
        !--add contributions to magnetic force
        !        
@@ -832,7 +851,7 @@ contains
     elseif (imagforce.eq.5) then      ! Morris' Hybrid form
        
        rhoij = rhoi*rhoj
-       fiso = grkern*0.5*(Brho2i + Brho2j)
+       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
        faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
        fmagi(:) = faniso(:) - fiso*dr(:)              
        
