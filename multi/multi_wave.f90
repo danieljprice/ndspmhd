@@ -79,10 +79,10 @@ PROGRAM multirun
  DO i=1,nruns
     IF (i.GE.10) THEN
        filenum = ACHAR(48+i/10)//ACHAR(48+mod(i,10))
-       infile = filename(1:LEN_TRIM(filename))//filenum//'.in'
+       infile = TRIM(filename)//filenum//'.in'
     ELSE
        filenum(1:1) = ACHAR(48+mod(i,10))
-       infile = filename(1:LEN_TRIM(filename))//filenum(1:1)//'.in'
+       infile = TRIM(filename)//filenum(1:1)//'.in'
     ENDIF
     PRINT*,' writing input file ',infile, ' psep = ',psep
     CALL write_infile(infile)

@@ -55,7 +55,7 @@ PROGRAM multirun
  polyk = 0.6
  icty = 0
  ndirect = nmax
- ialtform = 4
+ ialtform = 0
  iav = 2
  alphamin = 0.1
  beta = 2.0
@@ -84,12 +84,12 @@ PROGRAM multirun
  DO i=0,nruns
     IF (i.GE.10) THEN
        filenum = ACHAR(48+i/10)//ACHAR(48+mod(i,10))
-       infile = filename(1:LEN_TRIM(filename))//filenum//'.in'
-       tstarfile = filename(1:LEN_TRIM(filename))//filenum//'.tstar'
+       infile = TRIM(filename)//filenum//'.in'
+       tstarfile = TRIM(filename)//filenum//'.tstar'
     ELSE
        filenum(1:1) = ACHAR(48+mod(i,10))
-       infile = filename(1:LEN_TRIM(filename))//filenum(1:1)//'.in'
-       tstarfile = filename(1:LEN_TRIM(filename))//filenum(1:1)//'.tstar'
+       infile = TRIM(filename)//filenum(1:1)//'.in'
+       tstarfile = TRIM(filename)//filenum(1:1)//'.tstar'
     ENDIF
     PRINT*,' writing input file ',infile, ' psep = ',psep
     

@@ -94,8 +94,8 @@ PROGRAM multirun
        shkfile = TRIM(filename)//filenum//'.shk'
     ELSE
        filenum(1:1) = ACHAR(48+mod(i,10))
-       infile = filename(1:LEN_TRIM(filename))//filenum(1:1)//'.in'
-       shkfile = filename(1:LEN_TRIM(filename))//filenum(1:1)//'.shk'
+       infile = TRIM(filename)//filenum(1:1)//'.in'
+       shkfile = TRIM(filename)//filenum(1:1)//'.shk'
     ENDIF
     PRINT*,' writing input file ',infile, ' psep = ',psep
     
