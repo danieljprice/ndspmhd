@@ -48,7 +48,7 @@ SUBROUTINE step
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
-    alphain(i) = alpha(i)
+    alphain(:,i) = alpha(:,i)
  ENDDO
 !
 !--Predict to the half time step
@@ -67,7 +67,7 @@ SUBROUTINE step
        rho(i) = rhoin(i)
        hh(i) = hhin(i)	    
        en(i) = enin(i)
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
     ELSE
 !
 !--x is predicted to the half timestep
@@ -89,7 +89,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*daldt(i)	   
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
     ENDIF
  ENDDO
 !
@@ -138,7 +138,7 @@ SUBROUTINE step
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
     ELSE
 !--this should be the only update for the velocity (ie. no predictor)
        vel(:,i) = velin(:,i) + dt*force(:,i)	! stepped through whole timestep
@@ -153,7 +153,7 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldt(i)
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)
     ENDIF 
 	      
  ENDDO

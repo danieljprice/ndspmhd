@@ -45,7 +45,7 @@ SUBROUTINE output(t,nstep)
 !--write header line to this data block in data file
 !
  IF (imhd.NE.0) THEN
-    ndata = ndim + 8 + 2*ndimB + ndimV	+ndimV ! number of columns apart from co-ords
+    ndata = ndim + 9 + 2*ndimB + ndimV	+ndimV ! number of columns apart from co-ords
  ELSE
     ndata = ndim + 6 + ndimV + ndimV
  ENDIF
@@ -67,12 +67,12 @@ SUBROUTINE output(t,nstep)
     IF (imhd.NE.0) THEN	! MHD
 
        WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
-        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i),psi(i),force(:,i)
+        pmass(i),alpha(:,i),Bfield(:,i),divB(i),curlB(:,i),psi(i),force(:,i)
 
     ELSE   ! non-MHD
 
        WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &                        
-        pmass(i),alpha(i),force(:,i)
+        pmass(i),alpha(1,i),force(:,i)
 
     ENDIF
 

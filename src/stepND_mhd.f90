@@ -71,7 +71,7 @@ SUBROUTINE step
 !    rhoin(i) = rho(i)
 !    hhin(i) = hh(i)
 !    enin(i) = en(i)
-!    alphain(i) = alpha(i)
+!    alphain(:,i) = alpha(:,i)
 !    psiin(i) = psi(i)
 ! ENDDO         
 
@@ -83,7 +83,7 @@ SUBROUTINE step
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)
@@ -97,7 +97,7 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*daldt(i)	 
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	 
        psi(i) = psiin(i) + hdt*dpsidt(i)  
     ENDIF
 !
@@ -154,7 +154,7 @@ SUBROUTINE step
        Bcons(:,i) = Bconsin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
        psi(i) = psiin(i)
     ELSE
@@ -176,7 +176,7 @@ SUBROUTINE step
           ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*daldt(i)	   
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        psi(i) = psiin(i) + hdt*dpsidt(i)	  
     ENDIF 
@@ -225,8 +225,8 @@ SUBROUTINE step
 	  en(i) = enin(i)
        ENDIF
        IF (iavlim.NE.0) THEN
-	  alphain(i) = 2.*alpha(i) - alphain(i)
-          alpha(i) = alphain(i)
+	  alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
+          alpha(:,i) = alphain(:,i)
        ENDIF
        IF (ihvar.EQ.2) THEN
 	  hhin(i) = 2.*hh(i) - hhin(i)
@@ -264,8 +264,8 @@ SUBROUTINE step
        ENDIF
        hhin(i) = hh(i)	        
        IF (iavlim.NE.0) THEN
-	  alphain(i) = 2.*alpha(i) - alphain(i)
-	  alpha(i) = alphain(i)
+	  alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
+	  alpha(:,i) = alphain(:,i)
        ENDIF	     
        IF (imhd.NE.0) THEN
           Bconsin(:,i) = 2.*Bcons(:,i) - Bconsin(:,i)

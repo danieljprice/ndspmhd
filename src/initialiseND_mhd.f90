@@ -103,7 +103,8 @@ SUBROUTINE initialise
 !
 !--setup additional quantities that are not done in setup
 !
- alpha = alphamin
+ alpha(1,:) = alphamin
+ alpha(2,:) = alphaBmin
  gradh = 0.
  divB = 0.
  curlB = 0.
@@ -137,7 +138,7 @@ SUBROUTINE initialise
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
-    alphain(i) = alpha(i)
+    alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
  ENDDO         
 !

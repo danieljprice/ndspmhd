@@ -30,10 +30,10 @@ SUBROUTINE read_infile(infile)
   READ(iread,*,ERR=50) psep
   READ(iread,*,ERR=50) tmax,tout,nmax,nout
   READ(iread,*,ERR=50) gamma
-  READ(iread,*,ERR=50) iener,polyk
+  READ(iread,*,ERR=50) iener,udiss_frac,alphaBmin,polyk
   READ(iread,*,ERR=50) icty,ndirect
   READ(iread,*,ERR=50) iprterm
-  READ(iread,*,ERR=50) iav,alphamin,udiss_frac,alphaBmin,beta
+  READ(iread,*,ERR=50) iav,alphamin,beta
   READ(iread,*,ERR=50) iavlim,avdecayconst
   READ(iread,*,ERR=50) ikernav
   READ(iread,*,ERR=50) ihvar,hfact

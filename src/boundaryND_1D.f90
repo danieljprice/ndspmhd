@@ -161,7 +161,7 @@ SUBROUTINE boundary
        hhin(i) = hh(i)
        enin(i) = en(i)
        Bconsin(:,i) = Bcons(:,i)
-       alphain(i) = alpha(i)
+       alphain(:,i) = alpha(:,i)
 !
 !--check to see if particles are ordered left to right
 !       

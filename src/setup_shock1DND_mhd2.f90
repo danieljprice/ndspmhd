@@ -33,7 +33,6 @@ SUBROUTINE setup
  REAL :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
  REAL :: dx0,dx1,dxhalf,xhalf,psepleft
  REAL :: const,gam1,dsmooth
- REAL :: exxal, alphamax
  REAL, DIMENSION(ndimV) :: vleft,vright 
  CHARACTER(LEN=20) :: shkfile
 !
@@ -54,7 +53,6 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
- alphamax = 0.5
  dsmooth = 20. 
  densleft = 1.0
  densright = 1.0
@@ -131,7 +129,6 @@ SUBROUTINE setup
     uu(i) = uuleft
     pmass(i) = massp
     vel(:,i) = vleft(:)
-    alpha(i) = alphamin
     IF (imhd.NE.0) THEN
        Bfield(1,i) = Bxinit
        Bfield(2,i) = Byleft
@@ -166,21 +163,16 @@ SUBROUTINE setup
        vel(:,j) = vleft(:)
        Bfield(2,j) = Byleft
        Bfield(3,j) = Bzleft
-       alpha(j) = alphamin
     ELSEIF (delta.gt.dsmooth) THEN
        dens(j) = densright
        uu(j) = uuright
        vel(:,j) = vright(:)
        Bfield(2,j) = Byright
        Bfield(3,j) = Bzright
-       alpha(j) = alphamin
     ELSE
        exx = exp(delta)
        dens(j) = (densleft + densright*exx)/(1.0 +exx)
        uu(j) = (uuleft + uuright*exx)/(1.0 + exx)
-       
-       exxal = exp(-(x(1,j)/(0.5*dsmooth*psep))**2)
-       alpha(j) = alphamax*exxal + alphamin
 !       IF (prleft.GT.prright) THEN
 !          uu(j) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
 !       ELSE

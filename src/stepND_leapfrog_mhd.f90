@@ -46,7 +46,7 @@ SUBROUTINE step
     hhin(i) = hh(i)
     enin(i) = en(i)
     uuin(i) = uu(i)
-    alphain(i) = alpha(i)
+    alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
     
     forcein(:,i) = force(:,i)
@@ -54,7 +54,7 @@ SUBROUTINE step
     drhodtin(i) = drhodt(i)
     dhdtin(i) = dhdt(i)
     dendtin(i) = dendt(i)
-    daldtin(i) = daldt(i)
+    daldtin(i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
  ENDDO
 !
@@ -81,7 +81,7 @@ SUBROUTINE step
        rho(i) = rhoin(i)
        hh(i) = hhin(i)	    
        en(i) = enin(i)
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
@@ -95,7 +95,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldtin(i)	  
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldtin(:,i)	  
        IF (idivBzero.GE.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
     ENDIF
  ENDDO
@@ -133,7 +133,7 @@ SUBROUTINE step
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*(force(:,i)+forcein(:,i))	    
@@ -147,7 +147,7 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i))
        IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))	   
     ENDIF 
 	      
