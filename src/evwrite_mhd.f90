@@ -136,7 +136,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--Max component of magnetic force in the direction of B (should be zero)
 !
        fmagabs = SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
-       IF (fmagabs.GT.1.e-8) THEN
+       IF (fmagabs.GT.1.e-8 .and. Bmagi.gt.1.e-8) THEN
           fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)   
        ELSE
           FdotBi = 0.
@@ -160,7 +160,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
 !  this quantity should be less than ~0.01.
 !
-       IF (Bmagi.EQ.0.) THEN
+       IF (Bmagi.lt.1e-8) THEN
           omegamhdi = 0.
        ELSE
           omegamhdi = divBi*hh(i)/Bmagi     
