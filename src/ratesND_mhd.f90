@@ -334,7 +334,8 @@ subroutine get_rates
 !!    vsigmax = vsigdtc !!!SQRT(vsig2max)
     vsig2max = vsigmax**2
  endif
- 
+ print*,'vsigmax = ',sqrt(vsig2max)
+! read*
  
  do i=1,npart
  
@@ -471,7 +472,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -vsig2max*divB(i) - psi(i)*vsigmax/psidecayfact         
+          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)         
        case DEFAULT
           dpsidt(i) = 0.
     end select

@@ -56,7 +56,7 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim
- REAL :: hdt, maxdivB
+ REAL :: hdt, maxdivB,crap1,crap2
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
 !
@@ -83,10 +83,10 @@ SUBROUTINE step
  ELSEIF (idivBzero.GE.2) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
     
-    nsubsteps_divB = -1
-    IF (maxdivB.gt.1.0) then
-       nsubsteps_divB = 1
-    endif
+    nsubsteps_divB = 0
+    !IF (maxdivB.gt.1.0) then
+    !   nsubsteps_divB = 1
+    !endif
     !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
     !print*,'nsubsteps_divB = ',nsubsteps_divB
 !
@@ -94,19 +94,24 @@ SUBROUTINE step
 !
     gradpsiprev = gradpsi
     divBprev = divB
-    IF (nsubsteps_divB.GE.0) THEN
+    IF (nsubsteps_divB.GE.0 .and. vsig2max.gt.0. .and. maxdivB.gt.10.0) THEN
        IF (nsubsteps_divB.GT.0) THEN
           IF (ANY(ibound.GE.2)) CALL set_ghost_particles
           CALL set_linklist ! update neighbours for divB/gradpsi calls
        ENDIF
        CALL output(0.0,1)
-       DO i=1,100
-          CALL substep_divB(1,dt,0,Bevol(:,1:ntotal),psi(1:ntotal), &
+       !psidecayfact = 1.0
+       !DO i=1,100
+          CALL substep_divB(1,dt,1000,Bevol(:,1:ntotal),psi(1:ntotal), &
                          divB(1:ntotal),gradpsi(:,1:ntotal), &
                          x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
                          rho(1:ntotal),itype(1:ntotal),npart,ntotal)
-          CALL output(0.0,1)
-       ENDDO
+          !CALL evwrite(real(i),crap1,crap2)
+          CALL output(psidecayfact,1)
+       !read*
+       !ENDDO
+
+       call quit
        !!read*
     ENDIF
  ENDIF
@@ -183,10 +188,12 @@ SUBROUTINE step
 !
  CALL get_rates
 
- DO i=1,npart
-    Bevol(:,i) = Bevolin(:,i)
-    psi(i) = psiin(i)
- ENDDO
+ IF (nsubsteps_divB.GE.0) THEN
+    DO i=1,npart
+       Bevol(:,i) = Bevolin(:,i)
+       psi(i) = psiin(i)
+    ENDDO
+ ENDIF
 !
 !--do substepping on corrector for div B correction
 !

@@ -30,7 +30,7 @@ SUBROUTINE initialise
  IMPLICIT NONE
  CHARACTER(LEN=len(rootname)+3) :: infile,evfile,dumpfile
  CHARACTER(LEN=len(rootname)+6) :: logfile   ! rootname is global in loguns
- INTEGER :: i,j,idash,idot,int_from_string
+ INTEGER :: i,j,idash,idot,ierr
  LOGICAL :: iexist
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
@@ -45,15 +45,13 @@ SUBROUTINE initialise
     else
        dumpfile = trim(rootname)
     endif
-    ifile = int_from_string(rootname(idash+1:idot-1))
-    rootname = rootname(1:idash-1)
-    if (ifile.gt.99999) then
-       print*,'*** error in run name, trying to extract dump number '
-       stop
-    elseif (ifile.lt.0) then
+    read(rootname(idash+1:idot-1),*,iostat=ierr) ifile   
+    if (ierr /=0) then
+       print*,'***could not extract dump number ***'
        print*,'***starting new run using dumpfile***'
        ifile = 0
     endif
+    rootname = rootname(1:idash-1)
     print*,'ifile = ',ifile,'rootname = ',trim(rootname)
     !!ifile = ifile - 1
     !stop
@@ -112,7 +110,7 @@ SUBROUTINE initialise
 !
  CALL set_default_options   ! set the default options
  CALL read_infile(infile)
- igeom = 2
+ !!igeom = 2
 !
 !--Open data/ev files
 !
