@@ -202,18 +202,9 @@ subroutine set_ghost_particles
 !  (nb: the conservative quantities have not been set in the first call to ghosts)
 !
   do i=npart+1,ntotal
-     j = ireal(i)
-     pmass(i) = pmass(j)
-     rho(i) = rho(j)
-     hh(i) = hh(j)
-     alpha(:,i) = alpha(:,j)
-     psi(i) = psi(j)
-     
-     en(i) = en(j)
-     Bcons(:,i) = Bcons(:,j)
-     divB(i) = divB(j)
+     call copy_particle(i,ireal(i))
      itype(i) = 0
-!    IF (j.EQ.jtemp) PRINT*,' ghost ',i
+!    IF (ireal(i).EQ.jtemp) PRINT*,' ghost ',i
   enddo
 !
 !--set unused elements of the array to zero (can cause errors in eos)
