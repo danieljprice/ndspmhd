@@ -41,40 +41,10 @@ PROGRAM multirun
  
  PRINT*,' filename = ',filename,' nruns = ',nruns 
   
-! PRINT*,' Enter particle separation run 1 '
-! READ*,psep
 !
-!--set all options (either set them all here or read from an infile)
-! 
- tmax = 10.0
- tout = 1.0
- nmax = 1000000
- nout = -1
- gamma = 1.6666666666666666666666667
- iener = 2
- iener_default = 2
- gconst = 0.0
- polyk = 0.6
- icty = 0
- ndirect = nmax
- ialtform = 4
- iav = 2
- alphamin = 0.1
- beta = 2.0
- iavlim = 1
- avconst = 0.1
- ikernav = 3
- ihvar = 2
- hfact = 1.5
- idumpghost = 0
- imhd = 11
- imagforce = 2
- idivBzero = 0
- ianticlump = 1
- eps = 0.8
- neps = 6
- ixsph = 0
- xsphfac = 0.5
+!--set default options
+!
+ CALL set_default_options
 !
 !-- or read the generic input file
 ! 

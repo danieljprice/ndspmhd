@@ -34,10 +34,11 @@ SOURCES= multirun.f90 int_from_string.f90
 
 SOURCESCODE = ../src/dimen1D.f90\
 	 ../src/variablesND.f90 \
+	 ../src/defaults.f90 \
 	 ../src/read_infile_mhd.f90 \
 	 ../src/write_infile_mhd.f90 	 
  
-OBJECTS = $(SOURCES:.f90=.o) dimen1D.o variablesND.o read_infile_mhd.o write_infile_mhd.o
+OBJECTS = $(SOURCES:.f90=.o) dimen1D.o variablesND.o defaults.o read_infile_mhd.o write_infile_mhd.o
 
 multirun: $(OBJECTS)	
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
