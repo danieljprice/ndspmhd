@@ -57,6 +57,8 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i,j,jdim
  REAL :: hdt, maxdivB
+ REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
+ REAL, DIMENSION(SIZE(divB)) :: divBprev
 !
 !--allow for tracing flow
 !      
@@ -88,10 +90,11 @@ SUBROUTINE step
     nsubsteps_divB = 2
     !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
     !print*,'nsubsteps_divB = ',nsubsteps_divB
- !   IF (nsubsteps_divB.gt.0) THEN
- !      print*,' max div B = ',maxdivB,' nsubsteps_divB = ',nsubsteps_divB
-!       CALL substep_divB(dt,nsubsteps_divB,Bevolin,psiin,x,hh,pmass,npart,ntot)
- !   ENDIF
+
+    !--use grad psi and div B from previous step in substepping
+    !  (not ones calculated in this rates call)
+    gradpsiprev = gradpsi
+    divBprev = divB
  ENDIF
    
  DO i=1,npart
@@ -110,10 +113,10 @@ SUBROUTINE step
 
        IF (imhd.NE.0) THEN
           Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-          !F (nsubsteps_divB.EQ.0) THEN
-          !   Bevol(:,i) = Bevol(:,i) + hdt*(-gradpsi(:,i))
-          !   psi(i) = psiin(i) + hdt*dpsidt(i)
-          !ENDIF
+          IF (nsubsteps_divB.EQ.0) THEN
+             Bevol(:,i) = Bevol(:,i) + hdt*gradpsi(:,i)
+             psi(i) = psiin(i) + hdt*dpsidt(i)
+          ENDIF
        ENDIF
        IF (ihvar.EQ.1) THEN
 !           hh(i) = hfact(pmass(i)/rho(i))**hpower        ! my version
@@ -167,8 +170,38 @@ SUBROUTINE step
  CALL conservative2primitive
 !
 !--calculate forces/rates of change using predicted quantities
-!         
+!
  CALL get_rates
+
+!
+!--do substepping for div B correction
+!
+ IF (nsubsteps_divB.gt.0) THEN
+    print*,' max div B = ',maxval(divB(1:npart)),maxloc(divB(1:npart)),rho(maxloc(divB(1:npart))), &
+    ' nsubsteps_divB = ',nsubsteps_divB
+    print*,'npart = ',npart, 'ntotal = ',ntotal
+    IF (imhd.GE.11) THEN
+       CALL substep_divB(dt,nsubsteps_divB,Bevolin(:,1:ntotal), &
+            psiin(1:ntotal),divB(1:ntotal),gradpsi(:,1:ntotal), &
+            x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+            itype(1:ntotal),npart,ntotal)
+    ELSE
+       DO i=1,ntotal
+          Bfield(:,i) = Bevolin(:,i)*rho(i)
+          gradpsiprev(:,i) = gradpsi(:,i)*rho(i)
+       ENDDO
+       print*,'max grad psi = ',maxval(gradpsiprev(:,1:ntotal))
+       CALL substep_divB(dt,nsubsteps_divB,Bfield(:,1:ntotal), &
+            psiin(1:ntotal),divB(1:ntotal),gradpsiprev(:,1:ntotal), &
+            x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+            itype(1:ntotal),npart,ntotal)
+       DO i=1,ntotal
+          Bevolin(:,i) = Bfield(:,i)/rho(i)
+          gradpsi(:,i) = gradpsiprev(:,i)/rho(i)
+       ENDDO
+    ENDIF
+ ENDIF
+
 ! print*,'----------------------------'
 ! do i=17,25
 !    print*,i,'force = ',force(:,i)
@@ -207,10 +240,10 @@ SUBROUTINE step
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
        IF (imhd.NE.0) THEN
           Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-          !IF (nsubsteps_divB.eq.0) THEN
-          !   Bevol(:,i) = Bevol(:,i) + hdt*(-gradpsi(:,i))
-          !   psi(i) = psiin(i) + hdt*dpsidt(i)
-          !ENDIF          
+          IF (nsubsteps_divB.eq.0) THEN
+             Bevol(:,i) = Bevol(:,i) + hdt*gradpsi(:,i)
+             psi(i) = psiin(i) + hdt*dpsidt(i)
+          ENDIF          
        ENDIF
     ENDIF 
               
@@ -313,13 +346,6 @@ SUBROUTINE step
     ENDDO
     
  ENDIF
-
- IF (nsubsteps_divB.gt.0) THEN
-    print*,' max div B = ',maxdivB,' nsubsteps_divB = ',nsubsteps_divB
-!       CALL substep_divB(dt,nsubsteps_divB,Bevolin,psiin,x,hh,pmass,npart,ntot)
- ENDIF
-
-
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 

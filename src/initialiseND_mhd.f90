@@ -120,6 +120,7 @@ SUBROUTINE initialise
  daldt = 0.    
  dBevoldt = 0.
  dpsidt = 0.
+ gradpsi = 0.
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
