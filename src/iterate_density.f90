@@ -30,20 +30,14 @@ subroutine iterate_density
   implicit none
   integer :: i,j,itsdensitymax
   integer :: ncalc,ncalcprev,ncalctotal,isize
-  integer, dimension(:), allocatable :: redolist, redolistprev
+  integer, dimension(npart) :: redolist, redolistprev
   real :: tol,hnew,f,dfdrho,deltarho
-  real, dimension(:), allocatable :: rho_old
+  real, dimension(npart) :: rho_old
   logical :: converged,redolink
 !
 !--allow for tracing flow
 !      
   if (trace) write(iprint,*) ' Entering subroutine iterate_density' 
-!
-!--allocate memory for local array copies
-!
-  isize = size(rho)
-  allocate( rho_old(isize) )
-  allocate( redolist(ntotal), redolistprev(ntotal) )
 !
 !--set maximum number of iterations to perform
 ! 
@@ -72,23 +66,21 @@ subroutine iterate_density
     !!!!   .and. ncalc.ne.ncalcprev)
      
      itsdensity = itsdensity + 1
-     if (isize.ne.size(rho)) then
-        deallocate(rho_old)
-        isize = size(rho)
-        allocate(rho_old(isize))
-     endif
-     rho_old = rho
+     rho_old(1:npart) = rho(1:npart)
 
      if (redolink) then
         if (any(ibound.gt.1)) call set_ghost_particles
         if (idebug(1:3).eq.'den') write(iprint,*) 'relinking...'
         call set_linklist
      endif
-     
-     if (ncalc.eq.npart) then   ! calculate density on all particles
-        call density      ! do this symmetrically
-     else                 ! calculate density on partial list of particles              
-        call density_partial(ncalc,redolist)
+!
+!--calculate the density (using h), for either all the particles or
+!  only on a partial list
+!     
+     if (ncalc.eq.npart) then
+        call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
+     else
+        call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
      endif
      
      ncalctotal = ncalctotal + ncalc
@@ -111,13 +103,9 @@ subroutine iterate_density
               endif
               
               gradh(i) = gradh(i)/rho(i)    ! now that rho is known
-              gradhaniso(i) = gradhaniso(i)/rho(i)
               if (abs(1.-gradh(i)).lt.1.e-5) then
                  print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
                  if (abs(1.-gradh(i)).eq.0.) call quit
-              elseif (abs(1.-gradhaniso(i)).lt.1.e-5) then
-                 print*,'warning: 1-gradhaniso < 1.e-5 ',1.-gradhaniso(i)
-                 if (abs(1.-gradhaniso(i)).eq.0.) call quit              
               endif
 !
 !--perform Newton-Raphson iteration on rho
@@ -173,7 +161,6 @@ subroutine iterate_density
                  rho(i) = rho(j)
                  hh(i) = hh(j)
                  gradh(i) = gradh(j)
-                 gradhaniso(i) = gradhaniso(j)
               else
                  rho(i) = rho_old(i)
                  !!write(iprint,*) 'Warning: ireal not set for fixed parts'
@@ -187,7 +174,6 @@ subroutine iterate_density
            rho(i) = rho(j)
            hh(i) = hh(j)
            gradh(i) = gradh(j)
-           gradhaniso(i) = gradhaniso(j)          
         enddo
      endif
      

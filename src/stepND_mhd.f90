@@ -161,10 +161,6 @@ SUBROUTINE step
 !
  IF (icty.LE.0) CALL iterate_density
 !
-!--calculate the constant kernel corrections, if used
-!
-!! IF (iunity.NE.0) CALL calc_unity
-!
 !--calculate primitive variables from conservative variables
 !   
  CALL conservative2primitive
@@ -259,10 +255,9 @@ SUBROUTINE step
     ENDDO
            
     CALL set_linklist
-    CALL density
 !    ikernavprev = ikernav
 !    ikernav = 3
-!    CALL iterate_density ! renormalise density *and* smoothing length
+    CALL iterate_density ! renormalise density *and* smoothing length
 !    ikernav = ikernavprev
     IF (ANY(ibound.GT.1)) THEN
        DO i=npart+1,ntotal                ! update ghosts

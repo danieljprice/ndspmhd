@@ -12,7 +12,7 @@ EDITOR = nedit
 
 F90C =  g95
 F90FLAGS =  -O
-LDFLAGS = -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
+LDFLAGS = ##-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 # Fortran flags same as F90

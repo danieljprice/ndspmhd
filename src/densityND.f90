@@ -8,25 +8,28 @@
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-SUBROUTINE density
+SUBROUTINE density(x,pmass,hh,rho,gradh,npart)
  USE dimen_mhd
  USE debug
  USE loguns
  
  USE bound
- USE hterms
  USE kernel
  USE linklist
  USE options
- USE part
  USE setup_params
 !
 !--define local variables
 !
  IMPLICIT NONE
+ INTEGER, INTENT(IN) :: npart
+ REAL, DIMENSION(ndim,*), INTENT(IN) :: x
+ REAL, DIMENSION(*), INTENT(IN) :: pmass, hh
+ REAL, DIMENSION(*), INTENT(OUT) :: rho, gradh
+ 
  INTEGER :: i,j,n
  INTEGER :: icell,iprev,nneigh
- INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
+ INTEGER, DIMENSION(SIZE(hh)) :: listneigh ! neighbour list
  INTEGER :: idone
  INTEGER, DIMENSION(3**ndim) :: neighcell
 !
@@ -40,12 +43,12 @@ SUBROUTINE density
 !  (kernel quantities)
 !
  REAL :: q2,q2i,q2j      
- REAL :: wab,wabi,wabj,wabanisoi,wabanisoj,weight
- REAL :: grkern,grkerni,grkernj,grkernanisoi,grkernanisoj
+ REAL :: wab,wabi,wabj,weight
+ REAL :: grkern,grkerni,grkernj
 !
 !  (grad h terms)
 !
- REAL :: dwdhi,dwdhj,dwdhanisoi,dwdhanisoj,dhdrhoi,dhdrhoj
+ REAL :: dwdhi,dwdhj,dhdrhoi,dhdrhoj
 !
 !--allow for tracing flow
 !      
@@ -53,13 +56,11 @@ SUBROUTINE density
 !
 !--initialise quantities
 !
- nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )       ! max size of neighbour list
+ listneigh = 0
 
  DO i=1,npart
     rho(i) = 0.
     gradh(i) = 0.
-    gradhaniso(i) = 0.
  ENDDO
 !
 !--Loop over all the link-list cells
@@ -135,56 +136,25 @@ SUBROUTINE density
               !--calculate both kernels if using the anticlumping term
               !  (so can calculate grad h terms for both kernels)
               !
-              if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1 .and. ikernav.eq.3) then
-                 !  (using hi)
-                 CALL interpolate_kernels(q2i,wabi,grkerni,wabanisoi,grkernanisoi)
-                 wabi = wabi*hfacwabi
-                 grkerni = grkerni*hfacwabi*hi1
-                 wabanisoi = wabanisoi*hfacwabi
-                 grkernanisoi = grkernanisoi*hfacwabi*hi1
-                 !  (using hj)
-                 CALL interpolate_kernels(q2j,wabj,grkernj,wabanisoj,grkernanisoj)
-                 wabj = wabj*hfacwabj
-                 grkernj = grkernj*hfacwabj*hj1
-                 wabanisoj = wabanisoj*hfacwabj
-                 grkernanisoj = grkernanisoj*hfacwabj*hj1
-                 !  (calculate average)                
-                 !!wab = 0.5*(wabi + wabj)
-                 !
-                 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
-                 !              
-                 dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
-                 dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
-                 dwdhanisoi = -rij*grkernanisoi*hi1 - ndim*wabanisoi*hi1
-                 dwdhanisoj = -rij*grkernanisoj*hj1 - ndim*wabanisoj*hj1
-                 !
-                 !--correction term for variable smoothing lengths on anisotropic kernel
-                 ! 
-                 
-                 gradhaniso(i) = gradhaniso(i) + dhdrhoi*pmass(j)*weight*dwdhi
-                 gradhaniso(j) = gradhaniso(j) + dhdrhoj*pmass(i)*weight*dwdhj
-              else
-                 !  (using hi)
-                 CALL interpolate_kernel(q2i,wabi,grkerni)
-                 wabi = wabi*hfacwabi
-                 grkerni = grkerni*hfacwabi*hi1
-                 !  (using hj)
-                 CALL interpolate_kernel(q2j,wabj,grkernj)
-                 wabj = wabj*hfacwabj
-                 grkernj = grkernj*hfacwabj*hj1
-                 !  (calculate average)                
-                 if (ikernav.eq.2) then
-                    wab = 0.5*(wabi + wabj)
-                    wabi = wab
-                    wabj = wab
-                 endif
-                 !
-                 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
-                 !              
-                 dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
-                 dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
-                 
+              !  (using hi)
+              CALL interpolate_kernel(q2i,wabi,grkerni)
+              wabi = wabi*hfacwabi
+              grkerni = grkerni*hfacwabi*hi1
+              !  (using hj)
+              CALL interpolate_kernel(q2j,wabj,grkernj)
+              wabj = wabj*hfacwabj
+              grkernj = grkernj*hfacwabj*hj1
+              !  (calculate average)                
+              if (ikernav.eq.2) then
+                 wab = 0.5*(wabi + wabj)
+                 wabi = wab
+                 wabj = wab
               endif
+              !
+              !--derivative w.r.t. h for grad h correction terms (and dhdrho)
+              !              
+              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
+              dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
                                               
            ENDIF
 !

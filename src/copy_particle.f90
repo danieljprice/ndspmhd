@@ -12,7 +12,6 @@ subroutine copy_particle(i,j)
   use hterms
   use part
   use rates
-!!  use unityfunc
   use xsph
   implicit none
   integer :: i,j
@@ -30,13 +29,9 @@ subroutine copy_particle(i,j)
   alpha(:,i) = alpha(:,j)
   psi(i) = psi(j)
   gradh(i) = gradh(j)
-  gradhaniso(i) = gradhaniso(j)
   sqrtg(i) = sqrtg(j)
   spsound(i) = spsound(j)
   pr(i) = pr(j)
-
-!!  unity(i) = unity(j)
-!!  gradunity(:,i) = gradunity(:,j)
 
   force(:,i) = force(:,j)
   drhodt(i) = drhodt(j)
