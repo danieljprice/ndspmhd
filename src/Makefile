@@ -95,6 +95,7 @@ SETUP2D = setup_shockND.f90
 
 #SETUP3D = setup_unifdisND.f90
 SETUP3D = setup_sphericalblastND_mhd.f90
+#SETUP3D = setup_wave_x_ND_mhd.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 ######################################################################
@@ -115,7 +116,8 @@ SOURCES = sphND_mhd.f90   \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 \
 	 random.f90 ratesND_mhd.f90 \
-	 read_infile_mhd.f90 set_fixedbound.f90 \
+	 read_infile_mhd.f90 riemannsolver.f90 \
+	 set_fixedbound.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 smooth.f90 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
