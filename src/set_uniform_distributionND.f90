@@ -296,7 +296,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
  use debug
  use loguns
  use part
- use setup_params
+ use setup_params, only:hfact, psep
 !
 !--define local variables
 !            
@@ -335,7 +335,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
  if (ierr.ne.0) stop 'error allocating memory in uniform_spherical'
 
  if (present(rmin)) then
-    radmin = rmin
+    radmin = rmin + hfact*psep
  else
     radmin = 0.
  endif
@@ -343,7 +343,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
  ntemp = 0 ! actual number of particles to use
  do i=1,npart
     rad = sqrt(dot_product(x(:,i),x(:,i)))
-    if (rad.le.rmax .and. rad.ge.radmin) then
+    if (rad.le.(rmax - 0.5*hfact*psep) .and. rad.ge.radmin) then
        ntemp = ntemp + 1
        partlist(ntemp) = i
     endif   
