@@ -1,0 +1,33 @@
+NSPMHD is an Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
+fluid dynamics simulations in 1, 2
+and 3 spatial dimensions. It should eventually handle arbitrary co-ordinate
+systems.
+
+The code is written in Fortran 90/95 by Daniel Price, 2001-present
+
+The source code is organised into the following directories:
+
+docs    -- contains documentation for NDSPMHD
+evplot  -- visualisation tool for .ev files output by code
+multi   -- utility for running multiple jobs
+plot    -- contains the SUPERSPHPLOT package for visualising SPH data
+scripts -- various scripts for manipulating data/ running multiple jobs
+src     -- source code for NDSPMHD
+utils   -- various utilities which use parts of the NDSPMHD source code (kernel
+           plotting and stability analysis)
+
+To compile the code, change the compiler options in the Makefile to the compiler
+installed on your system. By default these are:
+
+F90C = f90     (name of compiler)
+F90FLAGS = -O  (optimisation flags)
+LDFLAGS =      (links to various libraries - none usually necessary)
+
+then simply type
+
+make install 
+
+which compiles the code in 1D and makes copies of useful scripts in the main
+working directory. To compile all of the code and utilities, type
+
+make all
