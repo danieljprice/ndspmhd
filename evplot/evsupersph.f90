@@ -245,12 +245,15 @@ program plotmeagraph
         call PGBEGIN(0,'?',1,2)
      endif
   else
-     ndown = nplots/2
-     nacross = nplots/ndown
-     call PGBEGIN(0,'?',nacross,ndown)
-     if (nacross.eq.2 .and. ndown.eq.1) then
-        call pgpap(11.7,0.5/sqrt(2.))
-     endif
+     nacross = nplots/2
+     ndown = nplots/nacross
+     !ndown = nplots/2
+     !nacross = nplots/ndown
+     !call PGBEGIN(0,'?',nacross,ndown)
+     call PGBEGIN(0,'?',1,1)
+     !if (nacross.eq.2 .and. ndown.eq.1) then
+     !   call pgpap(11.7,0.5/sqrt(2.))
+     !endif
   endif
   if (nplots.gt.2) call PGSCH(2.0)
 !
@@ -270,27 +273,12 @@ program plotmeagraph
         !--setup plotting page
         !
         if (all(iplotx(1:nplots).eq.iplotx(1)).and.ndown.gt.1 ) then
-           call pgpage
-           !
-           !--if all plots have same x axis, draw axes together
-           !
-           call pgsls(1)
-           call pgsvp(0.05,0.98,0.0,1.0)
-           call pgswin(lim(iplotx(i),1),lim(iplotx(i),2), &
-                lim(iploty(i),1),lim(iploty(i),2))  		    
-           !
-           !--draw box and label it
-           !
-           if (i.eq.nplots) then
-              call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
-              call PGLABEL(label(iplotx(i)),label(iploty(i)),' ')		 
-           elseif (i.eq.1) then
-              call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
-              call PGLABEL(' ',label(iploty(i)),' ')		 
-           else
-              call pgbox('bcst',0.0,0,'1bvcnst',0.0,0)
-              call PGLABEL(' ',label(iploty(i)),' ')		    
-           endif
+           
+	   call pgsls(1)
+	   call pgslw(3)
+	   call danpgtile(i,nacross,ndown,  &
+	       lim(iplotx(i),1),lim(iplotx(i),2),lim(iploty(i),1),lim(iploty(i),2), &
+               label(iplotx(i)),label(iploty(i)),title,0)
         else
            !
            !--for one plot just use standard PGENV routine
@@ -305,7 +293,7 @@ program plotmeagraph
            !call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
            !     lim(iploty(i),1),lim(iploty(i),2),0,1)
             call pgmtxt('l',3.0,0.5,0.5,label(iploty(i)))
-            call pglabel(label(iplotx(i)),' ',' ')
+            !!call pglabel(label(iplotx(i)),' ',' ')
             !!call pglabel(label(iplotx(i)),label(iploty(i)),title)
         endif
         !
