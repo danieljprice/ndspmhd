@@ -50,10 +50,16 @@ PROGRAM SUPERSPMHD_ND
  USE loguns
  USE versn
  IMPLICIT NONE
+ INTEGER, PARAMETER :: maxruns = 20
+ INTEGER :: i,iprev,irun, nruns
+ CHARACTER(LEN=20), DIMENSION(maxruns) :: runname
 !
 !--version number
 !
-    version = 'NDSPMHD-3D-v5-2'
+    version = 'NDSPMHD-3D-v5-3'
+!   * multiple runnames off command line (does them in order)
+!   *** this version used for 2.5D alfven wave results
+!    version = 'NDSPMHD-3D-v5-2_18_05_2004' (saved 2:50pm)
 !    *** this version used to obtain swave and hydro shocks for thesis 10/5/04 ***
 !    *** this version used to obtain 1D MHD shock tube results for thesis 13/5/04
 !    *** also used for Bx peak test in thesis/paper III 17/5/04
@@ -265,19 +271,58 @@ PROGRAM SUPERSPMHD_ND
 ! itemp = 40000		! debug one particular particle
 
  CALL logun     	! set logical unit numbers to use for input/output
- CALL initialise	! read files and parameters and setup particles
 !
-!--now call the main timestepping loop
+!--get runname(s) off command line
+!  
+ iprev = 1
+ i = 1
+ do while (runname(iprev)(1:1).ne.' ' .and. i.le.maxruns)
+    call getarg(i,runname(i))
+    !!print*,i,runname(i)
+    iprev = i
+    i = i + 1
+    if (i.gt.maxruns .and. runname(iprev)(1:1).ne.' ') then
+       print*,'WARNING: number of runs >= array size: setting nruns = ',maxruns
+    endif
+ enddo
+ if (i.gt.maxruns .and. runname(maxruns)(1:1).ne.' ') then
+    nruns = maxruns
+ else
+    nruns = iprev - 1
+ endif
+ print*,'number of runs = ',nruns
+! 
+!--If nothing on command exit and print usage
 !
- CALL evolve
-!
-!--close all open files and exit
-!
- IF (iprint.NE.6) THEN
-    CLOSE(UNIT=iprint)
+ IF (runname(1)(1:1).EQ.' ') THEN
+    nruns = 1
+10  WRITE(6,*) 'Enter name of run:'
+    READ(*,*,ERR=10) rootname
+!    STOP 'Usage: spmhd runname '
  ENDIF
- CLOSE(UNIT=ievfile)
- CLOSE(UNIT=idatfile)
+
+!
+!--for each runname, perform a simulation
+!
+ DO irun = 1,nruns
+    rootname = runname(irun)
+    print*,'run = ',irun,' runname = ',rootname
+ 
+    CALL initialise	! read files and parameters and setup particles
+    !
+    !--now call the main timestepping loop
+    !
+    CALL evolve
+    !
+    !--close all open files and exit
+    !
+    IF (iprint.NE.6) THEN
+       CLOSE(UNIT=iprint)
+    ENDIF
+    CLOSE(UNIT=ievfile)
+    CLOSE(UNIT=idatfile)
+ ENDDO
+
  STOP 
  
 END PROGRAM
