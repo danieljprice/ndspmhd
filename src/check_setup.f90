@@ -32,8 +32,8 @@ subroutine check_setup
         write(iprint,20) 'pmass <= 0 ',pmass(i),i
         stop
      endif     
-     if (uu(i).le.0.) then
-        write(iprint,20) 'uu <= 0 ',uu(i),i
+     if (uu(i).lt.0.) then
+        write(iprint,20) 'uu < 0 ',uu(i),i
         stop
      endif
      
