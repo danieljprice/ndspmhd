@@ -71,6 +71,7 @@ PROGRAM SUPERSPMHD_ND
 !   * fix for negative thermal energies
 !   * my symmetrisation of vsig - but not for MHD yet
 !   * can have different boundary options in different dimensions
+!   * set_uniform cartesian can be called multiple times
 !   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
