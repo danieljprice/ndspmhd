@@ -40,7 +40,7 @@ subroutine fit_quadratic(x0,x1,y0,y1,dydx1,aa,bb,cc)
  bb = dydx1 - 2.*aa*x1
  cc = y0 - aa*x0**2 - bb*x0
 
- print 10,aa,bb,cc
+!! print 10,aa,bb,cc
 10 format(/,'quadratic: y = ',f9.3,' x^2 + ',f9.3,' x + ',f9.3)
 
  return
