@@ -23,7 +23,7 @@ else
    echo 'writing a Makefile'
    ../scripts/writemake.tcsh $1 > Makefile
    echo 'writing sge script '$runname\.sge
-   ../scripts/write_sgescript.bash $1 $runname > $runname\.sge
+   ../scripts/write_sgescript.bash $1 $runname
 ##   echo 'submitting job to grid'
 ##   qsub $runname\.sge   
 endif

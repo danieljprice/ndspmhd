@@ -35,7 +35,7 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 # write appropriate runnames to 'runname' and execute program
 for ($n = 1;$n<=$nruns;$n++) {
    print "doing run $rootname$n \n";
-   system "cd $rootname; ../scripts/write_sgescript.bash $ndim $rootname$n > ./$rootname$n\.sge";
+   system "cd $rootname; ../scripts/write_sgescript.bash $ndim $rootname$n";
     system "cd $rootname; qsub $rootname$n\.sge";
 }
 
