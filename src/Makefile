@@ -89,7 +89,7 @@ SETUP25D = setup_alfvenwaveND_x.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
-SETUP3D = setup_shockND.f90
+#SETUP3D = setup_shockND.f90
 SETUP3D = setup_alfvenwaveND_x.f90
 ######################################################################
 

@@ -60,7 +60,7 @@ SUBROUTINE setup
  nbpts = 0	! no fixed particles
  xmin(:) = 0.0	! set position of boundaries
  xmax(:) = 1.0
-!! xmax(1) = 1.0		!/runit(:)
+ if (ndim.ge.2) xmax(2:ndim) = 0.5		!/runit(:)
  PRINT*,'xmin,xmax = ',xmin,xmax
 !
 !--read/set wave parameters

@@ -71,6 +71,7 @@ SUBROUTINE get_rates
  REAL :: Bab,vsigmag,rhoi5,rhoj5,B2i,B2j,ediffB
  REAL :: vsig2i,vsig2j,vsigproji,vsigprojj
  REAL :: vissv,vissB,vissu,vsigii,vsigjj
+ REAL :: avterm
 !
 !  (alternative forms)
 !
@@ -348,13 +349,9 @@ SUBROUTINE get_rates
 !  and also in the artificial viscosity)
 !
 		IF (dvdotr.LT.0.) THEN
-		   vunit(:) = abs(dvel(:))/vmag	! unit vector in direction of velocity
+		   vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
 		   !vunit = dr
-		   IF (ndimV.GT.ndim) THEN	! if using 1.5D or 2.5D
-		      viss = abs(DOT_PRODUCT(dvel,vunit))
-		   ELSE				! normal
-		     viss = abs(dvdotr)		    
-		   ENDIF
+		   viss = abs(dvdotr)		    
 		ENDIF 
 !
 !--max signal velocity (Joe's)
@@ -397,25 +394,20 @@ SUBROUTINE get_rates
 
 		IF (dvdotr.LT.0. .AND. iav.NE.0) THEN	! only for approaching particles
                    IF (iav.EQ.1) THEN
+		   avterm = 0.5*alphaav*vsig*rhoav1
 !--viscosity (kinetic energy term)
-                   visc = 0.5*alphaav*vsig*viss*rhoav1*grkern
-		   IF (ndimV.GT.ndim) THEN
-		      vissv = -0.5*(DOT_PRODUCT(veli,vunit)	&
-		                  - DOT_PRODUCT(velj,vunit))**2
-!		      vissv = -0.5*DOT_PRODUCT(dvel,dvel)
-     		   ELSE
-		      vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
-		                  - DOT_PRODUCT(velj,dr))**2		    
-		   ENDIF
+                   visc = avterm*viss*grkern
+	           vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
+		               - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
-		   Bvisc(:) = dB(:) - dr(:)*projdB
-		   dBdtvisc(:) = 0.5*Bdiss_frac*alphaav*vsig*Bvisc(:)*rhoav1**2
+		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
+		   dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
 		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
-		   envisc = 0.5*alphaav*vsig*(vissv+vissB)*rhoav1*grkern!*abs(rx)
-	           uvisc = 0.5*alphaav*vsig*vissu*rhoav1*grkern		   
+		   envisc = avterm*(vissv+vissB)*grkern!*abs(rx)
+	           uvisc = avterm*vissu*grkern		   
 		   ELSEIF (iav.EQ.2) THEN
 		   STOP 'crap av choice'
 !--viscosity (kinetic energy term)
@@ -423,14 +415,8 @@ SUBROUTINE get_rates
 		   vsigjj = vsigj + 0.5*beta*viss   
 		   vsig = vsigii/rhoi*grkerni + vsigjj/rhoj*grkernj                
 		   visc = 0.5*alphaav*vsig*viss
-		   IF (ndimV.GT.ndim) THEN
-		      vissv = -0.5*(DOT_PRODUCT(veli,vunit)	&
-		                  - DOT_PRODUCT(velj,vunit))**2
-!		      vissv = -0.5*DOT_PRODUCT(dvel,dvel)
-     		   ELSE
-		      vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
-		                  - DOT_PRODUCT(velj,dr))**2		    
-		   ENDIF
+		   vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
+		              - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = dB(:) - dr(:)*projdB
 		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1
@@ -462,11 +448,7 @@ SUBROUTINE get_rates
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
-		IF (ndimV.GT.ndim) THEN
-!		  force(1:ndim,i) = force(1:ndim,i)	&
-!		             - pmassj*(prterm+visc)*dr(1:ndim)
-!		  force(1:ndim,j) = force(1:ndim,j)	&
-!		             + pmassi*(prterm+visc)*dr(1:ndim)  
+		IF (ndimV.GT.ndim) THEN 
 		  force(:,i) = force(:,i)	&
 		             - pmassj*(prterm*dr(:)+visc*vunit(:))
 		  force(:,j) = force(:,j)	&
@@ -640,13 +622,8 @@ SUBROUTINE get_rates
 		     			 -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
 		   ENDIF	   
 ! (dissipation term)
-		   IF (ndimV.GT.ndim) THEN
-		      v2i = DOT_PRODUCT(veli,vunit)**2.	! along velocity line
-		      v2j = DOT_PRODUCT(velj,vunit)**2.	! (use in 1.5D)
-		   ELSE
-		      v2i = DOT_PRODUCT(veli,dr)**2	! energy along line
-		      v2j = DOT_PRODUCT(velj,dr)**2	! of sight		   
-		   ENDIF
+		   v2i = DOT_PRODUCT(veli,dr)**2	! energy along line
+		   v2j = DOT_PRODUCT(velj,dr)**2	! of sight		   
 		   B2i = (DOT_PRODUCT(Bi,Bi) - DOT_PRODUCT(Bi,dr)**2)	!  "   " 
 		   B2j = (DOT_PRODUCT(Bj,Bj) - DOT_PRODUCT(Bj,dr)**2)
    		   enj = udiss_frac*uu(j) + 0.5*v2j + Bdiss_frac*0.5*B2j*rhoav1
@@ -654,7 +631,7 @@ SUBROUTINE get_rates
 		   ediff = eni - enj 
 		   IF (dvdotr.LT.0) THEN ! bug was in line below
 		    IF (iav.EQ.1) THEN
-		       qdiff = -0.5*alphaav*vsig*ediff*grkern*rhoav1
+		       qdiff = -avterm*ediff*grkern
 		    ELSEIF (iav.EQ.2) THEN
 		       qdiff = -0.5*alphaav*vsig*ediff
 		    ENDIF
