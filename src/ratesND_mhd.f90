@@ -20,7 +20,7 @@ subroutine get_rates
  use timestep
  use xsph
  use anticlumping
- use setup_params      ! for hfact
+ use setup_params, only:hfact
   
  use fmagarray
  use derivB
@@ -126,6 +126,8 @@ subroutine get_rates
 !      
  dtcourant = 1.e6  
  zero = 1.e-10
+ vsigmax = 0.
+ 
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
   drhodt(i) = 0.0
@@ -312,17 +314,19 @@ subroutine get_rates
 !
 !--calculate maximum vsig over all the particles for use in the hyperbolic cleaning
 !
- vsig2max = 0.
+! vsig2max = 0.
 ! print*,'calculating vsig2max...'
+
  if (imhd.ne.0 .and. idivBzero.ge.2) then
-    do i=1,npart
-       valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/rho(i)
-       vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
-       vsig2max = max(vsig2max,vsig2) 
-    enddo
- endif
+    !do i=1,npart
+    !   valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/rho(i)
+    !   vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
+    !   vsig2max = max(vsig2max,vsig2) 
+    !enddo
 ! print*,' vsig2max = ',vsig2max
- vsigmax = SQRT(vsig2max)
+!!    vsigmax = vsigdtc !!!SQRT(vsig2max)
+    vsig2max = vsigmax**2
+ endif
  
  
  do i=1,npart
@@ -520,7 +524,7 @@ contains
   subroutine rates_core
     implicit none
     real :: prstar, vstar
-    real :: projvi, projvj
+    real :: projvi, projvj, dvsigdtc
 !
 !--calculate both kernels if using anticlumping kernel
 !
@@ -676,10 +680,12 @@ contains
     
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
+    dvsigdtc = 1./vsigdtc
+    vsigmax = max(vsigmax,vsigdtc)
     !
     !--time step control (courant and viscous)
     !
-    if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi,hj)/vsigdtc)
+    if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi*dvsigdtc,hj*dvsigdtc))
     
 !----------------------------------------------------------------------------
 !  artificial dissipation terms

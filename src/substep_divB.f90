@@ -70,6 +70,9 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  print*,' nsubsteps = ',nsubsteps, ' vsigmax = ',vsigsubstep,sqrt(vsig2max)
  print*,' maxdivB = ',maxval(divB(1:npart)), 'npart = ',npart,ntot
  
+ print*,'min h = ',minval(hh(1:npart))
+ print*,'dt should be = ',minval(hh(1:npart))/vsigsubstep,psidecayfact/vsigsubstep
+ 
  psiin = psi
  Bevolin = Bevol 
  rho = rhoin
