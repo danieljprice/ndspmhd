@@ -15,7 +15,7 @@
 !! An N-D SPH code to handle compressible gas dynamics with MHD        !!
 !!                                                                     !!
 !! Written in Fortran 90                                               !!
-!! By Daniel Price, Institute of Astronomy, Cambridge, UK, 2002-2003   !!
+!! By Daniel Price, Institute of Astronomy, Cambridge, UK, 2002-2004   !!
 !! Email: dprice@ast.cam.ac.uk				               !!
 !!								       !!
 !! This version is designed to be as modular (and thus as adaptable)   !!
@@ -55,6 +55,17 @@ PROGRAM SUPERSPMHD_ND
 !
     version = 'NDSPMHD-3D-v5-2'
 !   * 1D turbulence setup revised/set_powerspec
+!   * fixed particle boundaries work in >1D, initialise cleaned up
+!   * hyperbolic/parabolic divergence cleaning
+!   * div B = 0 by projection method in 2D - poisson eq. by direct sum in 2D,3D
+!   * accretion disc setups
+!   * big bug fix in step (predictor-corrector) for disks
+!   * lots of crap to do with MHD AV/switches in rates
+!   * lots of things for GR code (grutils, conservative2primitive_gr etc)
+!   * tested on shear flows
+!   * preliminary riemann solver routine
+!   * compiler warnings fixed in lots of subroutines (mostly unused variables)
+!     -> link renamed so doesn't conflict with internal function
 !    version = 'NDSPMHD-3D-v5-1'
 !   * smoothing length iteration on single particles works 
 !   * conservative2primitive and primitive2conservative

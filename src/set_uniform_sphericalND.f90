@@ -20,7 +20,7 @@ SUBROUTINE set_uniform_spherical(idist,rmin,rmax)
  INTEGER, INTENT(IN) :: idist
  REAL, INTENT(IN) :: rmin,rmax
 
- INTEGER :: i,j,ierr,ntemp 
+ INTEGER :: i,ierr,ntemp 
  INTEGER, DIMENSION(:), ALLOCATABLE :: partlist
  REAL :: rad
  REAL, DIMENSION(ndim) :: xmin,xmax

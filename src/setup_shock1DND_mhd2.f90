@@ -31,7 +31,6 @@ SUBROUTINE setup
  REAL :: xcentre,densleft,densright,denshalf,uuleft,uuright
  REAL :: prleft, prright, exx, delta
  REAL :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
- REAL :: enleft,enright,B2i
  REAL :: dx0,dx1,dxhalf,xhalf,psepleft
  REAL :: const,gam1,dsmooth
  REAL :: exxal, alphamax
@@ -45,8 +44,8 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound =1
- nbpts = 8	! must use fixed particles if inflow/outflow at boundaries.
+ ibound =2
+ nbpts = 0	! must use fixed particles if inflow/outflow at boundaries.
  xmin(1) = -0.5
  xmax(1) = 0.5
  xcentre = (xmax(1) + xmin(1))/2.0

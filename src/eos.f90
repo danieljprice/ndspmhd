@@ -20,7 +20,7 @@ SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,isize)
  REAL, INTENT(IN), DIMENSION(isize) :: rho
  REAL, INTENT(OUT), DIMENSION(isize) :: pr
  REAL, INTENT(INOUT), DIMENSION(isize) :: uu,vsound
- REAL :: gamma1,B2
+ REAL :: gamma1
 
  gamma1 = gamma - 1.
 !

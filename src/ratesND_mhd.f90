@@ -29,7 +29,7 @@ SUBROUTINE get_rates
 !
  IMPLICIT NONE
  INTEGER :: i,j,n
- INTEGER :: icell,ipart,iprev,ncell,nneigh,index,index1
+ INTEGER :: icell,iprev,nneigh
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh
  INTEGER :: idone
  INTEGER, DIMENSION(3**ndim) :: neighcell
@@ -39,8 +39,8 @@ SUBROUTINE get_rates
  REAL :: rij,rij2
  REAL :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav,rhoav1,rhoij
  REAL :: pmassi,pmassj
- REAL :: pri,prj,Prho2i,Prho2j,prterm
- REAL :: hi,hi1,hj,hj1,hi2,hi21,hj2,hj21,hi3,hj3,hav,h2,h3,hav1,h21
+ REAL :: Prho2i,Prho2j,prterm
+ REAL :: hi,hi1,hj,hj1,hi21,hj21,hav,hav1,h21
  REAL :: drhodti,drhodtj
  REAL :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
  REAL, DIMENSION(ndim) :: dx
@@ -52,26 +52,26 @@ SUBROUTINE get_rates
 !  (velocity)
 !      
  REAL, DIMENSION(ndimV) :: veli,velj,dvel
- REAL, DIMENSION(ndimV) :: vterm,prvterm
+ REAL, DIMENSION(ndimV) :: prvterm
  REAL, DIMENSION(ndimV) :: dr
- REAL :: dvdotr,projprv,projvterm,v2i,v2j
+ REAL :: dvdotr,projprv,v2i,v2j
 !
 !  (mhd)
 !     
  REAL, DIMENSION(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
- REAL, DIMENSION(ndimB) :: faniso,fmagi,fmagj,fcorr
+ REAL, DIMENSION(ndimB) :: faniso,fmagi,fmagj
  REAL, DIMENSION(ndimB) :: curlBi
- REAL :: fiso,divBonrho
+ REAL :: fiso
  REAL :: valfven2i,valfven2j
  REAL :: BidotdB,BjdotdB,Brho2i,Brho2j
  REAL :: projBrhoi,projBrhoj,projBi,projBj,projdB
- REAL :: prvaniso,prvaniso2  
+ REAL :: prvaniso  
  REAL :: Bidotvj,Bjdotvi
 !
 !  (mhd art. vis)
 !
- REAL, DIMENSION(ndimB) :: Bav,vunit,Bvisc,dBdtvisc
- REAL :: Bab,vsigmag,rhoi5,rhoj5,B2i,B2j,ediffB
+ REAL, DIMENSION(ndimB) :: Bvisc,dBdtvisc
+ REAL :: rhoi5,rhoj5,B2i,B2j,ediffB
  REAL :: vsig2i,vsig2j,vsigproji,vsigprojj
  REAL :: vissv,vissB,vissu,vsigii,vsigjj
  REAL :: avterm,avtermB,alphaB
@@ -84,18 +84,17 @@ SUBROUTINE get_rates
 !  (kernel related quantities)
 !
  REAL :: q2,q2i,q2j
- REAL :: grkern,grkerni,grkernj,dgrwdx,dxx
- REAL :: wab,wabi,wabj,dwdx
+ REAL :: grkern,grkerni,grkernj
+ REAL :: wab,wabi,wabj
 !
 !  (joe's mhd fix)
 !
- INTEGER :: indexjoe,indexjoe1,ndim1
- REAL :: wabjoe,dwdxjoe,dxxjoe,wabjoei,wabjoej,deltap2
+ REAL :: wabjoe,wabjoei
  REAL :: Rjoe,q2joe,prvanisoi,prvanisoj,Bidotvi,Bjdotvj
 !
 !  (artificial viscosity quantities)
 !      
- REAL :: vsig,vsigi,vsigj,vsigav,viss,eni,enj,ediff,ediffB,qdiff
+ REAL :: vsig,vsigi,vsigj,viss,eni,enj,ediff,ediffB,qdiff
  REAL :: spsoundi,spsoundj,visc,envisc,uvisc
  REAL :: alphai,alphaav,source,tdecay1,sourcedivB,sourceJ
 !
@@ -128,6 +127,7 @@ SUBROUTINE get_rates
  IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
  ALLOCATE ( phi(ntotal), STAT=ierr )
  IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating phi, ierr = ',ierr  
+ listneigh = 0
 !
 !--initialise quantities
 !      
@@ -200,7 +200,6 @@ SUBROUTINE get_rates
        rhoi5 = SQRT(rhoi)
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i       
-       pri = pr(i)
        Prho2i = pr(i)*rho21i
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
@@ -226,9 +225,7 @@ SUBROUTINE get_rates
 !       ENDIF   
        hi = hh(i)
        hi1 = 1./hi
-       hi21 = hi1*hi1
-       hi2 = hi*hi		    
-       hi3 = hi*hi2
+       hi21 = hi1*hi1		    
        IF (hi.LE.0.) THEN
           WRITE(iprint,*) ' rates: h <= 0 particle',i,hi
 	  CALL quit
@@ -244,16 +241,12 @@ SUBROUTINE get_rates
 	  IF ((j.NE.i).AND..NOT.(j.GT.npart .AND. i.GT.npart)) THEN		! don't count particle with itself
 	     dx(:) = x(:,i) - x(:,j)
 	     hj = hh(j)
-	     hj2 = hj*hj
-	     hj3 = hj*hj2
 	     hj1 = 1./hj
 	     hj21 = hj1*hj1
 !
 !--calculate averages of smoothing length if using this averaging
 !			 
 	     hav = 0.5*(hi + hj)
-	     h2 = hav*hav
-	     h3 = hav*h2
 	     hav1 = 1./hav
 	     h21 = hav1*hav1
 	     hfacwab = hav1**ndim
@@ -320,8 +313,7 @@ SUBROUTINE get_rates
 		rho2j = rhoj*rhoj
 		rho21j = rho1j*rho1j
 	        rhoj5 = SQRT(rhoj)
-		rhoij = rhoi*rhoj
-		prj = pr(j)		
+		rhoij = rhoi*rhoj		
 	        Prho2j = pr(j)*rho21j
 		spsoundj = spsound(j)
 	        pmassj = pmass(j)
@@ -360,17 +352,11 @@ SUBROUTINE get_rates
 		vsig = 0.
 		viss = 0.
 		visc = 0.
-		IF (vmag.EQ.0.) vmag = 1.e-6
-		vunit(:) = abs(dvel(:))/vmag
 !
 !--calculate maximum signal velocity (this is used for the timestep control
 !  and also in the artificial viscosity)
 !
-		IF (dvdotr.LT.0) THEN
-		   !vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
-		   !vunit = dr
-		   viss = abs(dvdotr)		    
-		ENDIF 
+		IF (dvdotr.LT.0) viss = abs(dvdotr)
 !
 !--max signal velocity (Joe's)
 !

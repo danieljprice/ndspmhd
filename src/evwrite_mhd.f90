@@ -16,7 +16,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,ierr
+ INTEGER :: i
  REAL, INTENT(IN) :: t
  REAL, INTENT(OUT) :: etot,momtot
  REAL :: ekin,etherm,emag,epot

@@ -29,7 +29,7 @@ EDITOR = nedit
 FC = f90
 F90C = f90
 F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
-#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
+##LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
 #FC = lf95
@@ -85,11 +85,15 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_toystarND_static.f90
 SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
+#SETUP2D = setup_shearflow2D.f90
+#SETUP2D = setup_rings2D.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
 #SETUP25D = setup_alfvenwaveND_x.f90
 #SETUP25D = setup_Bxpeak25D_mhd.f90
 SETUP25D = setup_shockND.f90
+#SETUP25D = setup_disc2D_2.f90
+#SETUP25D = setup_shearflow2D.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -117,7 +121,7 @@ SOURCES = sphND_mhd.f90   \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 smooth.f90 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
-	 divBcorrect.f90 get_divB.f90 
+	 divBcorrect.f90 get_divB.f90
 #	 check_neighbourlist.f90
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 

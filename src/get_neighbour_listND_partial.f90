@@ -187,7 +187,6 @@ SUBROUTINE get_neighbour_list_partial(icell,neighcell,listneigh,nneigh)
           IF (j.GT.nlistdim) THEN	! should reallocate array here
              WRITE(iprint,*) 'getneigh: # neighbours > array size:',nlistdim
 	     WRITE(iprint,*) 'ipart = ',ipart
-	     WRITE(iprint,*) listneigh(1:nlistdim)
 	     CALL quit
           ENDIF
           listneigh(j) = ipart

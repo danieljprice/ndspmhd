@@ -33,7 +33,7 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
  REAL, DIMENSION(nsize), INTENT(OUT) :: xsmooth
  REAL, DIMENSION(ndim) :: dx
  REAL :: termi,termj,hav,hi,hav1,h21,hfacwab
- REAL :: q2,rij,rij2,weight,wab,grkern
+ REAL :: q2,rij2,weight,wab,grkern
 !
 !--allow for tracing flow
 !
@@ -91,7 +91,6 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
 	  hfacwab = hav1**ndim
 	  
 	  rij2 = DOT_PRODUCT(dx,dx)
-	  rij = SQRT(rij2)
 	  q2 = rij2*h21
 !	
 !--do interaction if r/h < compact support size

@@ -94,7 +94,7 @@ SUBROUTINE step
 !
 !--call link list to find neighbours
 !
- CALL link
+ CALL set_linklist
 !
 !--calculate density by direct summation
 !

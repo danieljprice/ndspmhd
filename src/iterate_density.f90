@@ -32,7 +32,7 @@ subroutine iterate_density
   integer :: ncalc,ncalcprev,ncalctotal,isize
   integer, dimension(:), allocatable :: redolist, redolistprev
   real :: tol,hnew
-  real, dimension(:), allocatable :: rho_old,gradh_old
+  real, dimension(:), allocatable :: rho_old
   logical :: converged,redolink
 !
 !--allow for tracing flow
@@ -42,7 +42,7 @@ subroutine iterate_density
 !--allocate memory for local array copies
 !
   isize = size(rho)
-  allocate( rho_old(isize), gradh_old(isize) )
+  allocate( rho_old(isize) )
   allocate( redolist(ntotal), redolistprev(ntotal) )
 !
 !--set maximum number of iterations to perform
@@ -73,16 +73,16 @@ subroutine iterate_density
      
      itsdensity = itsdensity + 1
      if (isize.ne.size(rho)) then
-        deallocate(rho_old,gradh_old)
+        deallocate(rho_old)
         isize = size(rho)
-        allocate(rho_old(isize),gradh_old(isize))
+        allocate(rho_old(isize))
      endif
      rho_old = rho
-     gradh_old = gradh
+
      if (redolink) then
         if (any(ibound.gt.1)) call set_ghost_particles
         if (idebug(1:3).eq.'den') write(iprint,*) 'relinking...'
-        call link
+        call set_linklist
      endif
      
      if (ncalc.eq.npart) then	! calculate density on all particles

@@ -172,7 +172,7 @@ subroutine setup
     call set_uniform_cartesian(1,psepright,xminright,xmaxright,.false.) ! set right half
     xmax = xmaxright
  else  ! set all of volume if densities are equal
-    call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
+    call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
     masspleft = densleft*volume/REAL(npart)

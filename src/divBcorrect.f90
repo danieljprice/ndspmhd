@@ -38,7 +38,7 @@ SUBROUTINE divBcorrect(npts,ntot)
  
     CASE(10)
        print*,' linking ...'
-       CALL link
+       CALL set_linklist
        print*,'calculating density...'
        CALL density
        print*,' calculating div B before correction'

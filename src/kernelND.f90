@@ -25,13 +25,12 @@ SUBROUTINE setkern
  USE setup_params	! for hfact in my kernel
  USE anticlumping
  IMPLICIT NONE			!  define local variables
- INTEGER :: i,j,iteration,iC,npower
+ INTEGER :: i,j,npower
  REAL :: q,q2,q4,cnormk
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
  REAL :: ddterm1,ddterm2,ddterm3,ddterm4
- REAL :: alpha,beta,gamma,A,B,C,aa,bb,cc,dd,ee,W0,grW0
- LOGICAL :: iplot
+ REAL :: alpha,beta,gamma,A,B,C
 !
 !--allow for tracing flow
 !
@@ -39,7 +38,6 @@ SUBROUTINE setkern
 !
 !--set choice of kernel (this could be read in as a parameter)
 !
- iplot = .false. 	! plot kernel using PGPLOT
  cnormk = 0.0
 
  SELECT CASE(ikernel)

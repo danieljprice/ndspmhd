@@ -22,7 +22,7 @@ SUBROUTINE step
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev,ierr
+ INTEGER :: i,j,jdim
  REAL :: hdt
 !
 !--allow for tracing flow
@@ -95,7 +95,7 @@ SUBROUTINE step
 !
 !--call link list to find neighbours
 !
- CALL link
+ CALL set_linklist
 !
 !--calculate density by direct summation
 !
@@ -155,6 +155,7 @@ SUBROUTINE step
        x(:,i) = xin(:,i)
     ENDDO
 	   
+    CALL set_linklist
     CALL density
 !    ikernavprev = ikernav
 !    ikernav = 3
