@@ -97,7 +97,7 @@ SUBROUTINE get_rates
 !
 !  (time step criteria)
 !      
- REAL :: vsigdtc,vmag,zero
+ REAL :: vsigdtc,vmag,zero,fhmax, fonh, forcemag
 !
 !  (variable smoothing length terms)
 !
@@ -687,6 +687,9 @@ SUBROUTINE get_rates
 !
 ! IF (igravity.NE.0) CALL direct_sum_poisson(x,pmass,poten,fgrav,ntotal)
 
+ fhmax = 0.0
+ dtforce = 1.e6
+ 
  DO i=1,npart
 !
 !--subtract external forces
@@ -702,7 +705,7 @@ SUBROUTINE get_rates
 !
 !--damp force if appropriate
 !
-    IF (damp.NE.0.) force(:,i) = force(:,i) - damp*vel(:,i)
+    IF (damp.GT.0.) force(:,i) = force(:,i) - damp*vel(:,i)
 !
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)
@@ -727,6 +730,17 @@ SUBROUTINE get_rates
        dendt(i) = dudt(i)
     ENDIF
 !
+!--calculate maximum force/h for the timestep condition
+!  also check for errors in the force
+!
+    IF ( ANY(force(:,i).GT.1.e8)) THEN
+       WRITE(iprint,*) 'rates: force ridiculous ',force(:,i)
+       CALL quit
+    ENDIF
+    forcemag = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))   
+    fonh = forcemag/hh(i)
+    IF (fonh.GT.fhmax) fhmax = fonh
+!
 !--calculate time derivative of alpha (artificial dissipation coefficient)
 !  see Morris and Monaghan (1997)
 !     
@@ -734,17 +748,22 @@ SUBROUTINE get_rates
        source = MAX(drhodt(i)*rho1i,abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v
 !       source = MAX(drhodt(i)*rho1i*(1.5-alpha(i)),0.0)    ! source term is div v
        valfven2i = 0.
-       IF (imhd.GE.11) THEN
-          valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
-       ELSEIF (imhd.NE.0) THEN
-          valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)       
-       ENDIF
+       IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
        vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
        tdecay1 = (avconst*vsig)/hh(i)	! 1/decay time (use vsig)
        daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
     ENDIF
       
  ENDDO
+!
+!--calculate timestep constraint from the forces
+!  dtforce is returned together with dtcourant to the main timestepping loop
+!
+ IF (fhmax.LE.0.) THEN
+    WRITE(iprint,*) 'rates: fhmax <=0 :',fhmax
+    CALL quit
+ ENDIF    
+ IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
      
  IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
  IF (ALLOCATED(phi)) DEALLOCATE(phi)

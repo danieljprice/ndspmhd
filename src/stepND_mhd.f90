@@ -23,7 +23,6 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr
- REAL :: fhmax, fonh, forcemag,frac
 !
 !--allow for tracing flow
 !      
@@ -86,22 +85,7 @@ SUBROUTINE step
 !
 !--calculate density by direct summation
 !
- IF (icty.LE.0) THEN
-    CALL iterate_density
-    IF (ANY(ibound.GT.1)) THEN
-       DO i=npart+1,ntotal		! update density on ghosts
-          j = ireal(i)
-          rho(i) = rho(j)
-          hh(i) = hh(j)
-          gradh(i) = gradh(j)       
-       ENDDO
-    ELSEIF (ANY(ibound.EQ.1)) THEN           ! rewrite over fixed particles
-       WHERE (itype(:) .EQ. 1)
-          rho(:) = rhoin(:)
-	  hh(:) = hhin(:)
-       END WHERE	  
-    ENDIF   
- ENDIF
+ IF (icty.LE.0) CALL iterate_density
 
  DO i=1,npart
 !
@@ -164,17 +148,7 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	   
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
-       
-!       IF (i.eq.itemp) THEN
-!         PRINT*,'hdt = ',hdt
-!	  PRINT*,'f,drhodt,dendt = ',force(:,i),drhodt(i),dendt(i)
-!	  PRINT*,'x(',i,') = ',xin(:,i),'+',x(:,i)-xin(:,i)
-!	  PRINT*,'vx = ',velin(:,i),'+',vel(:,i)-velin(:,i)
-!	  PRINT*,'rho = ',rhoin(i),'+',rho(i)-rhoin(i)
-!	  PRINT*,'en = ',enin(i),'+',en(i)-enin(i)
-!	  READ*
-!       ENDIF	  
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)	  
     ENDIF 
 	      
  ENDDO
@@ -276,32 +250,6 @@ SUBROUTINE step
 ! 
 ! IF (idivBzero.NE.0) CALL divBcorrect
 !
-!--time step criterion from maximum forces/h
-!  dtforce (from step) and dtcourant (from rates) are returned
-!  to the main timestepping loop
-!
- fhmax = 0.0
- dtforce = 1.e6
- DO i=1,npart
-    IF ( ANY(force(:,i).GT.1.e8)) THEN
-       WRITE(iprint,*) 'step: force ridiculous ',force(:,i)
-       CALL quit
-    ENDIF
-    forcemag = SQRT(DOT_PRODUCT(force(:,i),force(:,i))) 
-    IF (hh(i).LE.0) THEN
-       WRITE(iprint,*) 'step: hh(',i,') = ',hh(i)
-       CALL quit
-    ENDIF
-    fonh = forcemag/hh(i)
-    IF (fonh.GT.fhmax) fhmax = fonh
- ENDDO
-
- IF (fhmax.LE.0.) THEN
-    WRITE(iprint,*) 'step: fhmax <=0 :',fhmax
-    CALL quit
- ENDIF    
- IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
- 
  IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
