@@ -32,7 +32,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  REAL, DIMENSION(3,newsizein) :: dumalpha,dumalphain,dumdaldt
- REAL, DIMENSION(newsizein) :: dumpsi
+ REAL, DIMENSION(newsizein) :: dumpsi,dumgradhaniso
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
@@ -121,6 +121,8 @@ SUBROUTINE alloc(newsizein)
     dumhh(1:idumsize) = hh(1:idumsize)
     dumdhdt(1:idumsize) = dhdt(1:idumsize)
     dumgradh(1:idumsize) = gradh(1:idumsize)
+    dumgradhaniso(1:idumsize) = gradhaniso(1:idumsize)
+
     dumpr(1:idumsize) = pr(1:idumsize)
     dumspsound(1:idumsize) = spsound(1:idumsize)
 !    dumll(1:idumsize) = ll(1:idumsize)
@@ -147,7 +149,7 @@ SUBROUTINE alloc(newsizein)
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
-    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,pr)
+    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhaniso,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bcons)) DEALLOCATE(Bcons)
     IF (ALLOCATED(dBconsdt)) DEALLOCATE(dBconsdt)
@@ -214,7 +216,8 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
     ALLOCATE(alpha(3,newsize),alphain(3,newsize),daldt(3,newsize))
     ALLOCATE(psi(newsize),dpsidt(newsize))
-    ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),pr(newsize))
+    ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),gradhaniso(newsize))
+    ALLOCATE(pr(newsize))
     ALLOCATE(Bcons(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBconsdt(ndimB,newsize))	! mag field
 !
@@ -293,6 +296,8 @@ SUBROUTINE alloc(newsizein)
     hh(1:idumsize) = dumhh(1:idumsize)
     dhdt(1:idumsize) = dumdhdt(1:idumsize)
     gradh(1:idumsize) = dumgradh(1:idumsize)
+    gradhaniso(1:idumsize) = dumgradhaniso(1:idumsize)
+    
     pr(1:idumsize) = dumpr(1:idumsize)
     spsound(1:idumsize) = dumspsound(1:idumsize)
 !    ll(1:idumsize) = dumll(1:idumsize)

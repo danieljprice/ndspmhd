@@ -40,12 +40,12 @@ SUBROUTINE density
 !  (kernel quantities)
 !
  REAL :: q2,q2i,q2j      
- REAL :: wab,wabi,wabj,weight
- REAL :: grkern,grkerni,grkernj
+ REAL :: wab,wabi,wabj,wabanisoi,wabanisoj,weight
+ REAL :: grkern,grkerni,grkernj,grkernanisoi,grkernanisoj
 !
 !  (grad h terms)
 !
- REAL :: dwdhi,dwdhj,dhdrhoi,dhdrhoj
+ REAL :: dwdhi,dwdhj,dwdhanisoi,dwdhanisoj,dhdrhoi,dhdrhoj
 !
 !--allow for tracing flow
 !      
@@ -59,6 +59,7 @@ SUBROUTINE density
  DO i=1,npart
     rho(i) = 0.
     gradh(i) = 0.
+    gradhaniso(i) = 0.
  ENDDO
 !
 !--Loop over all the link-list cells
@@ -95,6 +96,7 @@ SUBROUTINE density
          hj1 = 1./hj
          hj2 = hj*hj
          hfacwabj = hj1**ndim
+         dhdrhoj = -hj*dndim       ! see above 
          
          rij2 = DOT_PRODUCT(dx,dx)
          rij = SQRT(rij2)
@@ -107,11 +109,16 @@ SUBROUTINE density
 !
         IF ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
             .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
+!          PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
+!
+!--weight self contribution by 1/2
+!
+           weight = 1.0
+           IF (j.EQ.i) weight = 0.5
 !       
 !--interpolate from kernel table              
 !  (use either average h or average kernel gradient)
 !
-!          PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
            IF (ikernav.EQ.1) THEN              
 !  (using average h)
               hav = 0.5*(hi + hj)
@@ -124,28 +131,61 @@ SUBROUTINE density
 	      wabi = wab
 	      wabj = wab
            ELSE
-!  (using hi)
-              CALL interpolate_kernel(q2i,wabi,grkerni)
-              wabi = wabi*hfacwabi
-              grkerni = grkerni*hfacwabi*hi1
-!  (using hj)
-              CALL interpolate_kernel(q2j,wabj,grkernj)
-              wabj = wabj*hfacwabj
-              grkernj = grkernj*hfacwabj*hj1
-!  (calculate average)                
-              !!wab = 0.5*(wabi + wabj)
-!
-!--derivative w.r.t. h for grad h correction terms (and dhdrho)
-!              
-              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
-              dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
-              dhdrhoj = -hj*dndim       ! see above                                               
+              !
+              !--calculate both kernels if using the anticlumping term
+              !  (so can calculate grad h terms for both kernels)
+              !
+              if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1 .and. ikernav.eq.3) then
+                 !  (using hi)
+                 CALL interpolate_kernels(q2i,wabi,grkerni,wabanisoi,grkernanisoi)
+                 wabi = wabi*hfacwabi
+                 grkerni = grkerni*hfacwabi*hi1
+                 wabanisoi = wabanisoi*hfacwabi
+                 grkernanisoi = grkernanisoi*hfacwabi*hi1
+                 !  (using hj)
+                 CALL interpolate_kernels(q2j,wabj,grkernj,wabanisoj,grkernanisoj)
+                 wabj = wabj*hfacwabj
+                 grkernj = grkernj*hfacwabj*hj1
+                 wabanisoj = wabanisoj*hfacwabj
+                 grkernanisoj = grkernanisoj*hfacwabj*hj1
+                 !  (calculate average)                
+                 !!wab = 0.5*(wabi + wabj)
+                 !
+                 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
+                 !              
+                 dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
+                 dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
+                 dwdhanisoi = -rij*grkernanisoi*hi1 - ndim*wabanisoi*hi1
+                 dwdhanisoj = -rij*grkernanisoj*hj1 - ndim*wabanisoj*hj1
+                 !
+                 !--correction term for variable smoothing lengths on anisotropic kernel
+                 ! 
+                 
+                 gradhaniso(i) = gradhaniso(i) + dhdrhoi*pmass(j)*weight*dwdhi
+                 gradhaniso(j) = gradhaniso(j) + dhdrhoj*pmass(i)*weight*dwdhj
+              else
+                 !  (using hi)
+                 CALL interpolate_kernel(q2i,wabi,grkerni)
+                 wabi = wabi*hfacwabi
+                 grkerni = grkerni*hfacwabi*hi1
+                 !  (using hj)
+                 CALL interpolate_kernel(q2j,wabj,grkernj)
+                 wabj = wabj*hfacwabj
+                 grkernj = grkernj*hfacwabj*hj1
+                 !  (calculate average)                
+                 !!wab = 0.5*(wabi + wabj)
+                 !
+                 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
+                 !              
+                 dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
+                 dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
+                 
+              endif
+                                              
            ENDIF
 !
 !--calculate density
 !
-           weight = 1.0
-           IF (j.EQ.i) weight = 0.5
            rho(i) = rho(i) + pmass(j)*wabi*weight
            rho(j) = rho(j) + pmass(i)*wabj*weight
 	   
