@@ -8,5 +8,5 @@ MODULE dimen_mhd
  INTEGER, PARAMETER :: ndim = 2		! Dimensions
  INTEGER, PARAMETER :: ndimB = 2	! Dimensions of Magnetic field variable
  INTEGER, PARAMETER :: ndimV = ndimB	! Dimensions of Velocity variable
- REAL, PARAMETER :: dndim = 1./REAL(ndim)
+ REAL :: dndim	! for divisions by ndim (set in initialise)
 END MODULE

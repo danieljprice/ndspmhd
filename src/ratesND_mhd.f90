@@ -57,8 +57,8 @@ SUBROUTINE get_rates
 !     
  REAL, DIMENSION(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
  REAL, DIMENSION(ndimB) :: faniso,fmagi,fmagj,fcorr
- REAL, DIMENSION(ndimB) :: curlBi,divBvec
- REAL :: fiso,divBonrho,divBvec
+ REAL, DIMENSION(ndimB) :: curlBi
+ REAL :: fiso,divBonrho
  REAL :: valfveni,valfvenj,valfven2i,valfven2j
  REAL :: BidotdB,BjdotdB,Brho2i,Brho2j
  REAL :: projBrhoi,projBrhoj,projBi,projBj,projdB
