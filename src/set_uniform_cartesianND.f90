@@ -27,6 +27,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: idistin
  REAL, DIMENSION(ndim), INTENT(INOUT) :: xmin, xmax
+ REAL, INTENT(IN) :: psep
  LOGICAL, INTENT(IN) :: offset
  
  INTEGER :: i,j,k,ntot,npartx,nparty,npartz,ipart,iseed
