@@ -105,7 +105,7 @@ subroutine primitive2conservative
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call link
      iktemp = ikernav
-     ikernav = 3		! consistent with h for first density evaluation
+!     ikernav = 3		! consistent with h for first density evaluation
      call iterate_density	! evaluate density by direct summation
      ikernav = iktemp  
      hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
@@ -139,6 +139,8 @@ subroutine primitive2conservative
   do i=1,npart	! not ghosts, but including fixed particles
     call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma)     
   enddo
-  
+!
+!--copy the conservative variables onto the ghost particles??
+!  
   return  
 end subroutine primitive2conservative
