@@ -744,14 +744,27 @@ SUBROUTINE get_rates
 !--calculate time derivative of alpha (artificial dissipation coefficient)
 !  see Morris and Monaghan (1997)
 !     
-    IF (iavlim.EQ.1) THEN
-       source = MAX(drhodt(i)*rho1i,abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v
-!       source = MAX(drhodt(i)*rho1i*(1.5-alpha(i)),0.0)    ! source term is div v
+    IF (iavlim.NE.0) THEN
+       IF (iavlim.EQ.2) THEN
+          IF (idivBzero.EQ.1) THEN
+             source = MAX(drhodt(i)*rho1i*(2.0-alpha(i)),abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v	 
+	  ELSE	  
+	     source = MAX(drhodt(i)*rho1i*(2.0-alpha(i)),0.0)    ! source term is div v
+          ENDIF
+       ELSE
+          IF (idivBzero.EQ.1) THEN
+             source = MAX(drhodt(i)*rho1i,abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v	 
+	  ELSE          
+	     source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
+          ENDIF
+       ENDIF
        valfven2i = 0.
        IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
        vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
        tdecay1 = (avconst*vsig)/hh(i)	! 1/decay time (use vsig)
        daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
+    ELSE
+       daldt(i) = 0.
     ENDIF
       
  ENDDO

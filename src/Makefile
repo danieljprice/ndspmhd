@@ -9,6 +9,7 @@
 
 FORTRAN = f90
 FC = f90
+EDITOR = nedit
 
 # -C gives array out-of-bounds checking
 # -u forces implicit none
@@ -39,8 +40,8 @@ SOURCES3D = dimen3D.f90
 #SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
-#SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+SETUP1D = setup_toystar1D.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
@@ -109,12 +110,12 @@ targz:
 	gzip NDSPMHD.tar
 
 edit1D:
-	nedit $(SETUP1D) &
+	$(EDITOR) $(SETUP1D) &
 edit2D:
-	nedit $(SETUP2D) &
+	$(EDITOR) $(SETUP2D) &
 edit25D:
-	nedit $(SETUP25D) &
+	$(EDITOR) $(SETUP25D) &
 edit3D:
-	nedit $(SETUP3D) &
+	$(EDITOR) $(SETUP3D) &
 clean:
 	rm *.o *.mod
