@@ -58,13 +58,13 @@ subroutine setup
        xmin(2) = -pi ! phi min
        xmax(2) = pi ! phi max
     endif
-    call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
+    call set_uniform_cartesian(1,psep,xmin,xmax,perturb=0.5)
     do i=1,npart
        call coord_transform(x(:,i),ndim,2,xnew(:),ndim,1)
        x(:,i) = xnew(:)
     enddo
  else
-    call set_uniform_spherical(11,rmax)        ! 4 = random
+    call set_uniform_spherical(1,rmax,perturb=0.5)        ! 4 = random
  endif
 !
 !--set particle properties
@@ -92,7 +92,10 @@ subroutine setup
  uu(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
- 
+!
+!--reset centre of mass to zero
+!
+ call reset_centre_of_mass(x(:,1:npart),pmass(1:npart))
  
  return
 end subroutine setup
