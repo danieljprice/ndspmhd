@@ -10,7 +10,7 @@
 !! for those particles where h changes significantly after the density
 !! is calculated.
 !!
-!! For details see Price and Monaghan 2003b
+!! For details see Price and Monaghan 2004, MNRAS 348, 139
 !!------------------------------------------------------------------------
 
 subroutine iterate_density
@@ -29,7 +29,7 @@ subroutine iterate_density
 !
   implicit none
   integer :: i,j,itsdensity,itsdensitymax
-  integer :: ncalc,ncalcprev,isize
+  integer :: ncalc,ncalcprev,ncalctotal,isize
   integer, dimension(:), allocatable :: redolist, redolistprev
   real :: tol,hnew
   real, dimension(:), allocatable :: rho_old,gradh_old
@@ -57,6 +57,7 @@ subroutine iterate_density
 !
   itsdensity = 0
   tol = 1.e-2
+  ncalctotal = 0
   ncalc = npart	! number of particles to calculate density on
   redolink = .false.
   ncalcprev = 0
@@ -89,6 +90,7 @@ subroutine iterate_density
         call density_partial(ncalc,redolist)
      endif
      
+     ncalctotal = ncalctotal + ncalc
      ncalcprev = ncalc
      redolistprev(1:ncalcprev) = redolist(1:ncalcprev)
      ncalc = 0
@@ -161,7 +163,8 @@ subroutine iterate_density
      
   enddo iterate
   
-  if (itsdensity.gt.1) write(iprint,*) ' Finished density, iterations = ',itsdensity
+  if (itsdensity.gt.1) write(iprint,*) ' Finished density, iterations = ', &
+                                       itsdensity, ncalctotal
   
   return
 end subroutine iterate_density
