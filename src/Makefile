@@ -91,7 +91,6 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
 #SETUP2D = setup_Bxpeak25D_mhd.f90
-#SETUP2D = setup_shockND.f90
 #SETUP2D = setup_disc2D_2.f90
 
 #SETUP3D = setup_unifdisND.f90

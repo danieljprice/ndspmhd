@@ -33,7 +33,7 @@ SUBROUTINE write_infile(infile)
   WRITE(iread,50) icty,ndirect,maxdensits
   WRITE(iread,60) iprterm
   WRITE(iread,70) iav,alphamin,alphaumin,alphaBmin,beta
-  WRITE(iread,80) iavlim,iaulim,iaBlim,avdecayconst
+  WRITE(iread,80) iavlim(:),avdecayconst
   WRITE(iread,90) ikernav
   WRITE(iread,100) ihvar,hfact
   WRITE(iread,110) idumpghost
