@@ -25,9 +25,9 @@ SUBROUTINE setup
 !
  IMPLICIT NONE
  INTEGER :: i,j,ntot
- REAL :: dist,xcentre,vxi,term,term2,rhozero,massp,gam1
+ REAL :: dist,xcentre,vxi,term,term2,denszero,massp,gam1
  REAL :: xpulseleft,xpulseright,deltaleft,deltaright
- REAL :: exx,uuzero,Bypulse,velpulse,rhopulse,przero
+ REAL :: exx,uuzero,Bypulse,velpulse,denspulse,przero
  REAL :: ampl,spsoundi,velzero,dsmooth
  REAL, DIMENSION(ndimB) :: Bzero
 
@@ -43,8 +43,8 @@ SUBROUTINE setup
  xpulseright = xcentre + 25*psep
  gam1 = gamma - 1.
  dist  = 0.5*psep
- rhozero =  10.0   
- massp = rhozero*psep                 ! the mass per sph particle
+ denszero =  10.0   
+ massp = denszero*psep                 ! the mass per sph particle
  npart = 0
  uuzero = 1.0/(gamma*gam1)
  ampl = 0.01		! amplitude of the density perturbation
@@ -61,7 +61,7 @@ SUBROUTINE setup
 
  velpulse = 5.0
  velzero = velpulse
- rhopulse = rhozero*(1.+ampl)
+ denspulse = denszero*(1.+ampl)
 !
 !--allocate variables
 !
@@ -71,14 +71,14 @@ SUBROUTINE setup
 ! i = 1
  x(1,1) = xmin(1) + 0.5*psep
  x(1,2) = xmin(1) + psep + 0.5*psep
- rho(1:2) = rhozero
+ dens(1:2) = denszero
  uu(1:2) = uuzero
  pmass(1:2) = massp
  vel(:,1:2) = 0.
  vel(1,1:2) = velzero
  
  Bfield(:,1:2) = 0.
- hh(1:2) = hfact*massp/rhozero
+ hh(1:2) = hfact*massp/denszero
 
  i = 1
  DO WHILE (x(1,i).lt.xmax(1))  
@@ -91,34 +91,34 @@ SUBROUTINE setup
     Bfield(:,i) = 0.		! initially zero, reset later
     vel(:,i) = 0.	 
     vel(1,i) = velzero
-    rho(i) = rhozero
+    dens(i) = denszero
 
     IF ((deltaleft.gt.dsmooth).AND.(deltaright.le.-dsmooth)) THEN
        Bfield(2,i) = Bypulse
        vel(1,i) = velpulse
-!      rho(i) = rhopulse
+!      dens(i) = denspulse
     ELSEIF (deltaleft.le.-dsmooth) THEN
        Bfield(2,i) = 0.
 !      vel(1,i) = velzero
-       rho(i) = rhozero
+       dens(i) = denszero
     ELSEIF ((deltaleft.gt.-dsmooth).AND.(deltaleft.le.dsmooth)) THEN
        exx = exp(deltaleft)
        Bfield(2,i) = (Bypulse*exx)/(1 + exx)
 !      vel(1,i) = (velpulse*exx)/(1+exx)
-!      rho(i) = (rhozero + rhopulse*exx)/(1+exx)
+!      dens(i) = (denszero + denspulse*exx)/(1+exx)
     ELSEIF ((deltaright.gt.-dsmooth).AND.(deltaright.le.dsmooth)) THEN
        exx = exp(deltaright)
        Bfield(2,i) = Bypulse - (Bypulse*exx)/(1 + exx)
 !      vel(1,i) = velpulse - (velpulse*exx)/(1+exx)
-!      rho(i) = rhopulse - ((rhopulse-rhozero)*exx)/(1+exx)
+!      dens(i) = denspulse - ((denspulse-denszero)*exx)/(1+exx)
     ELSE
        Bfield(2,i) = 0.  
-       rho(i) = rhozero
+       dens(i) = denszero
 !      vel(1,i) = velzero
     ENDIF
 
-!   x(1,i) = x(1,i-2) + 2.*massp/rho(i-1)	 
-    hh(i) = hfact*massp/rho(i)
+!   x(1,i) = x(1,i-2) + 2.*massp/dens(i-1)	 
+    hh(i) = hfact*massp/dens(i)
     uu(i) = uuzero
     pmass(i) = massp
  ENDDO

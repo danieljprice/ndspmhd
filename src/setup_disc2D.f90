@@ -19,7 +19,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: rhozero,rr
+ real :: denszero,rr
 !
 !--allow for tracing flow
 !
@@ -62,14 +62,14 @@ subroutine setup
 !
 !--determine particle mass (WORK THIS OUT)
 !
- rhozero = 1.0
+ denszero = 1.0
  volume = pi*(xmax(1)**2 - xmin(1)**2)
- totmass = rhozero*volume
+ totmass = denszero*volume
  massp = totmass/FLOAT(ntotal) ! average particle mass
 !
 !--now assign particle properties
 !  (note *do not* setup smoothing length as it depends on the conservative
-!   density rho which has not yet been calculated) 
+!   density dens which has not yet been calculated) 
 !
  do i=1,ntotal
 !
@@ -77,7 +77,7 @@ subroutine setup
 !
     rr = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
     vel(:,i) = 0.
-    rho(i) = rhozero*(1./rr)
+    dens(i) = denszero*(1./rr)
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.

@@ -51,16 +51,16 @@ SUBROUTINE setup
  DO i=1,imax
     x(i) = xmin + (i-1)*psep  + 0.5*psep 
     vel(:,i) = 0.
-    rho(i) = 1.0
+    dens(i) = 1.0
     pmass(i) = massp
     uu(i) = 0.3
-    hh(i) = hfact*(massp/rho(i))**hpower	 ! ie constant everywhere
+    hh(i) = hfact*(massp/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,i) = 0.5
        Bfield(2,i) = 0.5
        Bfield(3,i) = 0.5
     ENDIF 
-!   print*,i,x(i),rho(i),uu(i),pmass(i),x(i)-x(i-1)
+!   print*,i,x(i),dens(i),uu(i),pmass(i),x(i)-x(i-1)
  ENDDO
   
  npart = imax
@@ -117,29 +117,29 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
-    CALL equation_of_state(pri,spsoundi,uu(i),rho(i),gamma,1)
+    CALL equation_of_state(pri,spsoundi,uu(i),dens(i),gamma,1)
 !
 !--multiply by appropriate wave speed
 !
 !    PRINT*,' sound speed = ',spsoundi, ' alfven speed = ',SQRT(valfven2i)
-    valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
+    valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/dens(i)
     vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
                       + SQRT((spsoundi**2 + valfven2i)**2	&
-                      - 4.*(spsoundi*Bfield(1,i))**2/rho(i))))
+                      - 4.*(spsoundi*Bfield(1,i))**2/dens(i))))
     vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
                       - SQRT((spsoundi**2 + valfven2i)**2	&
-                      - 4.*(spsoundi*Bfield(1,i))**2/rho(i))))
+                      - 4.*(spsoundi*Bfield(1,i))**2/dens(i))))
     vcrap = SQRT(spsoundi**2 + valfven2i)
 !    PRINT*,' c_f = ',vfast, ' c_slow = ',vslow
 !    PRINT*,'c_f_joe = ',0.5*(SQRT(spsoundi**2 + valfven2i 	&
-!      		    - 2.*spsoundi*Bfield(1,i)/SQRT(rho(i)) )	&
+!      		    - 2.*spsoundi*Bfield(1,i)/SQRT(dens(i)) )	&
 !                                +SQRT(spsoundi**2 + valfven2i 	&
-!      		    + 2.*spsoundi*Bfield(1,i)/SQRT(rho(i)) ))		      
+!      		    + 2.*spsoundi*Bfield(1,i)/SQRT(dens(i)) ))		      
 !    PRINT*,'c_crap = ',vcrap,spsoundi + SQRT(valfven2i)
 		    
     vwave = vfast
-    vsigy = -Bfield(1,i)*Bfield(2,i)/rho(i)/(vwave**2 - Bfield(1,i)**2/rho(i))
-    vsigz = -Bfield(1,i)*Bfield(3,i)/rho(i)/(vwave**2 - Bfield(1,i)**2/rho(i))
+    vsigy = -Bfield(1,i)*Bfield(2,i)/dens(i)/(vwave**2 - Bfield(1,i)**2/dens(i))
+    vsigz = -Bfield(1,i)*Bfield(3,i)/dens(i)/(vwave**2 - Bfield(1,i)**2/dens(i))
 !    PRINT*,' vsig = ',vsigx,vsigy,vsigz
 !    READ*
     
@@ -150,16 +150,16 @@ SUBROUTINE setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uu(i) = uu(i) + pri/rho(i)*ampl*SIN(wk*dxi)	! if not polytropic
+   uu(i) = uu(i) + pri/dens(i)*ampl*SIN(wk*dxi)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
-    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)/(vwave**2.-Bfield(1,i)**2/rho(i))*ampl*SIN(wk*dxi)
-    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)/(vwave**2.-Bfield(1,i)**2/rho(i))*ampl*SIN(wk*dxi)
-    rho(i) = rho(i)*(1.+ampl*SIN(wk*dxi))
+    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)/(vwave**2.-Bfield(1,i)**2/dens(i))*ampl*SIN(wk*dxi)
+    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)/(vwave**2.-Bfield(1,i)**2/dens(i))*ampl*SIN(wk*dxi)
+    dens(i) = dens(i)*(1.+ampl*SIN(wk*dxi))
 
     IF (ihvar.NE.0) THEN
-       hh(i) = hfact*(pmass(i)/rho(i))**hpower	! if variable smoothing length
+       hh(i) = hfact*(pmass(i)/dens(i))**hpower	! if variable smoothing length
     ENDIF
 
  ENDDO

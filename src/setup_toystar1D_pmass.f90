@@ -24,7 +24,7 @@ SUBROUTINE setup
  INTEGER, PARAMETER :: itsmax = 100
  REAL, PARAMETER :: tol = 1.e-7
  INTEGER :: imax,its,ipart,norder
- REAL :: massp,totmass,radstar,sigma,rhozero
+ REAL :: massp,totmass,radstar,sigma,denszero
  REAL :: ampl,wk,xlambda,dxmax,denom,gam1,dgam1
  REAL :: H,C,A		! toy star parameters
  REAL :: Gn
@@ -98,24 +98,24 @@ SUBROUTINE setup
 !
  DO i=1,imax
     x(1,i) = xmin(1) + (i-1)*psep + 0.5*psep
-    rho(i) = (H - C*x(1,i)**2)**dgam1    
+    dens(i) = (H - C*x(1,i)**2)**dgam1    
     IF (oscills) THEN
        vel(1,i) = A*Gn(x(1,i),norder)
     ELSE
        vel(1,i) = A*x(1,i)
     ENDIF 
     IF (ndimV.GT.1) vel(2:3,i) = 0.   
-    pmass(i) = psep*rho(i)
-    uu(i) = polyk*rho(i)**(gam1)/gam1
+    pmass(i) = psep*dens(i)
+    uu(i) = polyk*dens(i)**(gam1)/gam1
     hh(i) = hfact*psep	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,i) = 0.0	!SQRT(1.5)
-       Bfield(2,i) = sigma*rho(i)
+       Bfield(2,i) = sigma*dens(i)
        Bfield(3,i) = 0.0	
     ELSE
        Bfield(:,i) = 0.
     ENDIF 
-!    PRINT*,x(1,i),rho(i),pmass(i),hh(i)
+!    PRINT*,x(1,i),dens(i),pmass(i),hh(i)
  ENDDO
  
  npart = imax  

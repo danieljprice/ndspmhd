@@ -27,7 +27,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i,j
  REAL :: rmax,totmass,totvol
- REAL :: rhozero,uuzero,massp
+ REAL :: denszero,uuzero,massp
 
  WRITE(iprint,*) 'Polytrope'
  IF (igravity.EQ.0) WRITE(iprint,*) 'WARNING: gravity not set'
@@ -53,22 +53,22 @@ SUBROUTINE setup
  END SELECT
   
  totmass = totvol
- rhozero = totmass/totvol
+ denszero = totmass/totvol
  massp = totmass/REAL(npart)
  uuzero = 0.1
- WRITE(iprint,10) rhozero,uuzero
+ WRITE(iprint,10) denszero,uuzero
 10 FORMAT(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
 !
 !--set these for all particles
 ! 
  vel(:,:) = 0.
- rho(:) = rhozero
+ dens(:) = denszero
  uu(:) = uuzero
  enin(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
- WHERE (rho > 0.)
-    hh = hfact*(massp/rho(:))**hpower
+ WHERE (dens > 0.)
+    hh = hfact*(massp/dens(:))**hpower
  END WHERE
  
  RETURN

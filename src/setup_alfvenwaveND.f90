@@ -23,7 +23,7 @@ SUBROUTINE setup
  INTEGER :: i
 ! REAL, PARAMETER :: pi = 3.1415926536
  REAL, DIMENSION(ndim) :: runit
- REAL :: massp,totmass,rhozero,gam1,uuzero,przero
+ REAL :: massp,totmass,denszero,gam1,uuzero,przero
  REAL :: anglexy,ampl,wk,xlambda,rmax
  REAL :: valfven
  REAL :: vampl_par,vampl_perp,vamplz,vamply,vamplx
@@ -73,7 +73,7 @@ SUBROUTINE setup
  vperp0 = 0.1
  vparallel = 0.0
  vz0 = 0.1
- rhozero = 1.0
+ denszero = 1.0
  przero = 0.1
  Bparallel = 1.0
  Bperp0 = 0.1 
@@ -82,7 +82,7 @@ SUBROUTINE setup
 !--work out dependent parameters
 !
  gam1 = gamma - 1.
- uuzero = przero/(gam1*rhozero)
+ uuzero = przero/(gam1*denszero)
 !
 !--initially set up a uniform density grid (also determines npart)
 !
@@ -91,7 +91,7 @@ SUBROUTINE setup
 !
 !--determine particle mass
 !
- totmass = rhozero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
+ totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
  massp = totmass/FLOAT(npart) ! average particle mass
  PRINT*,'npart,massp = ',npart,massp
  
@@ -108,15 +108,15 @@ SUBROUTINE setup
     vel(2,i) = vparallel*runit(2) + vperp*runit(1)
     vel(3,i) = vz
     
-    rho(i) = rhozero
+    dens(i) = denszero
     pmass(i) = massp
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-    uu(i) = uuzero !+ pri/rho(i)*ampl*SIN(wk*ri)	! if not polytropic
+    uu(i) = uuzero !+ pri/dens(i)*ampl*SIN(wk*ri)	! if not polytropic
 
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
+    hh(i) = hfact*(pmass(i)/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)
        Bfield(2,i) = Bparallel*runit(2) + Bperp*runit(1)
@@ -126,7 +126,7 @@ SUBROUTINE setup
 
  ntotal = npart
  
- valfven = SQRT(Bparallel**2/rhozero)
+ valfven = SQRT(Bparallel**2/denszero)
 
 !----------------------------
 

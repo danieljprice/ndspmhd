@@ -28,7 +28,7 @@ SUBROUTINE setup
 !      
  IMPLICIT NONE
  INTEGER :: i,j,ntot
- REAL :: xcentre,rholeft,rhoright,rhohalf,uuleft,uuright
+ REAL :: xcentre,densleft,densright,denshalf,uuleft,uuright
  REAL :: prleft, prright, exx, delta
  REAL :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
  REAL :: enleft,enright,B2i
@@ -57,8 +57,8 @@ SUBROUTINE setup
  const = SQRT(4.*pi)
  alphamax = 0.5
  dsmooth = 20. 
- rholeft = 1.0
- rhoright = 1.0
+ densleft = 1.0
+ densright = 1.0
  prleft = 1000.0
  prright = 0.01
  vleft(1) = 0.
@@ -84,7 +84,7 @@ SUBROUTINE setup
  shkfile = rootname(1:LEN_TRIM(rootname))//'.shk'
  
  OPEN (UNIT=ireadf, FILE=shkfile,STATUS='old',FORM='formatted')
-  READ(ireadf,*) rholeft,rhoright
+  READ(ireadf,*) densleft,densright
   READ(ireadf,*) prleft,prright
   READ(ireadf,*) vleft(1),vright(1)
   READ(ireadf,*) vleft(2),vright(2)
@@ -93,11 +93,11 @@ SUBROUTINE setup
   READ(ireadf,*) Byleft,Byright
   READ(ireadf,*) Bzleft,Bzright
  CLOSE (UNIT=ireadf)
- WRITE(iprint,10) rholeft,rhoright,prleft,prright,vleft(1),vright(1),   &
+ WRITE(iprint,10) densleft,densright,prleft,prright,vleft(1),vright(1),   &
                   vleft(2),vright(2),vleft(3),vright(3),		&
 		  Bxinit,Byleft,Byright,Bzleft,Bzright
  
-10 FORMAT( ' 1D shock: rho L: ',f16.9,' R: ',f16.9,/,   &
+10 FORMAT( ' 1D shock: dens L: ',f16.9,' R: ',f16.9,/,   &
            '           pr  L: ',f16.9,' R: ',f16.9,/,   &
            '           vx  L: ',f16.9,' R: ',f16.9,/,   &
            '           vy  L: ',f16.9,' R: ',f16.9,/,   &
@@ -109,14 +109,14 @@ SUBROUTINE setup
 
 
  IF (ABS(gam1).GT.1.e-3) THEN
-    uuleft = prleft/(gam1*rholeft)
-    uuright = prright/(gam1*rhoright)
+    uuleft = prleft/(gam1*densleft)
+    uuright = prright/(gam1*densright)
  ELSE
-    uuleft = 3.*prleft/(2.*rholeft)
-    uuright = 3.*prright/(2.*rhoright)
+    uuleft = 3.*prleft/(2.*densleft)
+    uuright = 3.*prright/(2.*densright)
  ENDIF
- massp = rhoright*psep      
- psepleft = massp/rholeft			
+ massp = densright*psep      
+ psepleft = massp/densleft			
 !
 ! allocate memory to start with
 !
@@ -126,13 +126,13 @@ SUBROUTINE setup
 !--setup the particles using the parameters given
 ! 
  x(1,1) = xmin(1) + 0.5*psepleft
- x(1,2) = xmin(1) + psep*rhoright/rholeft + 0.5*psepleft
+ x(1,2) = xmin(1) + psep*densright/densleft + 0.5*psepleft
  DO i=1,2
-    rho(i) = rholeft
+    dens(i) = densleft
     uu(i) = uuleft
     pmass(i) = massp
     vel(:,i) = vleft(:)
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower
+    hh(i) = hfact*(pmass(i)/dens(i))**hpower
     alpha(i) = alphamin
     IF (imhd.NE.0) THEN
        Bfield(1,i) = Bxinit
@@ -143,34 +143,34 @@ SUBROUTINE setup
  
  j = 2     
  DO WHILE (x(1,j).LT.xmax(1))
-    dx0 = massp/rho(j)
+    dx0 = massp/dens(j)
     xhalf = x(1,j) + 0.5*dx0  !x at the mid point
     delta = xhalf/psep
     j = j + 1 
     IF (delta.lt.-dsmooth) THEN
-       rhohalf = rholeft
+       denshalf = densleft
     ELSEIF (delta.gt.dsmooth) THEN
-       rhohalf = rhoright
+       denshalf = densright
     ELSE
        exx = exp(delta)
-       rhohalf = (rholeft+ rhoright*exx)/(1+exx)
+       denshalf = (densleft+ densright*exx)/(1+exx)
     ENDIF
 !---------------------------------------------------	    
 !     calculate half steps then final step
 !---------------------------------------------------	    
-    dxhalf = massp/rhohalf
+    dxhalf = massp/denshalf
     dx1 = 2.*dxhalf - dx0
     x(1,j) = xhalf + 0.5*dx1
     delta = (x(1,j)-xcentre)/psep
     IF (delta.lt.-dsmooth) THEN
-       rho(j) = rholeft
+       dens(j) = densleft
        uu(j) = uuleft
        vel(:,j) = vleft(:)
        Bfield(2,j) = Byleft
        Bfield(3,j) = Bzleft
        alpha(j) = alphamin
     ELSEIF (delta.gt.dsmooth) THEN
-       rho(j) = rhoright
+       dens(j) = densright
        uu(j) = uuright
        vel(:,j) = vright(:)
        Bfield(2,j) = Byright
@@ -178,15 +178,15 @@ SUBROUTINE setup
        alpha(j) = alphamin
     ELSE
        exx = exp(delta)
-       rho(j) = (rholeft + rhoright*exx)/(1.0 +exx)
+       dens(j) = (densleft + densright*exx)/(1.0 +exx)
        uu(j) = (uuleft + uuright*exx)/(1.0 + exx)
        
        exxal = exp(-(x(1,j)/(0.5*dsmooth*psep))**2)
        alpha(j) = alphamax*exxal + alphamin
 !       IF (prleft.GT.prright) THEN
-!          uu(j) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
+!          uu(j) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
 !       ELSE
-!          uu(j) = (prright + prleft*exx)/((1.0 + exx)*gam1*rho(i))
+!          uu(j) = (prright + prleft*exx)/((1.0 + exx)*gam1*dens(i))
 !       ENDIF
       vel(:,j) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
 !       IF (delta.LT.0.) THEN
@@ -198,7 +198,7 @@ SUBROUTINE setup
        Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
     pmass(j) = massp
-    hh(j) = hfact*(pmass(j)/rho(j))**hpower	!rhohalf
+    hh(j) = hfact*(pmass(j)/dens(j))**hpower	!denshalf
     Bfield(1,j) = Bxinit
  ENDDO
 

@@ -26,7 +26,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i,j
  REAL :: rmax,totmass,totvol
- REAL :: rhozero,uuzero,massp,rhocentre
+ REAL :: denszero,uuzero,massp,denscentre
 
  WRITE(iprint,*) 'Uniform spherical distribution'
 !
@@ -51,25 +51,25 @@ SUBROUTINE setup
     totvol = 4./3.*pi*rmax**3
  END SELECT
   
- rhocentre = 1.0		! toy star central density 
- totmass = 2*pi*polyk*rhocentre**(gamma-1.)  ! mass of the toy star 
+ denscentre = 1.0		! toy star central density 
+ totmass = 2*pi*polyk*denscentre**(gamma-1.)  ! mass of the toy star 
  
- rhozero = totmass/totvol	! initial density
+ denszero = totmass/totvol	! initial density
  massp = totmass/REAL(npart)
  uuzero = 0.1
- WRITE(iprint,10) rhocentre,totmass
+ WRITE(iprint,10) denscentre,totmass
 10 FORMAT(/,' Toy star static solution ',/, &
             '     central density: ',f7.3, ' total mass = ',f7.3,/)
 !
 !--set these for all particles
 ! 
  vel(:,:) = 0.
- rho(:) = rhozero
+ dens(:) = denszero
  uu(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
- WHERE (rho > 0.)
-    hh = hfact*(massp/rho(:))**hpower
+ WHERE (dens > 0.)
+    hh = hfact*(massp/dens(:))**hpower
  END WHERE
  
  RETURN
