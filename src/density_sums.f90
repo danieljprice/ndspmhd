@@ -7,7 +7,7 @@ contains
 !! Computes the density by direct summation over the particles neighbours
 !! ie. rho_a = sum_b m_b W_ab (h_a)
 !!
-!! Also computes the variable smoothing length terms sum_b m_b dWdh_b dhdrho_b
+!! Also computes the variable smoothing length terms sum_b m_b dW_ab/dh_a
 !!
 !! This version computes the density on all particles
 !! and therefore only does each pairwise interaction once
@@ -49,10 +49,7 @@ contains
     real :: q2,q2i,q2j      
     real :: wab,wabi,wabj,weight
     real :: grkern,grkerni,grkernj
-!
-!  (grad h terms)
-!
-    real :: dwdhi,dwdhj,dhdrhoi,dhdrhoj
+    real :: dwdhi,dwdhj ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -91,7 +88,6 @@ contains
           hi1 = 1./hi
           hi2 = hi*hi
           hfacwabi = hi1**ndim
-          dhdrhoi = -hi*dndim       ! divide by  should use rho(i)
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -102,7 +98,6 @@ contains
              hj1 = 1./hj
              hj2 = hj*hj
              hfacwabj = hj1**ndim
-             dhdrhoj = -hj*dndim       ! see above 
          
              rij2 = dot_product(dx,dx)
              rij = sqrt(rij2)
@@ -179,8 +174,8 @@ contains
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-                   gradh(i) = gradh(i) + dhdrhoi*pmass(j)*weight*dwdhi
-                   gradh(j) = gradh(j) + dhdrhoj*pmass(i)*weight*dwdhj
+                   gradh(i) = gradh(i) + pmass(j)*weight*dwdhi
+                   gradh(j) = gradh(j) + pmass(i)*weight*dwdhj
                 endif
 !        ELSE
 !           PRINT*,' r/h > 2 '      
@@ -252,10 +247,7 @@ contains
 !
     real :: q2i      
     real :: wabi,grkerni    
-!
-!  (grad h terms)
-!
-    real :: dhdrhoi,dwdhi
+    real :: dwdhi ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -299,7 +291,6 @@ contains
        
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
-       dhdrhoi = -hi*dndim      ! divide by  should use rho(i)!
 !
 !--loop over current particle's neighbours
 !
@@ -337,7 +328,7 @@ contains
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-             gradh(i) = gradh(i) + dhdrhoi*pmass(j)*dwdhi
+             gradh(i) = gradh(i) + pmass(j)*dwdhi
        
           endif
           

@@ -58,8 +58,8 @@ SUBROUTINE step
        pmom(:,i) = pmomin(:,i) + hdt*force(:,i)
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (ihvar.EQ.1) THEN
-!	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
-	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
+!	   hh(i) = hfact(pmass(i)/rho(i))**dndim	! my version
+	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim		! Joe's	   
        ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF

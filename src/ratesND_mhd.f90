@@ -89,6 +89,7 @@ subroutine get_rates
  real :: q2,q2i,q2j
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
+ real :: gradhi
 !
 !  (joe's mhd fix)
 !
@@ -97,10 +98,6 @@ subroutine get_rates
 !  (time step criteria)
 !      
  real :: vsigdtc,zero,fhmax, fonh, forcemag
-!
-!  (variable smoothing length terms)
-!
- real :: gradhi,gradhj
  integer :: ierr
 !
 !  (gravity)
@@ -234,10 +231,7 @@ subroutine get_rates
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
        endif
-       gradhi = 1./(1. - gradh(i))
-       !if (gradhi.le.0.5) then
-       !   write(iprint,*) 'Error in grad h terms, part ',i,gradhi
-       !endif
+       gradhi = gradh(i)
        hi = hh(i)
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
@@ -556,9 +550,8 @@ contains
          wab = 0.5*(wabi + wabj)  ! wab only used in XSPH term
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            gradhj = 1./(1. - gradh(j))
             grkerni = grkerni*gradhi
-            grkernj = grkernj*gradhj
+            grkernj = grkernj*gradh(j)
             grkern = 0.5*(grkerni + grkernj)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
@@ -592,9 +585,8 @@ contains
          wab = 0.5*(wabi + wabj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            gradhj = 1./(1. - gradh(j))
             grkerni = grkerni*gradhi
-            grkernj = grkernj*gradhj
+            grkernj = grkernj*gradh(j)
             grkern = 0.5*(grkerni + grkernj)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
