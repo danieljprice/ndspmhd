@@ -1,8 +1,5 @@
 !!-----------------------------------------------------------------
 !! This subroutine initialises everything needed for the run
-!!
-!! Changes log:
-!! v3.6: gradh set to zero, ghost particles called in all cases
 !!-----------------------------------------------------------------
 
 SUBROUTINE initialise
@@ -67,6 +64,12 @@ SUBROUTINE initialise
 !--start tracing flow into logfile
 !
  IF (trace) WRITE(iprint,*) ' Entering subroutine initialise'
+!
+!--prevent ridiculous compilations
+!
+ IF (ndim.GT.3 .OR. ndim.LT.0 .OR. ndimV.GT.3 .OR. ndimV.LT.0) THEN
+    STOP 'Error ndim <0 or >3: We leave string theory for later'
+ ENDIF   
 !
 !--Open data/ev files
 !
