@@ -48,7 +48,7 @@ SUBROUTINE setup
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
  rblast = 0.01		! radius of the initial blast
- rbuffer = rblast	!+20.*psep		! radius of the smoothed front
+ rbuffer = rblast	!+10.*psep		! radius of the smoothed front
  Bzero(:) = 0.0
  IF (imhd.NE.0) THEN
     Bzero(1) = 10.0*const	! uniform field in Bx direction
