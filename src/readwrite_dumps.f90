@@ -45,9 +45,14 @@ subroutine write_dump(t,dumpfile)
 !
  if (imhd.ne.0) then
     ndata = ndim + 11 + 3*ndimV ! number of columns apart from co-ords
+    iformat = 2
  else
     ndata = ndim + 8 + ndimV
-    if (igeom.ne.0) ndata = ndata + 2 + ndimV
+    iformat = 1
+    if (igeom.gt.1) then
+       ndata = ndata + 2 + ndimV
+       iformat = 3
+    endif
  endif
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
                              ndata,igeom,iformat,ibound,xmin,xmax
@@ -92,7 +97,7 @@ subroutine write_dump(t,dumpfile)
      !--info only
      write(idatfile) pr(1:nprint)
      write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
-     if (igeom.ne.0) then
+     if (igeom.gt.1) then
         write(idatfile) rho(1:nprint)
         write(idatfile) sqrtg(1:nprint)
         write(idatfile) pmom(:,1:nprint)
@@ -135,7 +140,7 @@ subroutine read_dump(dumpfile,tfile)
  integer :: i,j,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
  integer :: ierr, iformat,igeomfile
  real :: gammafile,hfactfile
- logical :: iexist, mhdfile
+ logical :: iexist
  real, dimension(ndim) :: xnew,vecnew
 
  igeomfile = 0
@@ -189,19 +194,11 @@ subroutine read_dump(dumpfile,tfile)
     write(iprint,*) 'warning: setup file contains ghosts, but none set'
  endif
 
- if (ncolumns.ge.(ndim+6+ndimV)) then
-    if (ncolumns.lt.ndim+2*ndimV+8 .or. igeomfile.ne.0) then
-       mhdfile = .false.
-       write(iprint,*) '(non-mhd input file)'
-       if (imhd.gt.0) write(iprint,*) 'warning: reading non-mhd file, but mhd is on'
-    else
-       mhdfile = .true.
-       write(iprint,*) '(mhd input file)'
-       if (imhd.le.0) write(iprint,*) 'warning: mhd input file, but mhd is off'       
-    endif
- else
-    mhdfile = .false.
-    write(iprint,*) 'WARNING: header suggests not enough data columns in input file'
+ if (imhd.le.0 .and. iformat.eq.2) then
+    write(iprint,*) 'warning: mhd input file, but MHD is off'
+ elseif (imhd.gt.0 .and. iformat.ne.2) then
+    write(iprint,*) 'ERROR: non-mhd infile but MHD is on'
+    stop
  endif
 !
 !--allocate memory for the number of particles
@@ -228,14 +225,14 @@ subroutine read_dump(dumpfile,tfile)
  if (ierr /= 0) stop 'error reading dumpfile'
  read(ireadf,iostat=ierr) pmass(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
- if (mhdfile .and. imhd.ne.0) then
+ if (iformat.eq.2 .and. imhd.ne.0) then
     read(ireadf,iostat=ierr) alpha(1:3,1:npart)
     if (ierr /= 0) then
        write(iprint,*) '*** error in dumpfile : non-MHD file ***'
     endif
     read(ireadf,iostat=ierr) Bfield(1:ndimV,1:npart)
     read(ireadf,iostat=ierr) psi(1:npart)
- elseif (mhdfile) then
+ elseif (iformat.eq.2) then
     !--read alpha in MHD format
     read(ireadf,iostat=ierr) alpha(1:3,1:npart)    
  else
@@ -249,7 +246,6 @@ subroutine read_dump(dumpfile,tfile)
 !
 !--convert to appropriate coordinate system
 !
- igeom = 2
  if (igeomfile.ne.igeom) then
     write(iprint,*) 'CONVERTING file from coord system ',igeomfile,' to ',igeom
     do i=1,npart
@@ -269,7 +265,7 @@ subroutine read_dump(dumpfile,tfile)
  write(iprint,*) 'finished reading setup file: everything is aok'
 
  if (igeom.eq.2) then
-    ibound(1) = 2 ! reflective in r
+    !!ibound(1) = 2 ! reflective in r
     xmin(1) = 0.0
     xmax(1) = 10000.0 ! a long way away
     if (ndim.ge.2) then 
