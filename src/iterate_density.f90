@@ -153,7 +153,7 @@ subroutine iterate_density
 !
 !--write over boundary particles
 !     
-     if (any(ibound.ge.1)) then
+     if (any(ibound.eq.1)) then
         do i=1,npart		! update fixed parts and ghosts
            if (itype(i).eq.1) then
 	      j = ireal(i)
@@ -163,7 +163,7 @@ subroutine iterate_density
                  gradh(i) = gradh(j)
 	      else
 	         rho(i) = rho_old(i)
-		 write(iprint,*) 'Warning: ireal not set for fixed parts'
+		 !!write(iprint,*) 'Warning: ireal not set for fixed parts'
 	      endif
 	   endif
 	enddo
