@@ -1,0 +1,17 @@
+#!/usr/bin/tcsh
+#
+# @(#) writes script for job submission to sun grid engine -- daniel price 7/7/03
+# copies from file write_sgescript_default, replacing the filenames
+#
+if $# != 1 then
+   echo Usage: $0 scriptname
+else
+   echo creating sun grid engine script \'$1\.sge\'
+   cp write_sgescript_default $1\.sge
+   perl -i -pe 's/multirun/'$1'/ig' $1\.sge
+   ### echo type \'qsub $1\.sge\' to submit to grid
+endif
+
+
+
+

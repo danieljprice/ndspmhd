@@ -1,0 +1,10 @@
+cd src
+gunzip *.gz
+tar -xvf *.tar
+rm *.tar
+cd ..
+cd plot
+gunzip *.gz
+tar -xvf *.tar
+rm *.tar
+cd ..
