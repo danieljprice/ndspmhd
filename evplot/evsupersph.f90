@@ -37,7 +37,7 @@ program plotmeagraph
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
-  ncol = 22
+  ncol = maxcol
   icycle = .false.
   hpos = 0.4
   vpos = 8.0
@@ -86,7 +86,8 @@ program plotmeagraph
      print "(a,a)",' opening ',trim(filename)
      ifilesteps = maxstep
      mysteps = 0
-     call readev(ifilesteps,evdata(1:ifilesteps,1:ncol,ifile),ncol,filename)
+     call readev(ifilesteps,evdata(1:ifilesteps,1:maxcol,ifile), &
+                 maxcol,ncol,filename)
      mysteps = max(mysteps,ifilesteps)
      nstepsfile(ifile) = ifilesteps
      !
@@ -280,7 +281,7 @@ program plotmeagraph
      filename = trim(rootname(1))//'.ev'
      print*,'reading evolution file ',filename   
      mysteps = maxstep           
-     call readev(mysteps,evdata(1:mysteps,1:ncol,1),ncol,filename)
+     call readev(mysteps,evdata(1:mysteps,1:maxcol,1),maxcol,ncol,filename)
      print*,'setting plot limits'
      do i=1,ncol
         lim(i,1) = minval(evdata(1:mysteps,i,1))
@@ -563,14 +564,16 @@ end program plotmeagraph
 !  this subroutine reads the contents of the .ev file
 !-------------------------------------------------------------------------      
 
-subroutine readev(nsteps,evdata,ncols,rootname)
+subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   implicit none
   integer :: i
-  integer, intent(in) :: ncols
+  integer, intent(in) :: maxcols
   integer, intent(inout) :: nsteps
-  real, dimension(nsteps,ncols), intent(out) :: evdata
+  integer, intent(out) :: ncolumns
+  real, dimension(nsteps,maxcols), intent(out) :: evdata
   character(len=*), intent(in) :: rootname
   character(len=len_trim(rootname)) :: evname,dummy
+  character(len=2000) :: charline
   logical :: iexist,redo
   integer :: ierr,j,nskip
   
@@ -578,9 +581,19 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   inquire (file=evname, exist=iexist)
   if (.not.iexist) then
      print*,'***ERROR ',trim(evname),': file does not exist'
-     stop
+     nsteps = 0
+     return
   endif
   open(unit=11,file=evname,status='old',form='formatted')
+  
+  call get_ncolumns(11,ncolumns)
+  ncolumns = ncolumns + 1
+  if (ncolumns.gt.maxcols) then
+     ncolumns = maxcols
+     print*,'***WARNING: array too small: reading first ',ncolumns,' only'
+  else
+     print*,'ncolumns = ',ncolumns
+  endif
   
   redo = .true.
   nskip = 0
@@ -590,7 +603,7 @@ subroutine readev(nsteps,evdata,ncols,rootname)
      i = 1
      do while (i.le.nsteps .and. ierr.eq.0)
         evdata(i,1) = real(i)
-        read(11,*,iostat=ierr) evdata(i,2:ncols)
+        read(11,*,iostat=ierr) evdata(i,2:ncolumns)
         if (nskip.gt.0) then
            do j=1,nskip
               read(11,*,iostat=ierr) dummy
@@ -626,6 +639,42 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   
   return
 end subroutine readev
+
+!
+! utility to work out number of columns of real numbers
+! in an ascii output file
+!
+! file must already be open and at the start
+! slightly ad-hoc but its the best way I could think of!
+!
+subroutine get_ncolumns(lunit,ncolumns)
+ implicit none
+ integer, intent(in) :: lunit
+ integer, intent(out) :: ncolumns
+ integer :: ierr,i
+ character(len=2000) :: line
+ real :: dummyreal(100)
+
+ read(lunit,"(a)") line
+ rewind(lunit)
+ dummyreal = -666.0
+ 
+ ierr = 0
+ print*,trim(line)
+ read(line,*,end=10) (dummyreal(i),i=1,size(dummyreal))
+10 continue 
+ i = 1
+ ncolumns = 0
+ do while(abs(dummyreal(i)+666.).gt.1.e-10)
+    ncolumns = ncolumns + 1
+    i = i + 1
+    if (i.gt.size(dummyreal)) then
+       print*,'*** ERROR: too many columns in file'
+       return
+    endif
+ enddo
+
+end subroutine get_ncolumns
 
 !-------------------------------------------------------------------------
 ! subroutine to work out the positions of maxima and minima in the
