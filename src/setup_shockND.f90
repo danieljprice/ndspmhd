@@ -43,7 +43,7 @@ subroutine setup
 !--set default values
 !
  dsmooth = 20.   
- equalmass = .true.   ! use equal mass particles??
+ equalmass = .false.   ! use equal mass particles??
  const = sqrt(4.*pi)
  densleft = 1.08
  densright = 1.0
@@ -161,9 +161,9 @@ subroutine setup
  psepright = psep*(densleft/densright)**(1./ndim)
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
-    print*,' left half  ',xminleft,' to ',xmaxleft
-    print*,' right half ',xminright,' to ',xmaxright
-! massp = (psep**ndim)*densright
+    print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
+    print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
+!!    massp = (psep**ndim)*densright
     call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,.false.)  ! set left half
     xmin = xminleft
     volume = PRODUCT(xmaxleft-xminleft)

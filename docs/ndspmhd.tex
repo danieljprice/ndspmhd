@@ -229,7 +229,38 @@ ikernel   & & choice of smoothing kernel \\
 \hline
 \end{tabular}
 \end{table}
+
 \subsubsection{Rerunning a job from the last position}
+
+\subsection{Using multirun to create multiple input files}
+ The multirun program is given as a way of rapidly creating lots of different
+input files, useful for example where a large number of runs are required with a simple
+variation of a particular parameter.
+
+Firstly, create an input file called 'multirun.in'. Do this by running ndspmhd
+in any number of dimensions, e.g.
+\begin{verbatim}
+1DSPMHD multirun
+\end{verbatim}
+Then run the multirun program
+\begin{verbatim}
+./multi/multirun myrun 6
+\end{verbatim}
+where 6 is the number of runs. The input files are named sequentially as
+myrun1.in, myrun2.in, myrun3.in etc., with options identical to those given in
+multirun.in, except where modified in multirun.f90 (use the templates provided
+to create your own version of this program to adjust the input parameters
+between runs as required). To run the code on all jobs sequentially
+type
+\begin{verbatim}
+1DSPMHD myrun*.in
+\end{verbatim}
+Note that this will only work if the code exits normally from all previous runs.
+For a failsafe way of running multiple jobs, regardless of how they exit,  a
+simple shell script can be used such as the domulti.pl script in the scripts
+directory (domulti makes a new directory, invokes multirun to create the input
+files and then runs the jobs in the new directory). Several example multirun.f90
+programs are given for running the test suites (such as the MHD shocks).
 
 \subsection{Code options}
 
@@ -306,6 +337,34 @@ kernel (top right), at the cost of increased compact support.}
 \section{Common errors}
 
 \section{Visualisation using supersphplot}
+
+\subsection{Exact solutions}
+\subsubsection{Polytrope}
+ This subroutines computes the exact solution for a static polytrope with
+arbitrary $\gamma$.
+
+\subsubsection{Linear wave}
+ This subroutine simply plots a sine function on a given graph.
+
+\subsubsection{Sedov blast wave}
+ This subroutine computes the self-similar Sedov solution for a blast wave.
+
+\subsubsection{Toy stars}
+ See \citet{mp04}.
+
+\subsubsection{MHD shock tubes}
+ These are some tabulated solutions for specific MHD shock tube problems at a
+given time taken from the tables given in \citet{dw94} and \citet{rj95}.
+
+\subsubsection{h vs $\rho$}
+ The subroutine exact\_hrho simply plots the relation between smoothing length
+and density, ie.
+\begin{equation}
+h = h_{fact} \left(\frac{m}{\rho}\right)^{1/\nu}
+\end{equation}
+where $\nu$ is the number of spatial dimensions. The parameter $h_{fact}$ is
+output by the code into the header of each timestep. For particles of different
+masses, a different curve is plotted for each different mass value.
 
 \section{Visualisation using evsupersph}
  Evsupersph (located in the subdirectory evplot) is a simple visualisation tool for the data contained in the
