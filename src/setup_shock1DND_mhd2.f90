@@ -53,7 +53,7 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
- dsmooth = 0. 
+ dsmooth = 20. 
  densleft = 1.0
  densright = 1.0
  prleft = 1000.0
@@ -178,12 +178,12 @@ SUBROUTINE setup
 !       ELSE
 !          uu(j) = (prright + prleft*exx)/((1.0 + exx)*gam1*dens(i))
 !       ENDIF
-      vel(:,j) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
-!       IF (delta.LT.0.) THEN
-!          vel(:,j) = vleft(:)
-!       ELSE
-!          vel(:,j) = vright(:)
-!       ENDIF  
+!      vel(:,j) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
+       IF (delta.LT.0.) THEN
+          vel(:,j) = vleft(:)
+       ELSE
+          vel(:,j) = vright(:)
+       ENDIF  
        Bfield(2,j) = (Byleft + Byright*exx)/(1.0 + exx)
        Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF

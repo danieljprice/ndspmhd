@@ -149,7 +149,7 @@ OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
 
 crap:
-	echo try make 1D
+	echo specify number of dimensions, e.g. make 1D
 
 1D: $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)

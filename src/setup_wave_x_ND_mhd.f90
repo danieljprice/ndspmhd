@@ -64,7 +64,7 @@ SUBROUTINE setup
     else
        uuzero = 1.0
     endif
-    Rzero = 1.0  !  negative stress parameter
+    Rzero = -1.0  !  negative stress parameter
     OPEN(unit=20,ERR=30,file=trim(rootname)//'.rstress',status='old')
       READ(20,*) Rzero
     CLOSE(unit=20)
