@@ -11,7 +11,7 @@ program plotmeagraph
   integer :: ncol
   integer, parameter :: maxfile=101
   integer, parameter :: maxstep=3000
-  integer, parameter :: maxcol=21        ! (6)21 (non)MHD        maximum number of columns
+  integer, parameter :: maxcol=22        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,iprev,nfiles,ifile,ifilesteps, iargc
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,ierr
@@ -37,7 +37,7 @@ program plotmeagraph
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
-  ncol = 21
+  ncol = 22
   icycle = .false.
   hpos = 0.4
   vpos = 8.0
@@ -56,6 +56,7 @@ program plotmeagraph
   !
   iprev = 1
   i = 1
+  nfiles = 0
   nfiles = iargc()
   if (nfiles.gt.maxfile) then
      print "(a,i4)",'WARNING: number of files >= array size: setting nfiles = ',maxfile
@@ -160,29 +161,30 @@ program plotmeagraph
 
   label = 'crap    '  ! default name
 
-  label(1) = 'time           '  ! name for each column of data
-  label(2) = 'E_kinetic      '
-  label(3) = 'E_internal     '
-  label(4) = 'E_magnetic     '
-  label(5) = 'E_total        '
-  label(6) = 'Linear momentum'
+  label(1) = 'nstep          '
+  label(2) = 'time           '  ! name for each column of data
+  label(3) = 'E_kinetic      '
+  label(4) = 'E_internal     '
+  label(5) = 'E_magnetic     '
+  label(6) = 'E_total        '
+  label(7) = 'Linear momentum'
 
   if (ncol.gt.6) then
-     label(7) = 'Total flux     '
-     label(8) = 'Cross helicity '
-     label(9) = 'Plasma beta (min)'
-     label(10) = 'Plasma beta (ave)'
-     label(11) = 'Plasma beta (max)'
-     label(12) = 'div B (average)  '
-     label(13) = 'div B (maximum)  '
-     label(14) = 'int (div B) dV   '
-     label(15) = 'Fmag dot B/|Fmag| (av)'
-     label(16) = 'Fmag dot B/|Fmag| (max)'
-     label(17) = 'Fmag dot B/|force| (av)'
-     label(18) = 'Fmag dot B/|force| (max)'            
-     label(19) = 'omega_mhd (average)'
-     label(20) = 'omega_mhd (max) '
-     label(21) = '% particles with omega < 0.01 '
+     label(8) = 'Total flux     '
+     label(9) = 'Cross helicity '
+     label(10) = 'Plasma beta (min)'
+     label(11) = 'Plasma beta (ave)'
+     label(12) = 'Plasma beta (max)'
+     label(13) = 'div B (average)  '
+     label(14) = 'div B (maximum)  '
+     label(15) = 'int (div B) dV   '
+     label(16) = 'Fmag dot B/|Fmag| (av)'
+     label(17) = 'Fmag dot B/|Fmag| (max)'
+     label(18) = 'Fmag dot B/|force| (av)'
+     label(19) = 'Fmag dot B/|force| (max)'            
+     label(20) = 'omega_mhd (average)'
+     label(21) = 'omega_mhd (max) '
+     label(22) = '% particles with omega < 0.01 '
   endif
 
   if (ANY(itrans.ne.0)) then
@@ -587,7 +589,8 @@ subroutine readev(nsteps,evdata,ncols,rootname)
      ierr = 0
      i = 1
      do while (i.le.nsteps .and. ierr.eq.0)
-        read(11,*,iostat=ierr) evdata(i,1:ncols)
+        evdata(i,1) = real(i)
+        read(11,*,iostat=ierr) evdata(i,2:ncols)
         if (nskip.gt.0) then
            do j=1,nskip
               read(11,*,iostat=ierr) dummy
@@ -615,7 +618,7 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   close(unit=11)
   
   if (i.gt.1) then
-     print*,' t=',evdata(i-1,1),' nsteps = ',i-1 
+     print*,' t=',evdata(i-1,2),' nsteps = ',i-1 
   else
      print*,'** WARNING: file empty!! no timesteps'
   endif
