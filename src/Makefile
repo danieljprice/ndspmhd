@@ -102,7 +102,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_symplectic.f90 evwrite_mhd.f90 \
+SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
 
 # these files are for the gr version of the code
 SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
