@@ -8,7 +8,7 @@
 .KEEP_STATE:
 
 F90C =  ifc
-F90FLAGS =  -O -C
+F90FLAGS =  -O -WB ##-C
 # PGPLOT libraries
 #LDFLAGS = -lpgplot -L/local/lib/pgplot -lX11 -lF77
 

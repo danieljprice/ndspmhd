@@ -11,7 +11,7 @@
 EDITOR = nedit
 
 F90C =  ifc
-F90FLAGS =  -O -C
+F90FLAGS =  -O -WB ##-C
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
 
 # Fortran flags same as F90
