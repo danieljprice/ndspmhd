@@ -7,10 +7,10 @@
 
 .KEEP_STATE:
 
-F90C =  ifc
-F90FLAGS =  -O -WB ##-C
+F90C =  g95
+F90FLAGS =  -O
 # PGPLOT libraries
-LDFLAGS = -Vaxlib
+##LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 # Fortran flags same as F90
 FC = $(F90C)
