@@ -52,58 +52,58 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
 !--then work out which cells current cell should interact with
 !
  nneighcell = 1
- neighcell(1) = icell	! always interacts with itself
+ neighcell(1) = icell ! always interacts with itself
  
- IF (.NOT.rightmost) THEN			! cell to the right
+ IF (.NOT.rightmost) THEN   ! cell to the right
     nneighcell = nneighcell + 1
     neighcell(nneighcell) = icell + 1
  ENDIF
- IF (ndim.GE.2 .AND..NOT.toprow) THEN	! above		
-    IF (.NOT.leftmost) THEN			! above, left
+ IF (ndim.GE.2 .AND..NOT.toprow) THEN ! above  
+    IF (.NOT.leftmost) THEN   ! above, left
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell + ncellsx(1) - 1
     ENDIF
-    nneighcell = nneighcell + 1			! above
+    nneighcell = nneighcell + 1   ! above
     neighcell(nneighcell) = icell + ncellsx(1)
-    IF (.NOT.rightmost) THEN			! above, right
+    IF (.NOT.rightmost) THEN   ! above, right
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell + ncellsx(1) + 1
     ENDIF
  ENDIF
- IF (ndim.EQ.3 .AND..NOT.endblock) THEN	 ! next block
-    IF (.NOT.leftmost) THEN 			! next block, left
+ IF (ndim.EQ.3 .AND..NOT.endblock) THEN  ! next block
+    IF (.NOT.leftmost) THEN    ! next block, left
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell + ncellsxy - 1    
     ENDIF   
-    nneighcell = nneighcell + 1			! next block
+    nneighcell = nneighcell + 1   ! next block
     neighcell(nneighcell) = icell + ncellsxy
-    IF (.NOT.rightmost) THEN 			! next block, right  
+    IF (.NOT.rightmost) THEN    ! next block, right  
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell + ncellsxy + 1
     ENDIF
-    IF (.NOT.toprow) THEN		! next block, above
-       IF (.NOT.leftmost) THEN			! next block, above left
+    IF (.NOT.toprow) THEN  ! next block, above
+       IF (.NOT.leftmost) THEN   ! next block, above left
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) - 1
        ENDIF
-       nneighcell = nneighcell + 1		! next block, above	
+       nneighcell = nneighcell + 1  ! next block, above 
        neighcell(nneighcell) = icell + ncellsxy + ncellsx(1)
-       IF (.NOT.rightmost) THEN			! next block, above right
+       IF (.NOT.rightmost) THEN   ! next block, above right
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) + 1
-       ENDIF	  
+       ENDIF   
     ENDIF
-    IF (.NOT.bottomrow) THEN		! next block, below
-       IF (.NOT.leftmost) THEN			! next block, below left
+    IF (.NOT.bottomrow) THEN  ! next block, below
+       IF (.NOT.leftmost) THEN   ! next block, below left
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsxy - ncellsx(1) - 1
        ENDIF
-       nneighcell = nneighcell + 1		! next block, below	
+       nneighcell = nneighcell + 1  ! next block, below 
        neighcell(nneighcell) = icell + ncellsxy - ncellsx(1)
-       IF (.NOT.rightmost) THEN			! next block, below right
+       IF (.NOT.rightmost) THEN   ! next block, below right
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsxy - ncellsx(1) + 1
-       ENDIF	  
+       ENDIF   
     ENDIF
  ENDIF
 
@@ -117,13 +117,13 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
     PRINT*,' number of neighbouring cells = ',nneighcell
     PRINT*, (neighcell(i),i=1,nneighcell)
     READ*
- ENDIF	 
+ ENDIF  
 !
 !--construct list of neighbours for particles in the current cell
 !  using the link lists from the neighbouring cells
-!	 
+!  
  j=0
- DO k = 1,nneighcell		! construct list of neighbours
+ DO k = 1,nneighcell  ! construct list of neighbours
     IF (neighcell(k).GT.ncells) THEN
       PRINT*,' k, neighcell = ',k,neighcell(1:nneighcell),ncells
       STOP 'get_neighbour_list: error: cell > ncells'      
@@ -131,12 +131,12 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
     ipart = ifirstincell(neighcell(k))
 !   PRINT*,'neighbouring cell = ',neighcell(k)
     IF (ipart.NE.-1) THEN
-       DO WHILE (ll(ipart).NE.-1)	       
+       DO WHILE (ll(ipart).NE.-1)        
           j = j + 1
-          IF (j.GT.nlistdim) THEN	! should reallocate array here
+          IF (j.GT.nlistdim) THEN ! should reallocate array here
              WRITE(iprint,*) 'getneigh: # neighbours > array size:',nlistdim
-	     WRITE(iprint,*) 'ipart = ',ipart
-	     CALL quit
+             WRITE(iprint,*) 'ipart = ',ipart
+             CALL quit
           ENDIF
           listneigh(j) = ipart
           ipart = ll(ipart)
@@ -146,14 +146,14 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
       listneigh(j) = ipart
     ENDIF    
 !    IF (j.GT.0) THEN 
-!       print*,'listneigh ',j,'= ',listneigh(j)	    
+!       print*,'listneigh ',j,'= ',listneigh(j)     
 !    ELSE
 !       print*,' no neighbours'
 !    ENDIF   
  ENDDO
  nneigh = j
 ! print*,'number of neighbours = ',nneigh
-!	 read*	
+!  read* 
 
  RETURN
 END SUBROUTINE get_neighbour_list

@@ -1,7 +1,7 @@
 !!---------------------------------------------------------------------!!
-!! evolves the simulation through all timesteps			       !!
+!! evolves the simulation through all timesteps                !!
 !! this subroutine contains the main timestepping loop and calls       !! 
-!!  the output routines at the appropriate times		       !!
+!!  the output routines at the appropriate times             !!
 !!---------------------------------------------------------------------!!
 
 SUBROUTINE evolve
@@ -33,7 +33,7 @@ SUBROUTINE evolve
  t_end = 0.
  time = 0.
  nsteps = 0
- nevwrite = 1	! frequency of writing to .ev file (could be read as parameter)
+ nevwrite = 1   ! frequency of writing to .ev file (could be read as parameter)
  detot = 0.
  dmomtot = 0.
 !
@@ -67,7 +67,7 @@ SUBROUTINE evolve
     time = time + dt
     nsteps = nsteps + 1
 
-    CALL step 	 		!  Evolve data for one timestep
+    CALL step           !  Evolve data for one timestep
 !
 !--write log every step in 2D/3D
 !
@@ -83,9 +83,9 @@ SUBROUTINE evolve
 !
 !--Write to data file if time is right
 ! 
-    IF (   (time.GE.tprint) 				&
-       .OR.(time.GE.tmax)				&
-       .OR.((MOD(nsteps,nout).EQ.0).AND.(nout.GT.0))	&
+    IF (   (time.GE.tprint)             &
+       .OR.(time.GE.tmax)            &
+       .OR.((MOD(nsteps,nout).EQ.0).AND.(nout.GT.0))   &
        .OR.(nsteps.GE.nmax)  ) THEN
  
 !--if making movies and need ghosts to look right uncomment the line below, 
@@ -105,8 +105,8 @@ SUBROUTINE evolve
 !
 !--reach tprint exactly. Must take this out for integrator to be symplectic
 !
-    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
-	 	 
+    IF (dt.GE.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+        
  ENDDO timestepping
 
 !------------------------------------------------------------------------

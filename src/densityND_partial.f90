@@ -59,7 +59,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !--initialise quantities
 !
  nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )	! max size of neighbour list
+ ALLOCATE( listneigh(nlistdim) )      ! max size of neighbour list
  listneigh = 0
 
  DO ipart=1,nlist
@@ -71,7 +71,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !
 !--Loop over all the particles in the density list
 !
- loop_over_particles: DO ipart=1,nlist		! step through all cells
+ loop_over_particles: DO ipart=1,nlist            ! step through all cells
 
     i = ipartlist(ipart)
 !
@@ -95,7 +95,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
        
     hfacwabi = hi1**ndim
     hfacgrkerni = hfacwabi*hi1
-    dhdrhoi = -hi*dndim	! divide by  should use rho(i)!
+    dhdrhoi = -hi*dndim      ! divide by  should use rho(i)!
 !
 !--loop over current particle's neighbours
 !
@@ -104,24 +104,24 @@ SUBROUTINE density_partial(nlist,ipartlist)
        dx(:) = x(:,i) - x(:,j)
 !
 !--calculate averages of smoothing length if using this averaging
-!			 	  
+!                           
        rij2 = DOT_PRODUCT(dx,dx)
        rij = SQRT(rij2)
        q2i = rij2/hi2
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2i),dx,hi
-!	
+!      
 !--do interaction if r/h < compact support size
 !
        IF (q2i.LT.radkern2) THEN
-!	
+!      
 !--interpolate from kernel table (using hi)
 !
           CALL interpolate_kernel(q2i,wabi,grkerni)
-	  wabi = wabi*hfacwabi
-	  grkerni = grkerni*hfacgrkerni
+          wabi = wabi*hfacwabi
+          grkerni = grkerni*hfacgrkerni
 !
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
-!	       
+!             
           dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
 !
 !--calculate density
@@ -132,10 +132,10 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-	  gradh(i) = gradh(i) + dhdrhoi*pmass(j)*dwdhi
-	 
+          gradh(i) = gradh(i) + dhdrhoi*pmass(j)*dwdhi
+       
        ENDIF
-	    
+          
     ENDDO loop_over_neighbours
 
  ENDDO loop_over_particles

@@ -26,9 +26,9 @@ EDITOR = nedit
 # -xtypemap=real:64,double:64,integer:32 for double precision
 # -ftrap = %all traps floating point exceptions
 #
-FC = f90
-F90C = f90
-F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
+#FC = f90
+#F90C = f90
+#F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 ##LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
@@ -38,12 +38,12 @@ F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 #F90FLAGS = -O ##--chk aesux --chkglobal --warn
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
-# Swinburne compiler (Intel fortran)
-#FC = ifort
-#F90C = ifort
-#FFLAGS = -O -CB -std90 -check all
-#F90FLAGS = -O -CB -std90 -check all
-#LDFLAGS =  -lg2c -L/usr/local/pgplot -lpgplot -L/usr/X11R6/lib -lX11
+# Intel fortran
+FC = ifc
+F90C = ifc
+FFLAGS = -O ##-CB -std90 -check all
+F90FLAGS = -O -WB ##-CB -std90 -check all
+LDFLAGS =  -lg2c -L/usr/local/pgplot -lpgplot -L/usr/X11R6/lib -lX11 -Vaxlib
 ## ------------------------------------------------------------------ ##
 
 # define the implicit rule to make a .o file from a .f90 file
@@ -91,8 +91,8 @@ SETUP2D = setup_shockND.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
 #SETUP25D = setup_alfvenwaveND_x.f90
-#SETUP25D = setup_Bxpeak25D_mhd.f90
-SETUP25D = setup_shockND.f90
+SETUP25D = setup_Bxpeak25D_mhd.f90
+#SETUP25D = setup_shockND.f90
 #SETUP25D = setup_disc2D_2.f90
 #SETUP25D = setup_shearflow2D.f90
 

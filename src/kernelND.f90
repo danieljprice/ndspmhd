@@ -22,9 +22,9 @@ SUBROUTINE setkern
  USE loguns
  USE kernel
  USE options
- USE setup_params	! for hfact in my kernel
+ USE setup_params   ! for hfact in my kernel
  USE anticlumping
- IMPLICIT NONE			!  define local variables
+ IMPLICIT NONE         !  define local variables
  INTEGER :: i,j,npower
  REAL :: q,q2,q4,cnormk
  REAL :: term1,term2,term3,term4
@@ -64,20 +64,20 @@ SUBROUTINE setkern
        q = SQRT(q2)
        IF (q.LT.0.5) THEN
           wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4)
-	  grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
-	  grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
+          grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
+          grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
        ELSEIF (q.LT.1.5) THEN
           wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4)
-	  grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3)
-	  grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2)       
+          grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3)
+          grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2)       
        ELSEIF (q.LT.2.5) THEN
           wij(i) = cnormk*((2.5-q)**4)
-	  grwij(i) = -cnormk*4.*((2.5-q)**3)
-	  grgrwij(i) = cnormk*12.*((2.5-q)**2)
+          grwij(i) = -cnormk*4.*((2.5-q)**3)
+          grgrwij(i) = cnormk*12.*((2.5-q)**2)
        ELSE
           wij(i) = 0.
-	  grwij(i) = 0.
-	  grgrwij(i) = 0.
+          grwij(i) = 0.
+          grgrwij(i) = 0.
        ENDIF
     ENDDO 
 
@@ -105,8 +105,8 @@ SUBROUTINE setkern
        IF (q.LT.1.0) THEN
           wij(i) = cnormk*(66.-60.*q2 + 30.*q4 - 10.*q4*q)
           grwij(i) = cnormk*(term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.)
-          grgrwij(i) = cnormk*(20.*(3.-q)**3. - 120.*(2.-q)**3.	&
-     	    			 + 300.*(1.-q)**3.)
+          grgrwij(i) = cnormk*(20.*(3.-q)**3. - 120.*(2.-q)**3.   &
+                      + 300.*(1.-q)**3.)
        ELSEIF ((q.GE.1.0).AND.(q.LT.2.0)) THEN
           wij(i) = cnormk*((3.-q)**5. - 6.*(2.-q)**5.)
           grwij(i) = cnormk*(term1 + 30*(2.-q)**4.)
@@ -144,8 +144,8 @@ SUBROUTINE setkern
        IF (q.LT.2./3.) THEN
           wij(i) = cnormk*((6.-3.*q)**5. - 6.*(4.-3.*q)**5. + 15.*(2.-3.*q)**5.)
           grwij(i) = cnormk*(term1 + 90*(4.-3.*q)**4. - 225.*(2.-3.*q)**4.)
-          grgrwij(i) = cnormk*(180.*(6.-3.*q)**3. - 1080.*(4.-3.*q)**3.	&
-     	    			 + 2700.*(2.-3.*q)**3.)
+          grgrwij(i) = cnormk*(180.*(6.-3.*q)**3. - 1080.*(4.-3.*q)**3.   &
+                      + 2700.*(2.-3.*q)**3.)
        ELSEIF ((q.GE.2./3.).AND.(q.LT.4./3.)) THEN
           wij(i) = cnormk*((6.-3.*q)**5. - 6.*(4.-3.*q)**5.)
           grwij(i) = cnormk*(term1 + 90*(4.-3.*q)**4.)
@@ -195,13 +195,13 @@ SUBROUTINE setkern
       print*,' 3rd derivative zero at q = ',q    
     ENDIF
     C =0.
-    A =  (-radkern**4 + (radkern**2 + C*gamma**2)*beta**2)		&
+    A =  (-radkern**4 + (radkern**2 + C*gamma**2)*beta**2)      &
         /(alpha**2*(alpha**2-beta**2))      
     B = -(radkern**4 + A*alpha**4 + C*gamma**4)/(beta**4)
     print*,'matching points = ',beta,alpha
     SELECT CASE(ndim)
       CASE(1)
-        cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + radkern**6)	! for radkern = 2 and 1D
+        cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + radkern**6)   ! for radkern = 2 and 1D
         print*,'1D cnormk = ',cnormk,' A,B = ',A,B
       CASE(2)
         cnormk = 42./(2.*pi*(A*alpha**7 + B*beta**7 + C*gamma**7 + radkern**7))
@@ -261,25 +261,25 @@ SUBROUTINE setkern
     SELECT CASE(ndim)
       CASE(1)
          SELECT CASE(npower)
-	 CASE(1)
-	    cnormk = 0.5*3./(2.*radkern**3)
+         CASE(1)
+            cnormk = 0.5*3./(2.*radkern**3)
          CASE(2)
-	    cnormk = 0.5*15./(8.*radkern**5)
-	 CASE(3)
-	    cnormk = 0.5*35./(16.*radkern**7)
-	 CASE(4)
-	    cnormk = 0.5*315./(128.*radkern**9)
-	 CASE(5)
-	    cnormk = 0.5*693./(256.*radkern**11)
-	 CASE(6)
-	    cnormk = 0.5*3003./(1024.*radkern**13)
-	 CASE(7)
-	    cnormk = 0.5*6435./(2048.*radkern**15)	 
-	 CASE(8)
-	    cnormk = 0.5*109395./(32768.*radkern**17)	 
-	 CASE DEFAULT
-	    cnormk = 0.
-	 END SELECT	 
+            cnormk = 0.5*15./(8.*radkern**5)
+         CASE(3)
+            cnormk = 0.5*35./(16.*radkern**7)
+         CASE(4)
+            cnormk = 0.5*315./(128.*radkern**9)
+         CASE(5)
+            cnormk = 0.5*693./(256.*radkern**11)
+         CASE(6)
+            cnormk = 0.5*3003./(1024.*radkern**13)
+         CASE(7)
+            cnormk = 0.5*6435./(2048.*radkern**15)    
+         CASE(8)
+            cnormk = 0.5*109395./(32768.*radkern**17)    
+         CASE DEFAULT
+            cnormk = 0.
+         END SELECT    
       CASE(2)
          cnormk = 3./(64.*pi)
       CASE(3)
@@ -290,13 +290,13 @@ SUBROUTINE setkern
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
           wij(i) = cnormk*(radkern**2-q2)**npower
-	  grwij(i) = -cnormk*2.*npower*q*(radkern**2-q2)**(npower-1)
-	  grgrwij(i) = cnormk*(4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
-	               - 2.*npower*(radkern**2-q2)**(npower-1))
+          grwij(i) = -cnormk*2.*npower*q*(radkern**2-q2)**(npower-1)
+          grgrwij(i) = cnormk*(4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
+                      - 2.*npower*(radkern**2-q2)**(npower-1))
        ELSE
           wij(i) = 0.
-	  grwij(i) = 0.
-	  grgrwij(i) = 0.
+          grwij(i) = 0.
+          grgrwij(i) = 0.
        ENDIF
     ENDDO
     
@@ -321,12 +321,12 @@ SUBROUTINE setkern
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
           wij(i) = cnormk*(radkern-q)**npower
-	  grwij(i) = -cnormk*npower*(radkern-q)**(npower-1)
-	  grgrwij(i) = cnormk*(npower*(npower-1)*(radkern-q)**(npower-2))
+          grwij(i) = -cnormk*npower*(radkern-q)**(npower-1)
+          grgrwij(i) = cnormk*(npower*(npower-1)*(radkern-q)**(npower-2))
        ELSE
           wij(i) = 0.
-	  grwij(i) = 0.
-	  grgrwij(i) = 0.
+          grwij(i) = 0.
+          grgrwij(i) = 0.
        ENDIF
     ENDDO   
 
@@ -352,12 +352,12 @@ SUBROUTINE setkern
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
           wij(i) = cnormk*exp(-q2)
-	  grwij(i) = -2.*q*wij(i)
-	  grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
+          grwij(i) = -2.*q*wij(i)
+          grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
        ELSE
           wij(i) = 0.
-	  grwij(i) = 0.
-	  grgrwij(i) = 0.
+          grwij(i) = 0.
+          grgrwij(i) = 0.
        ENDIF
     ENDDO
 
@@ -367,12 +367,12 @@ SUBROUTINE setkern
 !   prevent particles from clumping (see Thomas & Couchman '92)
 !      
     kernelname = 'Thomas & Couchman anti-clumping'
-    radkern = 2.0		! interaction radius of kernel
+    radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-        cnormk = 0.66666666666	! normalisation constant
+        cnormk = 0.66666666666   ! normalisation constant
       CASE(2)
         cnormk = 10./(7.*pi)
       CASE(3)
@@ -386,11 +386,11 @@ SUBROUTINE setkern
           wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
           IF (q.LT.2./3.) THEN
              grwij(i) = -cnormk
-	     grgrwij(i) = 0.
-	  ELSE
-	     grwij(i) = cnormk*(-3.*q+ 2.25*q2)
+        grgrwij(i) = 0.
+          ELSE
+             grwij(i) = cnormk*(-3.*q+ 2.25*q2)
              grgrwij(i) = cnormk*(-3. + 4.5*q)
-	  ENDIF
+          ENDIF
        ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
           wij(i) = cnormk*(0.25*(2.-q)**3.)
           grwij(i) = cnormk*(-0.75*(2.-q)**2.)
@@ -441,7 +441,7 @@ SUBROUTINE setkern
 !   
     kernelname = 'Cubic spline'    
   
-    radkern = 2.0		! interaction radius of kernel
+    radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/REAL(ikern)    
     SELECT CASE(ndim)
@@ -487,7 +487,7 @@ SUBROUTINE setkern
        grwij(i) = grwij(i) + eps*(wij(i)/wij(j))**neps
     ENDDO
     kernelname=TRIM(kernelname)//' ...with anti-clumping term' 
- ENDIF	
+ ENDIF   
 
 666 FORMAT(/,'ERROR!!! Normalisation constant not defined in kernel',/)
 !

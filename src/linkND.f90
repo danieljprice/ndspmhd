@@ -47,7 +47,7 @@ SUBROUTINE set_linklist
  
  IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
  
- dxcell = radkern*hhmax		! size of link list cell (=compact support region)
+ dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
  IF (dxcell.LE.0) THEN
     WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax     
     CALL quit
@@ -58,7 +58,7 @@ SUBROUTINE set_linklist
  xminpart(:) = xmin(:)
  xmaxpart(:) = xmax(:)
 
- IF (ANY(ibound.LE.1)) THEN	! could do this for each boundary individually
+ IF (ANY(ibound.LE.1)) THEN      ! could do this for each boundary individually
 !
 !--find max/min of particle distribution, including ghost particles
 !  (add/subtract 0.00001 to make sure all particles are within these limits)
@@ -79,8 +79,8 @@ SUBROUTINE set_linklist
     WRITE(iprint,*) 'Max h particle ',MAXLOC(hh)
     CALL quit
  ENDIF 
-! IF (ibound.GE.1) THEN	! if there are any boundaries
-!    dxcell = (xmaxpart(1)-xminpart(1))/ncellsx(1)	! adjust so that xmax-xmin is exact division of 2h
+! IF (ibound.GE.1) THEN      ! if there are any boundaries
+!    dxcell = (xmaxpart(1)-xminpart(1))/ncellsx(1)      ! adjust so that xmax-xmin is exact division of 2h
 ! ELSE
 !    ncellsx(:) = ncellsx(:) + 1
 ! ENDIF
@@ -96,12 +96,12 @@ SUBROUTINE set_linklist
 !  really should make a list of cells to do in 3D as should skip the top row
 !  of every block. At the moment this is just slightly inefficient.
 !
- IF (ANY(ibound.LE.1)) THEN	! BUG FIXED HERE (should be ibound.LE.1)
+ IF (ANY(ibound.LE.1)) THEN      ! BUG FIXED HERE (should be ibound.LE.1)
     ncellsloop = ncells
  ELSE
     IF (ndim.EQ.1) ncellsloop = ncells - 1
     IF (ndim.EQ.2) ncellsloop = ncells-ncellsx(1)
-    IF (ndim.EQ.3) ncellsloop = ncells	!-ncellsx(1)*ncellsx(2) ! inefficient in 3D
+    IF (ndim.EQ.3) ncellsloop = ncells      !-ncellsx(1)*ncellsx(2) ! inefficient in 3D
  ENDIF
 ! print*,' ncellsloop = ',ncellsloop
 ! read*
@@ -114,20 +114,20 @@ SUBROUTINE set_linklist
  
 ! IF (ncells.GT.maxcells) PRINT*,'Error: link: ncells>array limits'
  DO i=1,ncells
-    ifirstincell(i) = -1 		! set all head of chains to -1
+    ifirstincell(i) = -1             ! set all head of chains to -1
  ENDDO
 
 !
 !--work out which cell the particle is in
 !  
- DO i=1,ntotal		! including ghosts
+ DO i=1,ntotal            ! including ghosts
     ll(i) =  -1
     icellx(:) = int((x(:,i)-xminpart(:))/dxcell) + 1 
     IF ( ANY(icellx < 0).OR.ANY(icellx > ncellsx) ) THEN
        WRITE(iprint,*) 'link: particle crossed boundary ',i,x(:,i),icellx,ncellsx
        CALL quit
     ENDIF
-	 
+       
     icell = icellx(1) 
     IF (ndim.GE.2) THEN
        j = 2
@@ -138,9 +138,9 @@ SUBROUTINE set_linklist
        ENDIF
     ENDIF
 
-    ll(i) = ifirstincell(icell)		! link to previous start of chain
-    ifirstincell(icell) = i		! set head of chain to current particle	 
-    iamincell(i) = icell 		! save which cell particle is in 
+    ll(i) = ifirstincell(icell)            ! link to previous start of chain
+    ifirstincell(icell) = i            ! set head of chain to current particle       
+    iamincell(i) = icell             ! save which cell particle is in 
 !    PRINT*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
 !    read*
  ENDDO
@@ -156,7 +156,7 @@ SUBROUTINE set_linklist
           j = ll(j)
           print*,' next =',j
        ENDDO
-	 read*
+       read*
     ENDDO     
  ENDIF    
 END SUBROUTINE set_linklist
