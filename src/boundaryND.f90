@@ -35,12 +35,12 @@ SUBROUTINE boundary
 !---------------------------------------------------------------------------     
  IF (ANY(ibound.EQ.1)) THEN
     IF (ndim.GT.1) WRITE(iprint,*) ' inflow/outflow not implemented in ND'
-
+ ENDIF
 !----------------------------------------------------------------------
 ! periodic boundary conditions - allow particles to cross the domain
 !----------------------------------------------------------------------
 
- ELSEIF (ANY(ibound.EQ.3)) THEN
+ IF (ANY(ibound.EQ.3)) THEN
     
     DO i=1,npart
 
