@@ -7,11 +7,12 @@
 
 .KEEP_STATE:
 
-FORTRAN = f90
-F90C = f90
+FORTRAN = f95
+F90C = f95
 
 F90FLAGS = -C -O4
-LDFLAGS = -lpgplot -lX11 -lF77
+LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lg2c -lpng ##-lF77
+##LDFLAGS = -lpgplot -lX11 -lF77
 
 # define the implicit rule to make a .o file from a .f90 file
 %.o : %.f90
