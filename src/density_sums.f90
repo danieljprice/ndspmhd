@@ -210,10 +210,10 @@ contains
     enddo loop_over_cells
     
     !print*,'end of density, rho, gradh = ',rho(1),gradh(1),hh(1),numneigh(1)
-    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
-    !print*,'minimum number of neighbours = ', &
-    !       MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
-    !       rho(MINLOC(numneigh(1:npart)))
+    print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
+    print*,'minimum number of neighbours = ', &
+           MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
+           rho(MINLOC(numneigh(1:npart)))
 
     return
   end subroutine density

@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS =  -O -C -Wall -r8
+F90FLAGS =  -O -C -r8
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -54,11 +54,11 @@ SETUP1D = setup_unifdisND.f90
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-SETUP2D = setup_unifdisND.f90
+#SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-#SETUP2D = setup_toystarND_static.f90
+SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -78,18 +78,19 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = readwrite_dumps.f90 sphND_mhd.f90   \
+SOURCES = sphND_mhd.f90 geometry.f90 \
+         allocateND.f90 readwrite_dumps.f90 \
          boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
          get_neighbour_lists.f90 \
          density_sums.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
-	 external_forces.f90 \
+	 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90 int_from_string.f90 \
 	 iterate_density.f90 kernelND.f90 \
-	 linkND.f90 logun.f90 \
+	 linkND.f90 logun.f90 outputND_mhd.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 read_infile_mhd.f90 riemannsolver.f90 \
 	 set_fixedbound.f90 \
@@ -100,27 +101,27 @@ SOURCES = readwrite_dumps.f90 sphND_mhd.f90   \
 	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_mhd.f90
+SOURCES2 = conservative2primitive.f90 stepND_mhd.f90
 
 # these files are for the gr version of the code
-SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outputND_mhd_gr.f90 \
+SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
 	    stepND_mhd_gr.f90
 	 
-OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
-	    $(SETUP1D:.f90=.o) coord_transform.o
-OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
-	    $(SETUP2D:.f90=.o) coord_transform.o
-OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
-	    $(SETUP3D:.f90=.o) coord_transform.o
+OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP1D:.f90=.o)
+OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP2D:.f90=.o)
+OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP3D:.f90=.o)
 
-OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP1D:.f90=.o) coord_transform.o
+OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP1D:.f90=.o)
 
-OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP2D:.f90=.o) coord_transform.o
+OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP2D:.f90=.o)
 
-OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP3D:.f90=.o) coord_transform.o
+OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+	    $(SETUP3D:.f90=.o) geometry.o
 
 crap:
 	echo specify number of dimensions, e.g. make 1D
@@ -134,19 +135,19 @@ crap:
 3D : $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 
-GR1D : 	$(OBJECTSGR1D)
+1DGR : 	$(OBJECTSGR1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
 
-GR2D : 	$(OBJECTSGR2D)
+2DGR : 	$(OBJECTSGR2D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
 
-GR3D : 	$(OBJECTSGR3D)
+3DGR : 	$(OBJECTSGR3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
 
 ## files from elsewhere
 
-coord_transform.o:
-	$(FC) -c $(FFLAGS) ../plot/coord_transform.f90 -o $@
+geometry.o:
+	$(FC) -c $(FFLAGS) ../plot/geometry.f90 -o $@
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
@@ -162,4 +163,4 @@ edit2D:
 edit3D:
 	$(EDITOR) $(SETUP3D) &
 clean:
-	rm *.o *.mod *.bp *.lreg
+	rm *.o *.mod

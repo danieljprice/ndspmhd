@@ -161,6 +161,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--initialise random number generator
 !    
     iseed = -87682
+    WRITE(iprint,*) ' random seed = ',iseed
     xran(1) = ran1(iseed)
     
     DO i=1,ntot

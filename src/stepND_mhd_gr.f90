@@ -65,7 +65,7 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
     ENDIF
 !
 !--for periodic boundaries, allow particles to cross the domain
@@ -137,7 +137,7 @@ SUBROUTINE step
           ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)	  
     ENDIF
  ENDDO	 	

@@ -32,6 +32,8 @@ subroutine copy_particle(i,j)
   sqrtg(i) = sqrtg(j)
   spsound(i) = spsound(j)
   pr(i) = pr(j)
+  dens(i) = dens(j)
+  if (allocated(pmom)) pmom(:,i) = pmom(:,j)
 
   force(:,i) = force(:,j)
   drhodt(i) = drhodt(j)

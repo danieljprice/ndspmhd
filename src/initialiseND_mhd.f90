@@ -112,6 +112,7 @@ SUBROUTINE initialise
 !
  CALL set_default_options   ! set the default options
  CALL read_infile(infile)
+ igeom = 2
 !
 !--Open data/ev files
 !

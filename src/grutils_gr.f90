@@ -21,14 +21,14 @@ contains
 !
 !--cylindrical
 !
-    case(1)
+    case(2)
        gdiag(:) = 1.
        if (ndimg.ge.2) gdiag(2) = x(1)**2
        sqrtg = abs(x(1))
 !
 !--spherical
 !
-    case(2)
+    case(3)
         gdiag(:) = 1.
         if (ndimg.ge.2) gdiag(2) = x(1)**2
         if (ndimg.ge.3 .and. ndimx.gt.1) gdiag(3) = gdiag(2)*SIN(x(2))
@@ -37,7 +37,7 @@ contains
 !
 !--spherical with log co-ordinate
 !
-    case(3)
+    case(4)
        gdiag(:) = 1.
        rr = exp(x(1))
        if (ndimx.eq.1) then
