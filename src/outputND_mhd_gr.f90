@@ -50,7 +50,9 @@ SUBROUTINE output(t,nstep)
  ELSE
     ndata = ndim + 6 + ndimV
  ENDIF
- WRITE(idatfile,*) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
+ WRITE(idatfile,10) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
+10 FORMAT(e12.5,1x,i8,1x,i8,1x,f14.12,1x,f6.2,1x,i1,1x,i1,1x,i3)
+
 !
 !--write data for this time to data file
 !      

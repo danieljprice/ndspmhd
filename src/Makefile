@@ -7,10 +7,8 @@
 
 .KEEP_STATE:
 
-FORTRAN = f90
-F90C = lf95 ###!`cat ../f90_compiler`
-####FC = `cat ../f90_compiler`
-EDITOR = nedit
+# specify editor to use for file editing
+EDITOR = xemacs
 
 # define the implicit rule to make a .o file from a .f90 file
 
@@ -20,20 +18,29 @@ EDITOR = nedit
 ##.SUFFIXES:
 ##.SUFFIXES:.f90 .o
 
-# -C gives array out-of-bounds checking
-# -u forces implicit none
-# -g for debugging with dbx etc
-# -pg for profiling
-# -xtypemap=real:64,double:64,integer:32 for double precision
-# -ftrap = %all traps floating point exceptions
+###### Sun f90 compiler (IoA)
+#F90C = f90
+
+## -C gives array out-of-bounds checking
+## -u forces implicit none
+## -g for debugging with dbx etc
+## -pg for profiling
+## -xtypemap=real:64,double:64,integer:32 for double precision
+## -ftrap = %all traps floating point exceptions
 
 #F90FLAGS = -O4 
 # use the following instead for double precision
 #F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
-# monash compiler (lf95):
-F90FLAGS = ##-O 
-DBLFLAGS = ##-dbl
 
+####### monash compiler (lf95):
+#F90C = lf95
+#F90FLAGS = ##-O 
+#DBLFLAGS = ##-dbl
+
+####### Swinburne compiler (ifort):
+F90C = ifort
+F90FLAGS = -O
+DBLFLAGS =
 
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
 # error in the flush commands, just means output is buffered).
@@ -69,7 +76,8 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
-SETUP2D = setup_unifdis_cyl.f90
+#SETUP2D = setup_unifdis_cyl.f90
+SETUP2D = setup_disc2D.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
 SETUP25D = setup_alfvenwaveND_x.f90
@@ -84,7 +92,8 @@ SETUP3D = setup_alfvenwaveND_x.f90
 
 SOURCES = variablesND.f90 sphND_mhd.f90   \
          allocateND.f90 boundaryND_1D.f90 \
-	 conservative2primitive.f90 densityND.f90 \
+	 conservative2primitive.f90 coord_transform.f90 \
+	 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
@@ -107,7 +116,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 SOURCES2 = ratesND_mhd.f90 outputND_mhd.f90
 
 # these files are for the gr version of the code
-SOURCESGR = coord_transform.f90 ratesND_mhd.f90 outputND_mhd_gr.f90
+SOURCESGR = ratesND_mhd.f90 outputND_mhd_gr.f90
 	 
 OBJECTS1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
@@ -127,7 +136,7 @@ crap:
 
 1D: $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
-	
+
 2D : $(OBJECTS2D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DSPMHD $(OBJECTS2D)
 
@@ -136,10 +145,10 @@ crap:
 
 3D : $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
-	
+
 GR : 	$(OBJECTSGR)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../GRSPMHD $(OBJECTSGR)
-		
+
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
 
