@@ -240,12 +240,12 @@ subroutine get_rates
        !   write(iprint,*) 'Error in grad h terms, part ',i,gradhi
        !endif
        hi = hh(i)
-       hi1 = 1./hi
-       hi21 = hi1*hi1		    
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
 	  call quit
        endif
+       hi1 = 1./hi
+       hi21 = hi1*hi1
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
 !
@@ -256,7 +256,7 @@ subroutine get_rates
           j = listneigh(n)
 	  if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then		! don't count particle with itself
 	     dx(:) = x(:,i) - x(:,j)
-    !  print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
+      !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
 	     hj = hh(j)
 	     hj1 = 1./hj
 	     hj21 = hj1*hj1
@@ -416,7 +416,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -0.8*vsig*divB(i) - psidecayfact*psi(i)*sqrt(vsig)/hh(i)          
+          dpsidt(i) = -0.8*vsig*divB(i) - psidecayfact*psi(i)*vsig/hh(i)          
        case DEFAULT
           dpsidt(i) = 0.
     end select
@@ -555,25 +555,25 @@ contains
     !
     !--max signal velocity (Joe's)
     !
-    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i - 2.*spsoundi*projBi/rhoi5) &
-                +sqrt(spsoundi**2 + valfven2i + 2.*spsoundi*projBi/rhoi5))
-    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j - 2.*spsoundj*projBj/rhoj5) &
-                +sqrt(spsoundj**2 + valfven2j + 2.*spsoundj*projBj/rhoj5))
+!    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i - 2.*spsoundi*projBi/rhoi5) &
+!                +sqrt(spsoundi**2 + valfven2i + 2.*spsoundi*projBi/rhoi5))
+!    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j - 2.*spsoundj*projBj/rhoj5) &
+!                +sqrt(spsoundj**2 + valfven2j + 2.*spsoundj*projBj/rhoj5))
     !
     !--max signal velocity (my version)
     !
-!    vsig2i = spsoundi**2 + valfven2i
-!    vsig2j = spsoundj**2 + valfven2j						
-!    vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
-!    vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
-!    if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
-!       write(iprint,*) ' rates: vsig det < 0 ',
-!       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i	&
-!       'j: ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
-!       call quit  
-!    endif
-!    vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-!    vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
+    vsig2i = spsoundi**2 + valfven2i
+    vsig2j = spsoundj**2 + valfven2j						
+    vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
+    vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
+    if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
+       write(iprint,*) ' rates: vsig det < 0 ', &
+       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i,	&
+       'j: ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+       call quit  
+    endif
+    vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
+    vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
     vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
     
