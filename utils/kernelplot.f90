@@ -7,43 +7,58 @@ program kernelplot
  use setup_params
 
  implicit none
- integer :: i,j,nkernels,nacross,ndown
+ integer :: i,j,nkernels,nacross,ndown,ilinestyle
  integer, dimension(10) :: iplotorder
  real :: q,q2
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
+ character(len=50) :: string
 
- data iplotorder /0, 3, 4, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
- nkernels = 6
+ data iplotorder /0, 0, 4, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
+ iplotorder = 0 ! override if all the same kernel
+ nkernels = 8
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 0
  eps = 0.4
- neps = 3
- hfact = 1.8
- samepage = .false.
+ neps = 2
+ hfact = 1.5
+ samepage = .true.
  trace = .true.
- nacross = 3
- ndown = 2
+ nacross = 2
+ ndown = 1
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
 
  if (samepage) then
     call pgbegin(0,'?',1,1) 
-    call pgenv(0.0,3.0,-3.5,1.7,0,1)
-    if (nkernels.gt.1) call pglabel('r/h',' ','Smoothing kernels')
+    call pgpap(11.7,0.6/sqrt(2.))
+    !!call pgenv(0.0,3.0,-3.5,1.7,0,1)
+    call pgsch(1.5)
+    !!call pgenv(0.0,2.0,-1.0,2.0,0,1)
+    !!if (nkernels.gt.1) call pglabel('r/h',' ','Smoothing kernels')
+    !!call pglabel('r/h',' ',' ')
+    !!call pglabel('r/h','W, \(2266)W ',' ')
  else
     call pgbegin(0,'?',1,1) 
  endif
 
  do j=1,nkernels
-    if (idivBzero.eq.5) then
-       if (j.eq.2) then 
-          hfact = 1.8
-	  eps = 0.8
-	  neps = 5
-       endif
+    !if (idivBzero.eq.5) then
+    if (j.ge.6) then
+       idivBzero = 5
+       eps = 2.*eps
+    elseif (j.eq.5) then
+       idivBzero = 0
+       eps = 0.1
+       neps = 4   
+    elseif (j.ge.2) then
+       idivBzero = 5 
+       hfact = 1.5
+       eps = 0.4
+       neps = neps + 1
     endif
+    !endif
     ikernel = iplotorder(j)
     call setkern
 !
@@ -56,8 +71,16 @@ program kernelplot
        dqkern(i) = q
     enddo
     if (samepage) then
-       call pgsci(j)
-       if (nkernels.eq.1) call pglabel('r/h',' ',TRIM(kernelname))
+!       call pgsci(j)
+       !!call pgsch(0.8)
+       if (j.le.4) then
+       call danpgtile(1,nacross,ndown,0.0,2.1,-1.0,2.1,  &
+                      'r/h',' ',' ',0,1)
+       else
+       call danpgtile(2,nacross,ndown,0.0,2.1,-1.0,2.1,  &
+                      'r/h',' ',' ',0,1)       
+       endif
+       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
     else
        call pgsch(0.6)
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
@@ -77,11 +100,23 @@ program kernelplot
 !  this program.
 !    
     print*,'   plotting kernel...(will crash here if double precision)'
+    if (j.eq.1 .or. j.eq.5) call legend(1,'W (cubic spline)',0.4,3.0)    
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
-    call pgsls(2)
+    write(string,"(a,f3.1,a,i1)") '\(2266)W, \ge = ',eps,', n = ',neps
+    if (j.eq.1 .or. j.eq.5) then
+       call pgsls(2)
+       call legend(2,'\(2266)W (cubic spline)',0.4,3.0)  
+    elseif (j.gt.5) then
+       call pgsls(j+1-4)
+       call legend(j+1-4,trim(string),0.4,3.0)
+    else
+       call pgsls(j+1)
+       call legend(j+1,trim(string),0.4,3.0)
+    endif
     call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+
     call pgsls(3)
-    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+!    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
     call pgsci(1)
     call pgsls(1)
 !
@@ -119,3 +154,45 @@ program kernelplot
  call pgend
 
 end program kernelplot
+!
+!--draw a legend for different line styles
+!  uses current line style and colour
+!
+subroutine legend(icall,text,hpos,vposin)
+  implicit none
+  integer, intent(in) :: icall
+  character(len=*), intent(in) :: text
+  real, intent(in) :: vposin
+  real, dimension(2) :: xline,yline
+  real :: xch, ych, xmin, xmax, ymin, ymax
+  real :: vspace, hpos, vpos
+
+  call pgstbg(0)           ! opaque text to overwrite previous
+!
+!--set horizontal and vertical position and spacing
+!  in units of the character height
+!
+  vspace = 1.5  ! (in units of character heights)
+!  hpos = 0.4   ! distance from edge, in fraction of viewport
+  vpos = vposin + (icall-1)*vspace  ! distance from top, in units of char height
+
+  call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
+  call pgqcs(4,xch,ych) ! query character height in x and y units 
+
+  yline = ymax - ((vpos - 0.5)*ych)
+  xline(1) = xmin + hpos*(xmax-xmin)
+  xline(2) = xline(1) + 3.*xch
+
+  call pgline(2,xline,yline)            ! draw line segment
+!!--make up line style if > 5 calls (must match actual line drawn)
+  if (icall.gt.5) then
+     call pgpt(2,xline,yline,mod(icall,5)+1)
+     call pgpt1(1,0.5*(xline(1)+xline(2)),yline(1),mod(icall,5)+1)
+  endif  
+  call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
+
+!!  call pgmtxt('T',vpos,0.1,0.0,trim(text))  ! write text
+
+  call pgstbg(-1) ! reset text background to transparent
+
+end subroutine legend
