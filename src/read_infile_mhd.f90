@@ -31,7 +31,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*,ERR=50) tmax,tout,nmax,nout
   READ(iread,*,ERR=50) gamma
   READ(iread,*,ERR=50) iener,polyk
-  READ(iread,*,ERR=50) icty,ndirect
+  READ(iread,*,ERR=50) icty,ndirect,maxdensits
   READ(iread,*,ERR=50) iprterm
   READ(iread,*,ERR=50) iav,alphamin,alphaumin,alphaBmin,beta
   READ(iread,*,ERR=50) iavlim,iaulim,iaBlim,avdecayconst

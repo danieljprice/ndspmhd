@@ -131,7 +131,7 @@ MODULE options
  INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
- INTEGER :: igeom
+ INTEGER :: igeom,maxdensits
  INTEGER, DIMENSION(ndim) :: ibound  
  REAL :: damp,psidecayfact
 END MODULE
