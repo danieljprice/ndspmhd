@@ -187,6 +187,39 @@ SUBROUTINE divBcorrect(npts,ntot)
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)
        endif
+!----------------------------------------------------------------------------
+! Faster hyperbolic correction (ie with c_h faster than timestep restriction)
+!----------------------------------------------------------------------------
+    CASE(12)
+!
+!--get neighbours and calculate density if required
+!
+       if (debugging) write(iprint,*) ' linking ...'
+       call set_linklist
+       if (debugging) write(iprint,*) ' calculating density...'
+       if (icty.le.0) call iterate_density
+!
+!--now evolve the constrained magnetic field within the hydro timestep
+!      
+!       do j=1,nsubsteps
+!
+!--calculate div B and grad psi terms for evolution equations
+!                
+!          call get_divBgradpsi(Btemp,psi,divB,gradpsi,ntot)
+!
+!--evolve B and psi
+!
+!          do i=1,npart
+!             Btemp(:,i) = Btemp(:,i) - dtsub*gradpsi(:,i)
+!	     psi(i) = psi(i) - vsig2*divB(i)
+!	  enddo
+!	  
+!          if (debugging) then
+!             call output(time,nsteps)   ! output div B and Bfield before correction
+!             call evwrite(real(icall),ecrap,momcrap)
+!          endif
+!       enddo
+      
        
  END SELECT
  
