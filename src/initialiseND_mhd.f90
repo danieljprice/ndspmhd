@@ -12,7 +12,9 @@ SUBROUTINE initialise
  
  USE artvi
  USE bound
+ USE derivB
  USE eos
+ USE fmagarray
  USE hterms
  USE rates
  USE timestep
@@ -98,6 +100,7 @@ SUBROUTINE initialise
  
  ikernel = 0		! set type of kernel (this could be read as input options)
  CALL setkern		! setup kernel tables
+ npart = 0
  CALL setup    		! setup particles, allocation of memory is called
  			! could replace this with a call to read_dump
 !
@@ -105,22 +108,35 @@ SUBROUTINE initialise
 !  (initial smoothing length, dissipation parameter, gradh terms)
 !    
  DO i=1,npart
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower	! set using density
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower   ! set using density
     hhin(i) = hh(i)
     IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
-    alpha(i) = alphamin       	! remove if set in setup
+    alpha(i) = alphamin      ! remove if set in setup
     gradh(i) = 0.
+    !!--set conservative variables = primitive variables
+    !!  for the call to ghosts. This is overwritten later
+    en(i) = uu(i)
+    Bcons(:,i) = Bfield(:,i)
  ENDDO
+ divB = 0.
+ curlB = 0.
+ fmag = 0.
 !
-!--set ghost particles initially - set if normal ghosts are used
-!  or if using fixed particle boundaries and no fixed particles have been set
+!--work out whether or not to set up fixed boundary particles
 !
  set_fixed_particles = (ANY(ibound.EQ.1) .AND. ALL(itype.EQ.0)  &
                         .AND..NOT.(ndim.EQ.1 .AND. nbpts.GT.0) )
  IF (set_fixed_particles) WRITE(iprint,*) 'setting up fixed particles'
+!
+!--set ghost particles initially for the density calculation
+!  (also do this if using fixed particle boundaries 
+!   and no fixed particles have been set)
+!
  IF (ANY(ibound.GT.1) .OR. set_fixed_particles) CALL set_ghost_particles
+!
 !  in 1D setup can just specify the number of particles to hold fixed
 !  this is for backwards compatibility of the code
+!
  IF (ALL(ibound.EQ.1) .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
     itype(1:nbpts) = 1
     itype((npart-nbpts+1):ntotal) = 1
@@ -139,7 +155,12 @@ SUBROUTINE initialise
  ENDIF
 !! CALL smooth_initial_conditions(uuin(:),uu(:),SIZE(uuin))
 
+
  DO i=1,npart	! not ghosts
+!
+!--for 1D fixed particle boundaries, set values of rho, h for the boundary
+!  particles
+!
     IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
        IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
           rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
@@ -166,6 +187,7 @@ SUBROUTINE initialise
  ENDDO	! (note energy and B/rho are not set for ghosts yet)
 !
 !--make sure ghost particle quantities are the same
+!  (copy both conservative and primitive here)
 !
  IF (ANY(ibound.GT.1) .OR. set_fixed_particles) THEN
     DO i=npart+1,ntotal	

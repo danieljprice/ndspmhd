@@ -33,7 +33,7 @@ SUBROUTINE get_rates
  INTEGER :: icell,ipart,iprev,ncell,nneigh,index,index1
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh
  INTEGER :: idone
- INTEGER, DIMENSION(3*2**(ndim-1) -1) :: neighcell
+ INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies and composites)
 !

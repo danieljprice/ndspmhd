@@ -119,6 +119,7 @@ SUBROUTINE step
     DO i=npart+1,ntotal
        j = ireal(i)
        uu(i) = uu(j)
+       spsound(i) = spsound(j)
        pr(i) = pr(j)
        Bfield(:,i) = Bfield(:,j)
     ENDDO

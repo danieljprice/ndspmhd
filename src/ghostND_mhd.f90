@@ -193,16 +193,17 @@ SUBROUTINE set_ghost_particles
    
  ENDDO over_part
 !
-!--copy particle quantities to the ghost particles
+!--copy particle quantities to the ghost particles (conservative only)
+!  (nb: the conservative quantities have not been set in the first call to ghosts)
 !
  DO i=npart+1,ntotal
     j = ireal(i)
     pmass(i) = pmass(j)
     rho(i) = rho(j)
-    uu(i) = uu(j)
-    en(i) = en(j)
     hh(i) = hh(j)
     alpha(i) = alpha(j)
+
+    en(i) = en(j)
     Bcons(:,i) = Bcons(:,j)
     divB(i) = divB(j)
 !    IF (j.EQ.jtemp) PRINT*,' ghost ',i

@@ -23,6 +23,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i
 ! REAL, PARAMETER :: pi = 3.1415926536
+ REAL, DIMENSION(3) :: rvec
  REAL, DIMENSION(ndim) :: runit
  REAL :: massp,totmass,rhozero,gam1,uuzero,przero
  REAL :: anglexy,ampl,wk,xlambda,rmax
@@ -41,9 +42,16 @@ SUBROUTINE setup
 ! anglexy = 30.	! angle in degrees x,y plane
 ! anglez = 45.	! angle in degrees z plane
 ! anglexy = anglexy*pi/180.	! convert to radians
- runit(1) = 1.0	        !0.5*SQRT(3.) !COS(anglexy)
- IF (ndim.GE.2) runit(2) = 0.		!0.5	!SIN(anglexy)
-! runit(3) = 0.
+ rvec(1) = 1.0	        !0.5*SQRT(3.) !COS(anglexy)
+ rvec(2) = 0.
+ rvec(3) = 0.
+ IF (ndim.EQ.1) THEN ! in 1D must be in x direction
+    rvec(1) = 1.0
+    rvec(2) = 0.	!0.5	!SIN(anglexy)
+ ENDIF   
+
+ runit(1:ndim) = rvec(1:ndim) 
+
  WRITE(iprint,*) ' runit = ',runit
 !
 !--set boundaries
@@ -107,8 +115,8 @@ SUBROUTINE setup
     Bz = Bz0*perturb_cos
     
     
-    vel(1,i) = vparallel*runit(1) - vperp*runit(2)
-    vel(2,i) = vparallel*runit(2) + vperp*runit(1)
+    vel(1,i) = vparallel*rvec(1) - vperp*rvec(2)
+    vel(2,i) = vparallel*rvec(2) + vperp*rvec(1)
     vel(3,i) = vz
     
     rho(i) = rhozero
@@ -121,8 +129,8 @@ SUBROUTINE setup
 
     hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)
-       Bfield(2,i) = Bparallel*runit(2) + Bperp*runit(1)
+       Bfield(1,i) = Bparallel*rvec(1) - Bperp*rvec(2)
+       Bfield(2,i) = Bparallel*rvec(2) + Bperp*rvec(1)
        Bfield(3,i) = Bz
     ENDIF 
  ENDDO
