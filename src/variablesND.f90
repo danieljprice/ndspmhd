@@ -45,7 +45,7 @@ END MODULE
 MODULE derivB
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: divB
- REAL, DIMENSION(:,:), ALLOCATABLE :: curlB
+ REAL, DIMENSION(:,:), ALLOCATABLE :: curlB, avsource
 END MODULE
 
 !-------------------------------------------------------------------
@@ -91,7 +91,7 @@ END MODULE
 MODULE kernel
  IMPLICIT NONE
  INTEGER, PARAMETER :: ikern=4000	 ! dimensions of kernel table
- REAL, DIMENSION(0:ikern) :: wij,grwij
+ REAL, DIMENSION(0:ikern) :: wij,grwij,grgrwij
  REAL :: dq2table,ddq2table,radkern2,radkern
  CHARACTER(LEN=100) :: kernelname
 END MODULE
