@@ -2,13 +2,11 @@
 # makes copies of scripts in main directory
 #
 cd ..
-rm run1D run2D run3D splitdat makemovie mergedat domulti doparallel1D doparallel2D
-ln -s ./scripts/run1D.tcsh run1D
-ln -s ./scripts/run2D.tcsh run2D
-ln -s ./scripts/run3D.tcsh run3D
+rm run splitdat makemovie mergedat domulti doparallel write_sgescript
+ln -s ./scripts/run.tcsh run
 ln -s ./scripts/splitdat.pl splitdat
 ln -s ./scripts/makegif.tcsh makemovie
 ln -s ./scripts/mergedat.pl mergedat
 ln -s ./scripts/domulti.pl domulti
-ln -s ./scripts/doparallel.pl doparallel1D 
-ln -s ./scripts/doparallel2D.pl doparallel2D
+ln -s ./scripts/doparallel.pl doparallel
+ln -s ./scripts/write_sgescript.bash write_sgescript
