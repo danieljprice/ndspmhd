@@ -70,7 +70,12 @@ SUBROUTINE step
       
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
-       x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)       
+       if (ireal(i).ne.0) then
+          j = ireal(i)
+          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)       
+       else
+          stop 'step: error: ireal not set for fixed parts'
+       endif
        vel(:,i) = velin(:,i)
        Bcons(:,i) = Bconsin(:,i)	     
        rho(i) = rhoin(i)
