@@ -138,11 +138,11 @@ SUBROUTINE get_rates
 !
  SELECT CASE(ialtform)
     CASE(1)		! this gives the (P_a + P_b) / (rho_a rho_b) form
-       phi(:) = rho(:)
+       phi(1:ntotal) = rho(1:ntotal)
     CASE(2)		! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
        phi(1:ntotal) = SQRT(pr(1:ntotal))/rho(1:ntotal)    
     CASE DEFAULT	! this gives the usual continuity, momentum and induction eqns
-       phi(:) = 1.0 
+       phi(1:ntotal) = 1.0 
  END SELECT
 !
 !--calculate kernel for the MHD anticlumping term
