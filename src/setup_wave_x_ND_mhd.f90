@@ -32,7 +32,7 @@ SUBROUTINE setup
  REAL :: dxi,dxprev,xmassfrac,func,fderiv
  REAL :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
  REAL :: vfast,vslow,vcrap,vwave,term,dens1
- REAL :: denszero,uuzero,przero
+ REAL :: denszero,uuzero,przero, Rzero
 !
 !--allow for tracing flow
 !
@@ -64,7 +64,13 @@ SUBROUTINE setup
     else
        uuzero = 1.0
     endif
-    Bzero(1) = 100.0
+    Rzero = 1.0  !  negative stress parameter
+    OPEN(unit=20,ERR=30,file=trim(rootname)//'.rstress',status='old')
+      READ(20,*) Rzero
+    CLOSE(unit=20)
+    PRINT*,'Read stress file: R parameter = ',Rzero
+30  CONTINUE    
+    Bzero(1) = sqrt(2.*(1.-Rzero))
     WRITE(iprint,10) 'sound wave'
  ENDIF
  xlambda = 1.0    
