@@ -175,6 +175,7 @@ SUBROUTINE setkern
        alpha = 1.7   !!1.4
        kernelname = 'New quintic (1)'    
     ELSEIF (ikernel.EQ.6) THEN
+       !--very poor on sound waves
        beta = 0.7
        alpha = 1.5
        kernelname = 'New quintic (2)'    

@@ -83,8 +83,9 @@ end subroutine conservative2primitive
 ! also sets the value of the initial smoothing length
 !---------------------------------------------------------------------
 subroutine primitive2conservative
-  use loguns
   use dimen_mhd
+  use debug
+  use loguns
   use eos
   use options
   use part
@@ -93,6 +94,8 @@ subroutine primitive2conservative
   implicit none
   integer :: i,iktemp
   real :: B2i, v2i, hmin, hmax, hav
+
+  if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
 !--calculate conserved density (and initial smoothing length
 !
@@ -145,7 +148,8 @@ subroutine primitive2conservative
 !
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)
-  call equation_of_state(pr,spsound,uu,dens,gamma,size(pr))     
+  call equation_of_state(pr(1:npart),spsound(1:npart), &
+                         uu(1:npart),dens(1:npart),gamma,npart)     
 
 !
 !--copy the conservative variables onto the ghost particles??

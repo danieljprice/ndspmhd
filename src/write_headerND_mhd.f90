@@ -95,7 +95,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !
 !--general options on form of equations
 !
-    WRITE (iprint,50) iener, icty, ialtform, iav, imhd
+    WRITE (iprint,50) iener, icty, iprterm, iav, imhd
 50 FORMAT(' Options: ',/,						&
       6x,' Energy equation  : ',i2,5x,' Continuity Equation  :',i2,/,	&
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,	&
@@ -116,7 +116,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !--artificial viscosity options
 !     
     IF (iav.NE.0) THEN
-       WRITE (iprint,80) alphamin,beta,iavlim,avconst,avfact
+       WRITE (iprint,80) alphamin,beta,iavlim,avdecayconst,avfact
 80  FORMAT(' Artificial viscosity: ',/,			&
          6x,' alpha (min) = ',f10.6,' beta = ',f10.6,/,		&
          6x,' Morris & Monaghan AV limiter : ',i2,		&

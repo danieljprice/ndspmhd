@@ -34,13 +34,13 @@ subroutine setup
 !--allow for tracing flow
 !
  if (trace) write(iprint,*) ' Entering subroutine setup'
- if (ndim.lt.2) stop 'ndim needs to be > 1D for this setup'
+!! if (ndim.lt.2) stop 'ndim needs to be > 1D for this setup'
  if (ndimV.lt.3) write(iprint,*) 'Warning: ndimV < 3: Bz not used'
 !
 !--set default values
 !
  dsmooth = 20.   
- equalmass = .false. 
+ equalmass = .true.   ! use equal mass particles??
  const = sqrt(4.*pi)
  densleft = 1.08
  densright = 1.0
@@ -122,7 +122,7 @@ subroutine setup
  nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
  boxlength = 1.0
  sidelength(1) = 512.	! relative dimensions of boundaries
- sidelength(2:ndim) = 6.
+ if (ndim.ge.2) sidelength(2:ndim) = 6.
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
  if (ndim.ge.2) then

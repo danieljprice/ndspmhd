@@ -445,7 +445,7 @@ SUBROUTINE get_rates
           valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rhoi       
        ENDIF
        vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
-       tdecay = hh(i)/(avconst*vsig)	! decay time (use vsig)
+       tdecay = hh(i)/(avdecayconst*vsig)	! decay time (use vsig)
        daldt(i) = (alphamin - alpha(i))/tdecay + avfact*source
     ENDIF
       

@@ -34,7 +34,7 @@ SUBROUTINE setup
  REAL :: totmass,gam1,massp,const
  REAL, DIMENSION(ndim) :: xblast, dblast
  REAL, DIMENSION(ndimB) :: Bzero
- REAL :: rbuffer, exx
+ REAL :: rbuffer, exx, hsmooth
  REAL :: q2, wab, grkern
 !
 !--set boundaries
@@ -74,7 +74,7 @@ SUBROUTINE setup
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
 !
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.true.)	! 2 = close packed arrangement
+ CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -83,6 +83,10 @@ SUBROUTINE setup
  totmass = denszero*PRODUCT(xmax(:)-xmin(:))	! assumes cartesian boundaries
  massp = totmass/FLOAT(ntotal) ! average particle mass
 ! enblast = enblast/massp   ! enblast is now the energy to put in a single particle
+!
+!--smoothing length for kernel smoothing
+! 
+ hsmooth = hfact*(massp/denszero)**dndim
 !
 !--now assign particle properties
 ! 
@@ -97,9 +101,9 @@ SUBROUTINE setup
 !
 !--smooth energy injection using the SPH kernel
 !    
-    q2 = radius**2/(hh(ipart))**2
+    q2 = radius**2/hsmooth**2
     CALL interpolate_kernel(q2,wab,grkern)
-    uui = enblast*wab/(hh(ipart))**ndim
+    uui = enblast*wab/hsmooth**ndim
 !    IF (radius.LT.rblast) THEN
 !       pri = prblast
 !       uui = enblast

@@ -29,11 +29,11 @@ SUBROUTINE write_infile(infile)
   WRITE(iread,10) psep
   WRITE(iread,20) tmax,tout,nmax,nout
   WRITE(iread,30) gamma
-  WRITE(iread,40) iener,udiss_frac,Bdiss_frac,polyk
+  WRITE(iread,40) iener,udiss_frac,alphaBmin,polyk
   WRITE(iread,50) icty,ndirect
-  WRITE(iread,60) ialtform
+  WRITE(iread,60) iprterm
   WRITE(iread,70) iav,alphamin,beta
-  WRITE(iread,80) iavlim,avconst
+  WRITE(iread,80) iavlim,avdecayconst
   WRITE(iread,90) ikernav
   WRITE(iread,100) ihvar,hfact
   WRITE(iread,110) idumpghost
@@ -49,7 +49,7 @@ SUBROUTINE write_infile(infile)
 10 FORMAT(f14.10,22x,'! particle separation')
 20 FORMAT(f7.3,2x,f7.3,2x,i9,1x,i5,3x,'! tmax, tout, nmax, nout')
 30 FORMAT(f14.12,22x,'! gamma ')
-40 FORMAT(i1,2x,f5.3,2x,f5.3,2x,f5.3,21x,'! type of energy equation, udiss_frac, Bdiss_frac(for iner=3), polyk(for iener=0)')
+40 FORMAT(i1,2x,f5.3,2x,f5.3,2x,f5.3,21x,'! type of energy equation, udiss_frac, alphaBmin(for iner=3), polyk(for iener=0)')
 50 FORMAT(i1,2x,i9,24x,'! type of cty equation (0:direct sum 1:time deriv 2:alt time deriv)')
 60 FORMAT(i1,35x,'! type of pressure term (0:normal 1:Pa+Pb/rhoa*rhob 2:Hernquist/Katz )')
 70 FORMAT(i1,2x,f5.3,2x,f5.3,21x,'! artificial viscosity type, alpha(min), beta(0:off 1:M92 2:M97)')

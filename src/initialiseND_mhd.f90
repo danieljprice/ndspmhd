@@ -85,7 +85,7 @@ SUBROUTINE initialise
 !  (just from gamma)
 
  IF (abs(gamma-1.).GT.1.e-3) THEN	! adiabatic
-    avfact = 2.*LOG(4.)/(LOG((gamma+1.)/(gamma-1.)))
+    avfact = LOG(4.)/(LOG((gamma+1.)/(gamma-1.)))
  ELSE
     avfact = 1.0	! isothermal 
  ENDIF
