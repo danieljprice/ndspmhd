@@ -56,7 +56,8 @@ F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 # use the appropriate dimensions module
 
 SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
-SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
+SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90 \
+            direct_sum_poisson2D_vec.f90
 SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 
 ######################################################################
@@ -84,13 +85,13 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-SETUP2D = setup_shockND.f90
+#SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
-#SETUP2D = setup_Bxpeak25D_mhd.f90
+SETUP2D = setup_Bxpeak25D_mhd.f90
 #SETUP2D = setup_disc2D_2.f90
 
 #SETUP3D = setup_unifdisND.f90
@@ -121,7 +122,7 @@ SOURCES = sphND_mhd.f90   \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
-	 divBcorrect.f90 get_divB.f90
+	 divBcorrect.f90 get_divB.f90 get_curl.f90
 #	 check_neighbourlist.f90
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 
