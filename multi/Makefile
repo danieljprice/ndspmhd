@@ -7,18 +7,14 @@
 
 .KEEP_STATE:
 
-FORTRAN = f90
-F90C = f90
-
-# use -C for array out-of-bounds checking
-# -u forces implicit none
-FFLAGS = -04 -cg92 -lm
-#F90FLAGS = -O4 -cg92 -lm 
-# use the following instead for double precision
-F90FLAGS = -O	##4 -cg92 -lm -C -xtypemap=real:64,double:64,integer:32
+F90C =  ifc
+F90FLAGS =  -O -C
 # PGPLOT libraries
 #LDFLAGS = -lpgplot -L/local/lib/pgplot -lX11 -lF77
 
+# Fortran flags same as F90
+FC = $(F90C)
+FFLAGS = $(F90FLAGS)
 
 # define the implicit rule to make a .o file from a .f90 file
 
