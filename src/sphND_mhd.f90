@@ -67,6 +67,7 @@ PROGRAM SUPERSPMHD_ND
 !   * set_ghosts totally rewritten -> works in up to 3D
 !   * 3D neighbour finding fixed - density calculated OK in 3D
 !   * fixed particle boundaries in > 1D (itype)
+!   * handles zero pressure
 !   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS

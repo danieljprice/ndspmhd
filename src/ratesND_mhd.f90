@@ -77,10 +77,6 @@ SUBROUTINE get_rates
  REAL, DIMENSION(:), ALLOCATABLE :: phi
  REAL :: phii,phii1,phii_on_phij,phij_on_phii
 !
-! (my av switch)
-!
- REAL :: qab,vdotri,vdotrj
-!
 !  (kernel related quantities)
 !
  REAL :: q2,q2i,q2j
@@ -97,11 +93,11 @@ SUBROUTINE get_rates
 !      
  REAL :: vsig,vsigi,vsigj,vsigav,viss,eni,enj,ediff,qdiff
  REAL :: spsoundi,spsoundj,visc,envisc,uvisc
- REAL :: alphai,alphaav,source,tdecay    
+ REAL :: alphai,alphaav,source,tdecay1    
 !
 !  (time step criteria)
 !      
- REAL :: vsigdtc,vmag
+ REAL :: vsigdtc,vmag,zero
 !
 !  (variable smoothing length terms)
 !
@@ -123,6 +119,7 @@ SUBROUTINE get_rates
 !--initialise quantities
 !      
  dtcourant = 1.e6  
+ zero = 1.e-10
 
  DO i=1,ntotal	! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -174,7 +171,7 @@ SUBROUTINE get_rates
 
     loop_over_cell_particles: DO WHILE (i.NE.-1)	! loop over home cell particles
 
-!    PRINT*,'Doing particle ',i,x(:,i),valfven2i,rhoi,hh(i)
+!    PRINT*,'Doing particle ',i,x(:,i),valfven2i,rho(i),hh(i)
        idone = idone + 1
        rhoi = rho(i)
        rho2i = rhoi*rhoi
@@ -396,7 +393,7 @@ SUBROUTINE get_rates
 	
 !		vsigdtc is the signal velocity used in the timestep control
                 vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
-		
+
 		IF (dvdotr.LT.0. .AND. iav.NE.0) THEN	! only for approaching particles
 !--viscosity (kinetic energy term)
                    visc = 0.5*alphaav*vsig*viss*rhoav1
@@ -422,11 +419,11 @@ SUBROUTINE get_rates
 		   dBdtvisc(:) = 0.
 		   envisc = 0.
 		   uvisc = 0.
-	        ENDIF		
+	        ENDIF	
 !
 !--time step control (courant and viscous)
 !
-	        dtcourant = min(dtcourant,0.8*hav/vsigdtc)
+	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,0.8*hav/vsigdtc)
 !
 !--time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - gives divv for art vis.
@@ -440,7 +437,7 @@ SUBROUTINE get_rates
 !--pressure term (generalised form)
 !
        	        prterm = phij_on_phii*Prho2i*grkerni 		&
-     		       + phii_on_phij*Prho2j*grkernj		   	   
+     		       + phii_on_phij*Prho2j*grkernj	   	   
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
@@ -576,7 +573,6 @@ SUBROUTINE get_rates
 		   projBrhoi = 0.
 		   projBrhoj = 0.
 		ENDIF
-
 !
 !--energy equation (total or thermal)
 !               
@@ -704,8 +700,8 @@ SUBROUTINE get_rates
           valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)       
        ENDIF
        vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
-       tdecay = hh(i)/(avconst*vsig)	! decay time (use vsig)
-       daldt(i) = (alphamin - alpha(i))/tdecay + avfact*source
+       tdecay1 = (avconst*vsig)/hh(i)	! 1/decay time (use vsig)
+       daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
     ENDIF
       
  ENDDO
