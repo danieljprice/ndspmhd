@@ -11,7 +11,7 @@ FORTRAN = f90
 F90C = f90
 
 F90FLAGS = 
-LDFLAGS = 
+LDFLAGS = -lpgplot -lX11 -lF77
 # define the implicit rule to make a .o file from a .f90 file
 
 %.o : %.f90
@@ -21,6 +21,10 @@ SOURCES= sametime.f90
 
 OBJECTS = $(SOURCES:.f90=.o)
 
-sametime : $(OBJECTS)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
+OBJECTS2 = ../src/dimen1D.o ../src/variablesND.o ../src/kernelND.o kernelplot.o
 
+sametime : $(OBJECTS)
+	$(F90C) $(F90FLAGS) -o $@ $(OBJECTS)
+
+kernelplot : $(OBJECTS2)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS2)
