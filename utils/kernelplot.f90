@@ -16,7 +16,7 @@ program kernelplot
 
  data iplotorder /0, 3, 10, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 6
+ nkernels = 1
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 0
  eps = 0.4
@@ -24,8 +24,8 @@ program kernelplot
  hfact = 1.5
  samepage = .false.
  trace = .true.
- nacross = 3
- ndown = 2
+ nacross = 1
+ ndown = 1
  xmin = 0.0
  xmax = 3.2
  ymin = -3.5
@@ -97,14 +97,6 @@ program kernelplot
     call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
     call pgsci(1)
     call pgsls(1)
-!
-!--calculate dispersion relation for this kernel
-!
-    if (nkernels.eq.1) then
-       read*    
-       if (samepage) call pgpage
-       call kernelstability1D(1,nacross,ndown)
-    endif
 
  enddo
  
@@ -113,7 +105,6 @@ program kernelplot
 !--plot stability separately
 !
  print*,'-------------- plotting kernel stability ------------------'
- if (nkernels.gt.1) then
     !!call pgsubp(nacross,ndown)   !--divide viewport into panels
     call pgsch(0.6)
     call pgpage
@@ -128,7 +119,6 @@ program kernelplot
        enddo
        call kernelstability1D(j,nacross,ndown)
     enddo
- endif
 
  call pgend
 
@@ -164,9 +154,9 @@ subroutine legend(icall,text,hpos,vposin)
 
   call pgline(2,xline,yline)            ! draw line segment
 !!--make up line style if > 5 calls (must match actual line drawn)
-  if (icall.gt.5) then
-     call pgpt(2,xline,yline,mod(icall,5)+1)
-     call pgpt1(1,0.5*(xline(1)+xline(2)),yline(1),mod(icall,5)+1)
+  if (icall.eq.1) then
+     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
+     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
   endif  
   call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
 
