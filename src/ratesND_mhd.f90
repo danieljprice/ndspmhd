@@ -137,6 +137,7 @@ subroutine get_rates
   dBevoldt(:,i) = 0.0
   daldt(:,i) = 0.0
   dpsidt(i) = 0.0
+!  gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -358,7 +359,6 @@ subroutine get_rates
     if (imhd.ne.0) then
        divB(i) = divB(i)*rho1i            !*rhoi
        curlB(:,i) = curlB(:,i)*rho1i
-       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
     endif    
     gradu(:,i) = gradu(:,i)*rho1i
 !
@@ -373,10 +373,28 @@ subroutine get_rates
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
-    if (iener.ne.3 .and. iener.ne.0) then
-       if (iav.ge.0) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)
+    if (iener.ne.0 .and. iav.ge.0) then
+       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
+    endif
+    if (iener.eq.3) then
+       ! could do this in principle but does not work with
+       ! faniso modified by subtraction of Bconst
+       !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
+       !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
+       !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
+    elseif (iener.ne.0) then
        dendt(i) = dudt(i)
     endif
+!
+!--if evolving B instead of B/rho, add the extra term from the continuity eqn
+!  (note that the dBevoldt term should be divided by rho)
+!  
+    if (imhd.ge.11) then  ! evolving B
+       dBevoldt(:,i) = dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
+    elseif (imhd.gt.0) then ! just divide by rho
+       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
+    endif
+    
 !
 !--calculate maximum force/h for the timestep condition
 !  also check for errors in the force
@@ -707,10 +725,10 @@ contains
 !  compute this even if direct sum - used in dudt, dhdt and av switch
 !----------------------------------------------------------------------------
 !
-    !drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
-    !drhodt(j) = drhodt(j) + phij_on_phii*pmassi*dvdotr*grkernj    
-    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
-    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
+    drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
+    drhodt(j) = drhodt(j) + phij_on_phii*pmassi*dvdotr*grkernj    
+    !drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+    !drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
 
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms
@@ -802,13 +820,11 @@ contains
     endif
     dBdtvisc(:) = alphaB*term*Bvisc(:)
     
-    if (imhd.le.10) then            ! evolving B/rho
-       dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
-       dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
-    elseif (imhd.eq.11) then      ! evolving B
-       dBevoldt(:,i) = dBevoldt(:,i) + rho2i*pmassj*dBdtvisc(:)               
-       dBevoldt(:,j) = dBevoldt(:,j) - rho2j*pmassi*dBdtvisc(:)
-    endif
+    !
+    !--add to d(B/rho)/dt (converted to dB/dt later if required)
+    !
+    dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
+    dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
 
     !--------------------------------------------------
     !  dissipation terms in energy equation
@@ -981,8 +997,6 @@ contains
     !
     divB(i) = divB(i) - pmassj*projdB*grkern
     divB(j) = divB(j) - pmassi*projdB*grkern
-    !divB(i) = divB(i) + pmassj*projBrhoj*grkerni
-    !divB(j) = divB(j) - pmassi*projBrhoi*grkernj
     !
     !--compute rho * current density J
     !
@@ -1010,61 +1024,39 @@ contains
     end select
     
     !--------------------------------------------------------------------------------
-    !  time derivative of magnetic field (divide by rho later) - in generalised form
+    !  time derivative of magnetic field (divide by rho later)
+    !  we calculate only the term for d(B/rho)/dt
+    !  if evolving dB/dt the other term comes from the cty equation and
+    !  is added later
     !---------------------------------------------------------------------------------
-    !
-    !   (evolving B/rho)
-    !
-    if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
-       if (imhd.eq.4) then   ! conservative form (explicitly symmetric)
-          dBevoldt(:,i) = dBevoldt(:,i)            &
-               + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-          dBevoldt(:,j) = dBevoldt(:,j)             &
-               - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
-       elseif (imhd.eq.3) then   ! goes with imagforce = 3
-          dBevoldt(:,i) = dBevoldt(:,i)         &
-               - pmassj*projBrhoj*dvel(:)*grkerni 
-          dBevoldt(:,j) = dBevoldt(:,j)         &
-               - pmassi*projBrhoi*dvel(:)*grkernj            
-       elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
-          dBevoldt(:,i) = dBevoldt(:,i)            &
-               - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
-          dBevoldt(:,j) = dBevoldt(:,j)             &
-               - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
-       else                 ! non-conservative (usual) form
-          dBevoldt(:,i) = dBevoldt(:,i)            &
-               - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-          dBevoldt(:,j) = dBevoldt(:,j)             &
-               - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
-       endif
+    select case(imhd)
+    case(4,14)   ! conservative form (explicitly symmetric)
+       dBevoldt(:,i) = dBevoldt(:,i)            &
+          + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
+       dBevoldt(:,j) = dBevoldt(:,j)             &
+          - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
+    case(3,13)   ! goes with imagforce = 3
+       dBevoldt(:,i) = dBevoldt(:,i)         &
+          - pmassj*projBrhoj*dvel(:)*grkerni
+       dBevoldt(:,j) = dBevoldt(:,j)         &
+          - pmassi*projBrhoi*dvel(:)*grkernj
+    case(2,12)   ! conservative form (no change for 1D)
+       dBevoldt(:,i) = dBevoldt(:,i)            &
+          - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
+       dBevoldt(:,j) = dBevoldt(:,j)             &
+          - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
+    case default  ! non-conservative (usual) form
+       dBevoldt(:,i) = dBevoldt(:,i)            &
+          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
+       dBevoldt(:,j) = dBevoldt(:,j)             &
+          - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
+    end select
        
-       if (idivBzero.ge.2) then ! add hyperbolic correction term
-          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-          dBevoldt(:,i) = dBevoldt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
-          dBevoldt(:,j) = dBevoldt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
-       endif
-       !
-       !   (evolving B)
-       !
-    elseif (imhd.ge.11) then      ! note divided by rho later              
-       
-       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(Bi(:)*dvdotr &
-                                       - dvel(:)*projBi)*grkerni   
-       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(Bj(:)*dvdotr &
-                                       - dvel(:)*projBj)*grkernj
-        
-       if (imhd.eq.12) then ! add v div B term
-        dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
-        dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(-velj(:)*projdB)*grkernj
-       endif
-       
-       if (idivBzero.ge.2) then  ! add hyperbolic correction term
-          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve rho*grad psi)   
-          dBevoldt(:,i) = dBevoldt(:,i) + pmassj*gradpsiterm*dr(:)
-          dBevoldt(:,j) = dBevoldt(:,j) + pmassi*gradpsiterm*dr(:)
-       endif
+    if (idivBzero.ge.2) then ! add hyperbolic correction term
+       gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
+       dBevoldt(:,i) = dBevoldt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
+       dBevoldt(:,j) = dBevoldt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
     endif
-               
 
     return
   end subroutine mhd_terms
