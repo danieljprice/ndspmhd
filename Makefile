@@ -46,9 +46,6 @@ multirun:
 2D:
 	cd src; make 2D
 
-25D:
-	cd src; make 25D
-
 3D:
 	cd src; make 3D
 
@@ -69,9 +66,6 @@ edit1D:
 
 edit2D:
 	cd src; make edit2D
-	
-edit25D:
-	cd src; make edit25D
 
 edit3D:
 	cd src; make edit3D

@@ -57,7 +57,6 @@ F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 
 SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
 SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
-SOURCES25D = dimen25D.f90 variablesND.f90 direct_sum_poisson2D.f90
 SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 
 ######################################################################
@@ -89,13 +88,11 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
-
-#SETUP25D = setup_alfvenwaveND.f90
-#SETUP25D = setup_alfvenwaveND_x.f90
-SETUP25D = setup_Bxpeak25D_mhd.f90
-#SETUP25D = setup_shockND.f90
-#SETUP25D = setup_disc2D_2.f90
-#SETUP25D = setup_shearflow2D.f90
+#SETUP2D = setup_alfvenwaveND.f90
+#SETUP2D = setup_alfvenwaveND_x.f90
+#SETUP2D = setup_Bxpeak25D_mhd.f90
+#SETUP2D = setup_shockND.f90
+#SETUP2D = setup_disc2D_2.f90
 
 #SETUP3D = setup_unifdisND.f90
 SETUP3D = setup_sphericalblastND_mhd.f90
@@ -138,8 +135,6 @@ OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
 OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-OBJECTS25D =  $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
-	     $(SETUP25D:.f90=.o)
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP3D:.f90=.o)
 
@@ -160,9 +155,6 @@ crap:
 
 2D : $(OBJECTS2D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DSPMHD $(OBJECTS2D)
-
-25D : $(OBJECTS25D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../25DSPMHD $(OBJECTS25D)
 
 3D : $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
@@ -187,8 +179,6 @@ edit1D:
 	$(EDITOR) $(SETUP1D) &
 edit2D:
 	$(EDITOR) $(SETUP2D) &
-edit25D:
-	$(EDITOR) $(SETUP25D) &
 edit3D:
 	$(EDITOR) $(SETUP3D) &
 clean:
