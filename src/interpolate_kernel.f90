@@ -17,8 +17,8 @@ SUBROUTINE interpolate_kernel(q2,W,gradW)
 ! 
  index = INT(q2*ddq2table)
  index1 = index + 1
- IF (index.GT.ikern) index = ikern
- IF (index1.GT.ikern) index1 = ikern
+ IF (index.GT.ikern .or. index.LT.0) index = ikern
+ IF (index1.GT.ikern .or. index.LT.0) index1 = ikern
 !
 !--find increment from index point to actual value of q2
 !
