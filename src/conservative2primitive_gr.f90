@@ -119,11 +119,14 @@ end subroutine conservative2primitive
 !---------------------------------------------------------------------
 subroutine primitive2conservative
   use dimen_mhd
+  use eos
   use options
   use part
   use grutils
+  use setup_params
+  use timestep
   implicit none
-  integer :: i
+  integer :: i,iktemp
   real, dimension(ndim) :: gdiag
   real :: B2i, v2i
 
@@ -136,6 +139,25 @@ subroutine primitive2conservative
         call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
         
         rho(i) = dens(i)*sqrtg(i)
+	hh(i) = hfact*(pmass(i)/rho(i))**hpower
+     enddo
+!
+!--overwrite this with a direct summation
+!  
+     if (icty.eq.0 .or. ndirect.lt.100000) then
+        write(iprint,*) 'Calculating initial density...' 
+        if (ANY(ibound.GT.1)) call set_ghost_particles
+        call link
+        iktemp = ikernav
+        ikernav = 3		! consistent with h for first density evaluation
+        call iterate_density	! evaluate density by direct summation
+        ikernav = iktemp  
+        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+     endif
+	
+     do i=1,npart
+        call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
+	
         if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
         
         if (imhd.ge.11) then    ! if using B as conserved variable
@@ -151,6 +173,8 @@ subroutine primitive2conservative
         else   ! thermal energy is evolved
            en(i) = uu(i)
         endif
+	
+        call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i),gamma) 	
      enddo
   endif
 
