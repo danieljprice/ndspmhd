@@ -16,7 +16,7 @@ program kernelplot
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 8
+ nkernels = 1
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 0
  eps = 0.4
@@ -24,7 +24,7 @@ program kernelplot
  hfact = 1.5
  samepage = .false.
  trace = .true.
- nacross = 2
+ nacross = 1
  ndown = 1
  xmin = 0.0
  xmax = 3.2
@@ -106,8 +106,10 @@ program kernelplot
 !--plot stability separately
 !
  print*,'-------------- plotting kernel stability ------------------'
-    call pgsch(0.6)
+    !!call pgsch(0.6)
    !! call pgpage
+!!    if (nkernels.eq.1) call pgpap(5.85,1./sqrt(2.))  ! change paper size
+
     do j=1,nkernels
        ikernel = iplotorder(j)
        call setkern
@@ -152,12 +154,17 @@ subroutine legend(icall,text,hpos,vposin)
   xline(1) = xmin + hpos*(xmax-xmin)
   xline(2) = xline(1) + 3.*xch
 
-  call pgline(2,xline,yline)            ! draw line segment
 !!--make up line style if > 5 calls (must match actual line drawn)
-  if (icall.eq.1) then
-     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
-     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
-  endif  
+!  if (icall.eq.2) then
+!     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
+!     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
+!     !!call pgline(2,xline,yline)            ! draw line segment
+   if (icall.gt.0) then
+     call pgline(2,xline,yline)            ! draw line segment
+   endif  
+!
+!--write text next to line segment
+!  
   call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
 
 !!  call pgmtxt('T',vpos,0.1,0.0,trim(text))  ! write text
