@@ -41,11 +41,12 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90	 
 
-#SETUP2D = setup_orszagtang2D_mhd.f90
+SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_blast2D_mhd.f90
 #SETUP2D = setup_polytropeND.f90
-SETUP2D = setup_rotor2D_mhd.f90
+#SETUP2D = setup_rotor2D_mhd.f90
+#SETUP2D = setup_currentsheet2D_mhd.f90
 
 SETUP25D = setup_alfvenwaveND.f90
 
@@ -63,6 +64,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 interpolate_kernel.f90 \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 outputND_mhd.f90 \
+	 random.f90 \
 	 ratesND_mhd.f90 \
 	 read_infile_mhd.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \

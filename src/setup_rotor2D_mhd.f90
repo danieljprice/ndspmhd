@@ -52,7 +52,7 @@ SUBROUTINE setup
 ! 
  xorigin(:) = 0.0	! co-ordinates of the centre of the initial blast
  rdisk = 0.1		! radius of the initial disk
- rbuffer = rdisk	!0.115	! radius of the smoothed front
+ rbuffer = 0.115	! radius of the smoothed front
  vzero = 2.0		! rotation speed of initial disk
  Bzero(:) = 0.
  IF (imhd.NE.0) Bzero(1) = 5.0/const	! uniform field in Bx direction

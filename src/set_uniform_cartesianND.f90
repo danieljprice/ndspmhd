@@ -19,6 +19,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 
  USE part
  USE part_in
+ USE random	! random number generator
  USE setup_params
 !
 !--define local variables
@@ -33,7 +34,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
  INTEGER :: i,j,k,ntot,npartx,nparty,npartz,ipart,iseed
  INTEGER :: idist
  REAL :: gam1,const,xstart,ystart,deltax,deltay
- REAL :: psepx,psepy,ran1
+ REAL :: psepx,psepy
  REAL, DIMENSION(ndim) :: xran
 !
 !--allow for tracing flow
@@ -176,52 +177,3 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
             
  RETURN
 END SUBROUTINE
-
-!!------------------------------------------------------------------------!!
-!!
-!! Random number generator from numerical recipes
-!! 
-!! Returns a uniform random deviate between 0.0 and 1.0 (exclusive of 
-!!  endpoints). Call with iseed < 0 to initialise, thereafter do not
-!!  alter iseed between calls.
-!!
-!!------------------------------------------------------------------------!!
-
-FUNCTION ran1(iseed)
- IMPLICIT NONE
- INTEGER :: iseed
- INTEGER, PARAMETER :: ia = 16807, im=2147483647, iq = 127773, ir = 2836
- INTEGER, PARAMETER :: ntab = 32, ndiv = 1+(im-1)/ntab
- INTEGER, DIMENSION(ntab) :: iv
- INTEGER :: j,k,iy
- REAL :: ran1
- REAL, PARAMETER :: am = 1./im, eps = 1.2e-7, floatmax = 1.-eps
- 
- SAVE iv,iy
- DATA iv /NTAB*0/, iy /0/
-!
-!--initialise
-! 
- IF (iseed.LE.0 .OR. iy.EQ.0) THEN
-    iseed = MAX(-iseed,1) 	! do not allow iseed = 0
-    DO j = ntab+8,1,-1
-       k = iseed/iq
-       iseed = ia*(iseed-k*iq) - ir*k
-       IF (iseed.LT.0) iseed = iseed + im
-       IF (j.LE.ntab) iv(j) = iseed
-    ENDDO
-    iy = iv(1)
- ENDIF
-!
-!--generate random number
-!
- k = iseed/iq
- iseed = ia*(iseed-k*iq) - ir*k
- IF (iseed.LT.0) iseed = iseed + im
- j = 1 + iy/ndiv
- iy = iv(j)
- iv(j) = iseed
- ran1 = MIN(AM*iy,floatmax)
- 
- RETURN
-END FUNCTION ran1
