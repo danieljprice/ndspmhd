@@ -183,8 +183,8 @@ contains
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-                   gradh(i) = gradh(i) - pmass(j)*weight*dwdhi
-                   gradh(j) = gradh(j) - pmass(i)*weight*dwdhj
+                   gradh(i) = gradh(i) + pmass(j)*weight*dwdhi
+                   gradh(j) = gradh(j) + pmass(i)*weight*dwdhj
                 endif
                 
                 !if (i.ne.j) then
