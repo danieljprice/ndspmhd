@@ -34,8 +34,12 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: tol,hnew,htemp,func,dfdh,deltarho
   real :: rhoi,dhdrhoi,omegai
-  real, dimension(npart) :: rho_old
+  real, dimension(npart) :: rhoin
   logical :: converged,redolink
+  
+  integer :: itest
+  real :: hstart,dh,hend,fhmin,fhmax
+  real, dimension(1000) :: hgrid,fhgrid
 !
 !--allow for tracing flow
 !      
@@ -52,15 +56,24 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-3
+  tol = 1.e-2
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
   ncalcprev = 0
   gradh = 0.
+  rhoin(1:npart) = rho(1:npart)
+
+  itest = 416
+  
   if (ncalc.eq.npart) then
      do j=1,npart     
         redolist(j) = j
+        !!hh(j) = hfact*(pmass(j)/rho(j))**dndim
+        !if (j.eq.itest) then
+        !    print*,'starting h compatible with rho = ',hh(j)
+        !    print*,'should have rhoi = ',pmass(j)/(hh(j)/hfact)**ndim - rhomin
+        !endif
      enddo
   endif
   if (any(pmass(1:npart).ne.pmass(1))) then
@@ -68,12 +81,21 @@ subroutine iterate_density
   else
      rhomin = 0.
   endif
+!  hstart = 0.001
+!  hend = 0.15
+!  dh = (hend - hstart)/(itsdensitymax-11)
+!  hh(itest) = hstart
+!  redolink = .true. 
   
   iterate: do while ((ncalc.gt.0).and.(itsdensity.le.itsdensitymax)) !!    &
     !!!!   .and. ncalc.ne.ncalcprev)
      
      itsdensity = itsdensity + 1
-     rho_old(1:npart) = rho(1:npart)
+     !!print*,'its = ',itsdensity, 'ncalc = ',ncalc,' maxrho = ',maxval(rho(1:npart))
+!     if (itsdensity.le.itsdensitymax-10) then
+!        hh(itest) = hstart + (itsdensity-1)*dh
+!        hgrid(itsdensity) = hh(itest)
+!     endif
 
      if (redolink) then
         if (any(ibound.gt.1)) call set_ghost_particles
@@ -84,13 +106,12 @@ subroutine iterate_density
 !--calculate the density (using h), for either all the particles or
 !  only on a partial list
 !     
-     if (ncalc.eq.npart) then
-        call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
-        !call output(0.0,1)
-     else
-        
+!     if (ncalc.eq.npart) then
+!        call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
+!        !call output(0.0,1)
+!     else
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
-     endif
+!     endif
      
      ncalctotal = ncalctotal + ncalc
      ncalcprev = ncalc
@@ -119,7 +140,7 @@ subroutine iterate_density
                  print*,'warning: omega < 1.e-5 ',i,omegai
                  if (abs(omegai).eq.0.) call quit
               endif
-              gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
+              gradh(i) = 1.  !!!/omegai   ! this is what *multiplies* the kernel gradient in rates etc
 !
 !--perform Newton-Raphson iteration to get new h
 !      
@@ -127,11 +148,17 @@ subroutine iterate_density
               dfdh = omegai/dhdrhoi
               
               hnew = hh(i) - func/dfdh
+              
+!              if (i.eq.itest) then
+!                 !!print*,'h = ',hh(i),' func = ',func/rhoin(i),' rho = ',rhoi,rho(i),' nneigh = ',numneigh(i)
+!                 fhgrid(itsdensity) = func/rhoin(i)
+!              endif
 !
 !--overwrite if iterations are going wrong
 !
               if (hnew.le.0. .or. gradh(i).le.0.) then
                  print*,' warning: h or omega < 0 in iterations ',i,hnew,gradh(i)
+              !!   stop
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               endif
               !if (numneigh(i).le.1) then
@@ -139,13 +166,22 @@ subroutine iterate_density
               !   print*,' ERROR: particle has no neighbours, increasing h'
               !   hnew = max(hh(i),hnew) + psep
               !endif
+              
+              !if (abs(func)/rhoin(i).gt.0.1) then
+              !   if (i.eq.itest) print*,'restricting h guess ',i
+              !   hnew = hh(i) + 0.1*(hnew-hh(i))/abs(hh(i))
+              !endif
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !
 !             PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
+              !!if (numneigh(i).le.8) then
+              !!   print*,'warning particle ',i,' nneigh = ',numneigh(i),' increasing h'
+              !!   hnew = 2.*hh(i)
+              !!endif
               
-              !!converged = abs((rho(i)-rhoi)/rho(i)) < tol .and. omegai > 0.
-              converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 0.
+              converged = abs(func)/rhoin(i) < tol .and. omegai > 0.
+              !!converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 0.
               
               testconvergence: if (.not.converged) then
                  ncalc = ncalc + 1
@@ -155,12 +191,12 @@ subroutine iterate_density
 !
 !--update smoothing length only if taking another iteration
 !
-                 if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) then
+                 if (itsdensity.le.itsdensitymax .and. itype(i).ne.1) then
                     !print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
                     hh(i) = hnew
-                 elseif (itsdensity.eq.itsdensitymax) then
+                 elseif (itsdensity.eq.itsdensitymax .and. .not.converged) then
                     write(iprint,*) 'ERROR: density not converged'
-                    write(iprint,*) 'particle ',i,' h = ',hh(i),' hnew = ',hnew,'(h - hnew) /h = ',abs(hnew-hh(i))/hh(i)
+                    write(iprint,*) 'particle ',i,' h = ',hh(i),' hnew = ',hnew,'(rho -rhoi)/rho =',abs(func)/rhoin(i)
                  endif
                  if (hnew.gt.hhmax) then
                     redolink = .true.
@@ -175,6 +211,7 @@ subroutine iterate_density
         endif
         
      endif
+          
 !
 !--write over boundary particles
 !     
@@ -187,7 +224,7 @@ subroutine iterate_density
                  hh(i) = hh(j)
                  gradh(i) = gradh(j)
               else
-                 rho(i) = rho_old(i)
+                 rho(i) = rhoin(i)
                  !!write(iprint,*) 'Warning: ireal not set for fixed parts'
               endif
            endif
@@ -201,16 +238,46 @@ subroutine iterate_density
            gradh(i) = gradh(j)
         enddo
      endif
-     
+          
      !!call output(0.0,1)
      !!read*
   enddo iterate
+
+  !!print*,itest,' h = ',hh(itest),'rho= ' ,rho(itest),'numneigh = ',numneigh(itest)
+
 
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.2 .or. (itsdensity.gt.1 .and. ndim.ge.2)) then
      write(iprint,*) ' Finished density, iterations = ', &
                      itsdensity, ncalctotal,' used rhomin = ',rhomin
   endif
+
+     !
+     !--plot for itest
+     !
+!     call pgbeg(0,'?',1,1)
+!     !!print*,' hstart,end = ',hstart,hend
+!     fhmin = -2. !!minval(fhgrid(1:itsdensitymax))
+!     fhmax = 2. !!maxval(fhgrid(1:itsdensitymax))
+     !!print*,' fmin,max = ',fhmin,fhmax
+
+!     call pgenv(hstart,hend,fhmin,fhmax,0,0)
+!     call pglab('h','f(h)',' ')
+!     call pgline(itsdensitymax-10,hgrid(1:itsdensitymax-10),fhgrid(1:itsdensitymax-10))
+!     do i=2,itsdensitymax-10
+!        if ((fhgrid(i).gt.0. .and. fhgrid(i-1).lt.0.) &
+!       .or. (fhgrid(i).lt.0. .and. fhgrid(i-1).gt.0.)) then
+!           itsdensity = i
+!           fhgrid(itsdensitymax) = fhgrid(i)
+!           hgrid(itsdensitymax) = hgrid(i)
+!           print*,' zero at h = ',hgrid(i),' f = ',fhgrid(i)
+!        endif
+!        hgrid(itsdensitymax-1) = hgrid(itsdensity)
+!        fhgrid(itsdensitymax-1) = fhmin
+!        call pgsci(2)
+!        call pgline(2,hgrid((itsdensitymax-1):itsdensitymax),fhgrid((itsdensitymax-1):itsdensitymax))
+!     enddo
+!     call pgend
   
   return
   
