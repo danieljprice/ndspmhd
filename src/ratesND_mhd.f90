@@ -1,10 +1,6 @@
 !!--------------------------------------------------------------------
 !! Computes the rates of change of everything (forces, energy eqn etc)
 !! This is the core of the SPH algorithm
-!!
-!! Changes log:
-!! v3.6:
-!! 15/10/03 bug fix in artificial stress
 !!--------------------------------------------------------------------
 
 SUBROUTINE get_rates
@@ -78,7 +74,6 @@ SUBROUTINE get_rates
 ! (my av switch)
 !
  REAL :: qab,vdotri,vdotrj
- REAL, ALLOCATABLE, DIMENSION(:) :: avsource
 !
 !  (kernel related quantities)
 !
@@ -117,8 +112,7 @@ SUBROUTINE get_rates
 
  nlistdim = ntotal
  ALLOCATE ( listneigh(nlistdim),STAT=ierr )
- ALLOCATE (avsource(ntotal), STAT=ierr )	! should deallocate at end of subroutine
- IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating avsource, ierr = ',ierr
+ IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
 
  DO i=1,ntotal	! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -130,7 +124,6 @@ SUBROUTINE get_rates
   divB(i) = 0.0
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
-  avsource(i) = 0.0
  ENDDO
 !
 !--calculate kernel for Joe's correction term
@@ -337,10 +330,6 @@ SUBROUTINE get_rates
 		visc = 0.
 		IF (vmag.EQ.0.) vmag = 1.e-6
 		vunit(:) = abs(dvel(:))/vmag
-	        IF ((iavlim.EQ.1).AND.(ndimV.GT.ndim)) THEN
-		   avsource(i) = avsource(i) + pmassj*(DOT_PRODUCT(dvel,vunit))*grkern
-		   avsource(j) = avsource(j) + pmassi*(DOT_PRODUCT(dvel,vunit))*grkern
-		ENDIF
 !
 !--calculate maximum signal velocity (this is used for the timestep control
 !  and also in the artificial viscosity)
@@ -776,13 +765,8 @@ SUBROUTINE get_rates
 !  see Morris and Monaghan (1997)
 !     
     IF (iavlim.EQ.1) THEN
-!       IF (ndimV.GT.ndim) THEN
-!          print*,' source ',i,' = ',avsource(i)*rho1i,drhodt(i)*rho1i
-!          source = max(avsource(i)*rho1i,0.0)
-!       ELSE    
-          source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
-!         source = MAX(drhodt(i)*rho1i*(1.5-alpha(i)),0.0)    ! source term is div v
-!       ENDIF
+       source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
+!       source = MAX(drhodt(i)*rho1i*(1.5-alpha(i)),0.0)    ! source term is div v
        valfven2i = 0.
        IF (imhd.GE.11) THEN
           valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
@@ -796,7 +780,7 @@ SUBROUTINE get_rates
       
  ENDDO
      
- DEALLOCATE ( avsource )
+ IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
  IF (trace) WRITE(iprint,*) ' Exiting subroutine get_rates'
       
  RETURN
