@@ -22,6 +22,7 @@ SUBROUTINE iterate_density
  USE hterms
  USE options
  USE part
+ USE part_in	! for rhoin on fixed particles
  USE setup_params
 !
 !--define local variables
@@ -103,46 +104,47 @@ SUBROUTINE iterate_density
     redolink = .false.
 
     IF (ihvar.NE.0) THEN
-       DO i=nbpts+1,npart-nbpts
-          IF (rho(i).LE.1.e-3) THEN
-	     IF (rho(i).LE.0.) THEN
-	      WRITE(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i)
-	      CALL quit
-	     ELSE
-	      WRITE(iprint,*) 'Warning : rho < 1e-5 '
-	     ENDIF
-          ENDIF
+       DO i=1,npart
+          IF (itype(i).NE.1) THEN
+             IF (rho(i).LE.1.e-3) THEN
+	        IF (rho(i).LE.0.) THEN
+	           WRITE(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i)
+	           CALL quit
+	        ELSE
+	           WRITE(iprint,*) 'Warning : rho < 1e-5 '
+	        ENDIF
+             ENDIF
 
-          gradh(i) = gradh(i)/rho_old(i)    ! now that rho is known
-          IF (abs(1.-gradh(i)).LT.1.e-5) PRINT*,'eek'
+             gradh(i) = gradh(i)/rho_old(i)    ! now that rho is known
+             IF (abs(1.-gradh(i)).LT.1.e-5) PRINT*,'eek'
 !
 !--perform Newton-Raphson iteration on rho
 !      
-!          rho(i) = rho_old(i) - (rho_old(i) - rho(i))/(1.-gradh(i))
+!             rho(i) = rho_old(i) - (rho_old(i) - rho(i))/(1.-gradh(i))
 !
 !--work out new smoothing length h
 !
-          hnew = hfact*(pmass(i)/rho(i))**hpower	! ie h proportional to 1/rho^dimen
+             hnew = hfact*(pmass(i)/rho(i))**hpower	! ie h proportional to 1/rho^dimen
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !
-!          PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
+!            PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
 
-          converged = abs((hnew-hh(i))/hh(i)) < tol	  
-	  IF (.not.converged) THEN
-	     ncalc = ncalc + 1
-	     redolist(ncalc) = i
-!	     PRINT*,'not converged',i,abs(hnew-hh(i))/hh(i),rho(i),	&
-!     	     ncalc,redolist(ncalc)
+             converged = abs((hnew-hh(i))/hh(i)) < tol	  
+	     IF (.not.converged) THEN
+	        ncalc = ncalc + 1
+	        redolist(ncalc) = i
+!	        PRINT*,'not converged',i,abs(hnew-hh(i))/hh(i),rho(i),	&
+!     	        ncalc,redolist(ncalc)
 !
 !--update smoothing length only if taking another iteration
 !
- 	     IF (itsdensity.LT.itsdensitymax) hh(i) = hnew
-	     IF (hnew.GT.hhmax) THEN
-		redolink = .true.
-	     ENDIF	
-	  ENDIF
-
+ 	        IF (itsdensity.LT.itsdensitymax) hh(i) = hnew
+	        IF (hnew.GT.hhmax) THEN
+		   redolink = .true.
+	        ENDIF	
+	     ENDIF
+          ENDIF	! itype .NE. 1
        ENDDO
 
        IF ((idebug(1:3).EQ.'den').AND.(ncalc.GT.0)) THEN
@@ -161,6 +163,10 @@ SUBROUTINE iterate_density
           hh(i) = hh(j)
           gradh(i) = gradh(j)       
        ENDDO
+    ELSEIF (ibound.EQ.1) THEN		! update fixed particles
+       WHERE (itype(:).EQ.1)
+          rho(:) = rhoin(:)
+       END WHERE
     ENDIF
             
  ENDDO iterate

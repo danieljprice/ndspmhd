@@ -66,7 +66,7 @@ SUBROUTINE setup
 !--allocate variables
 !
  ntot = NINT((xmax(1)-xmin(1))/psep) + 1
- CALL alloc(ntot,1)
+ CALL alloc(ntot)
 
 ! i = 1
  xin(1,1) = xmin(1) + 0.5*psep

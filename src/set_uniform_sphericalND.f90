@@ -61,7 +61,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
 !
 !--reallocate memory to new size of list
 !
- CALL alloc(npart,2)
+ CALL alloc(npart)
 
  RETURN
 END SUBROUTINE

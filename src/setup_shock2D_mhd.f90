@@ -75,7 +75,7 @@ SUBROUTINE setup
 !--allocate memory here
 !
  ntot = npartx*nparty
- CALL alloc(ntot,1)
+ CALL alloc(ntot)
  npart = ntot
  ntotal = ntot
 

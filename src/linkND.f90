@@ -57,7 +57,7 @@ SUBROUTINE link
 !  
  xminpart(:) = xmin(:)
  xmaxpart(:) = xmax(:)
- 
+
  IF (ibound.LE.1) THEN
 !
 !--find max/min of particle distribution, including ghost particles
@@ -73,7 +73,6 @@ SUBROUTINE link
  ENDIF
 
  ncellsx(:) = int((xmaxpart(:)-xminpart(:))/dxcell) + 1
- 
  IF (ANY(ncellsx .EQ. 0)) THEN
     WRITE(iprint,*) 'Error: link: number of cells=0:'
     WRITE(iprint,*) 'xmin, xmax, dxcell, hhmax = ',xmin,xmax,dxcell,hhmax

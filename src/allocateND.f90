@@ -2,11 +2,11 @@
 !! This subroutine allocates memory for all arrays once the number of
 !! particles is known (should be called from setup).
 !!
-!! icall = 1 : allocate arrays for the first time
-!! icall = 2 : reallocate arrays because particle # > array size
+!! oldsize = 0 : allocate arrays for the first time (oldsize irrelevant)
+!! oldsize .ne. 0 : reallocate arrays because particle # > array size
 !!
 !!----------------------------------------------------------------------
-SUBROUTINE alloc(nsize,icall)
+SUBROUTINE alloc(oldsize)
 !
 !--include relevant global variables
 !
@@ -30,78 +30,93 @@ SUBROUTINE alloc(nsize,icall)
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER, INTENT(IN) :: nsize,icall
- INTEGER :: ntot
- REAL, DIMENSION(nsize) :: dumpmass,dumrhoin,dumuuin,dumenin,dumalphain
- REAL, DIMENSION(nsize) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
- REAL, DIMENSION(nsize) :: dumalpha,dumdaldt,dumhh,dumgradh,dumpr,dumspsound
- REAL, DIMENSION(nsize) :: dumdivB,dumhhin,dumdhdt
- REAL, DIMENSION(ndim,nsize) :: dumxin,dumx,dumfgrav
- REAL, DIMENSION(ndimV,nsize) :: dumvelin,dumvel,dumBfieldin,dumBin
- REAL, DIMENSION(ndimV,nsize) :: dumforce,dumBfield,dumdBfielddt,dumfmag
- REAL, DIMENSION(ndimV,nsize) :: dumcurlB,dumxsphterm
- INTEGER, DIMENSION(nsize) :: idumireal
-!
-!--debugging information
-!
- IF (trace) WRITE(iprint,*) ' Allocating memory for all arrays'
+ INTEGER, INTENT(IN) :: oldsize
+ INTEGER :: newsize
+ REAL, DIMENSION(oldsize) :: dumpmass,dumrhoin,dumuuin,dumenin,dumalphain
+ REAL, DIMENSION(oldsize) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
+ REAL, DIMENSION(oldsize) :: dumalpha,dumdaldt,dumhh,dumgradh,dumpr,dumspsound
+ REAL, DIMENSION(oldsize) :: dumdivB,dumhhin,dumdhdt
+ REAL, DIMENSION(ndim,oldsize) :: dumxin,dumx,dumfgrav
+ REAL, DIMENSION(ndimV,oldsize) :: dumvelin,dumvel,dumBfieldin,dumBin
+ REAL, DIMENSION(ndimV,oldsize) :: dumforce,dumBfield,dumdBfielddt,dumfmag
+ REAL, DIMENSION(ndimV,oldsize) :: dumcurlB,dumxsphterm
+ INTEGER, DIMENSION(oldsize) :: idumireal,idumitype
+ LOGICAL :: reallocate, increasingsize
 !
 !--set size of neighbour list
 !
- nlistdim = nsize/2	! ie. up to half of particles can be neighbours
- IF (icall.EQ.1) THEN
+ nlistdim = oldsize/2	! ie. up to half of particles can be neighbours
+ reallocate = .false.
+ IF (ALLOCATED(x)) reallocate = .true.
+ IF (trace .AND. reallocate) THEN
+    WRITE(iprint,*) 'Reallocating memory for all arrays'
+ ELSEIF (trace) THEN
+    WRITE(iprint,*) 'Allocating memory for all arrays'
+ ENDIF
+ increasingsize = .true.
+ IF (oldsize.LT.SIZE(rho)) THEN
+    increasingsize = .false.
+    WRITE(iprint,*) 'decreasing array size'
+ ENDIF
+ IF (oldsize.EQ.0) THEN
+    WRITE(iprint,*) 'Error: size=0 in call to allocate'
+    CALL quit
+ ENDIF
+ 
+ IF (.not.reallocate) THEN
 !
 !--leave extra space if ghost particles are used
 !
     IF (ibound.GT.1) THEN
-       ntot = nsize + 25 	! allow space for 25 ghosts
+       newsize = oldsize + 25 	! allow space for 25 ghosts
     ELSE
-       ntot = nsize
+       newsize = oldsize		! else just use size given
     ENDIF
  
- ELSEIF (icall.EQ.2) THEN
+ ELSE
 
 !-----------------------------------------------------------------------------
 !  copy everything into dummy arrays with the old size
 !-----------------------------------------------------------------------------
-    dumpmass = pmass(1:nsize)
-    dumrhoin = rhoin(1:nsize)
-    dumuuin = uuin(1:nsize)
-    dumhhin = hhin(1:nsize)
-    dumenin = enin(1:nsize)
-    dumalphain = alphain(1:nsize)
+    dumpmass = pmass(1:oldsize)
+    dumrhoin = rhoin(1:oldsize)
+    dumuuin = uuin(1:oldsize)
+    dumhhin = hhin(1:oldsize)
+    dumenin = enin(1:oldsize)
+    dumalphain = alphain(1:oldsize)
     
-    dumxin = xin(:,1:nsize)
-    dumvelin = velin(:,1:nsize)
-    dumBfieldin = Bfieldin(:,1:nsize)
-    dumBin = Bin(:,1:nsize)
+    dumxin = xin(:,1:oldsize)
+    dumvelin = velin(:,1:oldsize)
+    dumBfieldin = Bfieldin(:,1:oldsize)
+    dumBin = Bin(:,1:oldsize)
     
-    dumx = x(:,1:nsize)
-    dumvel = vel(:,1:nsize)
-    dumforce = force(:,1:nsize)
-    dumBfield = Bfield(:,1:nsize)
-    dumdBfielddt = dBfielddt(:,1:nsize)
-    dumfmag = fmag(:,1:nsize)
-    dumcurlB = curlB(:,1:nsize)
-    dumxsphterm = xsphterm(:,1:nsize)
+    dumx = x(:,1:oldsize)
+    dumvel = vel(:,1:oldsize)
+    dumforce = force(:,1:oldsize)
+    dumBfield = Bfield(:,1:oldsize)
+    dumdBfielddt = dBfielddt(:,1:oldsize)
+    dumfmag = fmag(:,1:oldsize)
+    dumcurlB = curlB(:,1:oldsize)
+    dumxsphterm = xsphterm(:,1:oldsize)
         
-    dumrho = rho(1:nsize)
-    dumdrhodt = drhodt(1:nsize)
-    dumuu = uu(1:nsize)
-    dumdudt = dudt(1:nsize)
-    dumen = en(1:nsize)
-    dumdendt = dendt(1:nsize)
-    dumalpha = alpha(1:nsize)
-    dumdaldt = daldt(1:nsize)
-    dumhh = hh(1:nsize)
-    dumdhdt = dhdt(1:nsize)
-    dumgradh = gradh(1:nsize)
-    dumpr = pr(1:nsize)
-    dumspsound = spsound(1:nsize)
-!    dumll = ll(1:nsize)
-    dumdivB = divB(1:nsize)
-    idumireal = ireal(1:nsize)
-    IF (ALLOCATED(fgrav)) dumfgrav(:,1:nsize) = fgrav(:,1:nsize)
+    dumrho = rho(1:oldsize)
+    dumdrhodt = drhodt(1:oldsize)
+    dumuu = uu(1:oldsize)
+    dumdudt = dudt(1:oldsize)
+    dumen = en(1:oldsize)
+    dumdendt = dendt(1:oldsize)
+    dumalpha = alpha(1:oldsize)
+    dumdaldt = daldt(1:oldsize)
+    dumhh = hh(1:oldsize)
+    dumdhdt = dhdt(1:oldsize)
+    dumgradh = gradh(1:oldsize)
+    dumpr = pr(1:oldsize)
+    dumspsound = spsound(1:oldsize)
+!    dumll = ll(1:oldsize)
+    dumdivB = divB(1:oldsize)
+    idumireal = ireal(1:oldsize)
+    idumitype = itype(1:oldsize)
+    IF (ALLOCATED(fgrav)) dumfgrav(:,1:oldsize) = fgrav(:,1:oldsize)
     
  
 !-----------------------------------------------------------------------------
@@ -127,13 +142,17 @@ SUBROUTINE alloc(nsize,icall)
 !
     DEALLOCATE(ll,ireal,ifirstincell,iamincell)
 !
+!--itype is particle type (normal, fixed particle etc)
+!
+    IF (ALLOCATED(itype)) DEALLOCATE(itype)
+!
 !--MHD quantities and derivatives
 !
     DEALLOCATE(Bfield,dBfielddt,fmag,divB,curlB)
 !
 !--XSPH
 !
-    DEALLOCATE(xsphterm)
+    IF (ALLOCATED(xsphterm)) DEALLOCATE(xsphterm)
 !
 !--gravity
 !
@@ -144,103 +163,110 @@ SUBROUTINE alloc(nsize,icall)
 !  reallocate arrays to new size (add 10% so don't have to do this too often)
 !-----------------------------------------------------------------------------
  
-    IF (ibound.GT.1) THEN
-       ntot = INT(1.1*nsize)
+    IF (ibound.GE.1 .AND. increasingsize) THEN
+       newsize = INT(1.1*oldsize)
     ELSE 
-       ntot = nsize
+       newsize = oldsize	! decreasing size
     ENDIF
-    IF (ntot.GT.nsize) THEN   
-       WRITE(iprint,*) ' old array size = ',nsize,' new array size = ',ntot
+    IF (newsize.NE.oldsize) THEN   
+       WRITE(iprint,*) ' old array size = ',oldsize,' new array size = ',newsize
     ENDIF
  ENDIF
 
 !-----------------------------------------------------------------------------
-!  allocate all arrays (for both icall = 1 and icall = 2)
+!  allocate all arrays (for both first time and reallocation)
 !-----------------------------------------------------------------------------
 
 !
 !--initial particle properties
 !
-    ALLOCATE (pmass(ntot))
-    ALLOCATE (xin(ndim,ntot))
-    ALLOCATE (rhoin(ntot),uuin(ntot),hhin(ntot))
-    ALLOCATE (enin(ntot),alphain(ntot))
-    ALLOCATE (velin(ndimV,ntot),Bfieldin(ndimB,ntot),Bin(ndimB,ntot))
+    ALLOCATE (pmass(newsize))
+    ALLOCATE (xin(ndim,newsize))
+    ALLOCATE (rhoin(newsize),uuin(newsize),hhin(newsize))
+    ALLOCATE (enin(newsize),alphain(newsize))
+    ALLOCATE (velin(ndimV,newsize),Bfieldin(ndimB,newsize),Bin(ndimB,newsize))
 !
 !--particle properties and derivatives
 !
-    ALLOCATE(x(ndim,ntot))
-    ALLOCATE(vel(ndimV,ntot),force(ndimV,ntot))
-    ALLOCATE(rho(ntot),drhodt(ntot))
-    ALLOCATE(uu(ntot),dudt(ntot),en(ntot),dendt(ntot))
-    ALLOCATE(alpha(ntot),daldt(ntot))
-    ALLOCATE(hh(ntot),dhdt(ntot),gradh(ntot),pr(ntot))
+    ALLOCATE(x(ndim,newsize))
+    ALLOCATE(vel(ndimV,newsize),force(ndimV,newsize))
+    ALLOCATE(rho(newsize),drhodt(newsize))
+    ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
+    ALLOCATE(alpha(newsize),daldt(newsize))
+    ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),pr(newsize))
 !
 !--equation of state
 !
-    ALLOCATE(spsound(ntot))
+    ALLOCATE(spsound(newsize))
 !
 !--linklist and boundaries - note ifirstincell is reallocated in link
 !  (depends on max # of link list cells)
 !
-    ALLOCATE(ll(ntot),iamincell(ntot),ifirstincell(0),ireal(ntot))
+    ALLOCATE(ll(newsize),iamincell(newsize),ifirstincell(0),ireal(newsize))
+!
+!--particle type
+!
+    ALLOCATE(itype(newsize))
 !
 !--MHD quantities and derivatives
 !
-    ALLOCATE(Bfield(ndimB,ntot),dBfielddt(ndimB,ntot),fmag(ndimB,ntot))	! mag field
-    ALLOCATE(divB(ntot),curlB(ndimB,ntot))
+    ALLOCATE(Bfield(ndimB,newsize),dBfielddt(ndimB,newsize),fmag(ndimB,newsize))	! mag field
+    ALLOCATE(divB(newsize),curlB(ndimB,newsize))
 !
 !--XSPH
 !
-    ALLOCATE(xsphterm(ndimV,ntot))
+    ALLOCATE(xsphterm(ndimV,newsize))
     
     IF (igravity.NE.0) THEN
-       ALLOCATE(fgrav(ndim,ntot))
+       ALLOCATE(fgrav(ndim,newsize))
     ENDIF
     
 !-----------------------------------------------------------------------------
 !  copy properties back to new, bigger arrays
 !-----------------------------------------------------------------------------
 
- IF (icall.EQ.2) THEN
-    pmass(1:nsize) = dumpmass(1:nsize)
-    rhoin(1:nsize) = dumrhoin(1:nsize)
-    uuin(1:nsize) = dumuuin(1:nsize)
-    hhin(1:nsize) = dumhhin(1:nsize)
-    enin(1:nsize) = dumenin(1:nsize)
-    alphain(1:nsize) = dumalphain(1:nsize)
+ IF (reallocate) THEN
+    pmass(1:oldsize) = dumpmass(1:oldsize)
+    rhoin(1:oldsize) = dumrhoin(1:oldsize)
+    uuin(1:oldsize) = dumuuin(1:oldsize)
+    hhin(1:oldsize) = dumhhin(1:oldsize)
+    enin(1:oldsize) = dumenin(1:oldsize)
+    alphain(1:oldsize) = dumalphain(1:oldsize)
     
-    xin(:,1:nsize) = dumxin(:,1:nsize)
-    velin(:,1:nsize) = dumvelin(:,1:nsize)
-    Bfieldin(:,1:nsize) = dumBfieldin(:,1:nsize)
-    Bin(:,1:nsize) = dumBin(:,1:nsize)
+    xin(:,1:oldsize) = dumxin(:,1:oldsize)
+    velin(:,1:oldsize) = dumvelin(:,1:oldsize)
+    Bfieldin(:,1:oldsize) = dumBfieldin(:,1:oldsize)
+    Bin(:,1:oldsize) = dumBin(:,1:oldsize)
     
-    x(:,1:nsize) = dumx(:,1:nsize)
-    vel(:,1:nsize) = dumvel(:,1:nsize)
-    force(:,1:nsize) = dumforce(:,1:nsize)
-    Bfield(:,1:nsize) = dumBfield(:,1:nsize)
-    dBfielddt(:,1:nsize) = dumdBfielddt(:,1:nsize)
-    fmag(:,1:nsize) = dumfmag(:,1:nsize)
-    curlB(:,1:nsize) = dumcurlB(:,1:nsize)
-    xsphterm(:,1:nsize) = dumxsphterm(:,1:nsize)
+    x(:,1:oldsize) = dumx(:,1:oldsize)
+    vel(:,1:oldsize) = dumvel(:,1:oldsize)
+    force(:,1:oldsize) = dumforce(:,1:oldsize)
+    Bfield(:,1:oldsize) = dumBfield(:,1:oldsize)
+    dBfielddt(:,1:oldsize) = dumdBfielddt(:,1:oldsize)
+    fmag(:,1:oldsize) = dumfmag(:,1:oldsize)
+    curlB(:,1:oldsize) = dumcurlB(:,1:oldsize)
+    xsphterm(:,1:oldsize) = dumxsphterm(:,1:oldsize)
         
-    rho(1:nsize) = dumrho(1:nsize)
-    drhodt(1:nsize) = dumdrhodt(1:nsize)
-    uu(1:nsize) = dumuu(1:nsize)
-    dudt(1:nsize) = dumdudt(1:nsize)
-    en(1:nsize) = dumen(1:nsize)
-    dendt(1:nsize) = dumdendt(1:nsize)
-    alpha(1:nsize) = dumalpha(1:nsize)
-    daldt(1:nsize) = dumdaldt(1:nsize)
-    hh(1:nsize) = dumhh(1:nsize)
-    dhdt(1:nsize) = dumdhdt(1:nsize)
-    gradh(1:nsize) = dumgradh(1:nsize)
-    pr(1:nsize) = dumpr(1:nsize)
-    spsound(1:nsize) = dumspsound(1:nsize)
-!    ll(1:nsize) = dumll(1:nsize)
-    divB(1:nsize) = dumdivB(1:nsize) 
-    ireal(1:nsize) = idumireal(1:nsize)
-    IF (ALLOCATED(fgrav)) fgrav(:,1:nsize) = dumfgrav(:,1:nsize)
+    rho(1:oldsize) = dumrho(1:oldsize)
+    drhodt(1:oldsize) = dumdrhodt(1:oldsize)
+    uu(1:oldsize) = dumuu(1:oldsize)
+    dudt(1:oldsize) = dumdudt(1:oldsize)
+    en(1:oldsize) = dumen(1:oldsize)
+    dendt(1:oldsize) = dumdendt(1:oldsize)
+    alpha(1:oldsize) = dumalpha(1:oldsize)
+    daldt(1:oldsize) = dumdaldt(1:oldsize)
+    hh(1:oldsize) = dumhh(1:oldsize)
+    dhdt(1:oldsize) = dumdhdt(1:oldsize)
+    gradh(1:oldsize) = dumgradh(1:oldsize)
+    pr(1:oldsize) = dumpr(1:oldsize)
+    spsound(1:oldsize) = dumspsound(1:oldsize)
+!    ll(1:oldsize) = dumll(1:oldsize)
+    divB(1:oldsize) = dumdivB(1:oldsize) 
+    ireal(1:oldsize) = idumireal(1:oldsize)
+    itype(1:oldsize) = idumitype(1:oldsize)
+    IF (ALLOCATED(fgrav)) fgrav(:,1:oldsize) = dumfgrav(:,1:oldsize)
+ ELSE
+    itype(:) = 0	! on first memory allocation, set all parts = normal
  ENDIF   
        
 !

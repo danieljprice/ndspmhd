@@ -42,7 +42,7 @@ SUBROUTINE setup
 !
 !--allocate memory here
 !
- CALL alloc(imax,1)
+ CALL alloc(imax)
  
  DO i=1,imax
     xin(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 

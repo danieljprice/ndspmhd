@@ -83,7 +83,7 @@ SUBROUTINE setup
 ! allocate memory to start with (need to guess the particle number)
 !
  ntot = 1000*nparty
- CALL alloc(ntot,1)
+ CALL alloc(ntot)
 !
 !--setup particles using the parameters given
 !      	

@@ -79,7 +79,7 @@ SUBROUTINE setup
 !
 !--allocate memory here
 !
-! CALL alloc(npart,1)
+! CALL alloc(npart)
 !
 !--setup uniform density grid of particles
 ! 
