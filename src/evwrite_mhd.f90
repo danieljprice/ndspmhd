@@ -209,8 +209,8 @@ SUBROUTINE evwrite(t,etot,momtot)
       
  ELSE
 
-    WRITE(ievfile,*) t,ekin,etherm,emag,etot,momtot
-40  FORMAT(6(1pe20.13,1x))        
+    WRITE(ievfile,40) t,ekin,etherm,emag,etot,momtot
+40  FORMAT(6(1pe18.10,1x))        
 
  ENDIF
 
