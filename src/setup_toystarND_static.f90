@@ -29,17 +29,24 @@ subroutine setup
  real :: rmax,totmass,totvol
  real :: denszero,uuzero,massp,denscentre
 
- write(iprint,*) 'uniform spherical distribution'
+ write(iprint,*) 'uniform spherical distribution (for toy star)'
 !
 !--set bounds of initial setup
 !                   
+ denscentre = 1.0                ! toy star central density 
+!
+!--reset polyk to give r = 1
+!
+ polyk = (gamma - 1.)/(2.*gamma*denscentre**(gamma-1.))
+ write(iprint,*) 'resetting polyk = ',polyk
  rmax = 1.0
+ totmass = pi*rmax**2*(gamma-1.)/gamma
  ibound = 0        ! no boundaries 
  iexternal_force = 1        ! use toy star force
 !
 !--setup a uniform sphere of particles
 ! 
- call set_uniform_spherical(4,rmax)        ! 4 = random
+ call set_uniform_spherical(11,rmax)        ! 4 = random
 !
 !--set particle properties
 ! 
@@ -51,10 +58,7 @@ subroutine setup
   case(3)
     totvol = 4./3.*pi*rmax**3
  end select
-  
- denscentre = 1.0                ! toy star central density 
- totmass = 2*pi*polyk*denscentre**(gamma-1.)  ! mass of the toy star 
- 
+
  denszero = totmass/totvol        ! initial density
  massp = totmass/real(npart)
  uuzero = 0.1
