@@ -354,7 +354,13 @@ subroutine get_rates
 !
 !--damp force if appropriate
 !
-    if (damp.gt.0.) force(:,i) = force(:,i) - damp*vel(:,i)
+    if (damp.gt.1.e-10) then
+       if (igeom.gt.1) then
+          force(:,i) = force(:,i) - damp*pmom(:,i)
+       else
+          force(:,i) = force(:,i) - damp*vel(:,i)
+       endif
+    endif
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
