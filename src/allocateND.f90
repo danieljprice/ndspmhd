@@ -22,7 +22,7 @@ SUBROUTINE alloc(newsizein)
  USE part_in
  USE rates
  USE xsph
- USE matrixcorr
+ !USE matrixcorr
 !
 !--define local variables
 !
@@ -42,7 +42,7 @@ SUBROUTINE alloc(newsizein)
 !--gr terms
  REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype,idumnumneigh
- REAL, DIMENSION(ndim,ndim,newsizein) :: dumgradmatrix
+ !REAL, DIMENSION(ndim,ndim,newsizein) :: dumgradmatrix
 
  LOGICAL :: reallocate
 !
@@ -54,6 +54,7 @@ SUBROUTINE alloc(newsizein)
  ELSE
     ioldsize = 0
  ENDIF
+ idumsize = 0
 !
 !--check for errors
 ! 
@@ -128,7 +129,7 @@ SUBROUTINE alloc(newsizein)
     dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
     dumdens(1:idumsize) = dens(1:idumsize)
     
-    dumgradmatrix(:,:,1:idumsize)=gradmatrix(:,:,1:idumsize)
+    !dumgradmatrix(:,:,1:idumsize)=gradmatrix(:,:,1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -184,7 +185,7 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(pmom)) DEALLOCATE(pmom)
     IF (ALLOCATED(dens)) DEALLOCATE(dens)
     
-    IF (ALLOCATED(gradmatrix)) DEALLOCATE(gradmatrix)
+    !IF (ALLOCATED(gradmatrix)) DEALLOCATE(gradmatrix)
  ENDIF
 
 !-----------------------------------------------------------------------------
@@ -247,7 +248,7 @@ SUBROUTINE alloc(newsizein)
    ALLOCATE(sqrtg(newsize))
    ALLOCATE(dens(newsize))
    
-   ALLOCATE(gradmatrix(ndim,ndim,newsize))
+   !ALLOCATE(gradmatrix(ndim,ndim,newsize))
    
  IF (reallocate) THEN
 !-----------------------------------------------------------------------------
@@ -299,12 +300,13 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(fgrav)) fgrav(:,1:idumsize) = dumfgrav(:,1:idumsize)
     sqrtg(1:idumsize) = dumsqrtg(1:idumsize)
     dens(1:idumsize) = dumdens(1:idumsize)
-    gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize)
+    
+    !gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize)
     
  ELSE
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
-    gradmatrix(:,:,:) = 1.
+    !gradmatrix(:,:,:) = 1.
  ENDIF   
        
 !

@@ -23,7 +23,7 @@ contains
     use linklist
     use options
     use setup_params
-    use matrixcorr
+    !use matrixcorr
 !
 !--define local variables
 !
@@ -43,7 +43,7 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2
     real :: hfacwab,hfacwabi,hfacwabj
-    real, dimension(ndim) :: dx,dr
+    real, dimension(ndim) :: dx
 !
 !  (kernel quantities)
 !
@@ -66,7 +66,7 @@ contains
     do i=1,npart
        rho(i) = 0.
        gradh(i) = 0.
-       gradmatrix(:,:,i) = 0.
+       !gradmatrix(:,:,i) = 0.
     enddo
 !
 !--Loop over all the link-list cells
@@ -105,11 +105,6 @@ contains
          
              rij2 = dot_product(dx,dx)
              rij = sqrt(rij2)
-             IF (i.NE.j) THEN
-                dr(:) = dx(:)/rij
-             ELSE
-                dr(:) = 0.
-             ENDIF
              q2i = rij2/hi2
              q2j = rij2/hj2       
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
@@ -192,14 +187,14 @@ contains
                    gradh(j) = gradh(j) + pmass(i)*weight*dwdhj
                 endif
                 
-                if (i.ne.j) then
-                do idim=1,ndim
-                   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-                               + 2.*pmass(j)*(dx(:))*dr(idim)*grkerni
-                   gradmatrix(:,idim,j) = gradmatrix(:,idim,j) &
-                               + 2.*pmass(i)*(dx(:))*dr(idim)*grkernj
-                enddo
-                endif
+                !if (i.ne.j) then
+                !do idim=1,ndim
+                !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
+                !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
+                !   gradmatrix(:,idim,j) = gradmatrix(:,idim,j) &
+                !               + 2.*pmass(i)*(dx(:))*dx(idim)/rij*grkernj
+                !enddo
+                !endif
 
 !        ELSE
 !           PRINT*,' r/h > 2 '      
@@ -246,7 +241,7 @@ contains
     use bound
     use kernel
     use linklist
-    use matrixcorr
+    !use matrixcorr
 !
 !--define local variables
 !
@@ -268,7 +263,7 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hi2
     real :: hfacwabi,hfacgrkerni
-    real, dimension(ndim) :: dx,dr
+    real, dimension(ndim) :: dx
 !
 !  (kernel quantities)
 !
@@ -288,7 +283,7 @@ contains
        i = ipartlist(ipart)
        rho(i) = 0.
        gradh(i) = 0.
-       gradmatrix(:,:,i) = 0.
+!       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
     enddo
     icellprev = 0
@@ -330,11 +325,6 @@ contains
 !                           
           rij2 = dot_product(dx,dx)
           rij = sqrt(rij2)
-          IF (i.NE.j) THEN
-             dr(:) = dx(:)/rij
-          ELSE
-             dr(:) = 0.
-          ENDIF
           q2i = rij2/hi2
 !      
 !--do interaction if r/h < compact support size
@@ -363,10 +353,10 @@ contains
 
              gradh(i) = gradh(i) + pmass(j)*dwdhi
           
-             do idim=1,ndim
-                gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-                            + 2.*pmass(j)*(dx(:))*dr(idim)*grkerni
-             enddo
+             !do idim=1,ndim
+             !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
+             !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
+             !enddo
        
           endif
           

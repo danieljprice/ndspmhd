@@ -25,7 +25,7 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
- use matrixcorr
+ !!use matrixcorr
 !
 !--define local variables
 !
@@ -44,7 +44,7 @@ subroutine get_rates
  real :: hi,hi1,hj,hj1,hi21,hj21
  real :: hav,hav1,h21
  real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
- real, dimension(ndim) :: dx, fexternal,dri,drj
+ real, dimension(ndim) :: dx, fexternal  !!,dri,drj
 !
 !--gr terms
 !
@@ -275,10 +275,10 @@ subroutine get_rates
            q2j = rij2*hj21
            dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
 
-           do idim=1,ndim
-              dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
-              drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
-           enddo
+           !do idim=1,ndim
+           !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
+           !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
+           !enddo
            if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0.
 
              !----------------------------------------------------------------------------
@@ -724,16 +724,13 @@ contains
     !
     !--add pressure terms to force
     !
-    !force(:,i) = force(:,i) + rho1i*pmassj*(pr(i)-pr(j))*dri(:)*grkerni
-    !force(:,j) = force(:,j) + rho1j*pmassi*(pr(i)-pr(j))*drj(:)*grkernj
+    force(:,i) = force(:,i) - pmassj*prterm*dr(:)
+    force(:,j) = force(:,j) + pmassi*prterm*dr(:)
 
-!    force(:,i) = force(:,i) - pmassj*prterm*dr(:)
-!    force(:,j) = force(:,j) + pmassi*prterm*dr(:)
-
-    force(:,i) = force(:,i) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
-                            + pr(j)/rho(j)*drj(:)*grkernj)
-    force(:,j) = force(:,j) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
-                            + pr(j)/rho(j)*drj(:)*grkernj)
+!    force(:,i) = force(:,i) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
+!                            + pr(j)/rho(j)*drj(:)*grkernj)
+!    force(:,j) = force(:,j) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
+!                            + pr(j)/rho(j)*drj(:)*grkernj)
 
 !----------------------------------------------------------------------------
 !  time derivative of density (continuity equation) in generalised form
@@ -742,11 +739,11 @@ contains
 !
 !    drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
 !    drhodt(j) = drhodt(j) + phij_on_phii*pmassi*dvdotr*grkernj    
-    drhodt(i) = drhodt(i) - rho(i)*pmassj*dot_product(dvel(1:ndim),dri)*grkerni
-    drhodt(j) = drhodt(j) - rho(j)*pmassi*dot_product(dvel(1:ndim),drj)*grkernj
+    !drhodt(i) = drhodt(i) - rho(i)*pmassj*dot_product(dvel(1:ndim),dri)*grkerni
+    !drhodt(j) = drhodt(j) - rho(j)*pmassi*dot_product(dvel(1:ndim),drj)*grkernj
 
-    !drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
-    !drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
+    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
 
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms
