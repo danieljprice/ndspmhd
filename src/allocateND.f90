@@ -38,7 +38,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
  REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin,dumBconst
  REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
- REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm
+ REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
 !--gr terms
  REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype
@@ -50,7 +50,7 @@ SUBROUTINE alloc(newsizein)
 !
 !--set size of neighbour list
 !
- nlistdim = newsizein/2	! ie. up to half of particles can be neighbours
+ nlistdim = newsizein/2        ! ie. up to half of particles can be neighbours
 !
 !--work out whether reallocating memory and what the current array size is
 ! 
@@ -107,6 +107,7 @@ SUBROUTINE alloc(newsizein)
     dumdBevoldt(:,1:idumsize) = dBevoldt(:,1:idumsize)
     dumfmag(:,1:idumsize) = fmag(:,1:idumsize)
     dumcurlB(:,1:idumsize) = curlB(:,1:idumsize)
+    dumgradpsi(:,1:idumsize) = gradpsi(:,1:idumsize)
     dumxsphterm(:,1:idumsize) = xsphterm(:,1:idumsize)
         
     dumrho(1:idumsize) = rho(1:idumsize)
@@ -155,6 +156,7 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
     IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
     IF (ALLOCATED(Bconst)) DEALLOCATE(Bconst)
+    IF (ALLOCATED(gradpsi)) DEALLOCATE(gradpsi)
 !
 !--equation of state
 !
@@ -221,7 +223,8 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),gradhaniso(newsize))
     ALLOCATE(pr(newsize))
     ALLOCATE(Bevol(ndimB,newsize),Bconst(ndimB,newsize))
-    ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))	! mag field
+    ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))  ! mag field
+    ALLOCATE(gradpsi(ndimB,newsize))
 !
 !--equation of state
 !
@@ -282,6 +285,7 @@ SUBROUTINE alloc(newsizein)
     Bconst(:,1:idumsize) = dumBconst(:,1:idumsize)
     Bevol(:,1:idumsize) = dumBevol(:,1:idumsize)
     dBevoldt(:,1:idumsize) = dumdBevoldt(:,1:idumsize)
+    gradpsi(:,1:idumsize) = dumgradpsi(:,1:idumsize)
     fmag(:,1:idumsize) = dumfmag(:,1:idumsize)
     curlB(:,1:idumsize) = dumcurlB(:,1:idumsize)
     xsphterm(:,1:idumsize) = dumxsphterm(:,1:idumsize)
@@ -315,7 +319,7 @@ SUBROUTINE alloc(newsizein)
 !!    gradunity(:,1:idumsize) = dumgradunity(:,1:idumsize)
     
  ELSE
-    itype(:) = 0	! on first memory allocation, set all parts = normal
+    itype(:) = 0 ! on first memory allocation, set all parts = normal
  ENDIF   
        
 !

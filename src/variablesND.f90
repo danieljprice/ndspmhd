@@ -139,7 +139,7 @@ MODULE options
  IMPLICIT NONE
  INTEGER :: iener,icty,iav,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
- INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
+ INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
  INTEGER :: igeom,maxdensits,iunity
@@ -181,7 +181,7 @@ END MODULE
 MODULE rates
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt
- REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBevoldt,daldt
+ REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBevoldt,daldt,gradpsi
 END MODULE rates
 
 !-------------------------------------------------------------------

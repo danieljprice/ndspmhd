@@ -85,12 +85,13 @@ SUBROUTINE step
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
  ELSEIF (idivBzero.GE.2) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
-    IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
+    nsubsteps_divB = 2
+    !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
     !print*,'nsubsteps_divB = ',nsubsteps_divB
-    IF (nsubsteps_divB.gt.0) THEN
-       print*,' max div B = ',maxdivB,' nsubsteps_divB = ',nsubsteps_divB
+ !   IF (nsubsteps_divB.gt.0) THEN
+ !      print*,' max div B = ',maxdivB,' nsubsteps_divB = ',nsubsteps_divB
 !       CALL substep_divB(dt,nsubsteps_divB,Bevolin,psiin,x,hh,pmass,npart,ntot)
-    ENDIF
+ !   ENDIF
  ENDIF
    
  DO i=1,npart
@@ -107,7 +108,13 @@ SUBROUTINE step
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
+       IF (imhd.NE.0) THEN
+          Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
+          !F (nsubsteps_divB.EQ.0) THEN
+          !   Bevol(:,i) = Bevol(:,i) + hdt*(-gradpsi(:,i))
+          !   psi(i) = psiin(i) + hdt*dpsidt(i)
+          !ENDIF
+       ENDIF
        IF (ihvar.EQ.1) THEN
 !           hh(i) = hfact(pmass(i)/rho(i))**hpower        ! my version
           hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower                ! Joe's           
@@ -116,8 +123,7 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)         
-       psi(i) = psiin(i) + hdt*dpsidt(i)  
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
     ENDIF
 !
 !--for periodic boundaries, allow particles to cross the domain
@@ -199,8 +205,13 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-       psi(i) = psiin(i) + hdt*dpsidt(i)          
+       IF (imhd.NE.0) THEN
+          Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
+          !IF (nsubsteps_divB.eq.0) THEN
+          !   Bevol(:,i) = Bevol(:,i) + hdt*(-gradpsi(:,i))
+          !   psi(i) = psiin(i) + hdt*dpsidt(i)
+          !ENDIF          
+       ENDIF
     ENDIF 
               
  ENDDO
@@ -302,6 +313,13 @@ SUBROUTINE step
     ENDDO
     
  ENDIF
+
+ IF (nsubsteps_divB.gt.0) THEN
+    print*,' max div B = ',maxdivB,' nsubsteps_divB = ',nsubsteps_divB
+!       CALL substep_divB(dt,nsubsteps_divB,Bevolin,psiin,x,hh,pmass,npart,ntot)
+ ENDIF
+
+
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
