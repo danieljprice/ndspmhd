@@ -18,7 +18,6 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
  USE loguns
  
  USE part
- USE part_in
  USE random	! random number generators
 !
 !--local variables
@@ -109,8 +108,8 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
     DO ifreq=1,nfreq
        wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
-       wkdotx = wk*(xin(1,i)-xmin(1))
-       velin(2,i) = velin(2,i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
+       wkdotx = wk*(x(1,i)-xmin(1))
+       vel(2,i) = vel(2,i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
     ENDDO
 
     ekin = ekin + 0.5*velin(2,i)**2   
@@ -121,7 +120,7 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
 !--lastly, normalise the power spectrum using the kinetic energy
 ! 
- velin(2,:) = velin(2,:)*SQRT(ekin_in/ekin)
+ vel(2,:) = vel(2,:)*SQRT(ekin_in/ekin)
  
  IF (trace) WRITE(iprint,*) 'Exiting subroutine set_vperp'
  RETURN
