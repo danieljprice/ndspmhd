@@ -29,6 +29,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
  CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,datfile,logfile
  CHARACTER(LEN=19) :: boundtype
  CHARACTER(LEN=1), DIMENSION(3) :: coord
+ REAL :: have,hmin,hmax
 !
 !--allow for tracing flow
 !      
@@ -153,7 +154,12 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 99006 FORMAT(1x,a1,' boundary:',1x,a)
 99007 FORMAT(13x,a1,'min = ',f10.6,1x,a1,'max = ',f10.6)
 99008 FORMAT(/,1x,'Number of fixed particles = ',i4,/)      
-
+!
+!--print out smoothing length information
+!
+    CALL minmaxave(hh(1:npart),hmin,hmax,have,npart)
+    WRITE(iprint,99099) hmin,hmax,have
+99099 FORMAT (/,' Smoothing lengths: min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
       
 !
 !--write header for timestep table
