@@ -27,7 +27,7 @@
 !!---------------------------------------------------------------------------
 
 SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
-                        x,hh,pmass,itype,npart,ntot)
+                        x,hh,pmass,rhoin,itype,npart,ntot)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -44,12 +44,12 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  REAL, DIMENSION(ndimV,ntot), INTENT(INOUT) :: Bevol,gradpsi
  REAL, DIMENSION(ntot), INTENT(INOUT) :: psi,divB
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass
+ REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass, rhoin
  REAL, DIMENSION(ntot) :: psiin, rho
  REAL, DIMENSION(ndimV,ntot) :: Bevolin, Bfield
  REAL :: dpsidti
- INTEGER :: i,j,istep,indexmax,nsubsteps,nloops
- REAL :: dtsub,hdt,vsig2substep,vsigsubstep
+ INTEGER :: i,j,istep,indexmax,nsubsteps,nloops,imaxpart
+ REAL :: dtsub,hdt,vsig2substep,vsigsubstep, maxdivB
  LOGICAL :: dopredictor, docorrector
 !
 !--allow for tracing flow
@@ -72,6 +72,9 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  
  psiin = psi
  Bevolin = Bevol 
+ rho = rhoin
+ divB(:) = 0.
+ gradpsi(:,:) = 0.
 
  nloops = nsubstepsin + 1
 
@@ -88,12 +91,12 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
 ! if ((icall.eq.1) .and. (istep.eq.nloops)) docorrector = .false.
 
  if (dopredictor) then
-    write(iprint,*) ' substep: predictor ',psi(2),Bevol(:,2)
+    write(iprint,*) ' substep: predictor '  !!,psi(2),Bevol(:,2),Bevolin(:,2),gradpsi(:,2),hdt
     !
     !--Mid-point Predictor step
     !
     DO i=1,npart
-       dpsidti = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
+       dpsidti = -vsig2substep*divB(i) - psi(i)*vsigsubstep/psidecayfact
        IF (itype(i).EQ.1) THEN    ! fixed particles
           Bevol(:,i) = Bevolin(:,i)     
           psi(i) = psiin(i)
@@ -105,36 +108,70 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
     !
     !--update psi and Bevol on ghosts
     !
-    IF (ANY(ibound.GE.2)) THEN
-       DO i=npart+1,ntot
-          j = ireal(i)
-          psi(i) = psi(j)
-          Bevol(:,i) = Bevol(:,j)
-       ENDDO
-    ENDIF
+    !IF (ANY(ibound.GE.2)) THEN
+    !  DO i=npart+1,ntot
+    !      j = ireal(i)
+    !      psi(i) = psi(j)
+    !      Bevol(:,i) = Bevol(:,j)
+    !   ENDDO
+    !ENDIF
  endif
  
  if (.not.docorrector) then
     !
     !--return after predictor step, with predicted values of Bevol and psi
     !
+    print*,'substep: returning after predictor...'
     return
  elseif (dopredictor) then
     !
     !--or else calculate grad psi and div B for corrector step
     !
-    DO i=1,ntot
+    DO i=1,npart
        IF (imhd.ge.11) THEN
           Bfield(:,i) = Bevol(:,i) 
        ELSE
           Bfield(:,i) = Bevol(:,i)*rho(i)
        ENDIF
     ENDDO
-    print*,psi(2),Bevol(:,2),divB(2),gradpsi(:,2),rho(2)
-    CALL get_divBgradpsi(divB,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
-    print*,'after mini rates: max divB = ',maxval(divB(1:npart)),maxloc(divB(1:npart))
-    print*,psi(2),Bevol(:,2),divB(2),gradpsi(:,2),rho(2)
+    IF (ANY(ibound.GE.2)) THEN
+       DO i=npart+1,ntot
+          j = ireal(i)
+          Bevol(:,i) = Bevol(:,j)
+          Bfield(:,i) = Bfield(:,j)
+          psi(i) = psi(j)
+          rho(i) = rho(j)
+          !!hh(i) = hh(j)
+       ENDDO
+    ENDIF
 
+    !maxdivB = 0.
+    !imaxpart = 0
+    !do i=1,npart
+    !   if (itype(i).eq.0) then
+    !      if (divB(i).gt.maxdivB) then
+    !         maxdivB = divB(i)
+    !         imaxpart = i
+    !      endif
+    !   endif
+    !enddo
+    !print*,'before mini rates: max divB = ',maxdivB,imaxpart
+
+    CALL get_divBgradpsi(divB,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
+    
+    maxdivB = 0.
+    imaxpart = 0
+    do i=1,npart
+       if (itype(i).eq.0) then
+          if (divB(i).gt.maxdivB) then
+             maxdivB = divB(i)
+             imaxpart = i
+          endif
+       endif
+    enddo
+    print*,'after mini rates: max divB = ',maxdivB,imaxpart
+    !!print*,psi(2),Bevol(:,2),divB(2),gradpsi(:,2),rho(2)
+    !endif
  endif
  
  if (docorrector) then
@@ -145,7 +182,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
 
 
     DO i=1,npart
-       dpsidti = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
+       dpsidti = -vsig2substep*divB(i) - psi(i)*vsigsubstep/psidecayfact
        IF (itype(i).EQ.1) THEN
           Bevol(:,i) = Bevolin(:,i)
           psi(i) = psiin(i)
@@ -164,6 +201,14 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  endif
 
  ENDDO substeploop
+
+! IF (ANY(ibound.GE.2)) THEN
+!    do i=npart+1,ntot
+!       j = ireal(i)
+!       Bevol(:,i) = Bevol(:,j)
+!       Bevolin(:,i) = Bevolin(:,j)
+!    enddo
+! ENDIF
 
  print*,'finished substeps'
  IF (trace) WRITE (iprint,*) ' Exiting subroutine substep_divB'

@@ -63,6 +63,7 @@ SUBROUTINE initialise
  xmax = 0.
  nbpts = 0
  Bconst(:) = 0.
+ vsig2max = 0.
 !
 !--read parameters from the infile
 !

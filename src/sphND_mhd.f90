@@ -266,7 +266,7 @@ PROGRAM SUPERSPMHD_ND
 !   * individual common blocks 
  
  trace = .false.                ! set tracing flow (prints entry into subroutine)
- trace = .true.
+! trace = .true.
  idebug = 'none' 
 ! idebug = 'density'
 ! idebug = 'neighb'

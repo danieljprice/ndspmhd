@@ -110,21 +110,21 @@ subroutine setup
            '           vx  L: ',f8.3,' R: ',f8.3,/,   &
            '           vy  L: ',f8.3,' R: ',f8.3,/,   &
            '           vz  L: ',f8.3,' R: ',f8.3)
-20 FORMAT( '           Bx   : ',f8.3,/,   &	   	   	   
+20 FORMAT( '           Bx   : ',f8.3,/,   &                                 
            '           By  L: ',f8.3,' R: ',f8.3,/,   &
            '           Bz  L: ',f8.3,' R: ',f8.3,/)
 !
 !--set boundaries
-!            	    
+!                        
  if ((abs(vxleft).gt.1.e-4).or.(abs(vxright).gt.1.e-4)) then
     ibound(1) = 1               ! fixed x particles
  else
-    ibound(1) = 2		! reflecting in x
+    ibound(1) = 2                ! reflecting in x
  endif
- if (ndim.ge.2) ibound(2:ndim) = 3	! periodic in yz
- nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
+ if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
+ nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
  boxlength = 1.0
- sidelength(1) = 512.	! relative dimensions of boundaries
+ sidelength(1) = 512.        ! relative dimensions of boundaries
  if (ndim.ge.2) sidelength(2:ndim) = 6.
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
@@ -193,7 +193,7 @@ subroutine setup
        if ((x(1,i).lt.(xmin(1) + 4.*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - 4.*psepright))) then
           itype(i) = 1
-	  nbpts = nbpts + 1
+          nbpts = nbpts + 1
        endif
     enddo
  endif   
