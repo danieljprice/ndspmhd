@@ -129,18 +129,8 @@ SUBROUTINE get_rates
 !--calculate kernel for Joe's correction term
 !
  IF (ianticlump.EQ.1) THEN
-  q2joe = (1./hfact)**2	! 1/hfact is initial particle spacing in units of h
-!  print*,'q2joe = ',q2joe,q2joe/dq2table
-!  indexjoe = q2joe/dq2table
-!  dxxjoe = q2joe - indexjoe*dq2table 
-!  indexjoe1 = indexjoe + 1
-!  IF (indexjoe.GT.ikern) indexjoe = ikern
-!  IF (indexjoe1.GT.ikern) indexjoe1 = ikern
-!  dwdxjoe = (wij(indexjoe1) - wij(indexjoe))/dq2table
-!  wabjoei = (wij(indexjoe) + dwdxjoe*dxxjoe) ! need to divide by hav later       
- 
+  q2joe = (1./hfact)**2	! 1/hfact is initial particle spacing in units of h 
   CALL interpolate_kernel(q2joe,wabjoei,grkerni)
- 
  ENDIF
 ! print*,'wabjoe = ',wabjoei
  
@@ -431,24 +421,21 @@ SUBROUTINE get_rates
 		   prterm = (pri*grkerni + prj*grkernj)/rhoij + visc*grkern       		   	      
 		ELSEIF (iprterm.EQ.2) THEN	! Hernquist/Katz
 		   prterm = (2.*SQRT(pri*prj)/rhoij + visc)*grkern		   
-		ELSEIF (iprterm.EQ.4) THEN	! use in 1.5D
-		   prterm = Prho2i*grkerni 		&
-     		          + Prho2j*grkernj		   
 		ELSE		! default
 		   prterm = Prho2i*grkerni 		&
-     		          + Prho2j*grkernj + visc*grkern       		   
+     		          + Prho2j*grkernj		   	   
 		ENDIF
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
-		IF (iprterm.EQ.4) THEN
+		IF (ndimV.GT.ndim) THEN
 		  force(:,i) = force(:,i)	&
 		             - pmassj*(prterm*dr(:)+visc*vunit(:)*grkern)
 		  force(:,j) = force(:,j)	&
 		             + pmassi*(prterm*dr(:)+visc*vunit(:)*grkern)  
 		ELSE
-		  force(:,i) = force(:,i) - pmassj*prterm*dr(:)
-		  force(:,j) = force(:,j) + pmassi*prterm*dr(:)		
+		  force(:,i) = force(:,i) - pmassj*(prterm+visc*grkern)*dr(:)
+		  force(:,j) = force(:,j) + pmassi*(prterm+visc*grkern)*dr(:)		
                 ENDIF	
 !		
 !--Lorentz force and time derivative of B terms
@@ -634,15 +621,10 @@ SUBROUTINE get_rates
                       Bidotvj = DOT_PRODUCT(Brhoi(1:ndim),velj(1:ndim))
 		      Bjdotvj = DOT_PRODUCT(Brhoj(1:ndim),velj(1:ndim))
 		      
-! KNOWN BUG HERE (not quite consistent derivation)		      
-!	    	      prvaniso = prvaniso 		&
-!		      - Rjoe*(- Bidotvj*projBrhoi*grkerni	&
-!		              - Bjdotvi*projBrhoj*grkernj)
-
- 		     prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*grkerni &
-		                        -Bjdotvi*projBrhoj*grkernj)
-		     prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*grkerni &
-		     			-Bjdotvj*projBrhoj*grkernj)
+ 		      prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*grkerni &
+		                         -Bjdotvi*projBrhoj*grkernj)
+		      prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*grkerni &
+		     			 -Bjdotvj*projBrhoj*grkernj)
 		   ENDIF	   
 ! (dissipation term)
 		   IF (ndimV.GT.ndim) THEN
