@@ -83,7 +83,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 conservative2primitive.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
-	 eos.f90 evwrite_mhd.f90 \
+	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces.f90 \
 	 get_neighbour_listND.f90 get_neighbour_listND_partial.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \

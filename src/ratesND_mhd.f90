@@ -449,7 +449,7 @@ SUBROUTINE get_rates
 !
 !--time step control (courant and viscous)
 !
-	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,0.8*hav/vsigdtc)
+	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,hav/vsigdtc)
 !
 !--pressure term (generalised form)
 !
