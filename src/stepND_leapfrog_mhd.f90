@@ -1,0 +1,163 @@
+!!--------------------------------------------------------------------
+!! Computes one timestep
+!! Change this subroutine to change the timestepping algorithm
+!! This version uses a leapfrog predictor-corrector
+!! At the moment there is no XSPH and no direct summation replacements
+!!--------------------------------------------------------------------
+	 
+SUBROUTINE step
+ USE dimen_mhd
+ USE debug
+ USE loguns
+ 
+ USE bound
+ USE eos
+ USE hterms
+ USE options
+ USE part
+ USE part_in
+ USE rates
+ USE timestep
+ USE setup_params
+ USE xsph
+!
+!--define local variables
+!
+ IMPLICIT NONE
+ INTEGER :: i,j,jdim,ikernavprev,ierr
+ REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
+ REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin 
+!
+!--allow for tracing flow
+!      
+ IF (trace) WRITE(iprint,*) ' Entering subroutine step'
+!
+!--set initial quantities
+!
+ DO i=1,npart
+    xin(:,i) = x(:,i)
+    velin(:,i) = vel(:,i)
+    Bconsin(:,i) = Bcons(:,i)
+    rhoin(i) = rho(i)
+    hhin(i) = hh(i)
+    enin(i) = en(i)
+    alphain(i) = alpha(i)
+    
+    forcein(:,i) = force(:,i)
+    dBconsdtin(:,i) = dBconsdt(:,i)
+    drhodtin(i) = drhodt(i)
+    dhdtin(i) = dhdt(i)
+    dendtin(i) = dendt(i)
+    daldtin(i) = daldt(i)
+ ENDDO
+!
+!--Leapfrog Predictor step
+!      
+      
+ DO i=1,npart
+    IF (itype(i).EQ.1) THEN	! fixed particles
+       x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)       
+       vel(:,i) = velin(:,i)
+       Bcons(:,i) = Bconsin(:,i)	     
+       rho(i) = rhoin(i)
+       hh(i) = hhin(i)	    
+       en(i) = enin(i)
+       alpha(i) = alphain(i)
+    ELSE
+       x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
+       vel(:,i) = velin(:,i) + dt*forcein(:,i)
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdtin(:,i)
+       IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodtin(i)
+       IF (ihvar.EQ.1) THEN
+!	   hh(i) = hfact*(pmass(i)/rho(i))**hpower	! my version
+	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
+       ELSEIF (ihvar.EQ.2) THEN
+          hh(i) = hhin(i) + dt*dhdtin(i)
+       ENDIF
+       IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
+       IF (iavlim.EQ.1) alpha(i) = alphain(i) + dt*daldtin(i)	   
+    ENDIF
+ ENDDO
+!
+!--allow particles to cross boundary
+!
+ IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
+!
+!--set ghost particles if ghost boundaries are used
+!	 
+ IF (ANY(ibound.GE.2)) CALL set_ghost_particles
+!
+!--call link list to find neighbours
+!
+ CALL link
+!
+!--calculate density by direct summation
+!
+ IF (icty.LE.0) CALL iterate_density
+!
+!--calculate primitive variables (u,B) from conservative variables (en,B/rho)
+!   
+ DO i=1,npart
+    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
+    				Bfield(:,i),Bcons(:,i),ierr)
+    IF (ierr.EQ.1) THEN ! negative thermal energy
+       WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
+       uu(i) = 0.		!uuin(i) + hdt*dudt(i)
+    ENDIF
+!
+!--calculate the pressure using the equation of state
+!
+    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
+ ENDDO
+!
+!--copy these quantities onto the ghost particles
+! 
+ IF (ANY(ibound.GT.1)) THEN
+    DO i=npart+1,ntotal
+       j = ireal(i)
+       uu(i) = uu(j)
+       pr(i) = pr(j)
+       Bfield(:,i) = Bfield(:,j)
+    ENDDO
+ ENDIF
+!
+!--calculate forces/rates of change using predicted quantities
+!	 
+ CALL get_rates
+!
+!--Leapfrog Corrector step
+!
+ DO i=1,npart
+    IF (itype(i).EQ.1) THEN
+       vel(:,i) = velin(:,i)
+       Bcons(:,i) = Bconsin(:,i)
+       rho(i) = rhoin(i)
+       hh(i) = hhin(i)
+       en(i) = enin(i)
+       alpha(i) = alphain(i)
+    ELSE
+       vel(:,i) = velin(:,i) + hdt*(force(:,i)+forcein(:,i))	    
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*(dBconsdt(:,i)+dBconsdtin(:,i))	  
+       IF (icty.GE.1) rho(i) = rhoin(i) + hdt*(drhodt(i)+drhodtin(i))
+       IF (ihvar.EQ.2) THEN
+          hh(i) = hhin(i) + hdt*(dhdt(i)+dhdtin(i))
+	  IF (hh(i).LE.0.) THEN
+	     WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
+	     CALL quit
+	  ENDIF
+       ENDIF
+       IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
+       IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))	   
+    ENDIF 
+	      
+ ENDDO
+!
+!--if doing divergence correction then do correction to magnetic field
+! 
+! IF (idivBzero.NE.0) CALL divBcorrect
+!
+
+ IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
+      
+ RETURN
+END SUBROUTINE step
