@@ -15,7 +15,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -105,7 +104,7 @@ SUBROUTINE setup
 !
 !--initially set up a uniform density grid (also determines npart)
 !
- CALL set_uniform_cartesian(2,xmin,xmax,.false.)	! 2 = close packed
+ CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !

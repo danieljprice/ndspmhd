@@ -14,7 +14,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE polyconst
  USE setup_params
 !

@@ -12,7 +12,6 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
  USE debug
  USE loguns
  USE part
- USE part_in
 !
 !--define local variables
 !            
@@ -37,7 +36,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
 !
  xmin(:) = -rmax
  xmax(:) = rmax
- CALL set_uniform_cartesian(idist,xmin,xmax,.false.)
+ CALL set_uniform_cartesian(idist,psep,xmin,xmax,.false.)
 !
 !--construct list of particles with r < rmax
 !  
@@ -57,7 +56,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
 !
  npart = ntemp
  ntotal = npart
- xin(:,1:npart) = xin(:,partlist(1:npart))
+ x(:,1:npart) = x(:,partlist(1:npart))
 !
 !--reallocate memory to new size of list
 !

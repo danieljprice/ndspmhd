@@ -21,7 +21,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -83,7 +82,7 @@ SUBROUTINE setup
 !
 !--setup uniform density grid (close packed arrangement)
 !
-    CALL set_uniform_cartesian(2,xmin,xmax,.false.)
+    CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)
 !
 !--set particle properties
 !

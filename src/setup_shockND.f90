@@ -10,7 +10,6 @@ subroutine setup
  use eos
  use options
  use part
- use part_in
  use setup_params
  implicit none
  integer :: i,j
@@ -117,16 +116,12 @@ subroutine setup
  psepleft = psep
  psepright = psep*(rholeft/rhoright)**(1./ndim)
  
- psep = psepleft
- call set_uniform_cartesian(1,xminleft,xmaxleft,.false.)  ! set left half
+ call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,.false.)  ! set left half
  volume = PRODUCT(xmaxleft-xminleft)
  total_mass = volume*rholeft
  massp = total_mass/npart
  
- if (rholeft.ne.rhoright) then 
-    psep = psepright
- endif
- call set_uniform_cartesian(1,xminright,xmaxright,.false.) ! set right half
+ call set_uniform_cartesian(1,psepright,xminright,xmaxright,.false.) ! set right half
 
  print*,'npart = ',npart
 !

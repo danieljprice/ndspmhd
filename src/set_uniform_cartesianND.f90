@@ -9,7 +9,7 @@
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
+SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--include relevant global variables
 !
@@ -19,7 +19,6 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 
  USE part
  USE random	! random number generator
- USE setup_params
 !
 !--define local variables
 !  (note we read boundaries of region as input, so that more than one region
