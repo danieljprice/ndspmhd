@@ -157,6 +157,7 @@ subroutine get_rates
     projBj = 0.
     projBrhoi = 0.
     projBrhoj = 0.
+    alphaBi = 0.
  endif
 
 !

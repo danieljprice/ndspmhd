@@ -80,6 +80,7 @@ subroutine iterate_density
 !     
      if (ncalc.eq.npart) then
         call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
+        !!call output(0.0,1)
      else
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
      endif
@@ -118,14 +119,14 @@ subroutine iterate_density
               func = rhoi - rho(i)
               dfdh = omegai/dhdrhoi
               
-              !hnew = hh(i) - func/dfdh
-              !if (hnew.le.0. .or. gradh(i).lt.0.) then
-              !   print*,' rapid density change on particle ',i
+              hnew = hh(i) - func/dfdh
+              if (hnew.le.0. .or. gradh(i).lt.0.) then
+                 print*,' rapid density change on particle ',i
                  hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen            
-              !endif
-              print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
-              print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)
-              print*,' gradh = ',gradh(i),omegai,dhdrhoi
+              endif
+              !print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
+              !print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)
+              !print*,' gradh = ',gradh(i),omegai,dhdrhoi
               !read*
 
 !
@@ -186,8 +187,8 @@ subroutine iterate_density
         enddo
      endif
      
-     call output(0.0,1)
-     read*
+     !call output(0.0,1)
+     !read*
   enddo iterate
 
 !--NB: itsdensity is also used in step  

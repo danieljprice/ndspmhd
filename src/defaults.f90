@@ -62,5 +62,6 @@ subroutine set_default_options
    damp = 0.0
    iexternal_force = 0
    ikernel = 0
+   igeom = 0
    
  end subroutine set_default_options
