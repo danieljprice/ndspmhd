@@ -67,10 +67,10 @@ SOURCES3D = dimen3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-#SETUP1D = setup_shock1DND_mhd2.f90
+SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
-SETUP1D = setup_turbulenceND_mhd.f90	 
+#SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 
@@ -98,8 +98,8 @@ SETUP3D = setup_alfvenwaveND_x.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES = variablesND.f90 sphND_mhd.f90   \
-         allocateND.f90 boundaryND_1D.f90 \
-	 conservative2primitive.f90 coord_transform.f90 \
+         boundaryND_1D.f90 \
+	 coord_transform.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
@@ -110,20 +110,20 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 interpolate_kernel.f90 \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 \
-	 random.f90 \
+	 random.f90 ratesND_mhd.f90 \
 	 read_infile_mhd.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
-	 set_powerspec1D.f90 \
-	 smooth.f90 stepND_leapfrog_mhd.f90 \
+	 smooth.f90  \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
 #	 check_neighbourlist.f90
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 
 # these are the ordinary cartesian versions
-SOURCES2 = ratesND_mhd.f90 outputND_mhd.f90
+SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_leapfrog_mhd.f90
 
 # these files are for the gr version of the code
-SOURCESGR = ratesND_mhd.f90 outputND_mhd_gr.f90
+SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outputND_mhd_gr.f90 \
+	    stepND_mhd_gr.f90
 	 
 OBJECTS1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
@@ -134,8 +134,14 @@ OBJECTS25D = $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 OBJECTS3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP3D:.f90=.o)
 
-OBJECTSGR = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
+OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
+	    $(SETUP1D:.f90=.o)
+
+OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
+
+OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
+	    $(SETUP3D:.f90=.o)
 
 crap:
 	echo try make 1D
@@ -152,8 +158,14 @@ crap:
 3D : $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 
-GR : 	$(OBJECTSGR)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../GRSPMHD $(OBJECTSGR)
+GR1D : 	$(OBJECTSGR1D)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
+
+GR2D : 	$(OBJECTSGR2D)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
+
+GR3D : 	$(OBJECTSGR3D)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90

@@ -78,7 +78,7 @@ SUBROUTINE density
 
     loop_over_cell_particles: DO WHILE (i.NE.-1)		! loop over home cell particles
 
-!       PRINT*,'Doing particle ',i,nneigh,' neighbours',pmass(i)
+!       PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i)
        idone = idone + 1
        hi = hh(i)
        hi1 = 1./hi

@@ -46,6 +46,10 @@ SUBROUTINE get_rates
  REAL :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
  REAL, DIMENSION(ndim) :: dx
 !
+!--gr terms
+!
+ REAL :: sqrtgi,sqrtgj
+!
 !  (velocity)
 !      
  REAL, DIMENSION(ndimV) :: veli,velj,dvel
@@ -187,6 +191,7 @@ SUBROUTINE get_rates
        alphai = alpha(i)
        phii = phi(i)
        phii1 = 1./phii
+       sqrtgi = sqrtg(i)
        IF (imhd.GE.11) THEN	! if mag field variable is B
           Bi(:) = Bcons(:,i)
           Brhoi(:) = Bi(:)*rho1i
@@ -305,7 +310,8 @@ SUBROUTINE get_rates
 	        pmassj = pmass(j)
 		alphaav = 0.5*(alphai + alpha(j))
 		phii_on_phij = phii/phi(j)
-		phij_on_phii = phi(j)*phii1 		
+		phij_on_phii = phi(j)*phii1 	
+		sqrtgj = sqrtg(j)	
 !  (mhd definitions)
   	        IF (imhd.GE.11) THEN	! if B is mag field variable
 		 Bj(:) = Bcons(:,j)
@@ -436,8 +442,8 @@ SUBROUTINE get_rates
 !--pressure term (generalised form)
 !
        	        IF (ialtform.GE.0) THEN
-                prterm = phii_on_phij*Prho2i*grkerni 		&
-     		       + phij_on_phii*Prho2j*grkernj	   	   
+                prterm = phii_on_phij*Prho2i*sqrtgi*grkerni 		&
+     		       + phij_on_phii*Prho2j*sqrtgj*grkernj	   	   
                 ENDIF
 !
 !--add pressure and viscosity terms to force (equation of motion)
@@ -502,8 +508,8 @@ SUBROUTINE get_rates
 		     wabjoe = wabjoei*hfacwab
 		     Rjoe = 0.5*eps*(wab/wabjoe)**neps
 !		     IF (Rjoe.GT.0.1) PRINT*,'Rjoe = ',Rjoe,i,j,wab,wabjoe
-		     faniso(:) = faniso(:) - Rjoe*faniso(:)  
-!		     faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
+!		     faniso(:) = faniso(:) - Rjoe*faniso(:)  
+		     faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
 		  ENDIF
 !
 !--add contributions to magnetic force
@@ -594,8 +600,8 @@ SUBROUTINE get_rates
 		   Bidotvj = DOT_PRODUCT(Brhoi,velj)
 		   Bjdotvi = DOT_PRODUCT(Brhoj,veli)
 ! (isotropic stress)
-		   prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*grkerni &
-                              + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*grkernj
+		   prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*sqrtgi*grkerni &
+                              + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
 ! (anisotropic stress)
 		   prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
 		               - Bjdotvi*projBrhoj*phij_on_phii*grkernj
@@ -686,6 +692,10 @@ SUBROUTINE get_rates
 !--damp force if appropriate
 !
     IF (damp.GT.0.) force(:,i) = force(:,i) - damp*vel(:,i)
+!
+!--add source terms (derivatives of metric) to momentum equation
+!
+    IF (igeom.NE.0) force(:,i) = force(:,i) + sourceterms(:,i)
 !
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)

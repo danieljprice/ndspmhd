@@ -57,12 +57,9 @@ SUBROUTINE output(t,nstep)
 !--write data for this time to data file
 !      
 ! scale = MAXVAL(Bfield(2,:)) 
+ CALL conservative2primitive  ! also calls equation of state
+ 
  DO i=1,nprint
-!
-!--calculate the primitive variables from the conservative variables
-!
-    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
-                                Bfield(:,i),Bcons(:,i),istat)
 !
 !--convert co-ordinates to cartesian
 !
@@ -72,12 +69,12 @@ SUBROUTINE output(t,nstep)
 !
     IF (imhd.NE.0) THEN	! MHD
 
-       WRITE(idatfile,30) xout(:),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &
+       WRITE(idatfile,30) xout(:),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
         pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
 
     ELSE   ! non-MHD
 
-       WRITE(idatfile,30) xout(:),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
+       WRITE(idatfile,30) xout(:),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &                        
         pmass(i),alpha(i)
 
     ENDIF

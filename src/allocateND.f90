@@ -36,6 +36,8 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBconsin
  REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBcons,dumdBconsdt,dumfmag
  REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm
+!--gr terms
+ REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype
  LOGICAL :: reallocate
 !
@@ -116,8 +118,9 @@ SUBROUTINE alloc(newsizein)
     idumireal(1:idumsize) = ireal(1:idumsize)
     idumitype(1:idumsize) = itype(1:idumsize)
     IF (ALLOCATED(fgrav)) dumfgrav(:,1:idumsize) = fgrav(:,1:idumsize)
-    
- 
+    dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
+    dumdens(1:idumsize) = dens(1:idumsize)    
+
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
 !-----------------------------------------------------------------------------
@@ -162,7 +165,13 @@ SUBROUTINE alloc(newsizein)
 !--gravity
 !
     IF (ALLOCATED(fgrav)) DEALLOCATE(fgrav)
-
+!
+!--GR
+!
+    IF (ALLOCATED(sqrtg)) DEALLOCATE(sqrtg)
+    IF (ALLOCATED(sourceterms)) DEALLOCATE(sourceterms)
+    IF (ALLOCATED(pmom)) DEALLOCATE(pmom)
+    IF (ALLOCATED(dens)) DEALLOCATE(dens)
  ENDIF
 
 !-----------------------------------------------------------------------------
@@ -216,7 +225,12 @@ SUBROUTINE alloc(newsizein)
     IF (igravity.NE.0) THEN
        ALLOCATE(fgrav(ndim,newsize))
     ENDIF
-    
+!
+!--GR
+!
+   ALLOCATE(sqrtg(newsize))
+   ALLOCATE(dens(newsize))
+   
  IF (reallocate) THEN
 !-----------------------------------------------------------------------------
 !  copy properties back from old arrays to new arrays
@@ -259,6 +273,9 @@ SUBROUTINE alloc(newsizein)
     ireal(1:idumsize) = idumireal(1:idumsize)
     itype(1:idumsize) = idumitype(1:idumsize)
     IF (ALLOCATED(fgrav)) fgrav(:,1:idumsize) = dumfgrav(:,1:idumsize)
+    sqrtg(1:idumsize) = dumsqrtg(1:idumsize)
+    dens(1:idumsize) = dumdens(1:idumsize)    
+    
  ELSE
     itype(:) = 0	! on first memory allocation, set all parts = normal
  ENDIF   

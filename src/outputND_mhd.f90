@@ -19,7 +19,6 @@ SUBROUTINE output(t,nstep)
 !
  IMPLICIT NONE
  REAL, INTENT(IN) :: t
- REAL :: vpar,Bpar,vperp,Bperp,angle
 ! REAL, PARAMETER :: pi=3.1415926536
  INTEGER, INTENT(IN) :: nstep
  INTEGER :: nprint,ndata
@@ -57,23 +56,20 @@ SUBROUTINE output(t,nstep)
 !--write data for this time to data file
 !      
 ! scale = MAXVAL(Bfield(2,:)) 
+ CALL conservative2primitive  ! also calls equation of state
+ 
  DO i=1,nprint
-!
-!--calculate the primitive variables from the conservative variables
-!
-    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
-                                Bfield(:,i),Bcons(:,i),istat)
 !
 !--write the data (primitive variables) to the .dat file
 !
     IF (imhd.NE.0) THEN	! MHD
 
-       WRITE(idatfile,30) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &
+       WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
         pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
 
     ELSE   ! non-MHD
 
-       WRITE(idatfile,30) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
+       WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &                        
         pmass(i),alpha(i)
 
     ENDIF
@@ -82,9 +78,6 @@ SUBROUTINE output(t,nstep)
 !
 !--flush the buffer so that whole timestep is printed even if program crashes
 ! 
-!! CALL flush(idatfile)
-!! CALL flush(ievfile)
-!! CALL flush(iprint)
 !! ierr(1) = flush(idatfile)
 !! ierr(2) = flush(ievfile)
 !! ierr(3) = flush(iprint)

@@ -10,43 +10,66 @@
 ! These subroutines would be used in the GR case, for all the 
 ! variables. The evaluation would be far more complicated, however.
 !---------------------------------------------------------------------
-subroutine conservative2primitive(rho,vel,uu,en,Bfield,Bcons,ierr)
+subroutine conservative2primitive
   use dimen_mhd
+  use debug
   use options
-  use loguns  
+  use loguns
+  use bound
+  use eos
+  use part
   implicit none
-  integer, intent(out) :: ierr  ! error code
-  real, intent(in) :: en,rho
-  real, intent(in), dimension(ndimV) :: vel,Bcons 
-  real, intent(out) :: uu
-  real, intent(out), dimension(ndimV) :: Bfield
+  integer :: i,j
   real :: B2i, v2i
 
-  ierr = 0
+  if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
+
+  sqrtg = 1.
+  dens = rho
 !
 !--calculate magnetic flux density B from the conserved variable
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
-     Bfield(:) = Bcons(:)
-     B2i = DOT_PRODUCT(Bcons,Bcons)/rho
+     Bfield = Bcons
   elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-     Bfield(:) = Bcons(:)*rho
-     B2i = DOT_PRODUCT(Bcons,Bcons)*rho
-  else
-     B2i = 0.
+     do i=1,npart
+        Bfield(:,i) = Bcons(:,i)*rho(i)
+     enddo
   endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
   if (iener.eq.3) then     ! total energy is evolved
-     v2i = DOT_PRODUCT(vel,vel)
-     uu = en - 0.5*v2i - 0.5*B2i
+     do i=1,npart
+        v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
+        B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
+        uu(i) = en(i) - 0.5*v2i - 0.5*B2i
+        if (uu(i).lt.0.) then
+           !write(iprint,*) 'Warning: utherm -ve, particle ',i
+           uu(i) = 0.
+        endif
+     enddo
   else		 ! en = thermal energy
      uu = en
   endif
-  if (uu.lt.0.) then
-     !write(iprint,*) 'Warning: utherm -ve'
-     ierr = 1  ! error if negative thermal energy
+!
+!--call equation of state calculation
+!
+  do i=1,npart
+     call equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
+  enddo
+!
+!--copy the primitive variables onto the ghost particles
+! 
+  if (any(ibound.gt.1)) then
+     do i=npart+1,ntotal
+        j = ireal(i)
+        if (allocated(dens)) dens(i) = dens(j)
+        uu(i) = uu(j)
+        spsound(i) = spsound(j)
+        pr(i) = pr(j)
+        Bfield(:,i) = Bfield(:,j)
+     enddo
   endif
 
   return
@@ -56,37 +79,35 @@ end subroutine conservative2primitive
 ! this subroutine is called after setting up the initial conditions
 ! to set the initial values of the conserved variables
 !---------------------------------------------------------------------
-subroutine primitive2conservative(rho,vel,uu,en,Bfield,Bcons,ierr)
+subroutine primitive2conservative
   use dimen_mhd
   use options
+  use part
   implicit none
-  integer, intent(out) :: ierr ! error code
-  real, intent(out) :: en
-  real, intent(out), dimension(ndimV) :: Bcons 
-  real, intent(in) :: uu,rho
-  real, intent(in), dimension(ndimV) :: vel,Bfield
+  integer :: i
   real :: B2i, v2i
 
-  ierr = 0
+  rho = dens
 !
 !--calculate conserved variable from the magnetic flux density B
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
-     Bcons(:) = Bfield(:)
-     B2i = DOT_PRODUCT(Bcons,Bcons)/rho
+     Bcons = Bfield
   elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-     Bcons(:) = Bfield(:)/rho
-     B2i = DOT_PRODUCT(Bcons,Bcons)*rho
-  else
-     B2i = 0.
+     do i=1,npart
+        Bcons(:,i) = Bfield(:,i)/rho(i)
+     enddo
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
 !
   if (iener.eq.3) then     ! total energy is evolved
-     v2i = DOT_PRODUCT(vel,vel)
-     en = uu + 0.5*v2i + 0.5*B2i
-     if (uu.lt.0.) stop 'primitive2conservative: utherm -ve'
+     do i=1,npart
+        v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
+        B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
+        en(i) = uu(i) + 0.5*v2i + 0.5*B2i
+        if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
+     enddo
   else		! en = thermal energy
      en = uu
   endif
