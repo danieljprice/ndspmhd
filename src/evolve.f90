@@ -10,8 +10,6 @@ SUBROUTINE evolve
  USE loguns
  USE options
  USE timestep
- 
- USE dumpfiles
 !
 !--define local variables
 !
@@ -54,8 +52,8 @@ SUBROUTINE evolve
 !
 !--write initial conditions to output file
 !  
- IF (ifile.lt.0) CALL write_dump(time,nsteps)
-
+ if (ifile.eq.0) ifile = ifile - 1 ! for runs from init dump of different name
+ if (ifile.lt.0) call output(time,nsteps)
  noutput = 1
  tprint = tzero + tout
 ! CALL quit
@@ -94,7 +92,7 @@ SUBROUTINE evolve
  
 !--if making movies and need ghosts to look right uncomment the line below, 
        IF (idumpghost.EQ.1 .AND. ANY(ibound.GE.2)) CALL set_ghost_particles
-       CALL write_dump(time,nsteps)
+       CALL output(time,nsteps)
        noutput = noutput + 1
        tprint = tzero + noutput*tout
     ENDIF

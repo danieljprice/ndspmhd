@@ -60,7 +60,7 @@ SUBROUTINE alloc(newsizein)
 ! 
  IF (newsizein.LE.0) THEN
     WRITE(iprint,*) 'Error: size<=0 in call to allocate : ',newsizein
-    CALL quit
+    STOP
  ENDIF
 !
 !--set new size (add 10% so don't have to do this too often)

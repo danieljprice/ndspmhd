@@ -162,4 +162,4 @@ edit2D:
 edit3D:
 	$(EDITOR) $(SETUP3D) &
 clean:
-	rm *.o *.mod
+	rm *.o *.mod *.bp *.lreg
