@@ -100,10 +100,10 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
     IF (imhd.NE.0) THEN
        IF (imhd.GE.11) THEN
-          Bi(:) = Bcons(:,i)
+          Bi(:) = Bevol(:,i)
           Brhoi(:) = Bi(:)/rhoi
        ELSE
-          Brhoi(:) = Bcons(:,i)
+          Brhoi(:) = Bevol(:,i)
           Bi(:) = Brhoi(:)*rhoi
        ENDIF
        B2i = DOT_PRODUCT(Bi,Bi)

@@ -134,7 +134,7 @@ subroutine get_rates
   drhodt(i) = 0.0
   dudt(i) = 0.0
   dendt(i) = 0.0
-  dBconsdt(:,i) = 0.0
+  dBevoldt(:,i) = 0.0
   daldt(:,i) = 0.0
   dpsidt(i) = 0.0
   fmag(:,i) = 0.0
@@ -218,10 +218,10 @@ subroutine get_rates
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
        if (imhd.ge.11) then      ! if mag field variable is B
-          Bi(:) = Bcons(:,i)
+          Bi(:) = Bevol(:,i)
           Brhoi(:) = Bi(:)*rho1i
        elseif (imhd.gt.0) then      ! if mag field variable is B/rho
-          Brhoi(:) = Bcons(:,i)
+          Brhoi(:) = Bevol(:,i)
           Bi(:) = Bfield(:,i)
        endif
        ! mhd definitions
@@ -339,7 +339,7 @@ subroutine get_rates
     if (imhd.ne.0) then
        divB(i) = divB(i)*rho1i            !*rhoi
        curlB(:,i) = curlB(:,i)*rho1i
-       dBconsdt(:,i) = dBconsdt(:,i)*rho1i
+       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
     endif    
     gradu(:,i) = gradu(:,i)*rho1i
 !
@@ -451,7 +451,7 @@ subroutine get_rates
        drhodt(i) = 0.0
        dudt(i) = 0.0
        dendt(i) = 0.0
-       dBconsdt(:,i) = 0.0
+       dBevoldt(:,i) = 0.0
        daldt(:,i) = 0.
        dpsidt(i) = 0.0
        fmag(:,i) = 0.0
@@ -582,10 +582,10 @@ contains
     sqrtgj = sqrtg(j)      
     !-- mhd definitions --!
     if (imhd.ge.11) then      ! if B is mag field variable
-       Bj(:) = Bcons(:,j)
+       Bj(:) = Bevol(:,j)
        Brhoj(:) = Bj(:)*rho1j
     elseif (imhd.ne.0) then      ! if B/rho is mag field variable
-       Brhoj(:) = Bcons(:,j)
+       Brhoj(:) = Bevol(:,j)
        Bj(:) = Bfield(:,j)                                
     endif
     if (imhd.ne.0) then
@@ -759,11 +759,11 @@ contains
     dBdtvisc(:) = alphaB*term*Bvisc(:)
     
     if (imhd.le.10) then            ! evolving B/rho
-       dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*dBdtvisc(:)               
-       dBconsdt(:,j) = dBconsdt(:,j) - rhoj*pmassi*dBdtvisc(:)
+       dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
+       dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
     elseif (imhd.eq.11) then      ! evolving B
-       dBconsdt(:,i) = dBconsdt(:,i) + rho2i*pmassj*dBdtvisc(:)               
-       dBconsdt(:,j) = dBconsdt(:,j) - rho2j*pmassi*dBdtvisc(:)
+       dBevoldt(:,i) = dBevoldt(:,i) + rho2i*pmassj*dBdtvisc(:)               
+       dBevoldt(:,j) = dBevoldt(:,j) - rho2j*pmassi*dBdtvisc(:)
     endif
 
     !--------------------------------------------------
@@ -969,49 +969,49 @@ contains
     !
     if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
        if (imhd.eq.4) then   ! conservative form (explicitly symmetric)
-          dBconsdt(:,i) = dBconsdt(:,i)            &
+          dBevoldt(:,i) = dBevoldt(:,i)            &
                + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j)             &
+          dBevoldt(:,j) = dBevoldt(:,j)             &
                - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
        elseif (imhd.eq.3) then   ! goes with imagforce = 3
-          dBconsdt(:,i) = dBconsdt(:,i)         &
+          dBevoldt(:,i) = dBevoldt(:,i)         &
                - pmassj*projBrhoj*dvel(:)*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j)         &
+          dBevoldt(:,j) = dBevoldt(:,j)         &
                - pmassi*projBrhoi*dvel(:)*grkernj            
        elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
-          dBconsdt(:,i) = dBconsdt(:,i)            &
+          dBevoldt(:,i) = dBevoldt(:,i)            &
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j)             &
+          dBevoldt(:,j) = dBevoldt(:,j)             &
                - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
        else                 ! non-conservative (usual) form
-          dBconsdt(:,i) = dBconsdt(:,i)            &
+          dBevoldt(:,i) = dBevoldt(:,i)            &
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j)             &
+          dBevoldt(:,j) = dBevoldt(:,j)             &
                - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
        endif
        
        if (idivBzero.ge.2) then ! add hyperbolic correction term
           gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-          dBconsdt(:,i) = dBconsdt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
-          dBconsdt(:,j) = dBconsdt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
+          dBevoldt(:,i) = dBevoldt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
+          dBevoldt(:,j) = dBevoldt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
        endif
        !
        !   (evolving B)
        !
     elseif (imhd.ge.11) then      ! note divided by rho later              
        
-       dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
-       dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
+       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
+       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
         
        if (imhd.eq.12) then ! add v div B term
-        dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
-        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(-velj(:)*projdB)*grkernj
+        dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
+        dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(-velj(:)*projdB)*grkernj
        endif
        
        if (idivBzero.ge.2) then  ! add hyperbolic correction term
           gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve rho*grad psi)   
-          dBconsdt(:,i) = dBconsdt(:,i) + pmassj*gradpsiterm*dr(:)
-          dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
+          dBevoldt(:,i) = dBevoldt(:,i) + pmassj*gradpsiterm*dr(:)
+          dBevoldt(:,j) = dBevoldt(:,j) + pmassi*gradpsiterm*dr(:)
        endif
     endif
                

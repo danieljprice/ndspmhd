@@ -79,7 +79,7 @@ SUBROUTINE get_curl(curlBonrho,ntot)
        rho21i = 1./rho(i)**2
        pmassi = pmass(i)
        if (imhd.ge.11) then      ! if mag field variable is B
-          Bi(:) = Bcons(:,i)
+          Bi(:) = Bevol(:,i)
        elseif (imhd.gt.0) then      ! if mag field variable is B/rho
           Bi(:) = Bfield(:,i)
        endif
@@ -143,7 +143,7 @@ SUBROUTINE get_curl(curlBonrho,ntot)
 		ENDIF
 
                 if (imhd.ge.11) then      ! if B is mag field variable
-                   Bj(:) = Bcons(:,j)
+                   Bj(:) = Bevol(:,j)
                 elseif (imhd.ne.0) then      ! if B/rho is mag field variable
                    Bj(:) = Bfield(:,j)                                
                 endif

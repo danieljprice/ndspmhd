@@ -67,7 +67,7 @@ SUBROUTINE step
 ! DO i=1,npart
 !    xin(:,i) = x(:,i)
 !    velin(:,i) = vel(:,i)
-!    Bconsin(:,i) = Bcons(:,i)
+!    Bevolin(:,i) = Bevol(:,i)
 !    rhoin(i) = rho(i)
 !    hhin(i) = hh(i)
 !    enin(i) = en(i)
@@ -79,7 +79,7 @@ SUBROUTINE step
 ! 
  IF (idivBzero.GT.10 .AND. MOD(nsteps,10).EQ.0) THEN
     CALL divBcorrect(npart,ntotal)
-    Bconsin(:,1:ntotal) = Bcons(:,1:ntotal)
+    Bevolin(:,1:ntotal) = Bevol(:,1:ntotal)
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
  ENDIF
    
@@ -87,7 +87,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
-       Bcons(:,i) = Bconsin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)	     
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
@@ -97,7 +97,7 @@ SUBROUTINE step
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
@@ -164,7 +164,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
-       Bcons(:,i) = Bconsin(:,i)
+       Bevol(:,i) = Bevolin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(:,i) = alphain(:,i)
@@ -189,7 +189,7 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        psi(i) = psiin(i) + hdt*dpsidt(i)	  
     ENDIF 
 	      
@@ -229,8 +229,8 @@ SUBROUTINE step
        velin(:,i) = 2.*vel(:,i)-velin(:,i)
        vel(:,i) = velin(:,i)
        IF (imhd.NE.0) THEN
-          Bconsin(:,i) = 2.*Bcons(:,i) - Bconsin(:,i)
-          Bcons(:,i) = Bconsin(:,i)
+          Bevolin(:,i) = 2.*Bevol(:,i) - Bevolin(:,i)
+          Bevol(:,i) = Bevolin(:,i)
        ENDIF	     
        IF (iener.NE.0) THEN
 	  enin(i) = 2.*en(i) - enin(i)
@@ -280,8 +280,8 @@ SUBROUTINE step
 	  alpha(:,i) = alphain(:,i)
        ENDIF	     
        IF (imhd.NE.0) THEN
-          Bconsin(:,i) = 2.*Bcons(:,i) - Bconsin(:,i)
-          Bcons(:,i) = Bconsin(:,i)
+          Bevolin(:,i) = 2.*Bevol(:,i) - Bevolin(:,i)
+          Bevol(:,i) = Bevolin(:,i)
        ENDIF	     
        IF (iener.NE.0) THEN
           enin(i) = 2.*en(i) - enin(i)

@@ -41,9 +41,9 @@ subroutine conservative2primitive
      if (allocated(pmom)) vel(:,i) = pmom(:,i)/gdiag(:)
      
      if (imhd.ge.11) then    ! if using B as conserved variable
-        Bfield(:,i) = Bcons(:,i)
+        Bfield(:,i) = Bevol(:,i)
      elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-        Bfield(:,i) = Bcons(:,i)*rho(i)
+        Bfield(:,i) = Bevol(:,i)*rho(i)
      endif     
      
      if (iener.eq.3) then     ! total energy is evolved
@@ -161,9 +161,9 @@ subroutine primitive2conservative
         if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
         
         if (imhd.ge.11) then    ! if using B as conserved variable
-           Bcons(:,i) = Bfield(:,i)
+           Bevol(:,i) = Bfield(:,i)
         elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-           Bcons(:,i) = Bfield(:,i)/rho(i)
+           Bevol(:,i) = Bfield(:,i)/rho(i)
         endif
         
         if (iener.eq.3) then     ! total energy is evolved
