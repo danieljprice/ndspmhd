@@ -8,15 +8,19 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-FC = f90
+F90C = lf95
 
-FFLAGS = 
+F90FLAGS = 
 LDFLAGS = 
+# define the implicit rule to make a .o file from a .f90 file
 
-SOURCES= 
+%.o : %.f90
+	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
-OBJECTS = $(SOURCES:.f=.o)
+SOURCES= sametime.f90
 
-.f.o : $(OBJECTS)
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
+OBJECTS = $(SOURCES:.f90=.o)
+
+sametime : $(OBJECTS)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 

@@ -57,8 +57,6 @@ SUBROUTINE initialise
  ELSE
     logfile = 'screen   '
  ENDIF
- PRINT*,'dndim = ',dndim,hpower
- READ*
 !
 !--start tracing flow into logfile
 !
@@ -69,6 +67,11 @@ SUBROUTINE initialise
  IF (ndim.GT.3 .OR. ndim.LT.0 .OR. ndimV.GT.3 .OR. ndimV.LT.0) THEN
     STOP 'Error ndim <0 or >3: We leave string theory for later'
  ENDIF   
+!
+!--set some global parameters based on ndim
+!
+ dndim = 1./REAL(ndim)
+ hpower = dndim
 !
 !--read parameters from the infile
 !

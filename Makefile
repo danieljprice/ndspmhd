@@ -8,16 +8,26 @@ SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 EDITOR = nedit
 
 install: 
+	echo 'Making copies of useful scripts...'
+	cd scripts; ./copyscripts.tcsh
+	echo 'Compiling 1D code'
 	cd src;  make 1D
-	cd src; make clean; make 2D
-	cd src; make clean; make 25D
-	cd src; make clean; make 3D
+	#cd src; make clean; make 2D
+	#cd src; make clean; make 25D
+	#cd src; make clean; make 3D
+all:	
+	echo 'Making copies of useful scripts...'
+	cd scripts; ./copyscripts.tcsh
+	echo 'Compiling plotting utility...'
 	cd plot; make dansph; make mrbsph	
+	echo 'Compiling .ev plotting utility...'
 	cd evplot; make
+	echo 'Compiling other utilities...'  
 	cd utils; make sametime
 	cd multi; make initial; make multirun
-	cd scripts; copyscripts.tcsh
-
+	echo 'Compiling 1D code'
+	cd src;  make 1D
+	
 plotsph:
 	cd plot; make
 

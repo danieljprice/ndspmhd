@@ -12,7 +12,7 @@ F90C = lf95 ###!`cat ../f90_compiler`
 ####FC = `cat ../f90_compiler`
 EDITOR = nedit
 
-# define the rule to make a .o file from a .f90 file
+# define the implicit rule to make a .o file from a .f90 file
 
 %.o : %.f90
 	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
@@ -29,7 +29,11 @@ EDITOR = nedit
 
 #F90FLAGS = -O4 
 # use the following instead for double precision
-F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
+#F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
+# monash compiler (lf95):
+F90FLAGS = -O
+
+
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
 # error in the flush commands, just means output is buffered).
 # NOTE: cannot use the double precision flags when compiling with PGPLOT
