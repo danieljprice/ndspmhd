@@ -127,7 +127,7 @@ subroutine primitive2conservative
 !     ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
      ikernav = iktemp  
-     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
+!!     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
@@ -168,6 +168,11 @@ subroutine primitive2conservative
 !     j = ireal(i)
 !     call copy_particle(
 !  enddo
+
+!
+!--call rates to get initial timesteps, div B etc
+!
+  call get_rates
 
   return  
 end subroutine primitive2conservative
