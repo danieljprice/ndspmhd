@@ -103,7 +103,7 @@ subroutine iterate_density
            if (itype(i).ne.1) then
               if (rho(i).le.1.e-3) then
                  if (rho(i).le.0.) then
-                    write(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i)
+                    write(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i),hh(i),pmass(i)
                     call quit
                  else
                     write(iprint,*) 'Warning : rho < 1e-3 '
