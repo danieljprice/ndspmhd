@@ -27,7 +27,6 @@ program plotmeagraph
   real :: xmin, xmax, ymin, ymax
   real :: hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*120, legendtext*120
-  character(len=125) :: filename
   character(len=24) :: title,label(maxcol)
   character(len=40) :: labely,text
   character(len=1) :: ans
@@ -79,16 +78,10 @@ program plotmeagraph
 !--read data from all files
 !  
   do ifile=1,nfiles
-     if (index(rootname(ifile),'.ev').eq.0) then
-        filename = trim(rootname(ifile))//'.ev'
-     else
-        filename = trim(rootname(ifile))
-     endif
-     print "(a,a)",' opening ',trim(filename)
      ifilesteps = maxstep
      mysteps = 0
      call readev(ifilesteps,evdata(1:ifilesteps,1:maxcol,ifile), &
-                 maxcol,ncol,filename)
+                 maxcol,ncol,rootname(ifile))
      mysteps = max(mysteps,ifilesteps)
      nstepsfile(ifile) = ifilesteps
      !
@@ -143,11 +136,12 @@ program plotmeagraph
 !
 !--set plot limits
 !
-  print*,'setting plot limits'
+  print*,'setting plot limits, ncol = ',ncol
   do i=1,ncol
      lim(i,1) = 1.e12
      lim(i,2) = -1.e12
      do ifile = 1,nfiles
+        !!print*,ifile,nstepsfile(ifile),size(nstepsfile)
         lim(i,1) = min(lim(i,1),minval(evdata(1:nstepsfile(ifile),i,ifile)))
         lim(i,2) = max(lim(i,2),maxval(evdata(1:nstepsfile(ifile),i,ifile)))
      enddo
@@ -292,10 +286,8 @@ program plotmeagraph
   case('d','D')
      nfiles = 1
      call prompt('Enter new rootname:',rootname(1))
-     filename = trim(rootname(1))//'.ev'
-     print*,'reading evolution file ',filename   
      mysteps = maxstep           
-     call readev(mysteps,evdata(1:mysteps,1:maxcol,1),maxcol,ncol,filename)
+     call readev(mysteps,evdata(1:mysteps,1:maxcol,1),maxcol,ncol,rootname(1))
      print*,'setting plot limits'
      do i=1,ncol
         lim(i,1) = minval(evdata(1:mysteps,i,1))
@@ -527,14 +519,8 @@ program plotmeagraph
         do ifile=1,nfiles 
            mysteps = 0
            ifilesteps = maxstep
-           if (index(rootname(ifile),'.ev').eq.0) then
-              filename = trim(rootname(ifile))//'.ev'
-           else
-              filename = trim(rootname(ifile))
-           endif
-           print*,'reading file ',filename
            call readev(ifilesteps,evdata(1:ifilesteps,1:maxcol,ifile), &
-                maxcol,ncol,filename)
+                maxcol,ncol,rootname(ifile))
            nstepsfile(ifile) = ifilesteps
         enddo
 
@@ -583,7 +569,7 @@ program plotmeagraph
   
 ! ------------------------------------------------------------------------      
   
-  close(8)               
+  close(8)  
 end program plotmeagraph
 
 !-------------------------------------------------------------------------      
@@ -598,12 +584,17 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   integer, intent(out) :: ncolumns
   real, dimension(nsteps,maxcols), intent(out) :: evdata
   character(len=*), intent(in) :: rootname
-  character(len=len_trim(rootname)) :: evname,dummy
-  character(len=2000) :: charline
+  character(len=len_trim(rootname)+3) :: evname,dummy
   logical :: iexist,redo
   integer :: ierr,j,nskip
+
+  if (index(rootname,'.ev').eq.0) then
+     evname = trim(rootname)//'.ev'
+  else
+     evname = trim(rootname)
+  endif
+  print "(a,a)",' opening ',trim(evname)
   
-  evname = trim(rootname)
   inquire (file=evname, exist=iexist)
   if (.not.iexist) then
      print*,'***ERROR ',trim(evname),': file does not exist'
@@ -756,8 +747,8 @@ subroutine getmax(datain,time,max,freq,freq2)
   freq2 = 1./avper2
   omega = 2.*pi*freq
   omega2 = 2.*pi*freq2
-  print 20,'average max ',avper,freq,omega,nmax
-  print 20,'average min ',avper2,freq2,omega2,nmin
+  print 20,'average max ',avper,freq,omega,nmax/2
+  print 20,'average min ',avper2,freq2,omega2,nmin/2
 20 format(a,' period = ',f8.4,' freq = ',f8.4,' omega = ',f8.4,' using ',i3,' values')  
   
   return

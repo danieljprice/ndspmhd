@@ -8,7 +8,7 @@
 .KEEP_STATE:
 
 F90C =  g95
-F90FLAGS =  -O
+F90FLAGS =  -Wall
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90

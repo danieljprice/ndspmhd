@@ -15,18 +15,18 @@ program kernelplot
  logical :: samepage
  character(len=50) :: text
 
- data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
- iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 3
+ data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 8, 9/   ! order in which kernels are plotted
+ !!iplotorder = 0 ! override data statement if all the same kernel
+ nkernels = 10
  iprint = 6   ! make sure output from kernel setup goes to screen
- ianticlump = 1
+ ianticlump = 0
  epszero = 0.0
  nepszero = 4
  hfact = 1.5
- samepage = .true.
+ samepage = .false.
  trace = .true.
- nacross = 1
- ndown = 1
+ nacross = 5
+ ndown = 2
  xmin = 0.0
  xmax = 3.2
  ymin = -2.0  !!3.5
