@@ -154,7 +154,8 @@ SUBROUTINE initialise
 !
 !--change coordinate systems if necessary
 !
- if (ifile.ge.0) call modify_dump
+ !!if (ifile.ge.0) call modify_dump
+ print*,'igeom = ',igeomsetup,igeom
  if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
  
  call check_setup       ! check for errors in the particle setup
@@ -171,6 +172,16 @@ SUBROUTINE initialise
  psi = 0.
  sqrtg = 1.
  if (imhd.eq.0) Bfield = 0.  ! zero mag field if turned off
+!
+!--set minimum density if using variable particle masses
+!  and density iterations
+!
+ if (any(pmass(1:npart).ne.pmass(1)) .and. icty.eq.0 .and. ikernav.eq.3) then
+    rhomin = 1.e-2
+ else
+    rhomin = 0.
+ endif
+
 !
 !--if using fixed particle boundaries, set them up
 !

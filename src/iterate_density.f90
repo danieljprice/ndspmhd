@@ -52,7 +52,7 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-4
+  tol = 1.e-3
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
@@ -83,6 +83,7 @@ subroutine iterate_density
         call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
         !call output(0.0,1)
      else
+        
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
      endif
      
@@ -106,8 +107,8 @@ subroutine iterate_density
                  endif
               endif
               
-              rhoi = pmass(i)/(hh(i)/hfact)**ndim  ! this is the rho compatible with the old h
-              dhdrhoi = -hh(i)/(ndim*rhoi)          ! deriv of this
+              rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
+              dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
               omegai =  1. - dhdrhoi*gradh(i)
               if (omegai.lt.1.e-5) then
                  print*,'warning: omega < 1.e-5 ',i,omegai
@@ -126,7 +127,7 @@ subroutine iterate_density
 !
               if (hnew.le.0. .or. gradh(i).le.0.) then
                  print*,' warning: h or omega < 0 in iterations ',i,hnew,gradh(i)
-                 hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen
+                 hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               endif
               !if (numneigh(i).le.1) then
               !   print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
@@ -140,7 +141,8 @@ subroutine iterate_density
               
               !!converged = abs((rho(i)-rhoi)/rho(i)) < tol .and. omegai > 0.
               converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 0.
-              if (.not.converged) then
+              
+              testconvergence: if (.not.converged) then
                  ncalc = ncalc + 1
                  redolist(ncalc) = i
 !            PRINT*,'not converged',i,abs(hnew-hh(i))/hh(i),rho(i),   &
@@ -158,7 +160,8 @@ subroutine iterate_density
                  if (hnew.gt.hhmax) then
                     redolink = .true.
                  endif
-              endif
+              endif testconvergence
+              
            endif   ! itype .NE. 1
         enddo
         

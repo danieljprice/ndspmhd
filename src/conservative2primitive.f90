@@ -96,6 +96,7 @@ subroutine primitive2conservative
   use dimen_mhd
   use debug
   use loguns
+  use hterms, only:rhomin
   use eos
   use options
   use part
@@ -110,7 +111,7 @@ subroutine primitive2conservative
 !--calculate conserved density (and initial smoothing length
 !
   rho = dens
-  hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
+  hh(1:npart) = hfact*(pmass(1:npart)/(rho(1:npart)+rhomin))**dndim
   if (ihvar.le.0) then
      call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
      hh(1:ntotal) = hav
@@ -126,7 +127,7 @@ subroutine primitive2conservative
 !     ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
      ikernav = iktemp  
-     hh(1:ntotal) = hfact*(pmass(1:ntotal)/rho(1:ntotal))**dndim
+     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav

@@ -69,7 +69,7 @@ subroutine setup
  elseif (iequalmass) then
     call set_uniform_spherical(1,rmax,perturb=0.5)        ! 4 = random
  else
-    call set_uniform_spherical(1,rmax) 
+    call set_uniform_spherical(2,rmax,centred=.true.) 
  endif
 !
 !--set particle properties
@@ -86,6 +86,9 @@ subroutine setup
  denszero = totmass/totvol        ! initial density
  massp = totmass/real(npart)
  volpart  = totvol/real(npart)
+ print*,' volpart = ',volpart
+ volpart = psep**2
+ print*,' new one = ',volpart
  uuzero = 0.1
  write(iprint,10) denscentre,totmass
 10 format(/,' Toy star static solution ',/, &

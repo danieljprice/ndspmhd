@@ -14,6 +14,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  USE anticlumping
  USE artvi
  USE bound
+ USE hterms, only:rhomin
  USE eos
  USE options
  USE setup_params
@@ -100,11 +101,6 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,        &
       6x,' Magnetic fields  : ',i2,5x,' External forces      :',i2/)
 
-    WRITE (iprint,60) ihvar, ikernav, hfact, ndim
-60 FORMAT(' Variable smoothing length: ',/,                                &
-      6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*(m/rho)**(1/',i1,')',/)
-
     IF (imhd.NE.0) THEN
        WRITE (iprint,70) imagforce,idivBzero,ianticlump,eps,neps
 70  FORMAT(' MHD options: ',/,                                        &
@@ -174,9 +170,14 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--print out smoothing length information
 !
+    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim
+240 FORMAT(' Variable smoothing length: ',/,                                &
+      6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
+      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,')')
+
     CALL minmaxave(hh(1:npart),hmin,hmax,have,npart)
-    WRITE(iprint,240) hmin,hmax,have
-240 FORMAT (/,' Smoothing lengths: min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
+    WRITE(iprint,250) hmin,hmax,have
+250 FORMAT (6x,' h min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
 
  ENDIF
       

@@ -32,7 +32,7 @@ SUBROUTINE step
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev,ierr
+ INTEGER :: i
  REAL :: hdt, dt1, dthalf
 !
 !--allow for tracing flow
@@ -74,7 +74,7 @@ SUBROUTINE step
 !
        x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)
        !!--vel is only needed at this stage for the viscosity
-       vel(:,i) = velin(:,i) + hdt*force(:,i)
+       vel(:,i) = velin(:,i) !!!+ hdt*force(:,i))/(1.+damp)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        !!IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
@@ -126,7 +126,7 @@ SUBROUTINE step
        x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)
     ELSE
        !--this overwrites the predictor step for the velocity
-       vel(:,i) = velin(:,i) + dt*force(:,i) ! stepped through whole timestep
+       vel(:,i) = (velin(:,i) + dt*force(:,i))/(1.+damp) ! stepped through whole timestep
        x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i) ! nb x is stepped from its current value at t^1/2
     ENDIF              
  ENDDO
