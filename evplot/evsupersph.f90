@@ -6,7 +6,7 @@
 program plotmeagraph
   implicit none
   integer maxstep,ncol,maxcol
-  parameter (maxstep=50000)
+  parameter (maxstep=100000)
   parameter (maxcol=21)	! (6)21 (non)MHD	maximum number of columns
   integer nstep,npart,i,j
   integer mysteps,ipick,ipickx
