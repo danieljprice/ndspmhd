@@ -11,13 +11,20 @@
 !-------------------------------------------------------------------
 subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,c_L,c_R,pr,vstar)
   implicit none
-  real, parameter :: tol = 1.5e-4
+  real, parameter :: tol = 1.5e-2
   real, intent(in) :: gamma,p_L,p_R,v_L,v_R,c_L,c_R
   real, intent(out) :: pr,vstar
   integer, parameter :: maxits = 30
   integer :: its
   real :: prnew, f_L, f_R, dfdp_L, dfdp_R, f, df, dp
   real :: power, denom
+!
+!--use isothermal solver if appropriate
+!
+  if (gamma.lt.1.0001) then
+     call get_pstar_isothermal(c_L,v_L,v_R,p_L/c_L,p_R/c_R,pr,vstar)
+     return
+  endif
 !
 !--get an initial starting estimate of intermediate pressure
 !  this one is from Toro(1992) - gives basically the right answer
@@ -48,17 +55,23 @@ subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,c_L,c_R,pr,vstar)
 !
 !--Newton-Raphson iterations
 !     
-     dp =  -f/df
+     dp = -f/df
      prnew = pr + dp
      
   enddo
 
   if (its.eq.maxits) print*,'WARNING: its not converged in riemann solver'
+  if (prnew.le.0.) then
+     print*,'ERROR: pr < 0 in riemann solver'
+     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar,v_R + f_R
+  endif
   pr = prnew
   vstar = v_L - f_L
-
-!!  print*,'its = ',its,' pr = ',prnew,'v = ',vstar,v_R + f_R
-
+  
+  if (its.gt.0) then
+     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar,v_R + f_R
+  endif
+  
 end subroutine riemannsolver
 
 !
@@ -88,3 +101,29 @@ subroutine f_and_df(prstar,pr,cs,gam,fp,dfdp)
   endif
   
 end subroutine f_and_df
+
+!-------------------------------------------------------------
+! Non-iterative isothermal Riemann solver 
+! from Balsara (1994), ApJ 420, 197-212
+!
+! See also Cha & Whitworth (2003), MNRAS 340, 73-90
+!-------------------------------------------------------------
+subroutine get_pstar_isothermal(cs2,v_L,v_R,rho_L,rho_R,pstar,vstar)
+  implicit none
+  real, intent(in) :: cs2,v_L,v_R,rho_L,rho_R
+  real, intent(out) :: pstar,vstar
+  real :: sqrtrho_L, sqrtrho_R, X, vdiff, determinant, vstar2
+
+  sqrtrho_L = sqrt(rho_L)
+  sqrtrho_R = sqrt(rho_R)
+  
+  X = sqrtrho_L*sqrtrho_R/(sqrtrho_L + sqrtrho_R)
+  vdiff = v_L - v_R
+  determinant = (X*vdiff)**2 + 4.*cs2*X*(sqrtrho_L + sqrtrho_R)
+  
+  pstar = 0.25*(X*vdiff + sqrt(determinant))**2  
+  vstar = v_L - (pstar - cs2*rho_L)/(sqrt(pstar*rho_L))
+  !vstar2 = v_R + (pstar - cs2*rho_R)/(sqrt(pstar*rho_R))
+  !print*,' pstar = ',pstar,' v_R,v_L = ',v_L,v_R,cs2,' vstar = ',vstar
+  
+end subroutine get_pstar_isothermal
