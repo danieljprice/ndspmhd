@@ -210,11 +210,11 @@ real function A(x)
 !
 !--step function
 !
-  if (x < 0) then
-     A = 0.1
-  else
-     A = 1.0
-  endif
+!  if (x < 0) then
+!     A = 0.1
+!  else
+     A = 1.0*x
+!  endif
 
 end function A
 !
@@ -231,6 +231,6 @@ real function gradA(x)
 !
 !--step function
 !
-  gradA = 0.
+  gradA = 1.
 
 end function gradA

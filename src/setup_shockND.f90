@@ -42,7 +42,7 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 20.   
+ dsmooth = 0.   
  equalmass = .false.   ! use equal mass particles??
  const = sqrt(4.*pi)
  densleft = 1.08

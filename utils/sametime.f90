@@ -2,6 +2,8 @@
 ! Program takes n data files with concurrent timestep data
 ! and makes new data files with data at simultaneous times
 !
+! modified 27/07/04 for binary (unformatted) output 
+!
 ! modified 10/10/03 so it doesn't hog so much memory
 ! also re-ordered dat array for optimisation
 ! now does infinite number of steps (so long as the character
@@ -70,7 +72,7 @@ PROGRAM combinedat
     ENDIF
     PRINT*,' opening ',filename(i)
     infile = 10+i  ! logical unit number for input files (*must* be same as below)
-    OPEN(UNIT=infile,ERR=101,FILE=filename(i),STATUS='old',FORM='formatted')
+    OPEN(UNIT=infile,ERR=101,FILE=filename(i),STATUS='old',FORM='unformatted')
     GOTO 102
 101 PRINT*,'Error opening ',filename(i)
 102 CONTINUE    
@@ -88,7 +90,7 @@ PROGRAM combinedat
     PRINT*,' Creating data file ',TRIM(filename(1))//fnum
 !    READ*
     OPEN(UNIT=ioutfile,FILE=TRIM(filename(1))//fnum,	&
-         STATUS='replace',FORM='formatted')
+         STATUS='replace',FORM='unformatted')
     
     DO ifile=1,nfiles
        infile = 10+ifile ! logical unit number for input files
@@ -135,7 +137,7 @@ PROGRAM combinedat
     PRINT*,' Writing to data file... '
     DO ifile=1,nfiles
        PRINT*,' t = ',time(ifile),npart(ifile),nprint(ifile)
-       WRITE(ioutfile,*) time(ifile),npart(ifile),nprint(ifile), &
+       WRITE(ioutfile) time(ifile),npart(ifile),nprint(ifile), &
                          gamma(ifile),hfact(ifile),ndim(ifile),  &
 			 ndimV(ifile),ndata(ifile)
        DO k=1,nprint(ifile)
