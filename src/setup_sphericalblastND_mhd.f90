@@ -120,12 +120,11 @@ SUBROUTINE setup
     ENDIF   
     uu(ipart) = pri/(gam1*denszero)
     Bfield(:,ipart) = Bzero(:)
-    Bconst(:,ipart) = Bzero(:)
  ENDDO
 !
 !--set the constant components of the mag field which can be subtracted
 !
-!!! Bconst(:) = Bzero
+ Bconst(:) = Bzero(:)
 
 !
 !--allow for tracing flow

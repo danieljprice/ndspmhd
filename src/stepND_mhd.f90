@@ -179,7 +179,7 @@ SUBROUTINE step
 !
 !--do substepping on corrector for div B correction
 !
- IF (nsubsteps_divB.GE.0) THEN
+ IF (imhd.GT.0 .and. idivBzero.GE.2 .and. nsubsteps_divB.GE.0) THEN
     CALL substep_divB(2,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
                       x,hh,pmass,itype,npart,ntotal)
  ENDIF

@@ -130,11 +130,12 @@ SUBROUTINE setup
        Bfield(1,i) = Bparallel*rvec(1) - Bperp*rvec(2)
        Bfield(2,i) = Bparallel*rvec(2) + Bperp*rvec(1)
        Bfield(3,i) = Bz
-       Bconst(1,i) = Bparallel*rvec(1)
-       Bconst(2,i) = Bparallel*rvec(2)
-       Bconst(3,i) = 0.
     ENDIF 
  ENDDO
+
+ Bconst(:) = 0.
+ Bconst(1) = Bparallel*rvec(1)
+ Bconst(2) = Bparallel*rvec(2)
 
  ntotal = npart
  

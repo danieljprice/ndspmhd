@@ -59,11 +59,11 @@ subroutine get_rates
 !     
  real, dimension(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
  real, dimension(ndimB) :: faniso,fmagi,fmagj
- real, dimension(ndimB) :: curlBi,Bconsti,Bconstj
+ real, dimension(ndimB) :: curlBi
  real :: fiso
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j
- real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconsti,projBconstj
+ real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
 !
 !  (artificial viscosity quantities)
 !      
@@ -226,9 +226,7 @@ subroutine get_rates
        endif
        ! mhd definitions
        if (imhd.ne.0) then
-          Bconsti(:) = Bconst(:,i)
           Brho2i = dot_product(Brhoi,Brhoi)
-          !Brho2i = dot_product((Bi + Bconsti)*rho1i,(Bi + Bconsti)*rho1i)
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
        endif
@@ -633,12 +631,10 @@ contains
        projdB = dot_product(dB,dr)
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
-       Bconstj(:) = Bconst(:,j)
        Brho2j = dot_product(Brhoj,Brhoj)
        !!Brho2j = dot_product((Bj+Bconstj)*rho1j,(Bj+Bconstj)*rho1j)
        valfven2j = Brho2j*rhoj
-       projBconsti = dot_product(Bconsti,dr)
-       projBconstj = dot_product(Bconstj,dr)
+       projBconst = dot_product(Bconst,dr)
     endif
         
     !--maximum velocity for timestep control
@@ -978,9 +974,9 @@ contains
 
        else
           faniso(:) = (Brhoi(:)*projBrhoi &
-                     - Bconsti(:)*projBconsti*rho21i)*phij_on_phii*grkerni &
+                     - Bconst(:)*projBconst*rho21i)*phij_on_phii*grkerni &
                     + (Brhoj(:)*projBrhoj &
-                     - Bconstj(:)*projBconstj*rho21j)*phii_on_phij*grkernj
+                     - Bconst(:)*projBconst*rho21j)*phii_on_phij*grkernj
        endif
 
        !

@@ -10,9 +10,9 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C = g95
-F90FLAGS =  -O -C ##-WB -r8
-LDFLAGS = ##-Vaxlib
+F90C = ifc
+F90FLAGS =  -O -C -WB -r8
+LDFLAGS = -Vaxlib
 ##LDFLAGS = -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
@@ -40,13 +40,14 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 #SETUP1D = setup_shockND.f90
+SETUP1D = setup_Bxpeak25D_mhd.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 

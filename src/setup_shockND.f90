@@ -251,8 +251,11 @@ subroutine setup
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif           
     Bfield(1,i) = Bxinit
-    Bconst(1,i) = Bxinit
  enddo
- 
+!
+!--setup const component of mag field which can be subtracted
+!
+ Bconst(:) = Bzero(:)
+
  return
 end subroutine setup
