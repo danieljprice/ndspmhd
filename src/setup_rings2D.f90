@@ -14,7 +14,6 @@ subroutine setup
  use eos
  use options
  use part
- use polyconst
  use setup_params
 !
 !--define local variables

@@ -16,7 +16,7 @@
 !!  Output : vel(npart) 1D velocity field (note this is NOT normalised)
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq)
+SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq,iseedin,iseed2in)
 !
 !--global variables
 !
@@ -27,7 +27,7 @@ SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq)
 ! 
  IMPLICIT NONE
  REAL, PARAMETER :: pi=3.1415926536
- INTEGER, INTENT(IN) :: npart, nfreq
+ INTEGER, INTENT(IN) :: npart, nfreq, iseedin, iseed2in
  REAL, INTENT(IN), DIMENSION(npart) :: x
  REAL, INTENT(OUT), DIMENSION(npart) :: vel
  REAL, INTENT(IN) :: xmin,xmax,pindex
@@ -54,8 +54,8 @@ SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq)
 !--set random seed for random number generator
 !  (same seed gives same random number sequence each time)
 !
- iseed = -3507		! seed for phases
- iseed2 = -2394 	! seed for amplitudes
+ iseed = iseedin		! seed for phases
+ iseed2 = iseed2in 	! seed for amplitudes
 !
 !--work out the amplitude of the perturbation at each wavenumber (frequency)
 !  do this for wavenumbers from kmin = 2*pi/L to kmax = nfreq*(2*pi/L)

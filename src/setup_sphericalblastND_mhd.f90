@@ -39,24 +39,27 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound = 2	! fixed ghosts
+ ibound = 3	! fixed ghosts
  nbpts = 0
- xmin(:) = -0.5		! same xmin in all dimensions
- xmax(:) = 0.5
+ xmin(1) = -0.5		! same xmin in all dimensions
+ xmax(1) = 0.5
+ xmin(2) = -0.75
+ xmax(2) = 0.75
  const = 1./SQRT(4.*pi) 
 !
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rblast = 0.5*psep		! radius of the initial blast
+ rblast = 0.1     !!!05    !!!*psep		! radius of the initial blast
  rbuffer = rblast	!+10.*psep		! radius of the smoothed front
  Bzero(:) = 0.0
  IF (imhd.NE.0) THEN
-    Bzero(1) = 10.0*const	! uniform field in Bx direction
+    Bzero(1) = sqrt(2.*pi)         !10.0*const	! uniform field in Bx direction
+    Bzero(2) = sqrt(2.*pi)
  ENDIF
- przero = 1.0		! initial pressure
+ przero = 0.1		! initial pressure
  denszero = 1.0
- prblast = 1000.0	! initial pressure within rblast
+ prblast = 100.0	! initial pressure within rblast
  enblast = 1.0
  enzero = 0.
  
@@ -101,23 +104,29 @@ SUBROUTINE setup
 !
 !--smooth energy injection using the SPH kernel
 !    
-    q2 = radius**2/hsmooth**2
-    CALL interpolate_kernel(q2,wab,grkern)
-    uui = enblast*wab/hsmooth**ndim
-!    IF (radius.LT.rblast) THEN
-!       pri = prblast
-!       uui = enblast
-!    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
-!       exx = exp((radius-rblast)/(psep))
-!       pri = (prblast + przero*exx)/(1.0+exx)
-!       uui = (enblast + enzero*exx)/(1.0+exx)
-!    ELSE
-!       pri = przero
-!       uui = enzero
-!    ENDIF   
-    uu(ipart) = uui	!pri/(gam1*denszero)
+!    q2 = radius**2/hsmooth**2
+!    CALL interpolate_kernel(q2,wab,grkern)
+!    uui = enblast*wab/hsmooth**ndim
+    IF (radius.LT.rblast) THEN
+       pri = prblast
+       !uui = enblast
+    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
+       exx = exp((radius-rblast)/(psep))
+       pri = (prblast + przero*exx)/(1.0+exx)
+       !uui = (enblast + enzero*exx)/(1.0+exx)
+    ELSE
+       pri = przero
+       !uui = enzero
+    ENDIF   
+    uu(ipart) = pri/(gam1*denszero)
     Bfield(:,ipart) = Bzero(:)
+    Bconst(:,ipart) = Bzero(:)
  ENDDO
+!
+!--set the constant components of the mag field which can be subtracted
+!
+!!! Bconst(:) = Bzero
+
 !
 !--allow for tracing flow
 !

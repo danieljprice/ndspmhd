@@ -58,7 +58,7 @@ subroutine conservative2primitive
 !--call equation of state calculation
 !
  call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart),gamma,npart)
+                        rho(1:npart),gamma,polyk,npart)
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -149,7 +149,7 @@ subroutine primitive2conservative
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)
   call equation_of_state(pr(1:npart),spsound(1:npart), &
-                         uu(1:npart),dens(1:npart),gamma,npart)     
+                         uu(1:npart),dens(1:npart),gamma,polyk,npart)     
 
 !
 !--copy the conservative variables onto the ghost particles??

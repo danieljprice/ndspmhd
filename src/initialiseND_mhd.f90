@@ -66,7 +66,7 @@ SUBROUTINE initialise
 !
 !--Open data/ev files
 !
- OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='formatted')
+ OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='unformatted')
  OPEN(UNIT=ievfile,ERR=668,FILE=evfile,STATUS='replace',FORM='formatted') 
 !
 !--work out multiplication factor for source term in Morris and Monaghan scheme

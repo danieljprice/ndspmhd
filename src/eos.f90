@@ -6,17 +6,16 @@
 !! arrays or individual elements (just be consistent!)
 !!-----------------------------------------------------------------
 
-SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,isize)
+SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,polyk,isize)
  USE options
  USE loguns
- USE polyconst
 !
 !--define local variables
 !
  IMPLICIT NONE
  INTEGER :: i
  INTEGER, INTENT(IN) :: isize
- REAL, INTENT(IN) :: gamma
+ REAL, INTENT(IN) :: gamma, polyk
  REAL, INTENT(IN), DIMENSION(isize) :: rho
  REAL, INTENT(OUT), DIMENSION(isize) :: pr
  REAL, INTENT(INOUT), DIMENSION(isize) :: uu,vsound

@@ -60,7 +60,7 @@ subroutine conservative2primitive
      !
      !--call equation of state to get pressure (needed for source terms)
      !
-     call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma)
+     call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma,polyk,1)
   enddo
 
 !
@@ -174,7 +174,8 @@ subroutine primitive2conservative
            en(i) = uu(i)
         endif
 	
-        call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i),gamma) 	
+        call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
+	     gamma,polyk,1) 	
      enddo
   endif
 

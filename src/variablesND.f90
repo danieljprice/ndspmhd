@@ -55,7 +55,7 @@ END MODULE
 MODULE eos
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: spsound
- REAL :: gamma
+ REAL :: gamma, polyk
 END MODULE
 
 !-------------------------------------------------------------------
@@ -172,15 +172,6 @@ MODULE part_in
  REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,psiin
  REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin,alphain
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bevolin
-END MODULE
-
-!-------------------------------------------------------------------
-!  constant used for a polytropic/isothermal equation of state
-!-------------------------------------------------------------------
-
-MODULE polyconst
- IMPLICIT NONE
- REAL :: polyk
 END MODULE
 
 !-------------------------------------------------------------------

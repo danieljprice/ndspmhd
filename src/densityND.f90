@@ -173,7 +173,11 @@ SUBROUTINE density
                  wabj = wabj*hfacwabj
                  grkernj = grkernj*hfacwabj*hj1
                  !  (calculate average)                
-                 !!wab = 0.5*(wabi + wabj)
+                 if (ikernav.eq.2) then
+		    wab = 0.5*(wabi + wabj)
+		    wabi = wab
+		    wabj = wab
+		 endif
                  !
                  !--derivative w.r.t. h for grad h correction terms (and dhdrho)
                  !              

@@ -26,7 +26,7 @@ SUBROUTINE setup
 !--define local variables
 !      
  IMPLICIT NONE
- INTEGER :: i,j,ntot,ipart,nfreq
+ INTEGER :: i,j,ntot,ipart,nfreq,iseed1,iseed2
  REAL :: denszero,przero,spsound2
  REAL, DIMENSION(ndimV) :: velzero,Bzero
  REAL :: totmass,volume,massp
@@ -89,13 +89,17 @@ SUBROUTINE setup
     pmass(ipart) = massp
     uu(ipart) = 1.0	! isothermal
     Bfield(:,ipart) = Bzero(:)
+    Bconst(1,ipart) = Bzero(1)
  ENDDO
 !
 !--now call routine to set up the velocity field
 !
  pindex = -2  ! P(k) = k**pindex
  nfreq = 32   ! wavelengths down to lambda/32
- CALL set_powerspec1D(x(1,:),vel(2,:),npart,xmin(1),xmax(1),pindex,nfreq)
+ iseed1 = -3507
+ iseed2 = -2394
+ CALL set_powerspec1D(x(1,:),vel(2,:),npart,xmin(1),xmax(1), &
+                      pindex,nfreq,iseed1,iseed2)
 !
 !--normalise according to kinetic energy
 !
@@ -108,7 +112,19 @@ SUBROUTINE setup
 !
 !--set up magnetic field
 !
- Bfield(2,:) = vel(2,:)*SQRT(denszero)
+ iseed1 = -732
+ iseed2 = -8973
+ CALL set_powerspec1D(x(1,:),Bfield(2,:),npart,xmin(1),xmax(1), &
+                      pindex,nfreq,iseed1,iseed2)
+!
+!--normalise this using magnetic energy
+!
+ ekinpart = 0.
+ DO i = 1,npart
+    ekinpart = ekinpart + 0.5*pmass(i)*(Bfield(2,i)**2)
+ ENDDO
+ Bfield(2,1:npart) = Bfield(2,1:npart)*sqrt(Ekin/ekinpart)
+
 !
 !--work out rms velocity and mag field perturbations
 !

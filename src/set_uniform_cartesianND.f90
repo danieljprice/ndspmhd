@@ -76,14 +76,14 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--adjust psep so that particles fill the volume
 !
     PRINT*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
-!    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
-!    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
-!    PRINT*,' adjusted ',deltax,deltay
+    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
+    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
+    PRINT*,' adjusted ',deltax,deltay
 !
 !--or adjust the boundaries appropriately
 !
-    xmax(2) = xmin(2) + nparty*deltay
-    PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
+!    xmax(2) = xmin(2) + nparty*deltay
+!    PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
 !
 !--allocate memory here
 !
@@ -169,6 +169,26 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
        ENDDO
        x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
     ENDDO
+!
+!--random particle distribution
+!  (uses random number generator ran1 in module random)
+! 
+ CASE(5,15)
+     ntot = INT(PRODUCT((xmax(:)-xmin(:))/psep))
+     npart = ntot
+     WRITE(iprint,*) 'Quasi-random (Sobol) particle distribution, npart = ',ntot 
+     CALL alloc(ntot)
+!
+!--initialise quasi-random sequence
+!
+     CALL sobolsequence(-ndim,xran(:))
+     
+     DO i=1,ntot
+        CALL sobolsequence(ndim,xran(:))
+	x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
+        print*,i,xran(:),' x = ',x(:,i)
+	read*
+     ENDDO
 
  CASE DEFAULT
 !----------------------
@@ -230,7 +250,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !    
     iseed = -268
     xran(1) = ran1(iseed)
-    ampl = 0.1*psep   ! perturbation amplitude
+    ampl = 0.05*psep   ! perturbation amplitude
     
     DO i=npartin+1,npart  ! apply to new particles only
        DO j=1,ndim
