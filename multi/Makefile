@@ -12,7 +12,7 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-F90C = lf95 	##f90
+F90C = f90
 
 # use -C for array out-of-bounds checking
 # -u forces implicit none

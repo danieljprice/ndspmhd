@@ -45,7 +45,7 @@ subroutine conservative2primitive(rho,vel,uu,en,Bfield,Bcons,ierr)
      uu = en
   endif
   if (uu.lt.0.) then
-     write(iprint,*) 'Warning: utherm -ve'
+     !write(iprint,*) 'Warning: utherm -ve'
      ierr = 1  ! error if negative thermal energy
   endif
 

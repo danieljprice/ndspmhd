@@ -8,11 +8,11 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-F90C = lf95
+F90C = f90
 
 FFLAGS = 
 F90FLAGS = -O
-LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
+LDFLAGS = -lpgplot -lX11 -lF77
 
 # define the implicit rule to make a .o file from a .f90 file
 
