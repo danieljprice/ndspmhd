@@ -75,6 +75,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  docorrector = (icall.eq.2) .or. (istep.ne.nsubsteps)
 
  if (.not.nopredictor) then
+    write(iprint,*) ' substep: predictor'
     !
     !--Mid-point Predictor step
     !
@@ -118,6 +119,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  endif
  
  if (.not.(icall.eq.1 .and. istep.eq.1)) then
+    write(iprint,*) 'substep: corrector'
     !
     !--Mid-point Corrector step
     !
