@@ -1,4 +1,4 @@
-#!/bin/env perl
+#!/usr/bin/perl
 #
 # parses COMPILER file for compiler flags and changes them
 # appropriately in all of the Makefiles
