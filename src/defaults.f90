@@ -34,6 +34,7 @@ subroutine set_default_options
    polyk = 1.0
    icty = 0
    ndirect = nmax
+   maxdensits = 25
    iprterm = 0
    iav = 1
    alphamin = 0.1
