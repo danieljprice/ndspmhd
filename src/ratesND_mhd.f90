@@ -8,7 +8,6 @@ SUBROUTINE get_rates
 ! USE dimen_mhd
  USE debug
  USE loguns
- 
  USE artvi
  USE eos
  USE gravity
@@ -75,7 +74,7 @@ SUBROUTINE get_rates
  REAL :: Bab,vsigmag,rhoi5,rhoj5,B2i,B2j,ediffB
  REAL :: vsig2i,vsig2j,vsigproji,vsigprojj
  REAL :: vissv,vissB,vissu,vsigii,vsigjj
- REAL :: avterm
+ REAL :: avterm,avtermB,alphaB
 !
 !  (alternative forms)
 !
@@ -98,7 +97,7 @@ SUBROUTINE get_rates
 !      
  REAL :: vsig,vsigi,vsigj,vsigav,viss,eni,enj,ediff,ediffB,qdiff
  REAL :: spsoundi,spsoundj,visc,envisc,uvisc
- REAL :: alphai,alphaav,source,tdecay1    
+ REAL :: alphai,alphaav,source,tdecay1,sourcedivB,sourceJ
 !
 !  (time step criteria)
 !      
@@ -128,7 +127,7 @@ SUBROUTINE get_rates
  ALLOCATE ( listneigh(nlistdim),STAT=ierr )
  IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
  ALLOCATE ( phi(ntotal), STAT=ierr )
- IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating phi, ierr = ',ierr 
+ IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating phi, ierr = ',ierr  
 !
 !--initialise quantities
 !      
@@ -148,6 +147,14 @@ SUBROUTINE get_rates
   xsphterm(:,i) = 0.0
  ENDDO
 !
+!--skip the whole neighbour thing if it is doing nothing
+!
+ IF (ialtform.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.eq.0 &
+      .and. ihvar.lt.2 .and. icty.eq.0) THEN
+    WRITE(iprint,*) 'skipping rates'
+    GOTO 666
+ ENDIF
+!
 !  set alternative forms for the SPH equations here
 !  phi can be any scalar variable  
 !
@@ -163,7 +170,7 @@ SUBROUTINE get_rates
 !--calculate kernel for the MHD anticlumping term
 !
  IF (ianticlump.EQ.1) THEN
-  q2joe = (1./hfact)**2	! 1/hfact is initial particle spacing in units of h 
+  q2joe = (1./1.5)**2	! 1/hfact is initial particle spacing in units of h 
   CALL interpolate_kernel(q2joe,wabjoei,grkerni)
  ENDIF
 ! print*,'wabjoe = ',wabjoei
@@ -319,6 +326,7 @@ SUBROUTINE get_rates
 		spsoundj = spsound(j)
 	        pmassj = pmass(j)
 		alphaav = 0.5*(alphai + alpha(j))
+		alphaB = 1.0  !! 0.5*(alphai + alpha(j))
 		phii_on_phij = phii/phi(j)
 		phij_on_phii = phi(j)*phii1 	
 		sqrtgj = sqrtg(j)	
@@ -358,8 +366,8 @@ SUBROUTINE get_rates
 !--calculate maximum signal velocity (this is used for the timestep control
 !  and also in the artificial viscosity)
 !
-		IF (dvdotr.LT.0 .OR. iav.EQ.2) THEN
-		   vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
+		IF (dvdotr.LT.0) THEN
+		   !vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
 		   !vunit = dr
 		   viss = abs(dvdotr)		    
 		ENDIF 
@@ -379,10 +387,10 @@ SUBROUTINE get_rates
 !
 !                vsig2i = spsoundi**2 + valfven2i
 !		vsig2j = spsoundj**2 + valfven2j				
-		
+!		
 !		vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
 !		vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
-		
+!		
 !		IF (vsigproji.LT.0. .OR. vsigprojj.LT.0.) THEN
 !		   WRITE(iprint,*) ' rates: vsig det < 0 ',   &
 !		     'i: ',vsigproji,vsig2i**2,  	&
@@ -396,43 +404,61 @@ SUBROUTINE get_rates
 		
 !		vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
 !		vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
-!
+
 		vsig = vsigi + vsigj + beta*viss
 	
 !		vsigdtc is the signal velocity used in the timestep control
                 vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
 
-		IF ((dvdotr.LT.0. .AND.iav.NE.0) .OR. iav.EQ.2) THEN	! only for approaching particles
+		IF ((dvdotr.LE.0. .AND.iav.NE.0) .OR. iav.EQ.3 ) THEN	! only for approaching particles
                    IF (iav.EQ.1) THEN
 		   avterm = 0.5*alphaav*vsig*rhoav1
+		   avtermB = 0.5*alphaB*vsig*rhoav1
 !--viscosity (kinetic energy term)
                    visc = avterm*viss*grkern
 	           vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
 		               - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
-		   dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
+		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
 		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
-		   envisc = avterm*(vissv+vissB)*grkern!*abs(rx)
+		   envisc = (avterm*vissv+avtermB*vissB)*grkern!*abs(rx)
 	           uvisc = avterm*vissu*grkern		   
 		   ELSEIF (iav.EQ.2) THEN
 		   avterm = 0.5*alphaav*vsig*rhoav1
+		   avtermB = 0.5*alphaB*vsig*rhoav1
 !--viscosity (kinetic energy term)
-                   visc = avterm*grkern
-		   vissv = -0.5*(DOT_PRODUCT(dvel,dvel))		    
+                   visc = avterm*viss*grkern
+	           vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
+		               - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
-		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
-		   dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
-		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   Bvisc(:) = (dB(:))*rhoav1
+		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
+		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
-		   envisc = avterm*(vissv+vissB)*grkern!*abs(rx)
+		   envisc = (avterm*vissv+avtermB*vissB)*grkern!*abs(rx)
 	           uvisc = avterm*vissu*grkern		   
-		   ELSEIF (iav.GT.2) THEN
+		   ELSEIF (iav.EQ.3) THEN
+		   avterm = 0.5*alphaav*vsig*rhoav1
+		   avtermB = 0.5*alphaB*vsig*rhoav1
+!--viscosity (kinetic energy term)
+                   visc = avterm*grkern
+	           vissv = -0.5*DOT_PRODUCT(dvel,dvel)		    
+!--ohmic dissipation (magnetic energy term)
+		   Bvisc(:) = (dB(:))*rhoav1
+		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
+		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
+!--vissu is the dissipation energy from thermal conductivity
+		   vissu = udiss_frac*(uu(i) - uu(j))
+!--envisc is the total contribution to the thermal energy equation
+		   envisc = (avterm*vissv+avtermB*vissB)*grkern!*abs(rx)
+	           uvisc = avterm*vissu*grkern			   
+		   ELSEIF (iav.GT.3) THEN
 		   STOP 'crap av choice'
 !--viscosity (kinetic energy term)
 		   vsigii = vsigi + 0.5*beta*viss
@@ -442,9 +468,9 @@ SUBROUTINE get_rates
 		   vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
 		              - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
-		   Bvisc(:) = dB(:) - dr(:)*projdB
+		   Bvisc(:) = dB(:)
 		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1
-		   vissB = -0.5*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   vissB = -0.5*(DOT_PRODUCT(dB,dB))*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
@@ -452,46 +478,44 @@ SUBROUTINE get_rates
 	           uvisc = 0.5*alphaav*vsig*vissu		   
 		   
 		   ENDIF
-		ELSEIF (iav.NE.0) THEN
+		ELSE   !IF (iav.NE.0) THEN
 		   visc = 0.0
 		   !!avterm = 0.5*alphaav*vsig*rhoav1		    
 !--ohmic dissipation (magnetic energy term)
-		   !!Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
-		   !!dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
-		   !!vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1		   
-		   !!!dBdtvisc(:) = 0.
-		   !!envisc = avterm*vissB*grkern
-		   envisc = 0.
+		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
+		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
+		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   !Bvisc(:) = dB(:)*rhoav1
+		   !dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
+		   !vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
+		   envisc = avtermB*vissB*grkern
+		   !dBdtvisc(:) = 0.
+		   !envisc = 0.
 		   uvisc = 0.
-	        ENDIF	
+	        ENDIF
 !
 !--time step control (courant and viscous)
 !
-	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,0.8*hav/vsigdtc)
+	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,hav/vsigdtc)
 !
 !--pressure term (generalised form)
 !
        	        IF (ialtform.GE.0) THEN
-                prterm = phii_on_phij*Prho2i*sqrtgi*grkerni 		&
-     		       + phij_on_phii*Prho2j*sqrtgj*grkernj	   	   
+                   prterm = phii_on_phij*Prho2i*sqrtgi*grkerni 		&
+     		          + phij_on_phii*Prho2j*sqrtgj*grkernj
+		ELSE
+		   prterm = 0.
                 ENDIF
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
-		IF (iav.EQ.2) THEN 
-		  force(:,i) = force(:,i)	&
-		             - pmassj*(prterm*dr(:)-visc*dvel(:))
-		  force(:,j) = force(:,j)	&
-		             + pmassi*(prterm*dr(:)-visc*dvel(:)) 
-!		ELSEIF (ndimV.GT.ndim) THEN
-!		  force(:,i) = force(:,i)	&
-!		             - pmassj*(prterm*dr(:)-visc*vunit(:))
-!		  force(:,j) = force(:,j)	&
-!		             + pmassi*(prterm*dr(:)-visc*vunit(:)) 
+		IF (iav.EQ.3) THEN
+		   force(:,i) = force(:,i) - pmassj*(prterm*dr(:)-visc*dvel(:))
+		   force(:,j) = force(:,j) + pmassi*(prterm*dr(:)-visc*dvel(:))	
 		ELSE
-		  force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
-		  force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
-                ENDIF	
+		   force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
+		   force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
+                ENDIF
 !
 !--time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - gives divv for art vis.
@@ -510,11 +534,15 @@ SUBROUTINE get_rates
                 IF (imhd.NE.0) THEN
 !
 !--calculate curl B for current (only if field is 3D)
+!  this is used in the switch for the artificial resistivity term
 !
 		  IF (ndimB.EQ.3) THEN
 		     curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
 		     curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
 		     curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
+		  ELSEIF (ndimB.EQ.2) THEN  ! just Jz in 2D
+		     curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
+		     curlBi(2) = 0.
 		  ENDIF
 
 		  IF (imagforce.EQ.1) THEN	! vector form (dot products)
@@ -607,7 +635,7 @@ SUBROUTINE get_rates
 !
 !--calculate grad psi (divergence correction term)
 !		  
-		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad phi)
+		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
 			
 		        dBconsdt(:,i) = dBconsdt(:,i)  & ! nb dBconsdt is divided by rho later
 		        + pmassj*gradpsiterm*dr(:)
@@ -632,7 +660,7 @@ SUBROUTINE get_rates
 !
 !--calculate grad psi (divergence correction term)
 !		  
-		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad phi)
+		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
 			
 		        dBconsdt(:,i) = dBconsdt(:,i)  & ! nb dBconsdt is divided by rho later
 		        + rhoi*pmassj*gradpsiterm*dr(:)
@@ -678,30 +706,35 @@ SUBROUTINE get_rates
 		     			 -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
 		   ENDIF	   
 ! (dissipation term)
-	           IF (iav.EQ.2) THEN
-		      v2i = DOT_PRODUCT(veli,veli)	! energy along line
-		      v2j = DOT_PRODUCT(velj,velj)	! of sight		   		   
+	           IF (iav.EQ.2 .OR. iav.EQ.3) THEN	   		   
+		      B2i = DOT_PRODUCT(Bi,Bi)
+		      B2j = DOT_PRODUCT(Bj,Bj)
 		   ELSE
-		      v2i = DOT_PRODUCT(veli,dr)**2	! energy along line
-		      v2j = DOT_PRODUCT(velj,dr)**2	! of sight		   
+		      B2i = DOT_PRODUCT(Bi,Bi) - DOT_PRODUCT(Bi,dr)**2 ! across 
+		      B2j = DOT_PRODUCT(Bj,Bj) - DOT_PRODUCT(Bj,dr)**2 ! los
 		   ENDIF
-		   B2i = (DOT_PRODUCT(Bi,Bi) - DOT_PRODUCT(Bi,dr)**2)	!  "   " 
-		   B2j = (DOT_PRODUCT(Bj,Bj) - DOT_PRODUCT(Bj,dr)**2)
-   		   enj = udiss_frac*uu(j) + 0.5*v2j + Bdiss_frac*0.5*B2j*rhoav1
-		   eni = udiss_frac*uu(i) + 0.5*v2i + Bdiss_frac*0.5*B2i*rhoav1
+		   IF (iav.EQ.3) THEN
+		   v2i = DOT_PRODUCT(veli,veli)
+		   v2j = DOT_PRODUCT(velj,velj)		   
+		   ELSE
+		   v2i = DOT_PRODUCT(veli,dr)**2 ! energy along line
+		   v2j = DOT_PRODUCT(velj,dr)**2 ! of sight	
+   		   ENDIF
+		   enj = udiss_frac*uu(j) + 0.5*v2j !+ Bdiss_frac*0.5*B2j*rhoav1
+		   eni = udiss_frac*uu(i) + 0.5*v2i !+ Bdiss_frac*0.5*B2i*rhoav1
 		   ediffB = Bdiss_frac*0.5*rhoav1*(B2i-B2j)
 		   ediff = eni - enj 
 		   qdiff = 0.
 		   SELECT CASE(iav)
-		   CASE(1)
-		       IF (dvdotr.lt.0.) THEN
-		          qdiff = -avterm*ediff*grkern
+		   CASE(1,2,3)
+		       IF (dvdotr.le.0.) THEN
+		          qdiff = -(avterm*ediff + avtermB*ediffB)*grkern 
 		       ELSE! this is just the MHD bits if applying Bvisc everywhere
-		          qdiff = 0.	!-avterm*ediffB*grkern
+		          qdiff = -avtermB*ediffB*grkern
 		       ENDIF	  		   
-		   CASE(2) !! applied everywhere
-		       qdiff = -avterm*ediff*grkern		   
-		   CASE(3)
+		   !CASE(2) !! applied everywhere
+		   !    qdiff = -avterm*ediff*grkern		   
+		   CASE(4)
 		       qdiff = -0.5*alphaav*vsig*ediff
 		   END SELECT
 
@@ -743,12 +776,15 @@ SUBROUTINE get_rates
     ENDDO loop_over_cell_particles
             
  ENDDO loop_over_cells
+ 
+666 CONTINUE
 !
 !--calculate gravitational force on all the particles
 !
  IF (igravity.NE.0) CALL direct_sum_poisson( &
                      x(:,1:npart),pmass(1:npart),poten,fgrav(:,1:npart),npart)
 
+ IF (trace) WRITE(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
  dtforce = 1.e6
  dtcourant2 = 1.e6
@@ -771,7 +807,7 @@ SUBROUTINE get_rates
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
-    IF (igeom.NE.0) force(:,i) = force(:,i) + sourceterms(:,i)
+    IF (igeom.NE.0 .AND. ALLOCATED(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
 !
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)
@@ -829,13 +865,17 @@ SUBROUTINE get_rates
              source = MAX(drhodt(i)*rho1i,abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v	 
 	  ELSE          
 	     source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
-          ENDIF
+             !sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i**3)
+	     !sourcedivB = abs(divB(i))*SQRT(rho1i)
+	     !source = MAX(sourceJ,sourcedivB)
+	  ENDIF
        ENDIF
        valfven2i = 0.
        IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
        vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
        tdecay1 = (avconst*vsig)/hh(i)	! 1/decay time (use vsig)
        daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
+!!       dalBdt(i) = (alphamin - alpha(i))*tdecay1 + sourceB
     ELSE
        daldt(i) = 0.
     ENDIF
@@ -845,7 +885,7 @@ SUBROUTINE get_rates
     SELECT CASE(idivBzero)
        CASE(2:7)
           valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
-          vsig = spsound(i)**2. + valfven2i 	! approximate vsig only
+          vsig = 0.8*min(spsound(i)**2,valfven2i) 	! approximate vsig only
           dpsidt(i) = -vsig*divB(i) - psidecayfact*psi(i)*SQRT(vsig)/hh(i)          
        CASE DEFAULT
           dpsidt(i) = 0.
@@ -855,14 +895,32 @@ SUBROUTINE get_rates
 !--calculate timestep constraint from the forces
 !  dtforce is returned together with dtcourant to the main timestepping loop
 !
- IF (fhmax.LE.0.) THEN
+ IF (fhmax.LT.0.) THEN
     WRITE(iprint,*) 'rates: fhmax <=0 :',fhmax
     CALL quit
+ ELSEIF (fhmax.GT.0.) THEN
+    IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)    
+ ELSE
+    dtforce = 1.e6
  ENDIF    
- IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
  !!print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
  !!dtcourant = 0.2*dtcourant2
-     
+!
+!--set rates to zero on ghosts
+!
+ DO i=npart+1,ntotal	! using ntotal just makes sure they are zero for ghosts
+  force(:,i) = 0.0
+  drhodt(i) = 0.0
+  dudt(i) = 0.0
+  dendt(i) = 0.0
+  dBconsdt(:,i) = 0.0
+  dpsidt(i) = 0.0
+  fmag(:,i) = 0.0
+  divB(i) = 0.0
+  curlB(:,i) = 0.0
+  xsphterm(:,i) = 0.0
+ ENDDO
+
  IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
  IF (ALLOCATED(phi)) DEALLOCATE(phi)
  IF (trace) WRITE(iprint,*) ' Exiting subroutine get_rates'
