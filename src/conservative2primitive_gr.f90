@@ -104,12 +104,11 @@ subroutine conservative2primitive
   if (any(ibound.gt.1)) then
      do i=npart+1,ntotal
         j = ireal(i)
-        dens(i) = dens(j)
-        vel(:,i) = vel(:,j)
-        uu(i) = uu(j)
-        spsound(i) = spsound(j)
-        pr(i) = pr(j)
-        Bfield(:,i) = Bfield(:,j)
+        call copy_particle(i,j)
+        where(ibound.eq.2)
+           pmom(:,i) = -pmom(:,j)
+           vel(:,i) = -vel(:,j)
+        end where
      enddo
   endif
  
