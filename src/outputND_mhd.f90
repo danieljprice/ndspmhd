@@ -39,7 +39,7 @@ SUBROUTINE output(t,nstep)
 !--write timestep to log file
 !      
  WRITE (iprint,10) t,abs(nstep),npart,ntotal-npart
-10 FORMAT('| time = ',f7.3,' | timesteps = ',i8,' | npart = ',i7,	&
+10 FORMAT('| time = ',f7.3,' | timesteps = ',i8,' | npart = ',i7,        &
              ' | nghost = ',i5,' |')
 !
 !--write header line to this data block in data file
@@ -87,9 +87,9 @@ SUBROUTINE output(t,nstep)
  ierr(2) = flush(ievfile)
  ierr(3) = flush(iprint)
  IF ( ANY(ierr.NE.0) ) WRITE(*,*) 'Error flushing files, see Makefile ',ierr 
-  			  
-30    FORMAT (25(1pe21.14,1x),:)	! make sure the format statement has >/=	
-				! max number of columns in the write statement
+                            
+30    FORMAT (25(1pe21.14,1x),:)        ! make sure the format statement has >/=        
+                                ! max number of columns in the write statement
 
  RETURN
 END SUBROUTINE output

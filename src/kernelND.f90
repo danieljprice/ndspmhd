@@ -529,11 +529,11 @@ SUBROUTINE setkern
        elseif(q.lt.1.) then
           wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + A*(1.-q)**3)
           grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + A*(1.-q)**2)
-          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q))      	  
+          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q))                
        else
           wijaniso(i) = cnormkaniso*wij(i)
           grwijaniso(i) = cnormkaniso*grwij(i)
-	  grgrwijaniso(i) = cnormkaniso*grgrwij(i)
+          grgrwijaniso(i) = cnormkaniso*grgrwij(i)
        endif
 
     ENDDO

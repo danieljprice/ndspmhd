@@ -64,7 +64,7 @@ SUBROUTINE density
 !
 !--Loop over all the link-list cells
 !
- loop_over_cells: DO icell=1,ncellsloop              ! step through all cells
+ loop_over_cells: DO icell=1,ncellsloop   ! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
@@ -123,13 +123,13 @@ SUBROUTINE density
 !  (using average h)
               hav = 0.5*(hi + hj)
               hav1 = 1./hav
-	      hfacwab = hav1**ndim
+              hfacwab = hav1**ndim
               q2 = rij2*hav1*hav1
               CALL interpolate_kernel(q2,wab,grkern)
               wab = wab*hfacwab
               grkern = grkern*hfacwab*hav1
-	      wabi = wab
-	      wabj = wab
+              wabi = wab
+              wabj = wab
            ELSE
               !
               !--calculate both kernels if using the anticlumping term
@@ -174,10 +174,10 @@ SUBROUTINE density
                  grkernj = grkernj*hfacwabj*hj1
                  !  (calculate average)                
                  if (ikernav.eq.2) then
-		    wab = 0.5*(wabi + wabj)
-		    wabi = wab
-		    wabj = wab
-		 endif
+                    wab = 0.5*(wabi + wabj)
+                    wabi = wab
+                    wabj = wab
+                 endif
                  !
                  !--derivative w.r.t. h for grad h correction terms (and dhdrho)
                  !              
@@ -192,8 +192,8 @@ SUBROUTINE density
 !
            rho(i) = rho(i) + pmass(j)*wabi*weight
            rho(j) = rho(j) + pmass(i)*wabj*weight
-	   
-	   IF (ikernav.EQ.3) THEN
+           
+           IF (ikernav.EQ.3) THEN
 !
 !--correction term for variable smoothing lengths
 !  this is the small bit that should be 1-gradh

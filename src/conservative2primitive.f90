@@ -51,7 +51,7 @@ subroutine conservative2primitive
         endif
      enddo
      if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
-  else		 ! en = thermal energy
+  else                 ! en = thermal energy
      uu = en
   endif
 !
@@ -78,8 +78,8 @@ subroutine conservative2primitive
   if (any(ibound.eq.1)) then
      do i=1,npart
         if (itype(i).eq.1) then
-	   call copy_particle(i,ireal(i))
-	endif
+           call copy_particle(i,ireal(i))
+        endif
      enddo
   endif
   
@@ -123,8 +123,8 @@ subroutine primitive2conservative
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
-!     ikernav = 3		! consistent with h for first density evaluation
-     call iterate_density	! evaluate density by direct summation
+!     ikernav = 3                ! consistent with h for first density evaluation
+     call iterate_density        ! evaluate density by direct summation
      ikernav = iktemp  
      hh(1:ntotal) = hfact*(pmass(1:ntotal)/rho(1:ntotal))**hpower
      if (ihvar.le.0) then
@@ -152,7 +152,7 @@ subroutine primitive2conservative
         en(i) = uu(i) + 0.5*v2i + 0.5*B2i
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
-  else		! en = thermal energy
+  else                ! en = thermal energy
      en = uu
   endif
 !
