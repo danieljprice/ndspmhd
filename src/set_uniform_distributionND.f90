@@ -13,7 +13,7 @@ contains
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
+subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
 !
 !--include relevant global variables
 !
@@ -33,14 +33,15 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
  real, dimension(ndim), intent(inout) :: xmin, xmax
  real, intent(in) :: psep
  real, intent(in), optional :: perturb
- logical, intent(in), optional :: offset
+ logical, intent(in), optional :: offset,fill
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  integer :: idist
  real :: xstart,ystart,deltax,deltay
  real :: psepx,psepy
  real :: ran1,ampl
- real, dimension(ndim) :: xran
+ real, dimension(ndim) :: xran,xcentre,xlength
+ logical :: adjustdeltas
 !
 !--allow for tracing flow
 !
@@ -62,7 +63,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
 !
  case(2)
  
-    if (ndim.eq.3) stop 'close packed not implemented in 3d'
+    if (ndim.eq.3) stop 'close packed not implemented in 3D'
 !
 !--determine number of particles
 ! 
@@ -82,9 +83,10 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
 !
     print*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
     print*,' delta x,y initial  = ',deltax,deltay
-    deltax = (xmax(1)-xmin(1))/(float(npartx))
-    deltay = (xmax(2)-xmin(2))/(float(nparty))
-    print*,' delta x,y adjusted = ',deltax,deltay
+    adjustdeltas = .true.
+    if (present(fill)) then
+       adjustdeltas = fill
+    endif
 !
 !--or adjust the boundaries appropriately
 !
@@ -93,12 +95,27 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
 
     if (present(offset)) then
        if (offset) then
-          write(iprint,*) 'offset lattice'
-          xmin(1) = xmin(1) + 0.25*psep
-          xmax(1) = xmax(1) + 0.25*psep
-          xmin(2) = xmin(2) + 0.5*deltay
-          xmax(2) = xmax(2) + 0.5*deltay
+          xcentre(:) = 0.5*(xmin + xmax)
+          npartx = int((xmax(1)-xcentre(1))/deltax) &
+                 - int((xmin(1)-xcentre(1))/deltax) + 1
+          nparty = int((xmax(2)-xcentre(2))/deltay) &
+                 - int((xmin(2)-xcentre(2))/deltay) + 1
+          write(iprint,*) &
+           ' centred lattice : adjusting npartx,y = ',npartx,nparty
+          deltax = (xmax(1) - xmin(1))/npartx
+          deltay = (xmax(2) - xmin(2))/nparty
+          write(iprint,*) '                 : adjusting deltax = ',deltax
+          write(iprint,*) '                 : adjusting deltay = ',deltay
+          xmin(1) = xmin(1) - 0.25*deltax
+          xmax(1) = xmax(1) - 0.25*deltax
+
+          !!xmin(2) = xmin(2) - 0.5*deltay
+          !!xmax(2) = xmax(2) - 0.5*deltay
        endif
+    elseif (adjustdeltas) then
+       deltax = (xmax(1)-xmin(1))/(float(npartx))
+       deltay = (xmax(2)-xmin(2))/(float(nparty))
+       print*,' delta x,y adjusted = ',deltax,deltay    
     endif
 !
 !--allocate memory here
@@ -114,8 +131,8 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
     ipart = npartin
     do k=1,npartz
        do j=1,nparty
-          xstart = 0.25*psep
-          if (mod(j,2).eq.0) xstart = xstart + 0.5*psep
+          xstart = 0.25*deltax
+          if (mod(j,2).eq.0) xstart = xstart + 0.5*deltax
           do i = 1,npartx
              ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
@@ -304,7 +321,7 @@ end subroutine
 !     a uniform cube of particles and trims it to be spherical.
 !----------------------------------------------------------------
 
-subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
+subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
 !
 !--include relevant global variables
 !
@@ -321,11 +338,12 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  real, intent(in) :: rmax
  real, intent(in), optional :: rmin
  real, intent(in), optional :: perturb
+ real, intent(in), optional :: trim
  logical, intent(in), optional :: centred
 
  integer :: i,ierr,ntemp 
  integer, dimension(:), allocatable :: partlist
- real :: rad,radmin
+ real :: rad,radmin,radmax
  real, dimension(ndim) :: xmin,xmax
  real, dimension(:,:), allocatable :: xtemp
  logical :: offset
@@ -349,9 +367,9 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  endif
  
  if (present(perturb)) then
-    call set_uniform_cartesian(idist,psep,xmin,xmax,perturb=perturb,offset=offset)
+    call set_uniform_cartesian(idist,psep,xmin,xmax,fill=.true.,perturb=perturb,offset=offset)
  else
-    call set_uniform_cartesian(idist,psep,xmin,xmax,offset=offset) 
+    call set_uniform_cartesian(idist,psep,xmin,xmax,fill=.true.,offset=offset) 
  endif
 !
 !--construct list of particles with r < rmax
@@ -360,15 +378,24 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  if (ierr.ne.0) stop 'error allocating memory in uniform_spherical'
 
  if (present(rmin)) then
-    radmin = rmin
+    if (present(trim)) then
+       radmin = rmin + abs(trim)
+    else
+       radmin = rmin
+    endif
  else
     radmin = 0.
+ endif
+ if (present(trim)) then
+    radmax = rmax - abs(trim)
+ else
+    radmax = rmax
  endif
  
  ntemp = 0 ! actual number of particles to use
  do i=1,npart
     rad = sqrt(dot_product(x(:,i),x(:,i)))
-    if (rad.lt.rmax .and. rad.ge.radmin) then
+    if (rad.lt.radmax .and. rad.ge.radmin) then
        ntemp = ntemp + 1
        partlist(ntemp) = i
     endif   
