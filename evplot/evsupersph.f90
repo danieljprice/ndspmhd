@@ -330,7 +330,7 @@ program plotmeagraph
      enddo
   else
      do i=1,nplots
-        !
+	!
         !--setup plotting page
         !
         if (all(iplotx(1:nplots).eq.iplotx(1)).and.ndown.gt.1 ) then

@@ -81,6 +81,7 @@ END MODULE gravity
 
 MODULE hterms
  IMPLICIT NONE
+ INTEGER :: itsdensity
  REAL, DIMENSION(:), ALLOCATABLE :: gradh
 END MODULE
 

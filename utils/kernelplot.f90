@@ -14,17 +14,17 @@ program kernelplot
  logical :: samepage
  character(len=50) :: string
 
- data iplotorder /0, 6, 10, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
+ data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 2
+ nkernels = 8
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 0
  eps = 0.4
  neps = 2
  hfact = 1.5
- samepage = .true.
+ samepage = .false.
  trace = .true.
- nacross = 1
+ nacross = 2
  ndown = 1
  xmin = 0.0
  xmax = 3.2
@@ -64,6 +64,7 @@ program kernelplot
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
     else
        call pgsch(0.6)
+       if (mod(j,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
        call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
                       'r/h',' ',TRIM(kernelname),1,1)
@@ -105,9 +106,8 @@ program kernelplot
 !--plot stability separately
 !
  print*,'-------------- plotting kernel stability ------------------'
-    !!call pgsubp(nacross,ndown)   !--divide viewport into panels
     call pgsch(0.6)
-    call pgpage
+   !! call pgpage
     do j=1,nkernels
        ikernel = iplotorder(j)
        call setkern

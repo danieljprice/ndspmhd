@@ -2,22 +2,22 @@
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
 !!
-!! This subroutine is a midpoint predictor-corrector.
-!! Algorithm goes as follows:
+!! This subroutine is a slightly modified version of the 
+!! predictor-corrector scheme. Algorithm goes as follows:
 !!
 !! Predictor:
 !!
-!! v^1/2   = v^0 + dt/2*f^(-1/2)
-!! x^1/2   = x^0 + dt/2*v^{1/2}
-!! rho^1/2 = rho^0 + dt/2*drhodt^{-1/2}
+!! v^{1/2}   = v^0 + dt/2*f^(-1/2)
+!! x^{1/2}   = x^0 + dt/2*v^{1/2}   (note used updated v)
+!! rho^{1/2} = rho^0 + dt/2*drhodt^{-1/2}
 !!
-!!  --> calculate f^{1/2}, drhodt^{1/2} using x^1/2 and v^1/2
+!!  --> calculate f^{1/2}, drhodt^{1/2} using x^{1/2} and v^{1/2}
 !!
 !! Corrector:
 !!
-!! v^*   = v^0 + dt/2*f^{1/2} 
-!! x^*   = x^0 + dt/2*v^{1/2}
-!! rho^* = rho^0 + dt/2*drhodt^{1/2}
+!! v^*  = v^0 + dt/2*f^{1/2}
+!! x^*   = x^0 + dt/2*v^*          (note uses updated v)
+!! rho^* = rho^0 + dt/2*drhodt^*
 !!
 !! v^1   = 2*v^* - v^0     = v^0 + dt*f^{1/2}
 !! x^1   = 2*x^* - x^0     = x^0 + dt*v^*
@@ -96,11 +96,12 @@ SUBROUTINE step
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
-       ELSEIF (ihvar.EQ.2) THEN
+       ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
@@ -168,8 +169,7 @@ SUBROUTINE step
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-
-       IF (ihvar.EQ.2) THEN
+       IF (ihvar.EQ.2 .OR. (ihvar.EQ.3 .and. itsdensity.eq.0)) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
 	  IF (hh(i).LE.0.) THEN
 	     WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
@@ -262,7 +262,7 @@ SUBROUTINE step
        ENDIF
        IF (ihvar.EQ.1) THEN		! Joe's version
           hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
-       ELSEIF (ihvar.EQ.2) THEN
+       ELSEIF (ihvar.EQ.2 .or. (ihvar.eq.3 .and. itsdensity.eq.0)) THEN
           hhin(i) = 2.*hh(i) - hhin(i)
           hh(i) = hhin(i)
           IF (hh(i).LE.0.) THEN
