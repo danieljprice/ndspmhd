@@ -39,7 +39,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
  integer :: idist
  real :: xstart,ystart,deltax,deltay
  real :: psepx,psepy
- real :: ran1,ampl
+ real :: ran1,ampl,xx,yy,rr2
  real, dimension(ndim) :: xran
 !
 !--allow for tracing flow
@@ -222,6 +222,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
     else
        npartz = 1    
     endif
+!    if (offset) then
+!       npartx = npartx + 1
+!       if (ndim.ge.2) nparty = nparty + 1
+!       if (ndim.ge.3) npartz = npartz + 1
+!    endif
 !
 !--allocate memory here
 !
@@ -230,11 +235,12 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
     npart = npartin + ntot   ! add to particles already setup
     write(iprint,*) 'cubic lattice, adding ',ntot,', npart = ',npart,npartx,nparty,npartz
     write(iprint,*) 'xmin = ',xmin, ' xmax = ',xmax
+    write(iprint,*) 'psep = ',psep
     call alloc(npart)
-
+    
     do k=1,npartz
-       do j=1,nparty
-          do i = 1,npartx
+       do i=1,npartx
+          do j = 1,nparty
              ipart = ipart + 1   !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
              if (ndim.ge.2) then
@@ -247,8 +253,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
          enddo
        enddo
     enddo
- end select
- 
+ end select 
 !
 !--if idist > 10 apply a small random perturbation to the particle positions
 ! 
@@ -288,7 +293,7 @@ end subroutine
 !     a uniform cube of particles and trims it to be spherical.
 !----------------------------------------------------------------
 
-subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
+subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
 !
 !--include relevant global variables
 !
@@ -305,11 +310,14 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
  real, intent(in) :: rmax
  real, intent(in), optional :: rmin
  real, intent(in), optional :: perturb
+ logical, intent(in), optional :: centred
 
  integer :: i,ierr,ntemp 
  integer, dimension(:), allocatable :: partlist
  real :: rad,radmin
  real, dimension(ndim) :: xmin,xmax
+ real, dimension(:,:), allocatable :: xtemp
+ logical :: offset
 !
 !--allow for tracing flow
 !
@@ -323,10 +331,16 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
 !
  xmin(:) = -rmax
  xmax(:) = rmax
- if (present(perturb)) then
-    call set_uniform_cartesian(idist,psep,xmin,xmax,perturb=perturb)
+ if (present(centred)) then
+    offset = centred
  else
-    call set_uniform_cartesian(idist,psep,xmin,xmax) 
+    offset = .false.
+ endif
+ 
+ if (present(perturb)) then
+    call set_uniform_cartesian(idist,psep,xmin,xmax,perturb=perturb,offset=offset)
+ else
+    call set_uniform_cartesian(idist,psep,xmin,xmax,offset=offset) 
  endif
 !
 !--construct list of particles with r < rmax
@@ -343,7 +357,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
  ntemp = 0 ! actual number of particles to use
  do i=1,npart
     rad = sqrt(dot_product(x(:,i),x(:,i)))
-    if (rad.le.(rmax - 0.5*hfact*psep) .and. rad.ge.radmin) then
+    if (rad**2.lt.(rmax - 0.5*psep) .and. rad.ge.radmin) then
        ntemp = ntemp + 1
        partlist(ntemp) = i
     endif   
@@ -353,7 +367,13 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
 !
  npart = ntemp
  ntotal = npart
- x(:,1:npart) = x(:,partlist(1:npart))
+ if (allocated(xtemp)) deallocate(xtemp)
+ allocate(xtemp(ndim,npart))
+ 
+ xtemp(:,1:npart) = x(:,partlist(1:npart))
+ x(:,1:npart) = xtemp(:,1:npart)
+ deallocate(xtemp)
+ 
 !
 !--reallocate memory to new size of list
 !
