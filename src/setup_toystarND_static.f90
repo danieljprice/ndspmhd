@@ -27,13 +27,14 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j,igeomsetup
+ integer :: i,j
  real :: rmax,totmass,totvol
  real :: denszero,uuzero,massp,denscentre
  real, dimension(ndim) :: xnew
+ logical :: iuserings
 
  write(iprint,*) 'uniform spherical distribution (for toy star)'
- igeomsetup = 2
+ iuserings = .false.
 !
 !--set bounds of initial setup
 !                   
@@ -50,7 +51,7 @@ subroutine setup
 !
 !--setup a uniform sphere of particles
 ! 
- if (igeomsetup.eq.2) then
+ if (iuserings) then
     xmin(1) = 2.*psep
     xmax(1) = 1.0
     if (ndim.ge.2) then 
@@ -99,3 +100,9 @@ subroutine setup
  
  return
 end subroutine setup
+
+subroutine modify_dump
+ implicit none
+
+ return
+end subroutine modify_dump

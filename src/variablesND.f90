@@ -214,6 +214,7 @@ END MODULE rates
 MODULE setup_params
  USE dimen_mhd
  IMPLICIT NONE
+ INTEGER :: igeomsetup
  REAL, PARAMETER :: pi = 3.1415926536
  REAL :: psep,hfact
 END MODULE setup_params

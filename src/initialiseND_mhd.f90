@@ -25,6 +25,7 @@ SUBROUTINE initialise
  
  USE infiles, only:read_infile
  USE dumpfiles, only:read_dump
+ USE convert, only:convert_setup
 !
 !--define local variables
 !      
@@ -150,6 +151,12 @@ SUBROUTINE initialise
  else
     call read_dump(trim(dumpfile),time)      ! or read from dumpfile
  endif
+!
+!--change coordinate systems if necessary
+!
+ if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
+ if (ifile.gt.0) call modify_dump
+ 
  call check_setup       ! check for errors in the particle setup
 !
 !--setup additional quantities that are not done in setup
