@@ -29,22 +29,32 @@ F90FLAGS = -O	##4 -cg92 -lm -C -xtypemap=real:64,double:64,integer:32
 %.o : %.f90
 	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
-
-SOURCES= multirun.f90 int_from_string.f90
-
-SOURCESCODE = ../src/dimen1D.f90\
-	 ../src/variablesND.f90 \
-	 ../src/defaults.f90 \
-	 ../src/read_infile_mhd.f90 \
-	 ../src/write_infile_mhd.f90 	 
+SOURCES= multirun.f90
  
-OBJECTS = $(SOURCES:.f90=.o) dimen1D.o variablesND.o defaults.o read_infile_mhd.o write_infile_mhd.o
+OBJECTS = dimen1D.o variablesND.o defaults.o \
+          read_infile_mhd.o write_infile_mhd.o int_from_string.o \
+	  $(SOURCES:.f90=.o)
 
 multirun: $(OBJECTS)	
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
-initial: $(SOURCESCODE)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -c $(SOURCESCODE)
+dimen1D.o :
+	$(F90C) -c $(F90FLAGS) ../src/dimen1D.f90 -o $@
+
+variablesND.o :
+	$(F90C) -c $(F90FLAGS) ../src/variablesND.f90 -o $@
+
+defaults.o :
+	$(F90C) -c $(F90FLAGS) ../src/defaults.f90 -o $@
+
+read_infile_mhd.o :
+	$(F90C) -c $(F90FLAGS) ../src/read_infile_mhd.f90 -o $@
+
+write_infile_mhd.o :
+	$(F90C) -c $(F90FLAGS) ../src/write_infile_mhd.f90 -o $@
+
+int_from_string.o :
+	$(F90C) -c $(F90FLAGS) ../plot/int_from_string.f90 -o $@
 
 clean:
 	rm *.o *.mod
