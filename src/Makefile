@@ -41,10 +41,11 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90	 
 
-SETUP2D = setup_orszagtang2D_mhd.f90
+#SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_blast2D_mhd.f90
 #SETUP2D = setup_polytropeND.f90
+SETUP2D = setup_rotor2D_mhd.f90
 
 SETUP25D = setup_alfvenwaveND.f90
 

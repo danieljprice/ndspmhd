@@ -7,8 +7,6 @@
 !!     2D, lattice can be close packed or cubic                           !!
 !!     1D, all setups are the same                                        !!
 !!                                                                        !!
-!! Changes log:
-!! v3.6: default works in 1, 2 and 3D
 !!------------------------------------------------------------------------!!
 
 SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
@@ -79,12 +77,13 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     ntotal = ntot
 
     ystart = 0.5*deltay		!psepy
+    ipart = 0
     DO k=1,npartz
        DO j=1,2*nparty
           xstart = 0.25*deltax
           IF (MOD(j,2).EQ.0) xstart = xstart + 0.5*deltax
           DO i = 1,npartx
-             ipart = (k-1)*nparty + (j-1)*npartx + i
+             ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
              xin(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              IF (ndim.GE.2) xin(2,ipart) = xmin(2) + (j-1)*deltay + ystart
           ENDDO
@@ -153,10 +152,11 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     npart = ntot
     ntotal = ntot
 
+    ipart = 0
     DO k=1,npartz
        DO j=1,nparty
           DO i = 1,npartx
-             ipart = (k-1)*nparty + (j-1)*npartx + i
+             ipart = ipart + 1	!(k-1)*nparty + (j-1)*npartx + i
              xin(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
              IF (ndim.GE.2) THEN
 	        xin(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
