@@ -5,18 +5,21 @@
 !
 program plotmeagraph
   implicit none
-  integer maxstep,ncol,maxcol
-  parameter (maxstep=100000)
-  parameter (maxcol=21)	! (6)21 (non)MHD	maximum number of columns
-  integer nstep,npart,i,j
+  integer :: ncol
+  integer, parameter :: maxfile=8
+  integer, parameter :: maxstep=100000
+  integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
+  integer nstep,npart,i,j,iprev,nfiles,ifile,ifilesteps
   integer mysteps,ipick,ipickx
   integer iplotx(maxcol),iploty(maxcol), nplots
   integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
-  real evdata(maxstep,maxcol),evplot(maxstep)
+  integer nstepsfile(maxfile)
+  real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real lim(maxcol,2),time(maxstep),ekin(maxstep)
-  character*20 rootname,filename
-  character*24 title,label(maxcol),dummy
-  character*40 labely
+  character*20, dimension(maxfile) :: rootname
+  character*23 :: filename
+  character*24 :: title,label(maxcol),dummy
+  character*40 :: labely
   character*1 ans
   logical icycle
   print*,' Welcome to Dan''s supersphplotev 2003... '
@@ -25,31 +28,66 @@ program plotmeagraph
   ncol = 21
   icycle = .false.
   !
-  !--get filename
+  !--get filename(s)
   !
-  call getarg(1,rootname)
-
-  if (rootname(1:1).eq.' ') then
-     print*,' Enter filename : '
-     read*,rootname
+  iprev = 1
+  i = 1
+  do while (rootname(iprev)(1:1).ne.' ' .and. i.le.maxfile)
+     call getarg(i,rootname(i))
+     !print*,i,rootname(i)
+     iprev = i
+     i = i + 1
+     if (i.gt.maxfile .and. rootname(iprev)(1:1).ne.' ') then
+        print*,'WARNING: number of files >= array size: setting nfiles = ',maxfile
+        !print*,'press return to continue'
+        !read*
+     endif
+  enddo
+  if (i.gt.maxfile .and. rootname(maxfile)(1:1).ne.' ') then
+     nfiles = maxfile
+  else
+     nfiles = iprev - 1
   endif
+  print*,'number of files = ',nfiles
 
-  filename = trim(rootname)//'.ev'
-  print*,' opening ',filename
-10 continue	
-
-  !      print*,'Enter rootname:'
-  !      read*,rootname 
-
-  print*,'reading evolution file'    	  
-  call readev(mysteps,evdata(1:mysteps,1:ncol),ncol,filename)
-  !
-  !--set plot limits
-  !
+  if (rootname(1)(1:1).eq.' ') then
+     nfiles = 1
+     print*,' Enter filename : '
+     read*,rootname(1)
+  endif
+!
+!--read data from all files
+!  
+  do ifile=1,nfiles
+     if (index(rootname(ifile),'.ev').eq.0) then
+        filename = trim(rootname(ifile))//'.ev'
+     else
+        filename = trim(rootname(ifile))
+     endif
+     print*,' opening ',filename
+     ifilesteps = maxstep
+     mysteps = 0
+     call readev(ifilesteps,evdata(1:ifilesteps,1:ncol,ifile),ncol,filename)
+     mysteps = max(mysteps,ifilesteps)
+     nstepsfile(ifile) = ifilesteps
+     !
+     !--pad array
+     !
+     !if (ifilesteps.lt.mysteps) then
+     !   evdata(ifilesteps+1:mysteps,1:ncol,ifile) = 0.
+     !endif
+  enddo
+!
+!--set plot limits
+!
   print*,'setting plot limits'
   do i=1,ncol
-     lim(i,1) = minval(evdata(1:mysteps,i))
-     lim(i,2) = maxval(evdata(1:mysteps,i))
+     lim(i,1) = 1.e12
+     lim(i,2) = -1.e12
+     do ifile = 1,nfiles
+        lim(i,1) = min(lim(i,1),minval(evdata(1:nstepsfile(ifile),i,ifile)))
+        lim(i,2) = max(lim(i,2),maxval(evdata(1:nstepsfile(ifile),i,ifile)))
+     enddo
      if (lim(i,1).eq.lim(i,2)) then
         lim(i,2) = lim(i,2)*1.05 
         lim(i,1) = lim(i,1) - 0.05*lim(i,2)
@@ -70,24 +108,27 @@ program plotmeagraph
   label(4) = 'E_magnetic     '
   label(5) = 'E_total        '
   label(6) = 'Linear momentum'
-  label(7) = 'Total flux     '
-  label(8) = 'Cross helicity '
-  label(9) = 'Plasma beta (min)'
-  label(10) = 'Plasma beta (ave)'
-  label(11) = 'Plasma beta (max)'
-  label(12) = 'div B (average)  '
-  label(13) = 'div B (maximum)  '
-  label(14) = 'int (div B) dV   '
-  label(15) = 'Fmag dot B/|Fmag| (av)'
-  label(16) = 'Fmag dot B/|Fmag| (max)'
-  label(17) = 'Fmag dot B/|force| (av)'
-  label(18) = 'Fmag dot B/|force| (max)'            
-  label(19) = 'omega_mhd (average)'
-  label(20) = 'omega_mhd (max) '
-  label(21) = '% particles with omega < 0.01 '
 
-  title = 'SPH tests'
+  if (ncol.gt.6) then
+     label(7) = 'Total flux     '
+     label(8) = 'Cross helicity '
+     label(9) = 'Plasma beta (min)'
+     label(10) = 'Plasma beta (ave)'
+     label(11) = 'Plasma beta (max)'
+     label(12) = 'div B (average)  '
+     label(13) = 'div B (maximum)  '
+     label(14) = 'int (div B) dV   '
+     label(15) = 'Fmag dot B/|Fmag| (av)'
+     label(16) = 'Fmag dot B/|Fmag| (max)'
+     label(17) = 'Fmag dot B/|force| (av)'
+     label(18) = 'Fmag dot B/|force| (max)'            
+     label(19) = 'omega_mhd (average)'
+     label(20) = 'omega_mhd (max) '
+     label(21) = '% particles with omega < 0.01 '
+  endif
 
+  title = ' '
+  
   print*,' You may choose from a delectable sample of plots '
   print 12
   do i=1,ncol
@@ -138,15 +179,16 @@ program plotmeagraph
      multiplotx(1:nplotsmulti) = ipickx
      goto 200
   elseif (ipick.eq.ncol+3) then
+     nfiles = 1
      print*,'Enter new rootname:'
-     read*,rootname 
-     filename = trim(rootname)//'.ev'
+     read*,rootname(1)
+     filename = trim(rootname(1))//'.ev'
      print*,'reading evolution file ',filename    	  
-     call readev(mysteps,evdata(1:mysteps,1:ncol),ncol,filename)
+     call readev(mysteps,evdata(1:mysteps,1:ncol,1),ncol,filename)
      print*,'setting plot limits'
      do i=1,ncol
-        lim(i,1) = minval(evdata(1:mysteps,i))
-        lim(i,2) = maxval(evdata(1:mysteps,i))*1.05
+        lim(i,1) = minval(evdata(1:mysteps,i,1))
+        lim(i,2) = maxval(evdata(1:mysteps,i,1))*1.05
      enddo
      lim(1,1) = 0.0
      goto 200
@@ -161,17 +203,19 @@ program plotmeagraph
      goto 200	  
   endif
 ! ------------------------------------------------------------------------
-! compute delta x/x if required
+! compute delta x/x (single files only)
 
-  evplot(1:2) = 0.
-  do i=2,mysteps
-     if (evdata(i,iploty(1)).ne.0.0) then
-        evplot(i) = abs(evdata(i,iploty(1))-evdata(i-1,iploty(1)))  &
-       	              /evdata(i,iploty(1))
-     else
-        evplot(i) = 0.0
-     endif
-  enddo
+  if (nfiles.eq.1) then
+     evplot(1:2) = 0.
+     do i=2,mysteps
+        if (evdata(i,iploty(1),1).ne.0.0) then
+           evplot(i) = abs(evdata(i,iploty(1),1)-evdata(i-1,iploty(1),1))  &
+                /evdata(i,iploty(1),1)
+        else
+           evplot(i) = 0.0
+        endif
+     enddo
+  endif
 
 ! ------------------------------------------------------------------------
 ! initialise PGPLOT
@@ -230,8 +274,12 @@ program plotmeagraph
         !
         !--draw the line
         !
-        call PGLINE(mysteps,evdata(1:mysteps,iplotx(i)), &
-             evdata(1:mysteps,iploty(i)))
+        do ifile=1,nfiles
+           !call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
+           call PGSCI(ifile) ! or change line colour between plots
+           call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+                evdata(1:nstepsfile(ifile),iploty(i),ifile))
+        enddo
 
      enddo
   endif
@@ -242,13 +290,23 @@ program plotmeagraph
   if (icycle) then
      do while(ans.ne.'q')
         mysteps = maxstep  
-        print*,'reading file ',filename
-        call readev(mysteps,evdata(1:mysteps,1:ncol),ncol,filename)
-        
+        do ifile=1,nfiles 
+           if (index(rootname(ifile),'.ev').eq.0) then
+              filename = trim(rootname(ifile))//'.ev'
+           else
+              filename = trim(rootname(ifile))
+           endif
+           print*,'reading file ',filename
+           call readev(nstepsfile(ifile),evdata(1:nstepsfile(ifile),1:ncol,ifile),ncol,filename)
+        enddo
+
         do i=1,nplots
            call PGPANL(1,i)
-           call PGLINE(mysteps,evdata(1:mysteps,iplotx(i)), &
-                evdata(1:mysteps,iploty(i)))    
+           do ifile=1,nfiles
+              call PGSLS(MOD(ifile-1,5)+1)
+              call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+                   evdata(1:nstepsfile(ifile),iploty(i),ifile))
+           enddo
         enddo
         
         print*,'type q to quit, any to update'    	
@@ -258,13 +316,13 @@ program plotmeagraph
 !
 !--plot error between timesteps
 !	    
-  if (nplots.eq.1) then
+  if (nplots.eq.1 .and. nfiles.eq.1) then
      call PGENV(lim(iplotx(1),1),lim(iplotx(1),2), &
           minval(evplot),maxval(evplot),0,1)
      labely = '| delta '//TRIM(label(iploty(1)))//'|/'//label(iploty(1))
      call PGLABEL(label(iplotx(1)),labely, title)
      
-     call PGLINE(mysteps-1,evdata(2:mysteps,iplotx(1)),evplot(2:mysteps))    	    
+     call PGLINE(mysteps-1,evdata(2:mysteps,iplotx(1),1),evplot(2:mysteps))    	    
      
   endif
   call PGEND
@@ -278,7 +336,8 @@ end program plotmeagraph
 subroutine readev(nsteps,evdata,ncols,rootname)
   implicit none
   integer i,j
-  integer :: nsteps,ncols
+  integer, intent(in) :: ncols
+  integer, intent(inout) :: nsteps
   real, dimension(nsteps,ncols), intent(out) :: evdata
   character*20, intent(in) :: rootname
   character evname*20
@@ -297,10 +356,11 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   enddo
   close(unit=11)
   
+  print*,' WARNING: number of steps > array limits'
   goto 99 
 98 continue
   close(unit=11)
-  print*,'>> end of file'
+  write(*,"(a)",advance="no") '>> end of file:'
   if (i.gt.1) then
      print*,' t=',evdata(i-1,1),' nsteps = ',i-1 
   else
