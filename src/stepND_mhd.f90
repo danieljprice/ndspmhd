@@ -46,7 +46,7 @@ SUBROUTINE step
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
-       rho(i) = rhoin(i)
+       IF (icty.GE.1) rho(i) = rhoin(i)
        Bcons(:,i) = Bconsin(:,i)	     
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
@@ -114,7 +114,7 @@ SUBROUTINE step
  DO i=1,npart
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
-       rho(i) = rhoin(i)
+       IF (icty.GE.1) rho(i) = rhoin(i)
        Bcons(:,i) = Bconsin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
@@ -251,7 +251,7 @@ SUBROUTINE step
 !
 !--set new timestep from courant/forces condition
 !
- dt = min(dtforce,dtcourant)
+ dt = min(C_force*dtforce,C_cour*dtcourant)
  
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
