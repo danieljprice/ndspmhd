@@ -17,6 +17,7 @@ subroutine setup
  use options
  use part
  use setup_params
+ use timestep  ! uses tmax for moving boundaries
  implicit none
  integer :: i,j
  real :: densleft,densright,prleft,prright
@@ -115,15 +116,26 @@ subroutine setup
  else
     ibound(1) = 2		! reflecting in x
  endif
- ibound(2:ndim) = 3	! periodic in yz
+ if (ndim.ge.2) ibound(2:ndim) = 3	! periodic in yz
  nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
- boxlength = 2.0
- sidelength(1) = 128.	! relative dimensions of boundaries
+ boxlength = 1.0
+ sidelength(1) = 512.	! relative dimensions of boundaries
  sidelength(2:ndim) = 6.
- xmin(1) = -1.0
+ xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
- xmin(2:ndim) = -0.5*boxlength*sidelength(2:ndim)/sidelength(1)
- xmax(2:ndim) = abs(xmin(2:ndim))
+ if (ndim.ge.2) then
+    xmin(2:ndim) = 0.0   !-0.5*boxlength*sidelength(2:ndim)/sidelength(1)
+    xmax(2:ndim) = xmin(2:ndim) + 6.*psep !!!abs(xmin(2:ndim))
+ endif
+!
+!--extend boundaries if inflow
+!
+ if (vxleft.gt.0.) then
+    xmin(1) = xmin(1) - vxleft*tmax
+ endif
+ if (vxright.lt.0.) then
+    xmax(1) = xmax(1) - vxright*tmax
+ endif
  
  xshock = (xmax(1) + xmin(1))/2.0
 
@@ -221,6 +233,7 @@ subroutine setup
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif       
     pmass(i) = massp    
+    Bfield(1,i) = Bxinit
  enddo
  
  return
