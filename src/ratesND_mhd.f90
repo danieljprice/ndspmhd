@@ -358,7 +358,7 @@ SUBROUTINE get_rates
 !--calculate maximum signal velocity (this is used for the timestep control
 !  and also in the artificial viscosity)
 !
-		IF (dvdotr.LT.0.) THEN
+		IF (dvdotr.LT.0 .OR. iav.EQ.2) THEN
 		   vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
 		   !vunit = dr
 		   viss = abs(dvdotr)		    
@@ -402,7 +402,7 @@ SUBROUTINE get_rates
 !		vsigdtc is the signal velocity used in the timestep control
                 vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
 
-		IF (dvdotr.LT.0. .AND. iav.NE.0) THEN	! only for approaching particles
+		IF ((dvdotr.LT.0. .AND.iav.NE.0) .OR. iav.EQ.2) THEN	! only for approaching particles
                    IF (iav.EQ.1) THEN
 		   avterm = 0.5*alphaav*vsig*rhoav1
 !--viscosity (kinetic energy term)
@@ -483,6 +483,11 @@ SUBROUTINE get_rates
 		             - pmassj*(prterm*dr(:)-visc*dvel(:))
 		  force(:,j) = force(:,j)	&
 		             + pmassi*(prterm*dr(:)-visc*dvel(:)) 
+!		ELSEIF (ndimV.GT.ndim) THEN
+!		  force(:,i) = force(:,i)	&
+!		             - pmassj*(prterm*dr(:)-visc*vunit(:))
+!		  force(:,j) = force(:,j)	&
+!		             + pmassi*(prterm*dr(:)-visc*vunit(:)) 
 		ELSE
 		  force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
 		  force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
@@ -686,15 +691,19 @@ SUBROUTINE get_rates
 		   eni = udiss_frac*uu(i) + 0.5*v2i + Bdiss_frac*0.5*B2i*rhoav1
 		   ediffB = Bdiss_frac*0.5*rhoav1*(B2i-B2j)
 		   ediff = eni - enj 
-		   IF (dvdotr.LT.0) THEN ! bug was in line below
-		    IF (iav.EQ.1 .OR. iav.EQ.2) THEN
-		       qdiff = -avterm*ediff*grkern
-		    ELSEIF (iav.EQ.3) THEN
+		   qdiff = 0.
+		   SELECT CASE(iav)
+		   CASE(1)
+		       IF (dvdotr.lt.0.) THEN
+		          qdiff = -avterm*ediff*grkern
+		       ELSE! this is just the MHD bits if applying Bvisc everywhere
+		          qdiff = 0.	!-avterm*ediffB*grkern
+		       ENDIF	  		   
+		   CASE(2) !! applied everywhere
+		       qdiff = -avterm*ediff*grkern		   
+		   CASE(3)
 		       qdiff = -0.5*alphaav*vsig*ediff
-		    ENDIF
-		   ELSE	! this is just the MHD bits if applying Bvisc everywhere
-		   qdiff = -avterm*ediffB*grkern
-		   ENDIF
+		   END SELECT
 
 		   dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi+qdiff)
 		   dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj+qdiff)     		
@@ -851,7 +860,7 @@ SUBROUTINE get_rates
     CALL quit
  ENDIF    
  IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
- print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
+ !!print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
  !!dtcourant = 0.2*dtcourant2
      
  IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
