@@ -38,7 +38,7 @@ SUBROUTINE output(t,nstep)
 !
 !--write timestep to log file
 !      
- WRITE (iprint,10) t,nstep,npart,ntotal-npart
+ WRITE (iprint,10) t,abs(nstep),npart,ntotal-npart
 10 FORMAT('| time = ',f7.3,' | timesteps = ',i8,' | npart = ',i7,	&
              ' | nghost = ',i5,' |')
 !
@@ -52,11 +52,13 @@ SUBROUTINE output(t,nstep)
  WRITE(idatfile,20) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
 20 FORMAT(e12.5,1x,i8,1x,i8,1x,f14.12,1x,f6.2,1x,i1,1x,i1,1x,i3)
 
+!--calculate primitive variables from conservatives for output
+!  nstep <0 means do not do this as we are on a quit dump
+ IF (nstep.ge.0) CALL conservative2primitive  ! also calls equation of state
 !
 !--write data for this time to data file
 !      
-! scale = MAXVAL(Bfield(2,:)) 
- CALL conservative2primitive  ! also calls equation of state
+! scale = MAXVAL(Bfield(2,:))
  
  DO i=1,nprint
 !
