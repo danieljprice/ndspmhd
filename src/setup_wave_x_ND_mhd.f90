@@ -15,6 +15,7 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
+ USE polyconst
  USE setup_params
 !
 !--define local variables
@@ -36,24 +37,31 @@ SUBROUTINE setup
 !--allow for tracing flow
 !
  IF (trace) WRITE(iprint,*) ' Entering subroutine setup'
- WRITE(iprint,*) '------------ 1D Wave setup ----------------'
+10 FORMAT(/,'-------------- ',a,' ----------------')
 
- iwave = 1 		! preset wave parameters
+ iwave = 0 		! preset wave parameters
 !
 !--setup parameters (could read in from a file)
 !
- IF (iwave.EQ.1) THEN	! MHD slow wave
+ Bzero = 0.
+ IF (iwave.EQ.1) THEN        ! MHD slow wave
     ampl = 0.006
     denszero = 1.0
     uuzero = 4.5
-    Bzero(1:3) = SQRT(2.)
-    WRITE(iprint,*) ' setting up for MHD slow wave...'
- ELSE			! MHD fast wave
+    IF (imhd.ne.0) Bzero(1:3) = SQRT(2.)
+    WRITE(iprint,10) 'MHD slow wave'
+ ELSEIF (iwave.EQ.2) THEN    ! MHD fast wave
     ampl = 0.0055
     denszero = 1.0
     uuzero = 0.3
-    Bzero(1:3) = 0.5  
-    WRITE(iprint,*) ' setting up for MHD fast wave...'
+    IF (imhd.ne.0) Bzero(1:3) = 0.5  
+    WRITE(iprint,10) 'MHD fast wave'
+ ELSE                        ! Sound wave
+    ampl = 0.05
+    denszero = 1.0
+    uuzero = 1.0
+    Bzero = 0.0
+    WRITE(iprint,10) 'sound wave'
  ENDIF
  xlambda = 1.0    
  wk = 2.0*pi/xlambda	! 	wave number
@@ -88,8 +96,10 @@ SUBROUTINE setup
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    IF (imhd.GE.1) THEN 
+    IF (imhd.GT.0) THEN 
        Bfield(:,i) = Bzero
+    ELSE
+       Bfield(:,i) = 0.
     ENDIF 
  ENDDO
 
@@ -119,8 +129,15 @@ SUBROUTINE setup
 		    
  IF (iwave.EQ.1) THEN
     vwave = vslow
- ELSE
+    IF (imhd.le.0) WRITE(iprint,*) 'Error: can''t have slow wave if no mhd'
+ ELSEIF (iwave.EQ.2) THEN
     vwave = vfast
+ ELSE
+    vwave = spsoundi
+ ENDIF
+ IF (vwave.le.0.) THEN
+    WRITE(iprint,*) 'Error in setup: vwave = ',vwave
+    STOP
  ENDIF
   
  dxmax = xmax(1) - xmin(1)
