@@ -11,19 +11,20 @@ my $startnum;
 my $zero = 0;
 my $nstart = 1;	## number to start from (either zero or 1)
 my $ext = '.dat';
+my $SPMHD = 'SPMHD';
 
-if ($#ARGV !=2) {
-   die "Usage: $0 rootname nruns nstepsmax\n";
+if ($#ARGV !=3) {
+   die "Usage: $0 nD rootname nruns nstepsmax\n";
 }
 
-my ($rootname,$nruns,$nsteps) = @ARGV;
+my ($ndim,$rootname,$nruns,$nsteps) = @ARGV;
 
 # make a new directory for the run
 print "making new directory $rootname";
 system "mkdir $rootname";
 # copy files to this directory
 system "cp multirun.in ./$rootname";
-system "cp 1DSPMHD ./$rootname";
+system "cp $ndim$SPMHD ./$rootname";
 system "cp defaults ./$rootname";
 system "cd $rootname; ln -s ../supersphplot ./supersphplot";
 system "cd $rootname; ln -s ../evsupersph ./evsupersph";
@@ -34,7 +35,7 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 # write appropriate runnames to 'runname' and execute program
 for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
-    system "cd $rootname; ./1DSPMHD $rootname$n";
+    system "cd $rootname; ./$ndim$SPMHD $rootname$n";
 }
 
 # call the sametime program to write simultaneous data steps
