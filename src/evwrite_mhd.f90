@@ -18,7 +18,7 @@ SUBROUTINE evwrite(t)
  IMPLICIT NONE
  INTEGER :: i,j
  REAL, INTENT(IN) :: t
- REAL :: ekin,etherm,emag,etot,momtot
+ REAL :: ekin,etherm,emag,epot,etot,momtot
  REAL :: pmassi,rhoi
  REAL, DIMENSION(ndimV) :: veli,mom
 !
@@ -43,6 +43,7 @@ SUBROUTINE evwrite(t)
  etherm = 0.0
  emag = 0.0
  etot = 0.0
+ epot = 0.0
  mom(:) = 0.0
  momtot = 0.0
 !
@@ -73,8 +74,19 @@ SUBROUTINE evwrite(t)
     rhoi = rho(i)
     veli(:) = vel(:,i)	 
     mom(:) = mom(:) + pmassi*veli(:)
-    ekin = ekin + 0.5*DOT_PRODUCT(veli,veli)
-    etherm = etherm + uu(i)
+    ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
+    etherm = etherm + pmassi*uu(i)
+!
+!--potential energy from external forces
+!    
+    SELECT CASE(iexternal_force)
+    CASE(1)	! toy star force (x^2 potential)
+       epot = epot + 0.5*pmassi*DOT_PRODUCT(x(:,i),x(:,i))
+    CASE(2)	! 1/r^2 force(1/r potential)
+       epot = epot + pmassi/SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
+    CASE(3)	! potential from n point masses
+       WRITE(iprint,*) 'potential not calculated for point masses'
+    END SELECT
 !
 !--mhd parameters
 !
@@ -91,7 +103,7 @@ SUBROUTINE evwrite(t)
        forcemagi = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))
        divBi = abs(divB(i))
  
-       emag = emag + 0.5*B2i/rhoi
+       emag = emag + 0.5*pmassi*B2i/rhoi
 !
 !--Plasma beta minimum/maximum/average
 !	 
@@ -162,7 +174,7 @@ SUBROUTINE evwrite(t)
 
  ENDDO
  
- etot = etherm + ekin + emag
+ etot = etherm + ekin + emag + epot
  momtot = SQRT(DOT_PRODUCT(mom,mom))
 
 !
