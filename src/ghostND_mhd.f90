@@ -66,7 +66,7 @@ subroutine set_ghost_particles
 !  for periodic must use hmax as particle sees different particles as ghosts
 !  (for efficiency in this case should use max h of all particles near boundary)
 !
-     where (ibound.eq.2) dxbound(:) = radkern*hh(jpart)
+     where (ibound.eq.2 .or. ibound.eq.4) dxbound(:) = radkern*hh(jpart)
 !    IF (jpart.EQ.jtemp) PRINT*,jpart,' x = ',x(:,jpart)
     
      over_dimen: do idimen = 1, ndim  ! over spatial dimensions
@@ -111,7 +111,7 @@ subroutine set_ghost_particles
 !      
                  if (ibound(idimen).eq.3) then ! periodic
                     xnew(idimen,imaxmin) = xperbound + dxshift
-                 elseif (ibound(idimen).eq.2) then ! reflective
+                 elseif (ibound(idimen).eq.2 .or. ibound(idimen).eq.4) then ! reflective
                     ireflect = .true.
                     xnew(idimen,imaxmin) = xbound - dxshift
                  endif
@@ -222,11 +222,13 @@ subroutine makeghost(jpart,xghost,ireflect)
   use bound
   use loguns
   use part
+  use options, only:igeom,ibound
   implicit none
-  integer, intent(IN) :: jpart ! index of particle to be ghosted
+  integer, intent(in) :: jpart ! index of particle to be ghosted
+  real, intent(in), dimension(ndim) :: xghost ! position of ghost particle
+  logical, intent(in) :: ireflect
   integer :: ipart
-  real, intent(IN), dimension(ndim) :: xghost ! position of ghost particle
-  logical, intent(IN) :: ireflect
+  real, parameter :: pi = 3.141592653589 
 !
 !--create new particle and reallocate memory if needed
 ! 
@@ -249,6 +251,13 @@ subroutine makeghost(jpart,xghost,ireflect)
 !--overwrite velocities if reflecting
 !
   if (ireflect) vel(:,ipart) = -vel(:,jpart) ! should reflect all vels
+!
+!--in cylindrical coords and ibound=4, shift angle by 180 degrees
+!  
+  if (igeom.eq.2 .and. ndim.ge.2 .and. ibound(1).eq.4) then
+     x(2,ipart) = x(2,ipart) + pi
+     if (x(2,ipart).gt.xmax(2)) x(2,ipart) = x(2,ipart) - 2.*pi
+  endif
 !
 !--ireal for ghosts refers to the real particle of which they are ghosts
 !  
