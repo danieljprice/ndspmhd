@@ -112,19 +112,24 @@ SUBROUTINE initialise
     uu(i) = uuin(i)
     en(i) = enin(i)
     vel(:,i) = velin(:,i)
-    hh(i) = hhin(i)
+!
+!--set smoothing length (h) according to the initial value of the density
+!    
+    hh(i) = hfact*(pmass(i)/rhoin(i))**hpower
+!    hh(i) = hhin(i)	! uncomment if h set in setup
+    hhin(i) = hh(i)
     IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
+    IF (imhd.NE.0) THEN
+       Bfield(:,i) = Bin(:,i)
+    ELSE
+       Bfield(:,i) = 0.
+    ENDIF
     IF (iavlim.NE.1) THEN
        alphain(i) = alphamin
     ELSE
        alphain(i) = alphamin       	! remove if set in setup
     ENDIF
     alpha(i) = alphain(i)
-    IF (imhd.NE.0) THEN
-       Bfield(:,i) = Bin(:,i)
-    ELSE
-       Bfield(:,i) = 0.
-    ENDIF
     gradh(i) = 0.
  ENDDO
 !
