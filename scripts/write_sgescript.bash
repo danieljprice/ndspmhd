@@ -18,7 +18,7 @@ echo '#$ -o '$PWD'/'$filename'.output'		 ## output from job in filename
 echo '#$ -e '$PWD'/'$filename'.errors'		 ## errors from job in filename
 echo '#$ -l s_vmem=30M'				 ## max memory requirements
 echo '#$ -l h_vmem=30M'				 ##  "    "        "
-echo '#$ -N' `/home/dprice/perl/randomword.pl`	 ## name job
+echo '#$ -N' `/home/dprice/scripts/randomword.pl`	 ## name job
 echo $PWD'/'$1'SPMHD '$filename			 ## run the job
 fi
 
