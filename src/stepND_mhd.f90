@@ -1,9 +1,6 @@
 !!--------------------------------------------------------------------
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
-!!
-!! Changes log:
-!! 20/10/03 - fix in h update (before rho)
 !!--------------------------------------------------------------------
 	 
 SUBROUTINE step
