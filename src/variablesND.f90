@@ -217,7 +217,7 @@ MODULE setup_params
  IMPLICIT NONE
  INTEGER :: igeomsetup
  REAL, PARAMETER :: pi = 3.1415926536
- REAL :: psep,hfact
+ REAL :: psep,hfact, R_grav
 END MODULE setup_params
 
 !-------------------------------------------------------------------
