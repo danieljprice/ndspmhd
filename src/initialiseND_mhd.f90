@@ -28,10 +28,8 @@ SUBROUTINE initialise
  IMPLICIT NONE
  CHARACTER(LEN=20) :: infile,evfile
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
- INTEGER :: ntot,ierr,nstart
- INTEGER :: i,j,iktemp,npart1
- REAL :: hmin,hmax,have
- LOGICAL :: set_fixed_particles
+ INTEGER :: ntot,ierr
+ INTEGER :: i,j
 !
 !--try reading rootname from the command line
 !
@@ -65,16 +63,14 @@ SUBROUTINE initialise
 !
  IF (trace) WRITE(iprint,*) ' Entering subroutine initialise'
 !
-!--prevent ridiculous compilations
+!--set some global parameters based on ndim
 !
  IF (ndim.GT.3 .OR. ndim.LT.0 .OR. ndimV.GT.3 .OR. ndimV.LT.0) THEN
     STOP 'Error ndim <0 or >3: We leave string theory for later'
+ ELSE
+    dndim = 1./REAL(ndim)
+    hpower = dndim 
  ENDIF   
-!
-!--set some global parameters based on ndim
-!
- dndim = 1./REAL(ndim)
- hpower = dndim
 !
 !--read parameters from the infile
 !
@@ -104,99 +100,25 @@ SUBROUTINE initialise
  itype = 0
  CALL setup    		! setup particles, allocation of memory is called
  			! could replace this with a call to read_dump
+ CALL check_setup       ! check for errors in the particle setup
 !
-!--calculate conservative quantities (needs to be here for rho -> h)
-! 
- CALL primitive2conservative
+!--setup additional quantities that are not done in setup
 !
-!--set particle properties that are not set in setup 
-!  (initial smoothing length, dissipation parameter, gradh terms)
-!
- hmin = 1.e6
- hmax = 0.
- have = 0.
- DO i=1,npart
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower   ! set using density
-    hmin = min(hmin,hh(i))
-    hmax = max(hmax,hh(i))
-    have = have + hh(i)
-    hhin(i) = hh(i)
-    IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
-    alpha(i) = alphamin
-    gradh(i) = 0.
-    sqrtg(i) = 1.
- ENDDO
- have = have/REAL(npart)
- WRITE(iprint,20) hmin,hmax,have
-20 FORMAT (/,' Smoothing lengths: min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
+ alpha = alphamin
+ gradh = 0.
  divB = 0.
  curlB = 0.
  fmag = 0.
  psi = 0.
+ sqrtg = 1.
 !
-!--work out whether or not to set up fixed boundary particles
+!--calculate the conservative quantities (rho, en, B/rho)
 !
- set_fixed_particles = (ANY(ibound.EQ.1) .AND. ALL(itype.EQ.0)  &
-                        .AND..NOT.(ndim.EQ.1 .AND. nbpts.GT.0) )
- IF (set_fixed_particles) WRITE(iprint,*) 'setting up fixed particles'
+ call primitive2conservative
 !
-!--set ghost particles initially for the density calculation
-!  (also do this if using fixed particle boundaries 
-!   and no fixed particles have been set)
+!--if using fixed particle boundaries, set them up
 !
- IF (ANY(ibound.GT.1) .OR. set_fixed_particles) CALL set_ghost_particles
-!
-!  in 1D setup can just specify the number of particles to hold fixed
-!  this is for backwards compatibility of the code
-!
- IF (ALL(ibound.EQ.1) .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
-    write(iprint,*) 'fixing first and last ',nbpts,' particles'
-    itype(1:nbpts) = 1
-    nstart = npart - nbpts + 1
-    itype(nstart:ntotal) = 1
- ENDIF
-!
-!--If using direct sum for density, compute initial density from direct sum
-!  also do this if using cty equation but doing a direct sum every so often
-!      
- IF (icty.EQ.0 .OR. ndirect.LT.100000) THEN
-    CALL link
-    iktemp = ikernav
-    ikernav = 3		! consistent with h for first density evaluation
-    WRITE(iprint,*) 'Calculating initial density...'
-    CALL iterate_density	! evaluate density by direct summation
-    ikernav = iktemp
-    !! CALL smooth_initial_conditions(uuin(:),uu(:),SIZE(uuin))
-
-    DO i=1,npart	! not ghosts
-    !
-    !--for 1D fixed particle boundaries, set values of rho, h for the boundary
-    !  particles
-    !
-       IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
-          IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
-             rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
-             hh(i) = hh(nbpts+1)
-             gradh(i) = gradh(nbpts+1)
-          ELSEIF (i.GT.(npart-nbpts)) THEN
-             rho(i) = rho(npart-nbpts)
-             hh(i) = hh(npart-nbpts)
-             gradh(i) = gradh(npart-nbpts)
-          ENDIF
-       ENDIF
-       rhoin(i) = rho(i)		! set initial rho and h equal to values calculated  
-       hhin(i) = hh(i)
-       !
-       !--set initial pressure, vsound from eos (also u if polytropic)
-       !      
-       CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
-       
-    ENDDO	! (note energy and B/rho are not set for ghosts yet)
-    !
-    !--recalculate the conserved variables since rho has changed
-    !
-    CALL primitive2conservative
- ENDIF
+ IF (ANY(ibound.EQ.1)) CALL set_fixedbound
 !
 !--Set derivatives to zero until calculated
 !      
@@ -222,17 +144,11 @@ SUBROUTINE initialise
 !--make sure ghost particle quantities are the same
 !  (copy both conservative and primitive here)
 !
- IF (ANY(ibound.GT.1) .OR. set_fixed_particles) THEN
+ IF (ANY(ibound.GT.1)) THEN
     DO i=npart+1,ntotal	
        j = ireal(i)
        call copy_particle(i,j)
     ENDDO
-    IF (set_fixed_particles) THEN
-       ! fix the ghost particles that have been set
-       npart1 = npart + 1
-       itype(npart1:ntotal) = 1	! set all these particles to be fixed
-       npart = ntotal		! no ghosts
-    ENDIF
  ENDIF
 !
 !--write second header to logfile/screen

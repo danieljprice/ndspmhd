@@ -78,16 +78,38 @@ end subroutine conservative2primitive
 !---------------------------------------------------------------------
 ! this subroutine is called after setting up the initial conditions
 ! to set the initial values of the conserved variables
+! makes a call to density to calculate the density by summation
+! also sets the value of the initial smoothing length
 !---------------------------------------------------------------------
 subroutine primitive2conservative
+  use loguns
   use dimen_mhd
+  use eos
   use options
   use part
+  use setup_params
+  use timestep
   implicit none
-  integer :: i
+  integer :: i,iktemp
   real :: B2i, v2i
-
+!
+!--calculate conserved density (and initial smoothing length
+!
   rho = dens
+  hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+!
+!--overwrite this with a direct summation
+!  
+  if (icty.eq.0 .or. ndirect.lt.100000) then
+     write(iprint,*) 'Calculating initial density...' 
+     if (ANY(ibound.GT.1)) call set_ghost_particles
+     call link
+     iktemp = ikernav
+     ikernav = 3		! consistent with h for first density evaluation
+     call iterate_density	! evaluate density by direct summation
+     ikernav = iktemp  
+     hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+  endif
 !
 !--calculate conserved variable from the magnetic flux density B
 !  
@@ -111,6 +133,12 @@ subroutine primitive2conservative
   else		! en = thermal energy
      en = uu
   endif
-
+!
+!--call equation of state calculation
+!
+  do i=1,npart	! not ghosts, but including fixed particles
+    call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma)     
+  enddo
+  
   return  
 end subroutine primitive2conservative

@@ -28,7 +28,7 @@ EDITOR = nedit
 #
 FC = f90
 F90C = f90
-F90FLAGS = -O4 -C -xtypemap=real:64,double:64,integer:32
+F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
@@ -87,8 +87,9 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
-SETUP25D = setup_alfvenwaveND_x.f90
+#SETUP25D = setup_alfvenwaveND_x.f90
 #SETUP25D = setup_Bxpeak25D_mhd.f90
+SETUP25D = setup_shockND.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -99,7 +100,8 @@ SETUP3D = setup_alfvenwaveND_x.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES = sphND_mhd.f90   \
-         boundaryND_1D.f90 \
+         boundaryND_1D.f90 check_setup.f90 \
+	 copy_particle.f90 \
 	 coord_transform.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
@@ -111,9 +113,9 @@ SOURCES = sphND_mhd.f90   \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 \
 	 random.f90 ratesND_mhd.f90 \
-	 read_infile_mhd.f90 \
+	 read_infile_mhd.f90 set_fixedbound.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
-	 smooth.f90  \
+	 smooth.f90 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
 	 divBcorrect.f90 get_divB.f90 
 #	 check_neighbourlist.f90
