@@ -21,13 +21,19 @@ LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
 
 SOURCES= evsupersph.f90
 
-OBJECTS = $(SOURCES:.f90=.o) danpgtile.o
+OBJECTS = prompting.o danpgtile.o int_from_string.o $(SOURCES:.f90=.o)
 
 ../evsupersph: $(OBJECTS)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
 danpgtile.o :
 	$(F90C) -c $(F90FLAGS) ../plot/danpgtile.f -o $@ 
+
+prompting.o :
+	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@ 
+
+int_from_string.o :
+	$(F90C) -c $(F90FLAGS) ../plot/int_from_string.f90 -o $@ 
 	
 clean: 
 	rm *.o

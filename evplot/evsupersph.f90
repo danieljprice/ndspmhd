@@ -4,26 +4,30 @@
 !  uses PGPLOT subroutines
 !
 program plotmeagraph
+  use prompting
   implicit none
   integer :: ncol
   integer, parameter :: maxfile=21
-  integer, parameter :: maxstep=100000
+  integer, parameter :: maxstep=300000
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
-  integer i,iprev,nfiles,ifile,ifilesteps
-  integer mysteps,ipick,ipickx,nacross,ndown
-  integer ichange, iongraph, ipt
-  integer iplotx(maxcol),iploty(maxcol), nplots
-  integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
-  integer nstepsfile(maxfile)
-  real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
-  real lim(maxcol,2)
-  real hpos,vpos, freqmin, freqmax
+  integer :: i,iprev,nfiles,ifile,ifilesteps
+  integer :: mysteps,ipick,ipickx,nacross,ndown
+  integer :: ihalf,iadjust,int_from_string
+  integer :: ichange, iongraph, ipt
+  integer :: iplotx(maxcol),iploty(maxcol), nplots
+  integer :: multiplotx(maxcol),multiploty(maxcol),nplotsmulti
+  integer :: nstepsfile(maxfile)
+  real :: evdata(maxstep,maxcol,maxfile),evplot(maxstep)
+  real :: lim(maxcol,2)
+  real :: hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*20, legendtext*120
-  character*23 :: filename
-  character*24 :: title,label(maxcol)
-  character*40 :: labely
-  character*1 ans
-  logical :: icycle, igetfreq
+  character(len=23) :: filename
+  character(len=24) :: title,label(maxcol)
+  character(len=40) :: labely,text
+  character(len=1) :: ans
+  character(len=2) :: ioption
+  logical :: icycle, igetfreq, isameXaxis, isameYaxis, ishowopts
+
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
@@ -33,6 +37,12 @@ program plotmeagraph
   vpos = 8.0
   iongraph = 1
   igetfreq = .false.
+  ishowopts = .false.
+  ipickx = 1
+  do i=1,maxcol
+     multiploty(i) = i+1
+  enddo
+  
   !
   !--get filename(s)
   !
@@ -58,8 +68,7 @@ program plotmeagraph
 
   if (rootname(1)(1:1).eq.' ') then
      nfiles = 1
-     print*,' Enter filename : '
-     read*,rootname(1)
+     call prompt(' Enter filename : ',rootname(1))
   endif
 !
 !--read data from all files
@@ -173,41 +182,61 @@ program plotmeagraph
   endif
 
   title = ' '
-  
+!
+!--print data menu (in two columns)
+!  
   print*,' You may choose from a delectable sample of plots '
   print 12
-  do i=1,ncol
-     print 11,i,label(i)
-  enddo
+  ihalf = ncol/2		! print in two columns
+  iadjust = mod(ncol,2)
+  print 11, (i,label(i),ihalf+i+iadjust,label(ihalf+i+iadjust),i=1,ihalf)
+  if (iadjust.ne.0) then
+     print 13, ihalf + iadjust,label(ihalf+iadjust)
+  endif
+!
+!--print menu options
+!
   print 12
-  print 13,ncol+1,'Multiplot    '
-  print 13,ncol+2,'Set multiplot    '
+  print 18,ncol+1,'multiplot           ','m','set multiplot'
   print 12
-  print 13,ncol+3,'Read new data'
-  print 13,ncol+4,'Change number of timesteps read'
-  print 13,ncol+5,'Get frequencies'
-  print 13,ncol+6,'Adjust legend position'
-  print 13,ncol+7,'Adjust plot limits'
-  print 13,ncol+8,'Do auto update'          
-  print 13,ncol+9,'Exit supersphplotev'
+  if (ishowopts) then
+     print 14,'d','Read new data'
+     print 14,'t','Change number of timesteps read'
+     print 14,'f','Get frequencies'
+     print 14,'g','Adjust legend position'
+     print 14,'l','Adjust plot limits'
+     print 14,'a','Do auto update'          
+     print 14,'h','toggle help'
+     print 14,'q','Exit supersphplotev'
+  else
+     print*,' d(ata) t(imesteps) f(requencies) l(imits)'
+     print*,' le(g)end a(uto update) h(elp) q(uit)'
+  endif
   print 12
-  print*,'Enter y axis or selection: '
-11 format(1x,i2,')',1x,a)
-12 format(1x,45('-'))
+11 format(1x,i2,')',1x,a20,1x,i2,')',1x,a)
+12 format(1x,65('-'))
 13 format(1x,i2,')',1x,a)
-14 format(1x,i2,')',1x,a1,a1,' projection')
-  read *,ipick
+14 format(1x,a2,')',1x,a)
+18 format(1x,i2,')',1x,a20,1x,a1,')',1x,a)
+!
+!--read option
+!
+66 continue
+  write(*,"(a)",ADVANCE="NO") 'Enter y axis or option: '
+  read*,ioption
+  ipick = int_from_string(ioption)
   if (ipick.le.ncol .and. ipick.ge.1) then
-     print*,'Enter x axis: '
-     read*,ipickx
+     call prompt('Enter x axis: ',ipickx,1,ncol)
   endif
-  if ((ipick.ge.ncol+8).or.(ipick.lt.1)) then
-     close(8)
-     stop
-  endif
-
-  if (ipick.eq.ncol+1) then
-     if (nplotsmulti.eq.0) ipick = ncol+2
+  if ((ipick.ge.ncol+1).or.(ipick.lt.0)) then
+     ipick = 0
+     ioption = 'q'
+  elseif (ipick.eq.ncol+1) then
+     if (nplotsmulti.eq.0) then
+        ipick = 0
+        ioption = 'm'
+        nplotsmulti = 1
+     endif
      nplots = nplotsmulti      
      iploty(1:nplots) = multiploty(1:nplots)
      iplotx(1:nplots) = multiplotx(1:nplots)
@@ -216,23 +245,25 @@ program plotmeagraph
      iplotx(1) = ipickx
      nplots = 1      
   endif
-
-  if (ipick.eq.ncol+2) then
-     print*,' Enter number of plots '
-     read*,nplotsmulti
+!
+!--menu options
+!
+  if (ipick.eq.0) then
+  
+  select case(ioption(1:1))
+  case('m','M')
+     call prompt('Enter number of plots ',nplotsmulti,1,maxcol)
      nplots = nplotsmulti
      do i=1,nplotsmulti
-        print*,' Enter y plot ',i
-        read*,multiploty(i)
+        write(text,"(a,i2)") 'Enter y plot ',i
+        call prompt(text,multiploty(i),1,maxcol)
      enddo
-     print*,' Enter x plot '
-     read*,ipickx
+     call prompt('Enter x plot ',ipickx,1,maxcol)
      multiplotx(1:nplotsmulti) = ipickx
      goto 200
-  elseif (ipick.eq.ncol+3) then
+  case('d','D')
      nfiles = 1
-     print*,'Enter new rootname:'
-     read*,rootname(1)
+     call prompt('Enter new rootname:',rootname(1))
      filename = trim(rootname(1))//'.ev'
      print*,'reading evolution file ',filename    	  
      call readev(mysteps,evdata(1:mysteps,1:ncol,1),ncol,filename)
@@ -243,42 +274,46 @@ program plotmeagraph
      enddo
      lim(1,1) = 0.0
      goto 200
-  elseif (ipick.eq.ncol+4) then
-     print*,'Enter number of timesteps to read:'
-     read*,mysteps
+  case('t','T')
+     call prompt('Enter number of timesteps to read:',mysteps,1)
      print *,' Steps = ',mysteps
      goto 200
-  elseif (ipick.eq.ncol+5) then
+  case('f','F')
      igetfreq = .not.igetfreq
      print*,'frequencies = ',igetfreq
      goto 200
-  elseif (ipick.eq.ncol+6) then
-     print*,'Enter horizontal position as fraction of x axis:'
-     read*,hpos
-     print*,'Enter vertical offset from top of graph in character heights:'
-     read*,vpos
-     print*,'Enter number of plot on page to place legend'
-     read*,iongraph
+  case('g','G')
+     call prompt('Enter horizontal position as fraction of x axis:',hpos,0.0,1.0)
+     call prompt('Enter vertical offset from top of graph in character heights:',vpos)
+     call prompt('Enter number of plot on page to place legend ',iongraph,1)
      open(unit=51,file='legendpos',status='replace',ERR=43)
          write(51,*) hpos,vpos,iongraph
      close(51)	 
 43   continue     
      goto 200
-  elseif (ipick.eq.ncol+7) then
-     print*,'Enter plot number to change limits'
-     read*,ichange
-     if (ichange.gt.0 .and. ichange.le.ncol) then
-        print*,' Enter ',trim(label(ichange)),' min:'
-	read*,lim(ichange,1)
-	print*,' Enter ',trim(label(ichange)),' max:'
-        read*,lim(ichange,2)
+  case('l','L')
+     call prompt('Enter plot number to change limits',ichange,0,ncol)
+     if (ichange.gt.0) then
+        call prompt(' Enter '//trim(label(ichange))//' min:',lim(ichange,1))
+	call prompt(' Enter '//trim(label(ichange))//' max:',lim(ichange,2))
      endif
      goto 200
-  elseif (ipick.eq.ncol+8) then
+  case('a','A')
      icycle = .not.icycle
      print *,' cycle = ',icycle
-     goto 200	  
+     goto 200	
+  case('h','H')
+     ishowopts = .not.ishowopts
+     goto 200  
+  case('q','Q')
+     close(8)
+     stop
+  case default
+     goto 66
+  end select
+  
   endif
+  
 ! ------------------------------------------------------------------------
 ! compute delta x/x (single files only)
 
@@ -304,14 +339,16 @@ program plotmeagraph
         call PGBEGIN(0,'?',1,2)
      endif
   else
-     nacross = 1
-     ndown = nplots/nacross
-     !ndown = nplots/2
-     !nacross = nplots/ndown
-     if (ndown.eq.1 .and. nacross.gt.1) then
-        call PGBEGIN(0,'?',nacross,ndown)
+     isameXaxis = all(iplotx(1:nplots).eq.iplotx(1))
+     isameYaxis = all(iploty(1:nplots).eq.iploty(1))
+     !nacross = 1
+     !ndown = nplots/nacross
+     ndown = nplots/2
+     nacross = nplots/ndown
+     if (isameXaxis .and. isameYaxis) then
+        call PGBEGIN(0,'?',1,1) ! uses pgtile
      else
-        call PGBEGIN(0,'?',1,1) !uses pgtile
+        call PGBEGIN(0,'?',nacross,ndown)
      endif
      if (nacross.eq.2 .and. ndown.eq.1) then
         call pgpap(11.7,0.5/sqrt(2.))
@@ -342,8 +379,10 @@ program plotmeagraph
 	!
         !--setup plotting page
         !
-        if (all(iplotx(1:nplots).eq.iplotx(1)).and.ndown.gt.1 ) then
-           
+        if (nplots.gt.1 .and. isameXaxis .and. isameYaxis) then
+           !
+           !--tiled plots
+	   !
 	   call pgsls(1)
 	   call pgslw(3)
 	   call danpgtile(i,nacross,ndown,  &
@@ -351,7 +390,7 @@ program plotmeagraph
                label(iplotx(i)),label(iploty(i)),title,0,0)
         else
            !
-           !--for one plot just use standard PGENV routine
+           !--non-tiled plots
            !
            call pgsls(1)
            if (nplots.gt.1) call pgsch(1.5) ! increase character height
@@ -399,10 +438,9 @@ program plotmeagraph
 	      call getmax(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
 	                  evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
 		          nstepsfile(ifile),freqmax,freqmin)
-	   
- 	   !
-           !--output this to a file
-           !
+ 	      !
+              !--output this to a file
+              !
 	      print*,'writing to frequency file'
 	      write(8,*) freqmin,freqmax,rootname(ifile)
 	   endif
@@ -469,6 +507,10 @@ program plotmeagraph
     close(8)               
 end program plotmeagraph
 
+!-------------------------------------------------------------------------      
+!  this subroutine reads the contents of the .ev file
+!-------------------------------------------------------------------------      
+
 subroutine readev(nsteps,evdata,ncols,rootname)
   implicit none
   integer :: i
@@ -508,12 +550,11 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   return
 end subroutine readev
 
-!
+!-------------------------------------------------------------------------
 ! subroutine to work out the positions of maxima and minima in the
 !  quantity plotted. Works out the period from the distance between two
 !  minima or two maxima
-!
-!
+!-------------------------------------------------------------------------
 subroutine getmax(datain,time,max,freq,freq2)
   implicit none
   integer i,max,nmax,nmin
@@ -571,18 +612,18 @@ subroutine getmax(datain,time,max,freq,freq2)
   return
 end subroutine getmax
 
-!
-!--draw a legend for different line styles
+!-------------------------------------------------------------------------
+!  draw a legend for different line styles
 !  uses current line style and colour
-!
+!-------------------------------------------------------------------------
 subroutine legend(icall,text,hpos,vposin)
   implicit none
   integer, intent(in) :: icall
   character(len=*), intent(in) :: text
-  real, intent(in) :: vposin
+  real, intent(in) :: vposin, hpos
   real, dimension(2) :: xline,yline
   real :: xch, ych, xmin, xmax, ymin, ymax
-  real :: vspace, hpos, vpos
+  real :: vspace, vpos
 
   call pgstbg(0)           ! opaque text to overwrite previous
 !
@@ -590,7 +631,6 @@ subroutine legend(icall,text,hpos,vposin)
 !  in units of the character height
 !
   vspace = 1.5  ! (in units of character heights)
-!  hpos = 0.4   ! distance from edge, in fraction of viewport
   vpos = vposin + (icall-1)*vspace  ! distance from top, in units of char height
 
   call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
