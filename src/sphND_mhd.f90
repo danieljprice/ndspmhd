@@ -39,9 +39,9 @@
 !!                                                                     !!
 !!  * ghost particle boundaries (reflective/periodic)                  !!
 !!                                                                     !!
-!! Although this code is original, parts of it are inspired            !!
-!! by other SPH codes written by Joe Monaghan and Matthew Bate. These  !!
-!! bits are (hopefully) acknowledged.                                  !!
+!! Although this code is original, I learnt my SPH from                !!
+!! other SPH codes written by Joe Monaghan and Matthew Bate, and so    !!
+!! some parts bear similarities to these codes.                        !!
 !!                                                                     !!
 !!---------------------------------------------------------------------!!
 
@@ -61,7 +61,7 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-   version = 'NDSPMHD-v4-0'	! make sure no . in version name
+   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
 !   * equations use general alternative formulation
@@ -221,7 +221,7 @@ PROGRAM SUPERSPMHD_ND
 !   * individual common blocks 
  
  trace = .false.		! set tracing flow (prints entry into subroutine)
-! trace = .true.
+ trace = .true.
 ! idebug = 'density'
 ! idebug = 'none'
 ! idebug = 'link'
@@ -279,7 +279,7 @@ PROGRAM SUPERSPMHD_ND
        .OR.(nsteps.GE.nmax)  ) THEN
  
 !--if making movies and need ghosts to look right uncomment the line below, 
-       IF (idumpghost.EQ.1) CALL set_ghost_particles
+       IF (idumpghost.EQ.1 .AND. ibound.GE.2) CALL set_ghost_particles
        CALL output(time,nsteps)
        noutput = noutput + 1
        tprint = noutput*tout
