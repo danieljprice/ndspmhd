@@ -74,7 +74,7 @@ SUBROUTINE step
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact*(pmass(i)/rho(i))**hpower	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
-       ELSEIF (ihvar.EQ.2) THEN
+       ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)

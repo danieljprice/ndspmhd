@@ -715,7 +715,7 @@ SUBROUTINE get_rates
 !
 !--calculate time derivative of the smoothing length
 !
-    IF (ihvar.EQ.2) THEN
+    IF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
        dhdt(i) = -hh(i)/(ndim*rho(i))*drhodt(i)
     ELSE
        dhdt(i) = 0.    

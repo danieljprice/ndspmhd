@@ -103,7 +103,7 @@ SUBROUTINE read_infile(infile)
 	 iavlim = 1
 	 avconst = 0.1
 	 ikernav = 3
-	 ihvar = 2
+	 ihvar = 3
 	 hfact = 1.5
 	 idumpghost = 1
 	 imhd = 1

@@ -15,7 +15,7 @@ EDITOR = nedit
 # define the implicit rule to make a .o file from a .f90 file
 
 %.o : %.f90
-	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
 ##.SUFFIXES:
 ##.SUFFIXES:.f90 .o
@@ -31,7 +31,8 @@ EDITOR = nedit
 # use the following instead for double precision
 #F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
 # monash compiler (lf95):
-F90FLAGS = -O
+F90FLAGS = -O 
+DBLFLAGS = -dbl
 
 
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
@@ -52,8 +53,8 @@ SOURCES3D = dimen3D.f90
 
 #SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
-SETUP1D = setup_toystar1D_pmass.f90
-#SETUP1D = setup_toystar1D.f90
+#SETUP1D = setup_toystar1D_pmass.f90
+SETUP1D = setup_toystar1D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
