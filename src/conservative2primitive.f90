@@ -57,9 +57,8 @@ subroutine conservative2primitive
 !
 !--call equation of state calculation
 !
-  do i=1,npart
-     call equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
-  enddo
+ call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
+                        rho(1:npart),gamma,npart)
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -93,12 +92,16 @@ subroutine primitive2conservative
   use timestep
   implicit none
   integer :: i,iktemp
-  real :: B2i, v2i
+  real :: B2i, v2i, hmin, hmax, hav
 !
 !--calculate conserved density (and initial smoothing length
 !
   rho = dens
   hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+  if (ihvar.le.0) then
+     call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
+     hh(1:ntotal) = hav
+  endif
 !
 !--overwrite this with a direct summation
 !  
@@ -110,7 +113,11 @@ subroutine primitive2conservative
 !     ikernav = 3		! consistent with h for first density evaluation
      call iterate_density	! evaluate density by direct summation
      ikernav = iktemp  
-     hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+     hh(1:ntotal) = hfact*(pmass(1:ntotal)/rho(1:ntotal))**hpower
+     if (ihvar.le.0) then
+        call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
+        hh(1:npart) = hav
+     endif
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
@@ -137,12 +144,16 @@ subroutine primitive2conservative
   endif
 !
 !--call equation of state calculation
-!
-  do i=1,npart	! not ghosts, but including fixed particles
-    call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma)     
-  enddo
+!  (not ghosts, but including fixed particles)
+  call equation_of_state(pr,spsound,uu,dens,gamma,size(pr))     
+
 !
 !--copy the conservative variables onto the ghost particles??
 !  
+!  do i=npart+1,ntotal
+!     j = ireal(i)
+!     call copy_particle(
+!  enddo
+
   return  
 end subroutine primitive2conservative
