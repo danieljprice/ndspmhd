@@ -203,7 +203,7 @@ SUBROUTINE set_ghost_particles
     en(i) = en(j)
     hh(i) = hh(j)
     alpha(i) = alpha(j)
-    Bfield(:,i) = Bfield(:,j)
+    Bcons(:,i) = Bcons(:,j)
     divB(i) = divB(j)
 !    IF (j.EQ.jtemp) PRINT*,' ghost ',i
  ENDDO
@@ -268,7 +268,7 @@ SUBROUTINE makeghost(jpart,xghost,ireflect)
 ! en(ipart) = en(jpart)
 ! hh(ipart) = hh(jpart)
 ! alpha(ipart) = alpha(jpart)
-! Bfield(:,ipart) = Bfield(:,jpart)
+! Bcons(:,ipart) = Bcons(:,jpart)
 ! divB(ipart) = divB(jpart)
 
 ! PRINT*,'copying  old particle x(',jpart,'),vel,rho =',	&
