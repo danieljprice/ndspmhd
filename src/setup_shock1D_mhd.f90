@@ -22,7 +22,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -132,64 +131,57 @@ SUBROUTINE setup
 !
 !--setup particles using the parameters given
 !      	
- xin(1,1) = xmin(1) + 0.5*massp/rholeft
- xin(1,2) = xmin(1) + psep*rhoright/rholeft + 0.5*massp/rholeft
+ x(1,1) = xmin(1) + 0.5*massp/rholeft
+ x(1,2) = xmin(1) + psep*rhoright/rholeft + 0.5*massp/rholeft
  DO i=1,2
-    rhoin(i) = rholeft
-    uuin(i) = uuleft
+    rho(i) = rholeft
+    uu(i) = uuleft
     enin(i) = enleft
     pmass(i) = massp
-    velin(:,i) = vleft(:)	! overwrite vx
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower
-    pr(i) = prleft
+    vel(:,i) = vleft(:)	! overwrite vx
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower
     IF (imhd.NE.0) THEN
-       Bin(1,i) = Bxinit
-       Bin(2,i) = Byleft
-       Bin(3,i) = Bzleft
+       Bfield(1,i) = Bxinit
+       Bfield(2,i) = Byleft
+       Bfield(3,i) = Bzleft
     ENDIF      
  ENDDO
 
  i = 2
- DO WHILE (xin(1,i).LT.xmax(1))
+ DO WHILE (x(1,i).LT.xmax(1))
     i = i + 1         
-    delta = 2.*(xin(1,i-1) - xcentre)/psep
-    Bin(1,i) = Bxinit    
+    delta = 2.*(x(1,i-1) - xcentre)/psep
+    Bfield(1,i) = Bxinit    
     IF (delta.GT.dsmooth) THEN
-       rhoin(i) = rhoright
-       uuin(i) = uuright 
-       velin(:,i) = vright(:) 
-       Bin(2,i) = Byright
-       Bin(3,i) = Bzright
+       rho(i) = rhoright
+       uu(i) = uuright 
+       vel(:,i) = vright(:) 
+       Bfield(2,i) = Byright
+       Bfield(3,i) = Bzright
        enin(i) = enright
-       pr(i) = prright
     ELSEIF (delta.LT.-dsmooth) THEN
-       rhoin(i) = rholeft
-       uuin(i) = uuleft
-       velin(:,i) = vleft(:)
-       Bin(2,i) = Byleft
-       Bin(3,i) = Bzleft
+       rho(i) = rholeft
+       uu(i) = uuleft
+       vel(:,i) = vleft(:)
+       Bfield(2,i) = Byleft
+       Bfield(3,i) = Bzleft
        enin(i) = enleft
-       pr(i) = prleft
     ELSE
        exx = exp(delta)       
-       rhoin(i) = (rholeft + rhoright*exx)/(1.0 +exx)
-!       uuin(i) = (uuleft + uuright*exx)/(1.0 + exx)
-       uuin(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*rhoin(i))
-       pr(i) = (prleft + prright*exx)/(1.0 + exx)
+       rho(i) = (rholeft + rhoright*exx)/(1.0 +exx)
+!       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
+       uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
        IF (delta.GT.0.) THEN
-          velin(:,i) = vright(:)
+          vel(:,i) = vright(:)
        ELSE
-          velin(:,i) = vleft(:)
+          vel(:,i) = vleft(:)
        ENDIF
-       Bin(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
-       Bin(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
-       enin(i) = (enleft + enright*exx)/(1.0 + exx)       
-       enin(i) = uuin(i) + 0.5*(Bin(1,i)**2 + Bin(2,i)**3)/rhoin(i)
+       Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
+       Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
-    xin(1,i) = xin(1,i-2) + 2.*massp/rhoin(i-1)
+    x(1,i) = x(1,i-2) + 2.*massp/rho(i-1)
     pmass(i) = massp
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower
-    enin(i) = uuin(i) + 0.5*(Bin(1,i)**2 + Bin(2,i)**2)/rhoin(i)
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower
  ENDDO
  
  npart = i-1

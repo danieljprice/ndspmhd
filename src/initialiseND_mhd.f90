@@ -26,9 +26,8 @@ SUBROUTINE initialise
  IMPLICIT NONE
  CHARACTER(LEN=20) :: infile,evfile
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
- INTEGER :: ntot
+ INTEGER :: ntot,ierr
  INTEGER :: i,j,iktemp,npart1
- REAL :: B2i,v2i
  LOGICAL :: set_fixed_particles
 !
 !--try reading rootname from the command line
@@ -38,12 +37,9 @@ SUBROUTINE initialise
 !--If nothing on command exit and print usage
 !
  IF (rootname(1:1).EQ.' ') THEN
-    WRITE(6,*) 'Enter name of run:'
-    READ*,rootname
+10  WRITE(6,*) 'Enter name of run:'
+    READ(*,*,ERR=10) rootname
 !    STOP 'Usage: spmhd runname '
-!    OPEN(UNIT=ireadf,ERR=666,FILE='runname',STATUS='old',FORM='formatted')
-!    READ(ireadf,'(A)') rootname
-!    CLOSE(UNIT=ireadf)
  ENDIF
 !
 !--add extensions to set filenames (remove trailing blanks)
@@ -98,39 +94,24 @@ SUBROUTINE initialise
  ikernel = 0		! set type of kernel (this could be read as input options)
  CALL setkern		! setup kernel tables
  CALL setup    		! setup particles, allocation of memory is called
+ 			! could replace this with a call to read_dump
 !
-!--set boundaries to lie 1/2 a particle spacing from the end
-!   (this should only be done if the grid is uniform near the boundary!!)
-! IF (ibound.GT.1) THEN
-!    CALL adjust_boundaries(xmin,xmax,xin(1:npart),npart)
-! ENDIF
-!
-!--set particle properties equal to their initial values
+!--set particle properties that are not set in setup 
+!  (initial smoothing length, dissipation parameter, gradh terms)
 !    
  DO i=1,npart
-    x(:,i) = xin(:,i)
-    rho(i) = rhoin(i)
-    uu(i) = uuin(i)
-    en(i) = enin(i)
-    vel(:,i) = velin(:,i)
 !
 !--set smoothing length (h) according to the initial value of the density
 !    
-    hh(i) = hfact*(pmass(i)/rhoin(i))**hpower
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower
 !    hh(i) = hhin(i)	! uncomment if h set in setup
     hhin(i) = hh(i)
     IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
-    IF (imhd.NE.0) THEN
-       Bfield(:,i) = Bin(:,i)
-    ELSE
-       Bfield(:,i) = 0.
-    ENDIF
     IF (iavlim.NE.1) THEN
-       alphain(i) = alphamin
+       alpha(i) = alphamin
     ELSE
-       alphain(i) = alphamin       	! remove if set in setup
+       alpha(i) = alphamin       	! remove if set in setup
     ENDIF
-    alpha(i) = alphain(i)
     gradh(i) = 0.
  ENDDO
 !
@@ -145,7 +126,7 @@ SUBROUTINE initialise
 !  this is for backwards compatibility of the code
  IF (ALL(ibound.EQ.1) .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
     itype(1:nbpts) = 1
-    itype((npart-nbpts):ntotal) = 1
+    itype((npart-nbpts+1):ntotal) = 1
  ENDIF
 !
 !--If using direct sum for density, compute initial density from direct sum
@@ -161,9 +142,6 @@ SUBROUTINE initialise
  ENDIF
 !! CALL smooth_initial_conditions(uuin(:),uu(:),SIZE(uuin))
 
-!
-!--set initial pressure, vsound from eos (also u if polytropic)
-!      
  DO i=1,npart	! not ghosts
     IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
        IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
@@ -178,21 +156,19 @@ SUBROUTINE initialise
     ENDIF
     rhoin(i) = rho(i)		! set initial rho and h equal to values calculated  
     hhin(i) = hh(i)
-    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma,1)
+!
+!--set initial pressure, vsound from eos (also u if polytropic)
+!      
+    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
  ENDDO
 !
-!--calculate the total energy per SPH particle, and
-!  if using B/rho as the magnetic field variable, divide by rho
-!      
+!--calculate the conserved variables from the primitive variables
+!  (this calculates en, B/rho from the thermal energy and B)
+!
+ IF (trace) WRITE(iprint,*) 'calculating conservative variables...'      
  DO i=1,npart
-    IF (imhd.GE.11) THEN		! B 
-       B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-    ELSEIF (imhd.NE.0) THEN		! B/rho
-       Bfield(:,i) = Bfield(:,i)/rho(i)
-       B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-    ENDIF
-    v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
-    en(i) = 0.5*v2i + uu(i) + 0.5*B2i
+    CALL primitive2conservative(rho(i),vel(:,i),uu(i),en(i), &
+    				Bfield(:,i),Bcons(:,i),ierr)
  ENDDO	! (note energy and B/rho are not set for ghosts yet)
 !
 !--make sure ghost particle quantities are the same
@@ -207,6 +183,7 @@ SUBROUTINE initialise
        en(i) = en(j)
        uu(i) = uu(j)
        Bfield(:,i) = Bfield(:,j)
+       Bcons(:,i) = Bcons(:,j)
     ENDDO
     IF (set_fixed_particles) THEN
        ! fix the ghost particles that have been set
@@ -223,29 +200,24 @@ SUBROUTINE initialise
     dudt(i) = 0.
     dendt(i) = 0.
     force(:,i) = 0.
-    daldt(i) = 0.
     dhdt(i) = 0.
-    dBfielddt(:,i) = 0.
+    daldt(i) = 0.    
+    dBconsdt(:,i) = 0.
 !
-!--also make sure that initial quantities are equal to main quantities
+!--also set initial values of conservative quantities equal to main quantities
 !
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
     rhoin(i) = rho(i)
-    uuin(i) = uu(i)
-    Bfieldin(:,i) = Bfield(:,i)	! if using midpoint
     enin(i) = en(i)		! " " and not set in setup
     hhin(i) = hh(i)
     alphain(i) = alpha(i)
+    Bconsin(:,i) = Bcons(:,i)	! if using midpoint
  ENDDO
 !
 !--write second header to logfile/screen
 !
  CALL write_header(2,infile,datfile,evfile,logfile)    
-!
-!--Write header line to data file
-!
-! WRITE(idatfile,*) npart,gamma,hfact 
       
  RETURN
 !

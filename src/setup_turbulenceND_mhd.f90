@@ -85,12 +85,12 @@ SUBROUTINE setup
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
-    velin(:,ipart) = velzero(:)
-    rhoin(ipart) = rhozero
+    vel(:,ipart) = velzero(:)
+    rho(ipart) = rhozero
     pmass(ipart) = massp
-    uuin(ipart) = 1.0	! isothermal
-    hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
-    Bin(:,ipart) = Bzero(:)
+    uu(ipart) = 1.0	! isothermal
+    hh(ipart) = hfact*(massp/rho(ipart))**hpower	 ! ie constant everywhere
+    Bfield(:,ipart) = Bzero(:)
  ENDDO
 !
 !--now call routine to do the Gaussian random perturbation

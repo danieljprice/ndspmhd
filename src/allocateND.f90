@@ -28,14 +28,14 @@ SUBROUTINE alloc(newsizein)
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: newsizein
  INTEGER :: newsize,ioldsize,idumsize
- REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumuuin,dumenin,dumalphain
+ REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumalphain
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  REAL, DIMENSION(newsizein) :: dumalpha,dumdaldt,dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
- REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBfieldin,dumBin
- REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBfield,dumdBfielddt,dumfmag
- REAL, DIMENSION(ndimV,newsizein) :: dumcurlB,dumxsphterm
+ REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBconsin
+ REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBcons,dumdBconsdt,dumfmag
+ REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype
  LOGICAL :: reallocate
 !
@@ -76,21 +76,20 @@ SUBROUTINE alloc(newsizein)
 !-----------------------------------------------------------------------------
     dumpmass(1:idumsize) = pmass(1:idumsize)
     dumrhoin(1:idumsize) = rhoin(1:idumsize)
-    dumuuin(1:idumsize) = uuin(1:idumsize)
     dumhhin(1:idumsize) = hhin(1:idumsize)
     dumenin(1:idumsize) = enin(1:idumsize)
     dumalphain(1:idumsize) = alphain(1:idumsize)
     
     dumxin(:,1:idumsize) = xin(:,1:idumsize)
     dumvelin(:,1:idumsize) = velin(:,1:idumsize)
-    dumBfieldin(:,1:idumsize) = Bfieldin(:,1:idumsize)
-    dumBin(:,1:idumsize) = Bin(:,1:idumsize)
+    dumBconsin(:,1:idumsize) = Bconsin(:,1:idumsize)
     
     dumx(:,1:idumsize) = x(:,1:idumsize)
     dumvel(:,1:idumsize) = vel(:,1:idumsize)
     dumforce(:,1:idumsize) = force(:,1:idumsize)
+    dumBcons(:,1:idumsize) = Bcons(:,1:idumsize)
     dumBfield(:,1:idumsize) = Bfield(:,1:idumsize)
-    dumdBfielddt(:,1:idumsize) = dBfielddt(:,1:idumsize)
+    dumdBconsdt(:,1:idumsize) = dBconsdt(:,1:idumsize)
     dumfmag(:,1:idumsize) = fmag(:,1:idumsize)
     dumcurlB(:,1:idumsize) = curlB(:,1:idumsize)
     dumxsphterm(:,1:idumsize) = xsphterm(:,1:idumsize)
@@ -121,17 +120,17 @@ SUBROUTINE alloc(newsizein)
 !
 !--initial particle properties
 !
-    DEALLOCATE (pmass,xin,rhoin,uuin,hhin,enin,alphain)
+    DEALLOCATE (pmass,xin,rhoin,hhin,enin,alphain)
     DEALLOCATE (velin)
-    IF (ALLOCATED(Bfieldin)) DEALLOCATE (Bfieldin)
-    IF (ALLOCATED(Bin)) DEALLOCATE(Bin)
+    IF (ALLOCATED(Bconsin)) DEALLOCATE (Bconsin)
 !
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     DEALLOCATE(alpha,daldt,hh,dhdt,gradh,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
-    IF (ALLOCATED(dBfielddt)) DEALLOCATE(dBfielddt)
+    IF (ALLOCATED(Bcons)) DEALLOCATE(Bcons)
+    IF (ALLOCATED(dBconsdt)) DEALLOCATE(dBconsdt)
 !
 !--equation of state
 !
@@ -171,10 +170,10 @@ SUBROUTINE alloc(newsizein)
 !
     ALLOCATE (pmass(newsize))
     ALLOCATE (xin(ndim,newsize))
-    ALLOCATE (rhoin(newsize),uuin(newsize),hhin(newsize))
+    ALLOCATE (rhoin(newsize),hhin(newsize))
     ALLOCATE (enin(newsize),alphain(newsize))
     ALLOCATE (velin(ndimV,newsize))
-    ALLOCATE (Bfieldin(ndimB,newsize),Bin(ndimB,newsize))
+    ALLOCATE (Bconsin(ndimB,newsize))
 !
 !--particle properties and derivatives
 !
@@ -184,7 +183,8 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
     ALLOCATE(alpha(newsize),daldt(newsize))
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),pr(newsize))
-    ALLOCATE(Bfield(ndimB,newsize),dBfielddt(ndimB,newsize))	! mag field
+    ALLOCATE(Bcons(ndimB,newsize))
+    ALLOCATE(Bfield(ndimB,newsize),dBconsdt(ndimB,newsize))	! mag field
 !
 !--equation of state
 !
@@ -219,21 +219,20 @@ SUBROUTINE alloc(newsizein)
 !-----------------------------------------------------------------------------
     pmass(1:idumsize) = dumpmass(1:idumsize)
     rhoin(1:idumsize) = dumrhoin(1:idumsize)
-    uuin(1:idumsize) = dumuuin(1:idumsize)
     hhin(1:idumsize) = dumhhin(1:idumsize)
     enin(1:idumsize) = dumenin(1:idumsize)
     alphain(1:idumsize) = dumalphain(1:idumsize)
     
     xin(:,1:idumsize) = dumxin(:,1:idumsize)
     velin(:,1:idumsize) = dumvelin(:,1:idumsize)
-    Bfieldin(:,1:idumsize) = dumBfieldin(:,1:idumsize)
-    Bin(:,1:idumsize) = dumBin(:,1:idumsize)
+    Bconsin(:,1:idumsize) = dumBconsin(:,1:idumsize)
     
     x(:,1:idumsize) = dumx(:,1:idumsize)
     vel(:,1:idumsize) = dumvel(:,1:idumsize)
     force(:,1:idumsize) = dumforce(:,1:idumsize)
     Bfield(:,1:idumsize) = dumBfield(:,1:idumsize)
-    dBfielddt(:,1:idumsize) = dumdBfielddt(:,1:idumsize)
+    Bcons(:,1:idumsize) = dumBcons(:,1:idumsize)
+    dBconsdt(:,1:idumsize) = dumdBconsdt(:,1:idumsize)
     fmag(:,1:idumsize) = dumfmag(:,1:idumsize)
     curlB(:,1:idumsize) = dumcurlB(:,1:idumsize)
     xsphterm(:,1:idumsize) = dumxsphterm(:,1:idumsize)

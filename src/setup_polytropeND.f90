@@ -62,14 +62,14 @@ SUBROUTINE setup
 !
 !--set these for all particles
 ! 
- velin(:,:) = 0.
- rhoin(:) = rhozero
- uuin(:) = uuzero
+ vel(:,:) = 0.
+ rho(:) = rhozero
+ uu(:) = uuzero
  enin(:) = uuzero
  pmass(:) = massp
- Bin(:,:) = 0.
- WHERE (rhoin > 0.)
-    hhin = hfact*(massp/rhoin(:))**hpower
+ Bfield(:,:) = 0.
+ WHERE (rho > 0.)
+    hh = hfact*(massp/rho(:))**hpower
  END WHERE
  
  RETURN

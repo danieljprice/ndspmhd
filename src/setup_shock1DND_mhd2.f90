@@ -1,7 +1,7 @@
 !!------------------------------------------------------------------------!!
 !!                                                                        !!
 !!  Generic setup for 1D MHD shock tubes - equal smoothing around xcentre !!
-!!  this version for use with ND code (references xin(1,j) not xin(j) )   !!
+!!  this version for use with ND code (references x(1,j) not x(j) )   !!
 !!                                                                        !!
 !!  Gives particles a variable separation so the mass per SPH particle    !!
 !!  is constant. Shock is smoothed slightly (equal about xcentre).        !!
@@ -22,7 +22,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -46,8 +45,8 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound =1
- nbpts = 6	! must use fixed particles if inflow/outflow at boundaries.
+ ibound =2
+ nbpts = 0	! must use fixed particles if inflow/outflow at boundaries.
  xmin(1) = -0.5
  xmax(1) = 0.5
  xcentre = (xmax(1) + xmin(1))/2.0
@@ -57,7 +56,7 @@ SUBROUTINE setup
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
  alphamax = 0.5
- dsmooth = 0. 
+ dsmooth = 20. 
  rholeft = 1.0
  rhoright = 0.125
  prleft = 1.0
@@ -126,27 +125,26 @@ SUBROUTINE setup
 !
 !--setup the particles using the parameters given
 ! 
- xin(1,1) = xmin(1) + 0.5*psepleft
- xin(1,2) = xmin(1) + psep*rhoright/rholeft + 0.5*psepleft
+ x(1,1) = xmin(1) + 0.5*psepleft
+ x(1,2) = xmin(1) + psep*rhoright/rholeft + 0.5*psepleft
  DO i=1,2
-    rhoin(i) = rholeft
-    uuin(i) = uuleft
-    enin(i) = enleft
+    rho(i) = rholeft
+    uu(i) = uuleft
     pmass(i) = massp
-    velin(:,i) = vleft(:)
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower
-    alphain(i) = alphamin
+    vel(:,i) = vleft(:)
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower
+    alpha(i) = alphamin
     IF (imhd.NE.0) THEN
-       Bin(1,i) = Bxinit
-       Bin(2,i) = Byleft
-       Bin(3,i) = Bzleft
+       Bfield(1,i) = Bxinit
+       Bfield(2,i) = Byleft
+       Bfield(3,i) = Bzleft
     ENDIF 
  ENDDO
  
  j = 2     
- DO WHILE (xin(1,j).LT.xmax(1))
-    dx0 = massp/rhoin(j)
-    xhalf = xin(1,j) + 0.5*dx0  !x at the mid point
+ DO WHILE (x(1,j).LT.xmax(1))
+    dx0 = massp/rho(j)
+    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
     delta = xhalf/psep
     j = j + 1 
     IF (delta.lt.-dsmooth) THEN
@@ -162,49 +160,46 @@ SUBROUTINE setup
 !---------------------------------------------------	    
     dxhalf = massp/rhohalf
     dx1 = 2.*dxhalf - dx0
-    xin(1,j) = xhalf + 0.5*dx1
-    delta = (xin(1,j)-xcentre)/psep
+    x(1,j) = xhalf + 0.5*dx1
+    delta = (x(1,j)-xcentre)/psep
     IF (delta.lt.-dsmooth) THEN
-       rhoin(j) = rholeft
-       enin(j) = enleft
-       uuin(j) = uuleft
-       velin(:,j) = vleft(:)
-       Bin(2,j) = Byleft
-       Bin(3,j) = Bzleft
-       alphain(j) = alphamin
+       rho(j) = rholeft
+       uu(j) = uuleft
+       vel(:,j) = vleft(:)
+       Bfield(2,j) = Byleft
+       Bfield(3,j) = Bzleft
+       alpha(j) = alphamin
     ELSEIF (delta.gt.dsmooth) THEN
-       rhoin(j) = rhoright
-       enin(j) = enright
-       uuin(j) = uuright
-       velin(:,j) = vright(:)
-       Bin(2,j) = Byright
-       Bin(3,j) = Bzright
-       alphain(j) = alphamin
+       rho(j) = rhoright
+       uu(j) = uuright
+       vel(:,j) = vright(:)
+       Bfield(2,j) = Byright
+       Bfield(3,j) = Bzright
+       alpha(j) = alphamin
     ELSE
        exx = exp(delta)
-       rhoin(j) = (rholeft + rhoright*exx)/(1.0 +exx)
-       enin(j) = (enleft + enright*exx)/(1.0 + exx)
-       uuin(j) = (uuleft + uuright*exx)/(1.0 + exx)
+       rho(j) = (rholeft + rhoright*exx)/(1.0 +exx)
+       uu(j) = (uuleft + uuright*exx)/(1.0 + exx)
        
-       exxal = exp(-(xin(1,j)/(0.5*dsmooth*psep))**2)
-       alphain(j) = alphamax*exxal + alphamin
+       exxal = exp(-(x(1,j)/(0.5*dsmooth*psep))**2)
+       alpha(j) = alphamax*exxal + alphamin
 !       IF (prleft.GT.prright) THEN
-!          uuin(j) = (prleft + prright*exx)/((1.0 + exx)*gam1*rhoin(i))
+!          uu(j) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
 !       ELSE
-!          uuin(j) = (prright + prleft*exx)/((1.0 + exx)*gam1*rhoin(i))
+!          uu(j) = (prright + prleft*exx)/((1.0 + exx)*gam1*rho(i))
 !       ENDIF
-      velin(:,j) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
+      vel(:,j) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
 !       IF (delta.LT.0.) THEN
-!          velin(:,j) = vleft(:)
+!          vel(:,j) = vleft(:)
 !       ELSE
-!          velin(:,j) = vright(:)
+!          vel(:,j) = vright(:)
 !       ENDIF  
-       Bin(2,j) = (Byleft + Byright*exx)/(1.0 + exx)
-       Bin(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
+       Bfield(2,j) = (Byleft + Byright*exx)/(1.0 + exx)
+       Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
     pmass(j) = massp
-    hhin(j) = hfact*(pmass(j)/rhoin(j))**hpower	!rhohalf
-    Bin(1,j) = Bxinit
+    hh(j) = hfact*(pmass(j)/rho(j))**hpower	!rhohalf
+    Bfield(1,j) = Bxinit
  ENDDO
 
  npart = j-1
@@ -213,7 +208,7 @@ SUBROUTINE setup
 !--if using ghosts adjust outer boundary to lie half a particle spacing away
 !
  IF (ibound(1).GT.1) THEN
-    xmax(1) = xin(1,npart) + 0.5*(xin(1,npart)-xin(1,npart-1))
+    xmax(1) = x(1,npart) + 0.5*(x(1,npart)-x(1,npart-1))
  ENDIF
 
 !

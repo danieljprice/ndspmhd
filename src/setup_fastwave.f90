@@ -50,18 +50,18 @@ SUBROUTINE setup
  CALL alloc(imax)
  
  DO i=1,imax
-    xin(i) = xmin + (i-1)*psep  + 0.5*psep 
-    velin(:,i) = 0.
-    rhoin(i) = 1.0
+    x(i) = xmin + (i-1)*psep  + 0.5*psep 
+    vel(:,i) = 0.
+    rho(i) = 1.0
     pmass(i) = massp
-    uuin(i) = 0.3
-    hhin(i) = hfact*(massp/rhoin(i))**hpower	 ! ie constant everywhere
+    uu(i) = 0.3
+    hh(i) = hfact*(massp/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(1,i) = 0.5
-       Bin(2,i) = 0.5
-       Bin(3,i) = 0.5
+       Bfield(1,i) = 0.5
+       Bfield(2,i) = 0.5
+       Bfield(3,i) = 0.5
     ENDIF 
-!   print*,i,xin(i),rhoin(i),uuin(i),pmass(i),xin(i)-xin(i-1)
+!   print*,i,x(i),rho(i),uu(i),pmass(i),x(i)-x(i-1)
  ENDDO
   
  npart = imax
@@ -82,7 +82,7 @@ SUBROUTINE setup
  WRITE (iprint,*) 'Amplitude = ',ampl
 
  DO i=1,npart
-    dxi = xin(i)-xmin
+    dxi = x(i)-xmin
     dxprev = dxmax*2.
     xmassfrac = dxi/dxmax	! current mass fraction(for uniform density)
 				! determines where particle should be
@@ -107,60 +107,60 @@ SUBROUTINE setup
     ENDIF
 	  
 !    IF (idebug(1:5).EQ.'sound') THEN
-       WRITE(*,99002) i,its,dxi-dxprev,xin(i),xmin+dxi
+       WRITE(*,99002) i,its,dxi-dxprev,x(i),xmin+dxi
 99002  FORMAT('Particle',i5,' converged in ',i4,	&
        ' iterations, error in x =',1(1pe10.2,1x),/,	&
        'previous x = ',1(0pf8.5,1x),			&
        'moved to x = ',1(0pf8.5,1x)) 
 !    ENDIF
-    xin(i) = xmin+dxi
+    x(i) = xmin+dxi
 !
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
-    CALL equation_of_state(pri,spsoundi,uuin(i),rhoin(i),gamma,1)
+    CALL equation_of_state(pri,spsoundi,uu(i),rho(i),gamma,1)
 !
 !--multiply by appropriate wave speed
 !
 !    PRINT*,' sound speed = ',spsoundi, ' alfven speed = ',SQRT(valfven2i)
-    valfven2i = DOT_PRODUCT(Bin(:,i),Bin(:,i))/rhoin(i)
+    valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
     vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
                       + SQRT((spsoundi**2 + valfven2i)**2	&
-                      - 4.*(spsoundi*Bin(1,i))**2/rhoin(i))))
+                      - 4.*(spsoundi*Bfield(1,i))**2/rho(i))))
     vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
                       - SQRT((spsoundi**2 + valfven2i)**2	&
-                      - 4.*(spsoundi*Bin(1,i))**2/rhoin(i))))
+                      - 4.*(spsoundi*Bfield(1,i))**2/rho(i))))
     vcrap = SQRT(spsoundi**2 + valfven2i)
 !    PRINT*,' c_f = ',vfast, ' c_slow = ',vslow
 !    PRINT*,'c_f_joe = ',0.5*(SQRT(spsoundi**2 + valfven2i 	&
-!      		    - 2.*spsoundi*Bin(1,i)/SQRT(rhoin(i)) )	&
+!      		    - 2.*spsoundi*Bfield(1,i)/SQRT(rho(i)) )	&
 !                                +SQRT(spsoundi**2 + valfven2i 	&
-!      		    + 2.*spsoundi*Bin(1,i)/SQRT(rhoin(i)) ))		      
+!      		    + 2.*spsoundi*Bfield(1,i)/SQRT(rho(i)) ))		      
 !    PRINT*,'c_crap = ',vcrap,spsoundi + SQRT(valfven2i)
 		    
     vwave = vfast
-    vsigy = -Bin(1,i)*Bin(2,i)/rhoin(i)/(vwave**2 - Bin(1,i)**2/rhoin(i))
-    vsigz = -Bin(1,i)*Bin(3,i)/rhoin(i)/(vwave**2 - Bin(1,i)**2/rhoin(i))
+    vsigy = -Bfield(1,i)*Bfield(2,i)/rho(i)/(vwave**2 - Bfield(1,i)**2/rho(i))
+    vsigz = -Bfield(1,i)*Bfield(3,i)/rho(i)/(vwave**2 - Bfield(1,i)**2/rho(i))
 !    PRINT*,' vsig = ',vsigx,vsigy,vsigz
 !    READ*
     
-    velin(1,i) = vwave*ampl*SIN(wk*dxi)
-    velin(2,i) = vsigy*ampl*SIN(wk*dxi)
-    velin(3,i) = vsigz*ampl*SIN(wk*dxi)
+    vel(1,i) = vwave*ampl*SIN(wk*dxi)
+    vel(2,i) = vsigy*ampl*SIN(wk*dxi)
+    vel(3,i) = vsigz*ampl*SIN(wk*dxi)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uuin(i) = uuin(i) + pri/rhoin(i)*ampl*SIN(wk*dxi)	! if not polytropic
+   uu(i) = uu(i) + pri/rho(i)*ampl*SIN(wk*dxi)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
-    Bin(2,i) = Bin(2,i) + vwave*Bin(2,i)/(vwave**2.-Bin(1,i)**2/rhoin(i))*ampl*SIN(wk*dxi)
-    Bin(3,i) = Bin(3,i) + vwave*Bin(3,i)/(vwave**2.-Bin(1,i)**2/rhoin(i))*ampl*SIN(wk*dxi)
-    rhoin(i) = rhoin(i)*(1.+ampl*SIN(wk*dxi))
+    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)/(vwave**2.-Bfield(1,i)**2/rho(i))*ampl*SIN(wk*dxi)
+    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)/(vwave**2.-Bfield(1,i)**2/rho(i))*ampl*SIN(wk*dxi)
+    rho(i) = rho(i)*(1.+ampl*SIN(wk*dxi))
 
     IF (ihvar.NE.0) THEN
-       hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	! if variable smoothing length
+       hh(i) = hfact*(pmass(i)/rho(i))**hpower	! if variable smoothing length
     ENDIF
 
  ENDDO

@@ -82,28 +82,28 @@ SUBROUTINE setup
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
-    dx(:) = xin(:,ipart)-xorigin(:) 
+    dx(:) = x(:,ipart)-xorigin(:) 
     radius = SQRT(DOT_PRODUCT(dx,dx))
     IF (radius.LE.rdisk) THEN
-       rhoin(ipart) = rhodisk
+       rho(ipart) = rhodisk
        pmass(ipart) = massp*rhodisk/rhozero
-       velin(1,ipart) = -vzero*(xin(2,ipart)-xorigin(2))/rdisk
-       velin(2,ipart) = vzero*(xin(1,ipart)-xorigin(1))/rdisk
+       vel(1,ipart) = -vzero*(x(2,ipart)-xorigin(2))/rdisk
+       vel(2,ipart) = vzero*(x(1,ipart)-xorigin(1))/rdisk
     ELSEIF (radius.LE.rbuffer) THEN	! smooth edge with taper function (Toth)
        ftaper = (rbuffer-radius)/(rbuffer - rdisk)
-       rhoin(ipart) = rhozero + (rhodisk-rhozero)*ftaper
-       pmass(ipart) = massp*rhoin(ipart)/rhozero
-       velin(1,ipart) = -ftaper*vzero*(xin(2,ipart)-xorigin(2))/radius
-       velin(2,ipart) = ftaper*vzero*(xin(1,ipart)-xorigin(1))/radius
+       rho(ipart) = rhozero + (rhodisk-rhozero)*ftaper
+       pmass(ipart) = massp*rho(ipart)/rhozero
+       vel(1,ipart) = -ftaper*vzero*(x(2,ipart)-xorigin(2))/radius
+       vel(2,ipart) = ftaper*vzero*(x(1,ipart)-xorigin(1))/radius
     ELSE
        pmass(ipart) = massp
-       rhoin(ipart) = rhozero
-       velin(:,ipart) = 0.
+       rho(ipart) = rhozero
+       vel(:,ipart) = 0.
     ENDIF  
     pri = przero 
-    uuin(ipart) = pri/(gam1*rhozero)
-    hhin(ipart) = hfact*(pmass(ipart)/rhoin(ipart))**hpower	 ! ie constant everywhere
-    Bin(:,ipart) = Bzero(:)
+    uu(ipart) = pri/(gam1*rhozero)
+    hh(ipart) = hfact*(pmass(ipart)/rho(ipart))**hpower	 ! ie constant everywhere
+    Bfield(:,ipart) = Bzero(:)
  ENDDO
 !
 !--allow for tracing flow

@@ -98,25 +98,25 @@ SUBROUTINE setup
 !--setup uniform density distribution
 !
  DO i=1,imax
-    xin(1,i) = xmin(1) + (i-1)*psep + 0.5*psep
-    rhoin(i) = (H - C*xin(1,i)**2)**dgam1    
+    x(1,i) = xmin(1) + (i-1)*psep + 0.5*psep
+    rho(i) = (H - C*x(1,i)**2)**dgam1    
     IF (oscills) THEN
-       velin(1,i) = A*Gn(xin(1,i),norder)
+       vel(1,i) = A*Gn(x(1,i),norder)
     ELSE
-       velin(1,i) = A*xin(1,i)
+       vel(1,i) = A*x(1,i)
     ENDIF 
-    IF (ndimV.GT.1) velin(2:3,i) = 0.   
-    pmass(i) = psep*rhoin(i)
-    uuin(i) = polyk*rhoin(i)**(gam1)/gam1
-    hhin(i) = hfact*psep	 ! ie constant everywhere
+    IF (ndimV.GT.1) vel(2:3,i) = 0.   
+    pmass(i) = psep*rho(i)
+    uu(i) = polyk*rho(i)**(gam1)/gam1
+    hh(i) = hfact*psep	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(1,i) = 0.0	!SQRT(1.5)
-       Bin(2,i) = sigma*rhoin(i)
-       Bin(3,i) = 0.0	
+       Bfield(1,i) = 0.0	!SQRT(1.5)
+       Bfield(2,i) = sigma*rho(i)
+       Bfield(3,i) = 0.0	
     ELSE
-       Bin(:,i) = 0.
+       Bfield(:,i) = 0.
     ENDIF 
-!    PRINT*,xin(1,i),rhoin(i),pmass(i),hhin(i)
+!    PRINT*,x(1,i),rho(i),pmass(i),hh(i)
  ENDDO
  
  npart = imax  

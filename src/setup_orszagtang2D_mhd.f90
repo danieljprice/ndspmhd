@@ -86,21 +86,21 @@ SUBROUTINE setup
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
-    velin(1,ipart) = -vzero*SIN(2.*pi*xin(2,ipart))
-    velin(2,ipart) = vzero*SIN(2.*pi*xin(1,ipart))
-    IF (ndimV.EQ.3) velin(3,ipart) = 0.
-    rhoin(ipart) = rhozero
+    vel(1,ipart) = -vzero*SIN(2.*pi*x(2,ipart))
+    vel(2,ipart) = vzero*SIN(2.*pi*x(1,ipart))
+    IF (ndimV.EQ.3) vel(3,ipart) = 0.
+    rho(ipart) = rhozero
     pmass(ipart) = massp
-    uuin(ipart) = uuzero
-    hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
+    uu(ipart) = uuzero
+    hh(ipart) = hfact*(massp/rho(ipart))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(1,ipart) = -Bzero*SIN(2.*pi*xin(2,ipart))
-       Bin(2,ipart) = Bzero*SIN(4.*pi*xin(1,ipart))
-       IF (ndimV.EQ.3) Bin(3,ipart) = 0.0	
+       Bfield(1,ipart) = -Bzero*SIN(2.*pi*x(2,ipart))
+       Bfield(2,ipart) = Bzero*SIN(4.*pi*x(1,ipart))
+       IF (ndimV.EQ.3) Bfield(3,ipart) = 0.0	
     ELSE
-       Bin(:,ipart) = 0.
+       Bfield(:,ipart) = 0.
     ENDIF 
-!       print*,ipart,xin(:,ipart),rhoin(ipart),uuin(ipart),pmass(ipart)
+!       print*,ipart,x(:,ipart),rho(ipart),uu(ipart),pmass(ipart)
 !       IF (MOD(i,1000).EQ.0) read*
  ENDDO
 

@@ -126,7 +126,7 @@ SUBROUTINE get_rates
   drhodt(i) = 0.0
   dudt(i) = 0.0
   dendt(i) = 0.0
-  dBfielddt(:,i) = 0.0
+  dBconsdt(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -189,11 +189,11 @@ SUBROUTINE get_rates
        phii = phi(i)
        phii1 = 1./phii
        IF (imhd.GE.11) THEN	! if mag field variable is B
-          Bi(:) = Bfield(:,i)
+          Bi(:) = Bcons(:,i)
           Brhoi(:) = Bi(:)*rho1i
        ELSEIF (imhd.GT.0) THEN	! if mag field variable is B/rho
-          Brhoi(:) = Bfield(:,i)
-          Bi(:) = Brhoi(:)*rhoi
+          Brhoi(:) = Bcons(:,i)
+          Bi(:) = Bfield(:,i)
        ENDIF
 ! mhd definitions
        Brho2i = DOT_PRODUCT(Brhoi,Brhoi)
@@ -222,7 +222,6 @@ SUBROUTINE get_rates
        
           j = listneigh(n)
 	  IF ((j.NE.i).AND..NOT.(j.GT.npart .AND. i.GT.npart)) THEN		! don't count particle with itself
-!	     print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
 	     dx(:) = x(:,i) - x(:,j)
 	     hj = hh(j)
 	     hj2 = hj*hj
@@ -258,6 +257,7 @@ SUBROUTINE get_rates
 !
 	     IF ((q2.LT.radkern2).OR.(q2i.LT.radkern2)	& ! if within 2h
                                  .OR.(q2j.LT.radkern2)) THEN
+!	     print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
 !
 !--use either average h, average kernel gradient or Springel/Hernquist type
 !
@@ -312,11 +312,11 @@ SUBROUTINE get_rates
 		phij_on_phii = phi(j)*phii1 		
 !  (mhd definitions)
   	        IF (imhd.GE.11) THEN	! if B is mag field variable
-		 Bj(:) = Bfield(:,j)
+		 Bj(:) = Bcons(:,j)
 		 Brhoj(:) = Bj(:)*rho1j
 		ELSEIF (imhd.NE.0) THEN	! if B/rho is mag field variable
-		 Brhoj(:) = Bfield(:,j)
-		 Bj(:) = Brhoj(:)*rhoj		    	          
+		 Brhoj(:) = Bcons(:,j)
+		 Bj(:) = Bfield(:,j)		    	          
 		ENDIF
 		IF (imhd.NE.0) THEN
 		 dB(:) = Bi(:) - Bj(:)
@@ -354,7 +354,7 @@ SUBROUTINE get_rates
 		   ELSE				! normal
 		      viss = abs(dvdotr)		    
 		   ENDIF
-		ENDIF   
+		ENDIF 
 !
 !--max signal velocity (Joe's)
 !
@@ -371,7 +371,7 @@ SUBROUTINE get_rates
 !
 !                vsig2i = spsoundi**2 + valfven2i
 !		vsig2j = spsoundj**2 + valfven2j				
-!		
+		
 !		vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
 !		vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
 		
@@ -563,29 +563,29 @@ SUBROUTINE get_rates
 !--time derivative of magnetic field (divide by rho later) - in generalised form
 !
 !  (evolving B/rho)
-	          IF (imhd.EQ.1) THEN
-		     dBfielddt(:,i) = dBfielddt(:,i)		&
+		  IF (imhd.EQ.1) THEN
+		     dBconsdt(:,i) = dBconsdt(:,i)		&
                    - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-		     dBfielddt(:,j) = dBfielddt(:,j) 		&
+		     dBconsdt(:,j) = dBconsdt(:,j) 		&
      		   - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
 
-		     IF (iav.EQ.2) THEN		! add dissipative term ***check
-	                dBfielddt(:,i) = dBfielddt(:,i)		&
+		     IF (iav.NE.0) THEN		! add dissipative term ***check
+	                dBconsdt(:,i) = dBconsdt(:,i)		&
                          + rhoi*pmassj*dBdtvisc(:)*grkern		   
-		        dBfielddt(:,j) = dBfielddt(:,j)		&
+		        dBconsdt(:,j) = dBconsdt(:,j)		&
                          - rhoj*pmassi*dBdtvisc(:)*grkern
 	             ENDIF
 !   (evolving B)
 		  ELSEIF (imhd.EQ.11) THEN	! note divided by rho later		  
-		     dBfielddt(:,i) = dBfielddt(:,i)		&
+		     dBconsdt(:,i) = dBconsdt(:,i)		&
             + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
-		     dBfielddt(:,j) = dBfielddt(:,j) 		&
+		     dBconsdt(:,j) = dBconsdt(:,j) 		&
             + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
 		  
-		     IF (iav.EQ.2) THEN		! add dissipative term
-	                dBfielddt(:,i) = dBfielddt(:,i)		&
+		     IF (iav.NE.0) THEN		! add dissipative term
+	                dBconsdt(:,i) = dBconsdt(:,i)		&
                          + rho2i*pmassj*dBdtvisc(:)*grkern		   
-		        dBfielddt(:,j) = dBfielddt(:,j)		&
+		        dBconsdt(:,j) = dBconsdt(:,j)		&
                          - rho2j*pmassi*dBdtvisc(:)*grkern
 	             ENDIF
 		  
@@ -710,7 +710,7 @@ SUBROUTINE get_rates
     rho1i = 1./rho(i)
     IF (imhd.NE.0) THEN
        divB(i) = divB(i)*rho1i		!*rhoi
-       dBfielddt(:,i) = dBfielddt(:,i)*rho1i
+       dBconsdt(:,i) = dBconsdt(:,i)*rho1i
     ENDIF    
 !
 !--calculate time derivative of the smoothing length
@@ -719,6 +719,12 @@ SUBROUTINE get_rates
        dhdt(i) = -hh(i)/(ndim*rho(i))*drhodt(i)
     ELSE
        dhdt(i) = 0.    
+    ENDIF
+!
+!--if using the thermal energy equation, set the energy derivative
+!
+    IF (iener.NE.3 .AND. iener.NE.0) THEN
+       dendt(i) = dudt(i)
     ENDIF
 !
 !--calculate time derivative of alpha (artificial dissipation coefficient)
