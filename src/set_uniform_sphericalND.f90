@@ -4,7 +4,7 @@
 !     a uniform cube of particles and trims it to be spherical.
 !----------------------------------------------------------------
 
-SUBROUTINE set_uniform_spherical(idist,rmax)
+SUBROUTINE set_uniform_spherical(idist,rmin,rmax)
 !
 !--include relevant global variables
 !
@@ -18,7 +18,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
 !            
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: idist
- REAL, INTENT(IN) :: rmax
+ REAL, INTENT(IN) :: rmin,rmax
 
  INTEGER :: i,j,ierr,ntemp 
  INTEGER, DIMENSION(:), ALLOCATABLE :: partlist
@@ -47,7 +47,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
  ntemp = 0		! actual number of particles to use
  DO i=1,npart
     rad = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
-    IF (rad.LE.rmax) THEN
+    IF (rad.LE.rmax .AND. rad.GE.rmin) THEN
        ntemp = ntemp + 1
        partlist(ntemp) = i
     ENDIF   
