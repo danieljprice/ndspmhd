@@ -1,5 +1,6 @@
 !-------------------------------------------------------------------------
-! Set up a Keplerian disc with a radial density profile in 2D
+! Set up a particles on rings (useful for discs) with a
+! given radial density profile in 2D
 !-------------------------------------------------------------------------
 
 subroutine setup
@@ -10,6 +11,7 @@ subroutine setup
  use debug
  use loguns
  use bound
+ use eos
  use options
  use part
  use setup_params
@@ -17,121 +19,119 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,npartphi,npartprev
- real :: massp,volume,totmass,pindex,rindex,xi,yi
- real :: denszero,rr,psepold,omegadot,rmin,rmax,rbuffer
+ integer, parameter :: maxrings = 100
+ integer :: i,iring,ipart,npartphi,nringsguess,nrings
+ real, dimension(maxrings) :: rhoring,drhoring,rring
+ real :: massp,volume,totmass,rindex
+ real :: denszero,rhoringi,dr,rr,psepold,omegadot,rmin,rmax,rbuffer
+ real :: phi,phimin,phimax
+ real :: rhor,drhor
+ real :: gamm1
 
  write(iprint,*) 'Accretion disc setup in 2D'
-!
-!--set co-ordinate system
-!
- igeom = 2
+
  iexternal_force = 2
 !
 !--set boundaries
 ! 	    
  nbpts = 0	! use ghosts not fixed
- ibound(1) = 2	! reflective in r
+ ibound = 0	! no boundaries
  rmin = 0.5	! rmin
- rmax = 1.5  ! rmax
- rbuffer = 0.  ! size of buffer region (gaussian falloff)
- 
+ rmax = 1.5     ! rmax
+ rbuffer = 0.3   ! size of buffer region (quadratic falloff)
+ phimin = 0.0
+ phimax = 2.*pi ! this must be 2\pi unless in cylindrical co-ords
 !
-!--set density profile - works for rindex <= -1 and rindex .ne. -2
+!--set density profile
 !
- rindex = -1.5   ! density \propto r**(pindex)
- 
- pindex = rindex+2.
- if (ndim.ge.2)then
-    ibound(2) = 3  ! periodic in phi
-    xmin(2) = 0.0  ! phi_min
-    xmax(2) = 2.*pi  ! phi_max
- endif
- if (ndim.ge.3) ibound(3) = 0  ! nothing in z
+ denszero = 1.0
+ rindex = -1.5   ! density \propto r**(rindex)
+ gamm1 = gamma -1.
+ if (gamm1.lt.1.e-3) stop 'error: isothermal eos not implemented'
+ write(iprint,*) ' sound speed = ',sqrt(gamma*polyk*denszero**gamm1)
 !
-!--set bounds of \eta coordinate according to the index (-1 gives r)
-!
- xmin(1) = min((rmin+rbuffer)**pindex,(rmax-rbuffer)**pindex)
- xmax(1) = max((rmin+rbuffer)**pindex,(rmax-rbuffer)**pindex)
- write(iprint,*) 'rmin, rmax = ',rmin,rmax,' coordmin,max = ',xmin(1),xmax(1)
-!
-!--make sure the particle separation is an even division of the \phi boundary
+!--particle separation determines number of particles in each ring
 !
  psepold = psep
- npartphi = INT((xmax(2)-xmin(2))/psep)
- psep = (xmax(2)-xmin(2))/REAL(npartphi)
- write(iprint,*) ' psep = ',psepold,' adjusted to ',psep,' npartphi = ',npartphi
+ npartphi = INT((phimax-phimin)/psep)
+ psep = (phimax-phimin)/REAL(npartphi) ! adjust so exact division of 2\pi
 !
-!--set up the uniform density grid (uniform in \eta,phi, 
-!  where \eta = r**(-(pindex+1))
+!--setup radius of all the rings
 !
- call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
- ntotal = npart
-!
-!--if not cylindrical coordinates, translate to cartesians
-!
- do i=1,npart
-!
-!--use coords in cylindricals to set velocities
-!
-    rr = x(1,i)**(1./pindex)
-    omegadot = SQRT(1./rr**3)
-    vel(1,i) = -rr*SIN(x(2,i))*omegadot
-    vel(2,i) = rr*COS(x(2,i))*omegadot
-    xi = rr*COS(x(2,i))
-    yi = rr*SIN(x(2,i))
-    x(1,i) = xi
-    x(2,i) = yi
-!!    CALL coord_transform(x(:,i),ndim,igeom,x(:,i),ndim,1)
+ iring = 0
+ rr = rmin + rbuffer
+ do while (rr.lt.rmax)
+    iring = iring + 1 
+    rring(iring) = rr
+    rhoring(iring) = rhor(rindex,rr,rmin,rmax,rbuffer) 
+    drhoring(iring) = drhor(rindex,rr,rmin,rmax,rbuffer)
+    dr = psep/(rr*rhoring(iring))  ! dr varies depending on the radial density 
+    rr = rr + dr                   ! profile (dr=const for 1/r)
  enddo
+ nrings = iring
 !
-!--then set buffer regions
-! 
- npartprev = npart
- print*,'npartprev = ',npartprev
-! xmin(1) = 0.
-! xmax(1) = LOG((rmin+rbuffer)/rmin)
-! call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
-! do i=npartprev,npart
+!--now go backwards from rmin+rbuffer to rmin
 !
-!--use coords in cylindricals to set velocities
+ rr = rring(1) - psep/(rring(1)*rhoring(1))
+ do while (rr.gt.rmin)
+    iring = iring + 1
+    rring(iring) = rr
+    rhoring(iring) = rhor(rindex,rr,rmin,rmax,rbuffer) 
+    drhoring(iring) = drhor(rindex,rr,rmin,rmax,rbuffer)
+    dr = psep/(rr*rhoring(iring))
+    rr = rr - dr
+ enddo 
+ nrings = iring
+ write(iprint,*) ' number of rings = ',nrings,' particles per ring = ',npartphi 
 !
-!    rr = (rmin+rbuffer)*exp(-x(1,i))
-!    omegadot = SQRT(1./rr**3)
-!    vel(1,i) = -rr*SIN(x(2,i))*omegadot
-!    vel(2,i) = rr*COS(x(2,i))*omegadot
-!    xi = rr*COS(x(2,i))
-!    yi = rr*SIN(x(2,i))
-!    x(1,i) = xi
-!    x(2,i) = yi
-!!    CALL coord_transform(x(:,i),ndim,igeom,x(:,i),ndim,1)
-! enddo
-
- igeom = 0
- ibound = 0    ! no boundaries
-
+!--allocate memory
+!
+ call alloc(nrings*npartphi)
 !
 !--determine particle mass
 !
- denszero = 1.0
+ ntotal = nrings*npartphi
  volume = pi*(rmax**2 - rmin**2)
  totmass = denszero*volume
  massp = totmass/FLOAT(ntotal) ! average particle mass
-!
-!--now assign particle properties
-!  (note *do not* setup smoothing length as it depends on the conservative
-!   density dens which has not yet been calculated) 
-!
- do i=1,ntotal
-!
-!--vel is keplerian
-!
-    rr = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
-    dens(i) = denszero*(rr**rindex)
-    pmass(i) = massp
-    uu(i) = 1.0	! isothermal
-    Bfield(:,i) = 0.
- enddo 
+
+!---------------------------------------------
+!  now setup the particles on these rings
+!---------------------------------------------
+ do iring=1,nrings
+    rr = rring(iring)
+    rhoringi = rhoring(iring)
+    write(iprint,"(1x,a,i2,1x,2(a,f6.2))") ' ring ',iring,' r = ',rr,' rho = ',rhoringi
+    print*,drhoring(iring)
+    !
+    !--for each ring, set up same number of particles from 0-> 2\pi
+    !
+    do i=1,npartphi
+       ipart = ipart + 1
+       npart = npart + 1
+       if (ipart.gt.SIZE(dens)) call alloc(npart+npartphi)
+       phi = phimin + (i-1)*psep
+       !
+       !--translate r, phi back to cartesian co-ords
+       !
+       x(1,ipart) = rr*COS(phi)
+       x(2,ipart) = rr*SIN(phi)
+       dens(ipart) = rhoringi*denszero
+       !
+       !--keplerian velocity profile balancing pressure gradient
+       !
+       omegadot = SQRT(1./rr**3 + polyk/rr*dens(ipart)**gamm1*drhoring(iring))
+       vel(1,ipart) = -rr*SIN(phi)*omegadot
+       vel(2,ipart) = rr*COS(phi)*omegadot
+       uu(ipart) = polyk/gamm1*dens(ipart)**gamm1
+       Bfield(:,ipart) = 0.
+       pmass(ipart) = massp
+    enddo
+
+ enddo
+
+ if (ntotal.ne.npart) stop 'something wrong in setup...npart.ne.ntotal'
+ if (ntotal.ne.SIZE(dens)) call alloc(ntotal)   ! trim memory if too much
 !
 !--allow for tracing flow
 !
@@ -139,3 +139,107 @@ subroutine setup
   
  return
 end
+
+!--------------------------------------------------------
+!  this function specifies the radial density profile
+!--------------------------------------------------------
+
+real function rhor(rindex,rr,rmin,rmax,rbuffer)
+  implicit none
+  real :: rindex,rr,rmin,rmax,rbuffer
+  real :: r1,r2,rhor1,drhor1
+  real :: aa1,bb1,cc1,aa2,bb2,cc2
+!
+!--work out quadratic fits for buffer regions
+!
+  if (abs(rbuffer).gt.1.e-3) then
+     r1 = rmin+rbuffer
+     rhor1 = 1.0
+     drhor1 = rindex*(rhor1)/r1
+     call fit_quadratic(rmin,r1,0.0,1.0,drhor1,aa1,bb1,cc1)
+  
+     r2 = rmax-rbuffer
+     rhor1 = 1.0
+     drhor1 = rindex*(rhor1)/r2
+     call fit_quadratic(rmax,r2,0.0,1.0,drhor1,aa2,bb2,cc2)
+  else
+     r1 = rmin
+     r2 = rmax
+  endif
+!
+!--now setup radial density profile
+!
+  !!print*,'h ', rr,r1,r2,rmin,rmax
+  if (rr.lt.r1) then  ! quadratic falloff in buffer regions
+     rhor = (aa1*rr**2 + bb1*rr + cc1)*(r1**rindex)
+  elseif (rr.gt.r2) then
+     rhor = (aa2*rr**2 + bb2*rr + cc2)*(r2**rindex)
+  elseif (rr.ge.rmin .and. rr.le.rmax) then
+     rhor = rr**rindex
+  else
+     rhor = 0.
+  endif
+  
+end function rhor
+
+!------------------------------------------------------------------------
+!  this function specifies the derivative of the radial density profile
+!------------------------------------------------------------------------
+
+real function drhor(rindex,rr,rmin,rmax,rbuffer)
+  implicit none
+  real :: rindex,rr,rmin,rmax,rbuffer
+  real :: r1,r2,rhor1,drhor1
+  real :: aa1,bb1,cc1,aa2,bb2,cc2
+!
+!--work out quadratic fits for buffer regions
+!
+  if (abs(rbuffer).gt.1.e-3) then
+     r1 = rmin+rbuffer
+     rhor1 = 1.0
+     drhor1 = rindex*(rhor1)/r1
+     call fit_quadratic(rmin,r1,0.0,1.0,drhor1,aa1,bb1,cc1)
+  
+     r2 = rmax-rbuffer
+     rhor1 = 1.0
+     drhor1 = rindex*(rhor1)/r2
+     call fit_quadratic(rmax,r2,0.0,1.0,drhor1,aa2,bb2,cc2)
+  else
+     r1 = rmin
+     r2 = rmax
+  endif
+!
+!--now setup radial density profile
+!
+  !!print*,'h ', rr,r1,r2,rmin,rmax
+  if (rr.lt.r1) then  ! quadratic falloff in buffer regions
+     drhor = (2.*aa1*rr + bb1)*(r1**rindex)
+  elseif (rr.gt.r2) then
+     drhor = (2.*aa2*rr + bb2)*(r2**rindex)
+  elseif (rr.ge.rmin .and. rr.le.rmax) then
+     drhor = rindex*rr**(rindex-1)
+  else
+     drhor = 0.
+  endif
+  
+end function drhor
+
+!-------------------------------------------------------------------
+! small utility to fit a quadratic function 
+! given two points (x0,y0), (x1,y1) and a gradient dydx(x1)
+! returns the coefficients of y = ax^2 + bx + c
+!-------------------------------------------------------------------
+subroutine fit_quadratic(x0,x1,y0,y1,dydx1,aa,bb,cc)
+ implicit none
+ real, intent(in) :: x0,x1,y0,y1,dydx1
+ real, intent(out) :: aa,bb,cc
+
+ aa = ((y1 - y0) - dydx1*(x1-x0))/(x1**2 - x0**2 - 2.*x1*(x1-x0))
+ bb = dydx1 - 2.*aa*x1
+ cc = y0 - aa*x0**2 - bb*x0
+
+!! print 10,aa,bb,cc
+10 format(/,'quadratic: y = ',f9.3,' x^2 + ',f9.3,' x + ',f9.3)
+
+ return
+end subroutine fit_quadratic

@@ -249,6 +249,7 @@ subroutine read_dump(dumpfile,tfile)
 !
 !--convert to appropriate coordinate system
 !
+ igeom = 2
  if (igeomfile.ne.igeom) then
     write(iprint,*) 'CONVERTING file from coord system ',igeomfile,' to ',igeom
     do i=1,npart
@@ -262,7 +263,7 @@ subroutine read_dump(dumpfile,tfile)
  write(iprint,*) 'finished reading setup file: everything is aok'
 
  if (igeom.eq.2) then
-    ibound(1) = 2 ! reflective in r
+    ibound(1) = 0 ! reflective in r
     xmin(1) = 0.0
     if (ndim.ge.2) then 
        ibound(2) = 3 ! periodic in phi
