@@ -45,8 +45,8 @@ SUBROUTINE setup
 !            	    
  ibound =1
  nbpts = 6      ! must use fixed particles if inflow/outflow at boundaries.
- xmin(1) = -0.5
- xmax(1) = 0.5
+ xmin(1) = -0.75
+ xmax(1) = 0.75
  xcentre = (xmax(1) + xmin(1))/2.0
 !
 !--setup parameters
