@@ -123,7 +123,7 @@ SUBROUTINE density
 	    IF (ikernav.EQ.1) THEN		
 	       CALL interpolate_kernel(q2,wab,grkern)
 	       wab = wab*hfacwab
-	       grkern = grkern*hfacwab*hj1
+	       grkern = grkern*hfacwab*hav1
             ELSE
 !  (using hi)
                CALL interpolate_kernel(q2i,wabi,grkerni)
