@@ -513,8 +513,8 @@ SUBROUTINE setkern
 !--this is to see what effect the anticlumping term has on the kernel
 !
  IF (idivBzero.EQ.5) THEN
-!!    j = NINT((1./hfact)**2/dq2table)
-    j = NINT((1./1.5)**2/dq2table)
+    j = NINT((1./hfact)**2/dq2table)
+    !!j = NINT((1./1.5)**2/dq2table)
     wdenom = wij(j)
 
     SELECT CASE(neps) ! integral of W^{n+1} dV
@@ -525,22 +525,56 @@ SUBROUTINE setkern
     CASE(5)
        wint = 825643615./1324331008.
     END SELECT   
-    !!cnormkaniso = cnormk
-    cnormkaniso = 1./(1./cnormk + eps/(neps+1.)*wint/wdenom**neps)
+    cnormkaniso = cnormk
+    !!cnormkaniso = 1./(1./cnormk + eps/(neps+1.)*wint/wdenom**neps)
     
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (i.EQ.j) WRITE(iprint,*) ' j = ',j,q,q2,wij(j)
-       grwijaniso(i) = cnormkaniso*grwij(i)*(1. - eps*(wij(i)/wdenom)**neps)
-       wijaniso(i) = cnormkaniso*wij(i)*(1. - eps/(neps+1.)*(wij(i)/wdenom)**neps) 
+       grwijaniso(i) = cnormkaniso*grwij(i)*(1. - 0.5*eps*(wij(i)/wdenom)**neps)
+       wijaniso(i) = cnormkaniso*wij(i)*(1. - 0.5*eps/(neps+1.)*(wij(i)/wdenom)**neps) 
        grgrwijaniso(i) = cnormkaniso*(grgrwij(i)*  &
-                  (1. - eps*(wij(i)/wdenom)**neps) &
-                 - eps*neps*wij(i)**(neps-1.)/wdenom**neps*grwij(i)*grwij(i))   
+                  (1. - 0.5*eps*(wij(i)/wdenom)**neps) &
+                 - 0.5*eps*neps*wij(i)**(neps-1.)/wdenom**neps*grwij(i)*grwij(i))   
     ENDDO
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=TRIM(kernelname)//' ...with anti-clumping term' 
+    kernelname=TRIM(kernelname)//' with anti-clumping term' 
+ 
+ ELSEIF (idivBzero.EQ.6) THEN
+    beta = eps
+    print*,'enter beta (0.6-0.99) , currently = ',beta
+    !!read*,beta
+    A = -0.25*(2.-beta)**2/(1.-beta)**2
+    if (beta.eq.0.) then
+       B = 0.
+    else
+       B = -(A+1.)/beta**2
+    endif
+    cnormkaniso = 0.5/(1. + 0.25*(A + B*beta**4))
+    DO i=0,ikern
+       q2 = i*dq2table
+       q = SQRT(q2)
+       if (q.lt.beta) then
+          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + A*(1.-q)**3 + B*(beta-q)**3)
+          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + A*(1.-q)**2 + B*(beta-q)**2)
+          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q) + B*(beta-q))       
+       elseif(q.lt.1.) then
+          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + A*(1.-q)**3)
+          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + A*(1.-q)**2)
+          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q))      	  
+       else
+          wijaniso(i) = cnormkaniso*wij(i)
+          grwijaniso(i) = cnormkaniso*grwij(i)
+	  grgrwijaniso(i) = cnormkaniso*grgrwij(i)
+       endif
+
+    ENDDO
+
+    print*,'cnormk = ',cnormkaniso,eps,neps
+    kernelname='modified '//TRIM(kernelname)   
+ 
  ENDIF
 !
 !--normalise kernel
