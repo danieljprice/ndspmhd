@@ -90,7 +90,7 @@ SUBROUTINE initialise
  ELSE
     avfact = 1.0	! isothermal 
  ENDIF
- itoystar = 0	! unless toy star is setup
+ iexternal_force = 0	! unless toy star is setup
 !
 !--write first header to logfile/screen
 !

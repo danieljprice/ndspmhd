@@ -59,8 +59,10 @@ PROGRAM SUPERSPMHD_ND
 !   * eos rehashed
 !   * setup is on primitive variables  
 !   * psep sent to set_uniform_cartesian
-!   * external forces subroutine
+!   * external forces subroutine and option instead of itoystar
 !   * main loop in subroutine evolve
+!   * potential energy from external forces
+!   * symplectic integrator (not yet for MHD etc)
 !    version = 'NDSPMHD-3D-v5-0'
 !   *** saved as working 3D version ***
 !   * equations use general alternative formulation

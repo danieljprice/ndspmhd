@@ -449,7 +449,7 @@ SUBROUTINE get_rates
 !
 !--time step control (courant and viscous)
 !
-	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,hav/vsigdtc)
+	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,0.8*hav/vsigdtc)
 !
 !--pressure term (generalised form)
 !
@@ -694,7 +694,7 @@ SUBROUTINE get_rates
 !
 !--subtract external forces
 !
-    IF (itoystar.NE.0) CALL external_forces(i,itoystar)
+    IF (iexternal_force.NE.0) CALL external_forces(i,iexternal_force)
 !
 !--add self-gravity force
 !

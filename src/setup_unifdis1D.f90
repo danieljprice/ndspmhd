@@ -38,7 +38,7 @@ SUBROUTINE setup
  totmass = 1.0	!4./3.
  massp = totmass/imax	! average particle mass
  sigma = 1./SQRT(2.)
- itoystar = 0
+ iexternal_force = 0
 !
 !--allocate memory here
 !

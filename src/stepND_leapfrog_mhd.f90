@@ -27,6 +27,7 @@ SUBROUTINE step
  INTEGER :: i,j,jdim,ikernavprev,ierr
  REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin 
+ REAL :: hdt
 !
 !--allow for tracing flow
 !      
@@ -34,6 +35,8 @@ SUBROUTINE step
 !
 !--set initial quantities
 !
+ hdt = 0.5*dt
+ 
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
@@ -156,6 +159,10 @@ SUBROUTINE step
 ! 
 ! IF (idivBzero.NE.0) CALL divBcorrect
 !
+!
+!--set new timestep from courant/forces condition
+!
+ dt = min(dtforce,dtcourant)
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       

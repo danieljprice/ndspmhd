@@ -2,6 +2,9 @@
 !!
 !! Computes external (body) forces on a particle given its co-ordinates
 !!
+!! Note that the potential energies for these forces are calculated in
+!! evwrite and should correspond to the options used in this subroutine
+!!
 !!-----------------------------------------------------------------------
 subroutine external_forces(ipart,iexternal_force)
   use dimen_mhd

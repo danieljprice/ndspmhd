@@ -129,7 +129,7 @@ MODULE options
  INTEGER :: iener,icty,iav,iavlim,ikernav
  INTEGER :: ialtform,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
- INTEGER :: itoystar,ixsph,ianticlump
+ INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
  INTEGER, DIMENSION(ndim) :: ibound  
  REAL :: damp
@@ -213,9 +213,9 @@ MODULE timestep
 !
  INTEGER :: nmax,nout,nsteps,ndirect
 !
-! (max time, time before output, dt/2, dt)
+! (max time, time before output, dt)
 !
- REAL :: tmax,tout,hdt,dt,time     
+ REAL :: tmax,tout,dt,dt0,time     
 !
 ! (time step criterion from forces, courant condition)
 !

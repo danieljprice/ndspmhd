@@ -382,7 +382,7 @@ SUBROUTINE get_rates
 !
 !--subtract external forces
 !	
-		IF (itoystar.EQ.1) THEN	! linear force
+		IF (iexternal_force.EQ.1) THEN	! linear force
 		   force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
 		   force(1:ndim,j) = force(1:ndim,j) - x(1:ndim,j)
 		ENDIF
