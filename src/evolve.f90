@@ -16,6 +16,9 @@ SUBROUTINE evolve
  IMPLICIT NONE
  REAL :: tprint
  INTEGER :: noutput,nevwrite
+ REAL :: t_start,t_end,t_used
+ REAL :: etot, momtot, etotin, momtotin, detot, dmomtot
+ CHARACTER(LEN=10) :: finishdate, finishtime
 !
 !--allow for tracing flow
 !      
@@ -30,17 +33,32 @@ SUBROUTINE evolve
  nsteps = 0
  nevwrite = 1	! frequency of writing to .ev file (could be read as parameter)
 !
-!--write the initial conditions to the output and evolution files
+!--calculate initial values of conserved quantities
 !
+ CALL evwrite(time,etotin,momtotin)
+ write(iprint,5) etotin, momtotin
+5 format(' Total energy = ',1pe8.2,2x,'Linear momentum = ',1pe8.2) 
+!
+!--write header for timestep table
+!      
+ write (iprint,6)
+6 format (76('_'))    
+!
+!--write initial conditions to output file
+!  
  CALL output(time,nsteps)
- CALL evwrite(time)
+
  noutput = 1
  tprint = tout
 ! CALL quit
 !
+!--get starting CPU time
+!
+ CALL cpu_time(t_start)
+!
 ! --------------------- Main loop ----------------------------------------
 !
- dostep: DO WHILE ((time.LT.tmax).AND.(nsteps.LT.nmax))
+ timestepping: DO WHILE ((time.LT.tmax).AND.(nsteps.LT.nmax))
 
     time = time + dt
     nsteps = nsteps + 1
@@ -75,14 +93,44 @@ SUBROUTINE evolve
 !    
 !--calculate total energy etc and write to ev file    
 !
-    IF (MOD(nsteps,nevwrite).EQ.0) CALL evwrite(time)
+    IF (MOD(nsteps,nevwrite).EQ.0) THEN
+       CALL evwrite(time,etot,momtot)
+       detot = max(detot,abs(etot-etotin))
+       dmomtot = max(dmomtot,abs(momtot-momtotin))
+    ENDIF
 !
 !--reach tprint exactly. Must take this out for integrator to be symplectic
 !
 !    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
 	 	 
- ENDDO dostep
+ ENDDO timestepping
 
 !------------------------------------------------------------------------
+
+ write(iprint,6)
+!
+!--get ending CPU time
+!
+ CALL cpu_time(t_end)
+!
+!--print out total energy and momentum conservation
+!
+ if (abs(momtotin).lt.1.e-6)  momtotin = 1.0
+ WRITE(iprint,20) detot/etotin,dmomtot/momtotin
+20 FORMAT(/,' Max energy error   : ',1pe8.2,3x,' Max momentum error : ',1pe8.2)
+!
+!--Now print out total code timings:
+!
+ t_used = t_end - t_start
+ WRITE(iprint,30) t_used,t_used/nsteps
+30 FORMAT(' Total CPU time : ',f8.4,'s',2x,' Average time per step : ',f8.4,'s',/)
+!
+!--print time and date of finishing
+!
+ CALL date_and_time(finishdate,finishtime)
+ finishdate = finishdate(7:8)//'/'//finishdate(5:6)//'/'//finishdate(1:4)
+ finishtime = finishtime(1:2)//':'//finishtime(3:4)//':'//finishtime(5:)
+ WRITE(iprint,"(' Run finished on ',a,' at ',a,/)") finishdate,finishtime
+
  RETURN 
 END SUBROUTINE evolve
