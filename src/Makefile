@@ -10,9 +10,10 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C =  ifc
-F90FLAGS =  -O -WB -r8 ##-C
-LDFLAGS = -Vaxlib
+F90C =  g95
+F90FLAGS =  -O
+LDFLAGS = -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
+#LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -55,10 +56,10 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-#SETUP2D = setup_toystarND_static.f90
+SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
-SETUP2D = setup_shearflow2D.f90
+#SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
@@ -144,7 +145,7 @@ GR3D : 	$(OBJECTSGR3D)
 ## files from elsewhere
 
 coord_transform.o:
-	$(FC) -c $(FFLAGS) $(LDFLAGS) ../plot/coord_transform.f90 -o $@
+	$(FC) -c $(FFLAGS) ../plot/coord_transform.f90 -o $@
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90

@@ -123,7 +123,7 @@ subroutine iterate_density
 !--perform Newton-Raphson iteration on rho
 !      
               !f = rho_old(i) - rho(i)
-              !dfdrho = 1.- gradh(i)
+              !dfdh = dhdrho*(1.- gradh(i)
               !deltarho = -f/dfdrho
               
               !rho(i) = rho_old(i) + deltarho
