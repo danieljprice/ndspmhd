@@ -17,6 +17,7 @@ subroutine set_default_options
  use timestep
  use xsph
  use anticlumping
+ implicit none
 
  if (trace) write(iprint,*) 'Entering subroutine set_default_options'
 !
@@ -34,16 +35,16 @@ subroutine set_default_options
    polyk = 1.0
    icty = 0
    ndirect = nmax
-   maxdensits = 25
+   maxdensits = 250
    iprterm = 0
-   iav = 1
+   iav = 2
    alphamin = 0.1
    alphaumin = 0.0
-   alphaBmin = 0.0
+   alphaBmin = 1.0
    beta = 2.0
-   iavlim = 1
-   iaulim = 1
-   iaBlim = 1
+   iavlim(1) = 2
+   iavlim(2) = 1
+   iavlim(3) = 0
    avdecayconst = 0.1
    ikernav = 3
    ihvar = 2
