@@ -91,6 +91,7 @@ SUBROUTINE initialise
 !
  CALL write_header(1,infile,datfile,evfile,logfile)    
  
+ ikernel = 0		! set type of kernel (this could be read as input options)
  CALL setkern		! setup kernel tables
  CALL setup    		! setup particles, allocation of memory is called
 !

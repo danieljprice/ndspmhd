@@ -11,38 +11,33 @@ my $startnum;
 my $zero = 0;
 my $ext = '.dat';
 
-if ($#ARGV !=2) {
-   die "Usage: $0 rootname nruns nstepsmax\n";
+if ($#ARGV !=1) {
+   die "Usage: $0 rootname nruns \n";
 }
 
-my ($rootname,$nruns,$nsteps) = @ARGV;
+my ($rootname,$nruns) = @ARGV;
+
+# make a new directory for the run
+print "making new directory $rootname";
+system "mkdir $rootname";
+# copy files to this directory
+system "cp multirun.in ./$rootname";
+system "cp 1DSPMHD ./$rootname";
+system "cp defaults ./$rootname";
+system "ln -s ./plot/supersphplot ./$rootname/supersphplot";
+system "ln -s ./evsupersph ./$rootname/evsupersph";
 
 # call the multirun program to generate the input files
-system "multi/multirun $rootname $nruns";
+system "cd $rootname; ../multi/multirun $rootname $nruns";
 
 # write appropriate runnames to 'runname' and execute program
 for ($n = 1;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
-    system "write_sgescript $rootname$n";
-    system "qsub $rootname$n\.sge";
+    system "cd $rootname; ../scripts/write_sgescript1D.bash $rootname$n > ./$rootname$n\.sge";
+    system "cd $rootname; qsub $rootname$n\.sge";
 }
 
 # call the sametime program to write simultaneous data steps
 ###system "utils/sametime $rootname $nruns $nsteps";
-
-# put the final timestep as the current plot file
-###    $startnum = 1;
-###    open(THISPLOT,"> thisplot") || die("can't open thisplot") ;
-    
-###    if ($nsteps < 10) {
-###       print ">>> writing filename = $rootname$startnum$ext$zero$nsteps to 'thisplot' \n";    
-###       print THISPLOT "$rootname$startnum$ext$zero$nsteps";
-###    }   
-###    else {
-###       print ">>> writing filename = $rootname$startnum$ext$nsteps to 'thisplot' \n";
-###       print THISPLOT "$rootname$startnum$ext$nsteps";    
-###    }
-###    close(THISPLOT);
-
 
 exit;

@@ -131,15 +131,15 @@ SUBROUTINE get_rates
  IF (ianticlump.EQ.1) THEN
   q2joe = (1./hfact)**2	! 1/hfact is initial particle spacing in units of h
 !  print*,'q2joe = ',q2joe,q2joe/dq2table
-  indexjoe = q2joe/dq2table
-  dxxjoe = q2joe - indexjoe*dq2table 
-  indexjoe1 = indexjoe + 1
-  IF (indexjoe.GT.ikern) indexjoe = ikern
-  IF (indexjoe1.GT.ikern) indexjoe1 = ikern
-  dwdxjoe = (wij(indexjoe1) - wij(indexjoe))/dq2table
-  wabjoei = (wij(indexjoe) + dwdxjoe*dxxjoe) ! need to divide by hav later       
+!  indexjoe = q2joe/dq2table
+!  dxxjoe = q2joe - indexjoe*dq2table 
+!  indexjoe1 = indexjoe + 1
+!  IF (indexjoe.GT.ikern) indexjoe = ikern
+!  IF (indexjoe1.GT.ikern) indexjoe1 = ikern
+!  dwdxjoe = (wij(indexjoe1) - wij(indexjoe))/dq2table
+!  wabjoei = (wij(indexjoe) + dwdxjoe*dxxjoe) ! need to divide by hav later       
  
-!  CALL interpolate_kernel(q2joe,wabjoei,grkerni)
+  CALL interpolate_kernel(q2joe,wabjoei,grkerni)
  
  ENDIF
 ! print*,'wabjoe = ',wabjoei
