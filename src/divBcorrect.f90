@@ -152,7 +152,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--calculate the correction to the magnetic field
 ! 
        write(iprint,"(a)",ADVANCE='NO') ' div B correction by vector projection step...'
-       CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
+       !!CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
 !
 !--correct the magnetic field
 !              

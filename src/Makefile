@@ -10,11 +10,11 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C = ifc
-F90FLAGS =  -O -C -WB -r8
-LDFLAGS = -Vaxlib
-#F90C =  g95
-#F90FLAGS = -O -r8 -Wall
+#F90C = ifc
+#F90FLAGS =  -O -C -WB -r8
+#LDFLAGS = -Vaxlib
+F90C =  g95
+F90FLAGS = -O3 -mcpu=G4 -mtune=G4 -r8 -Wall
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -40,13 +40,13 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-#SETUP1D = setup_shock1DND_mhd2.f90
+SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-SETUP1D = setup_shockND.f90
+#SETUP1D = setup_shockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
@@ -58,7 +58,7 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-SETUP2D = toystar2D_utils.f90 setup_toystarND_static.f90 
+SETUP2D = setup_toystarND_static.f90 
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -102,7 +102,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
+SOURCES2 = conservative2primitive.f90 stepND_symplectic.f90 evwrite_mhd.f90 \
 
 # these files are for the gr version of the code
 SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
@@ -149,9 +149,6 @@ crap:
 
 geometry.o:
 	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
-        
-toystar2D_utils.o:
-	$(F90C) -c $(F90FLAGS) ../plot/toystar2D_utils.f90 -o $@
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
