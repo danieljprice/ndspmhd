@@ -51,6 +51,7 @@ SUBROUTINE read_infile(infile)
  IF (psep.LT.1.e-5) WRITE(iprint,100) 'psep < 1.e-5'
  IF (tout.GT.tmax) WRITE(iprint,100) 'no output tout > tmax'
  IF (nout.GT.nmax) WRITE(iprint,100) 'no output nout > nmax'
+ IF (nout.EQ.0) STOP 'error in input: nout = 0'
  IF (gamma.LT.1.) WRITE(iprint,100) 'gamma < 1.0 '
  IF ((iener.EQ.3).AND.(gconst.LT.0.)) THEN
     WRITE(iprint,100) 'gconst < 0.'
