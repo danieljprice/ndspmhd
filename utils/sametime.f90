@@ -102,7 +102,7 @@ PROGRAM combinedat
 	  PRINT*,'allocating columns = ',ncolmax,' particles = ',npartmax,' files = ',nfiles
           ALLOCATE(dat(ncolmax,npartmax,nfiles),STAT=ierr)
 	  IF (ierr.NE.0) PRINT*,'dat allocation error'
-       ELSEIF (ndata(ifile).GT.ncolmax .OR. npart(ifile).GT.npartmax) THEN
+       ELSEIF (ndata(ifile).GT.ncolmax .OR. nprint(ifile).GT.npartmax) THEN
           PRINT*,'reallocating'
           ncolmax_old = ncolmax
 	  npartmax_old = npartmax
