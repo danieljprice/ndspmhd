@@ -61,7 +61,10 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-3D-v5-0'
+    version = 'NDSPMHD-3D-v5-1'
+!   * smoothing length iteration on single particles works   
+!    version = 'NDSPMHD-3D-v5-0'
+!   *** saved as working 3D version ***
 !   * equations use general alternative formulation
 !   * compiles in 3D
 !   * set_ghosts totally rewritten -> works in up to 3D
@@ -234,7 +237,7 @@ PROGRAM SUPERSPMHD_ND
  trace = .false.		! set tracing flow (prints entry into subroutine)
 ! trace = .true.
  idebug = 'none' 
-! idebug = 'density'
+ idebug = 'density'
 ! idebug = 'neighb'
 ! idebug = 'link'
   

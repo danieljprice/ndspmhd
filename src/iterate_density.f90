@@ -30,7 +30,7 @@ SUBROUTINE iterate_density
  IMPLICIT NONE
  INTEGER :: i,j,itsdensity,itsdensitymax
  INTEGER :: ncalc,ncalcprev,isize
- INTEGER, DIMENSION(:), ALLOCATABLE :: redolist
+ INTEGER, DIMENSION(:), ALLOCATABLE :: redolist, redolistprev
  REAL :: tol,hnew
  REAL, DIMENSION(:), ALLOCATABLE :: rho_old,gradh_old
  LOGICAL :: converged,redolink
@@ -43,7 +43,7 @@ SUBROUTINE iterate_density
 !
  isize = SIZE(rho)
  ALLOCATE( rho_old(isize), gradh_old(isize) )
- ALLOCATE( redolist(ntotal) )
+ ALLOCATE( redolist(ntotal), redolistprev(ntotal) )
 !
 !--set maximum number of iterations to perform
 ! 
@@ -60,12 +60,16 @@ SUBROUTINE iterate_density
  ncalc = npart	! number of particles to calculate density on
  redolink = .false.
  ncalcprev = 0
-
+ IF (ncalc.EQ.npart) THEN
+    DO j=1,npart     
+       redolist(j) = j
+    ENDDO
+ ENDIF
+ 
  iterate: DO WHILE ((ncalc.GT.0).AND.(itsdensity.LE.itsdensitymax)    &
                     .AND. ncalc.NE.ncalcprev)
 
     itsdensity = itsdensity + 1
-    ncalcprev = ncalc
     IF (isize.NE.SIZE(rho)) THEN
        DEALLOCATE(rho_old,gradh_old)
        isize = SIZE(rho)
@@ -82,7 +86,7 @@ SUBROUTINE iterate_density
     IF (ncalc.EQ.npart) THEN	! calculate density on all particles
        CALL density		! do symmetrically
     ELSE	! calculate density on partial list of particles              
-       CALL density		!_partial(ncalc,redolist)
+!       CALL density             !_partial(ncalc,redolist)
 !       DO j=1,ncalc
 !          i = redolist(j)
 !          PRINT*,' normal  rho(',i,' =',rho(i),gradh(i)
@@ -92,12 +96,12 @@ SUBROUTINE iterate_density
 !       rho = rho_old
 !       print*,'rho(717) 2 = ',rho(717)
 !       ncalc = npart
-!       IF (ncalc.EQ.npart) THEN
-!          DO j=1,npart     
-!             redolist(j) = j
-!          ENDDO
-!       ENDIF
-!       CALL density_partial(ncalc,redolist)
+       IF (ncalc.EQ.npart) THEN
+          DO j=1,npart     
+             redolist(j) = j
+          ENDDO
+       ENDIF
+       CALL density_partial(ncalc,redolist)
 !       DO j=1,ncalc
 !          i = redolist(j)
 !          PRINT*,' partial rho(',i,' =',rho(i),gradh(i)
@@ -105,11 +109,14 @@ SUBROUTINE iterate_density
 !       READ*
     ENDIF
 
+    ncalcprev = ncalc
+    redolistprev(1:ncalcprev) = redolist(1:ncalcprev)
     ncalc = 0
     redolink = .false.
 
     IF (ihvar.NE.0) THEN
-       DO i=1,npart
+       DO j=1,ncalcprev
+          i = redolistprev(j)
           IF (itype(i).NE.1) THEN
              IF (rho(i).LE.1.e-3) THEN
 	        IF (rho(i).LE.0.) THEN
@@ -153,7 +160,7 @@ SUBROUTINE iterate_density
        ENDDO
 
        IF ((idebug(1:3).EQ.'den').AND.(ncalc.GT.0)) THEN
-	  WRITE(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc
+	  WRITE(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
 !         DO i=1,ncalc
 !	     PRINT*,' i = ',redolist(i)
 !	  ENDDO

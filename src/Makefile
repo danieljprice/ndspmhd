@@ -36,11 +36,11 @@ SOURCES3D = dimen3D.f90
 ######################################################################
 ########### choose the setup file in each dimension here #############
 
-SETUP1D = setup_unifdis1D.f90
+#SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-#SETUP1D = setup_shock1DND_mhd2.f90
+SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
