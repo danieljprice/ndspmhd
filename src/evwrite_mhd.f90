@@ -10,6 +10,7 @@ SUBROUTINE evwrite(t)
  USE derivB
  USE options
  USE part
+ USE rates
  USE fmagarray
 !
 !--define local variables
@@ -24,11 +25,15 @@ SUBROUTINE evwrite(t)
 !--mhd
 !
  REAL, DIMENSION(ndimB) :: Bi,Brhoi,fluxtot
- REAL :: B2i,Bmagi,divBi,omegamhdi,betamhdi,FdotBi
+ REAL :: B2i,Bmagi
  REAL :: fluxtotmag,crosshel
- REAL :: betamhdmin,betamhdmax,FdotBmax,betamhdav
- REAL :: divBav,divBmax,divBtot,omegtol,omegamhdav,omegamhdmax
- REAL :: fracdivBok,fmagabs
+ REAL :: betamhdi,betamhdmin,betamhdmax,betamhdav
+ REAL :: fdotBi,fdotBmax,fdotBav
+ REAL :: forcemagi,force_erri,force_err_max,force_err_av
+ REAL :: divBi,divBav,divBmax,divBtot
+ REAL :: omegamhdi,omegamhdav,omegamhdmax
+ REAL :: omegtol,fracdivBok
+ REAL :: fmagabs
 !
 !--allow for tracing flow
 !      
@@ -51,6 +56,9 @@ SUBROUTINE evwrite(t)
     divBav = 0.
     divBtot = 0.
     FdotBmax = 0.
+    FdotBav = 0.
+    force_err_max = 0.
+    force_err_av = 0.
     omegamhdav = 0.
     omegamhdmax = 0.
     omegtol = 1.E-2
@@ -75,11 +83,12 @@ SUBROUTINE evwrite(t)
 	  Bi(:) = Bfield(:,i)
 	  Brhoi(:) = Bi(:)/rhoi
        ELSE
-          Brhoi(:) = Bfield(:,i)
+          Brhoi(:) = Bcons(:,i)
 	  Bi(:) = Brhoi(:)*rhoi
        ENDIF
        B2i = DOT_PRODUCT(Bi,Bi)
        Bmagi = SQRT(B2i)
+       forcemagi = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))
        divBi = abs(divB(i))
  
        emag = emag + 0.5*B2i/rhoi
@@ -104,21 +113,29 @@ SUBROUTINE evwrite(t)
 !
        divBtot = divBtot + pmassi*divBi/rhoi
 !
-!--Max component of magnetic force in the direction of B
+!--Max component of magnetic force in the direction of B (should be zero)
 !
-       fmagabs = 1.	!SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
-       IF (fmagabs.GT.1.e-6) THEN
-!          FdotBi = DOT_PRODUCT(fmag(:,i),Bi(:))/(forcei(:,i)*Bmagi)
+       fmagabs = SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
+       IF (fmagabs.GT.1.e-8) THEN
+          fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)	  
        ELSE
           FdotBi = 0.
        ENDIF
-       IF (FdotBi.GT.FdotBmax) THEN
-          FdotBmax = FdotBi
-!          PRINT*,' Fmag,B,fdotB        = ',fmag(:,i),Bi,	&
-!	  DOT_PRODUCT(fmag(:,i),Bi(:))
-!          PRINT*,' absF,absB,absF*absB = ',fmagabs,Bmagi,fmagabs*Bmagi
-!	  PRINT*,' FdotBmax = ',FdotBi,FdotBmax	  
-       ENDIF  
+       fdotBav = fdotBav + fdotBi
+       IF (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
+!
+!--Compute total error in the force due to the B(div B) term
+!  only slight worry with this is that fmag is calculated in rates, whilst
+!  B has been evolved a bit further since then. A possible solution is to
+!  evaluate these quantities just after the call to rates.
+!       
+       IF (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) THEN
+          force_erri = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(forcemagi*Bmagi)
+       ELSE
+          force_erri = 0.
+       ENDIF
+       force_err_av = force_err_av + force_erri
+       IF (force_erri.GT.force_err_max) force_err_max = force_erri
 !
 !--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
 !  this quantity should be less than ~0.01.
@@ -157,12 +174,16 @@ SUBROUTINE evwrite(t)
     betamhdav = betamhdav/FLOAT(npart)
     fracdivBok = 100.*fracdivBok/FLOAT(npart)
     omegamhdav = omegamhdav/FLOAT(npart)
+    divBav = divBav/FLOAT(npart)
+    fdotBav = fdotBav/FLOAT(npart)
+    force_err_av = force_err_av/FLOAT(npart)
 
     WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag,	&
           crosshel,betamhdmin,betamhdav,betamhdmax,			&
 	  divBav,divBmax,divBtot,					&
-          FdotBmax,omegamhdav,omegamhdmax,fracdivBok
-30  FORMAT(17(1pe18.10,1x),1pe8.2)
+          fdotBav,FdotBmax,force_err_av,force_err_max,			&
+	  omegamhdav,omegamhdmax,fracdivBok
+30  FORMAT(20(1pe18.10,1x),1pe8.2)
       
  ELSE
 
