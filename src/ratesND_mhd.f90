@@ -37,7 +37,7 @@ subroutine get_rates
 !  (particle properties - local copies and composites)
 !
  real :: rij,rij2
- real :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav,rhoav1,rhoij
+ real :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav1,rhoij
  real :: pmassi,pmassj
  real :: Prho2i,Prho2j,prterm,pri,prj
  real :: hi,hi1,hj,hj1,hi21,hj21
@@ -625,6 +625,7 @@ contains
     rho21j = rho1j*rho1j
     rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
+    rhoav1 = 2./(rhoi + rhoj)
     prj = pr(j)        
     pmassj = pmass(j)
     Prho2j = pr(j)*rho21j
@@ -806,14 +807,14 @@ contains
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
     real :: vissv,vissB,vissu
-    real :: term,rhoav1,dpmomdotr
+    real :: term,dpmomdotr
     !
     !--definitions
     !      
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
-    rhoav1 = 2./(rhoi + rhoj)
+    !!rhoav1 = 2./(rhoi + rhoj)
     if (igeom.gt.1) then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
     else
