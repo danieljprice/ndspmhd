@@ -1,7 +1,40 @@
-!!--------------------------------------------------------------------
+!!------------------------------------------------------------------------
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
-!!--------------------------------------------------------------------
+!!
+!! This subroutine is a midpoint predictor-corrector.
+!! Algorithm goes as follows:
+!!
+!! Predictor:
+!!
+!! v^1/2   = v^0 + dt/2*f^(-1/2)
+!! x^1/2   = x^0 + dt/2*v^{1/2}
+!! rho^1/2 = rho^0 + dt/2*drhodt^{-1/2}
+!!
+!!  --> calculate f^{1/2}, drhodt^{1/2} using x^1/2 and v^1/2
+!!
+!! Corrector:
+!!
+!! v^*   = v^0 + dt/2*f^{1/2} 
+!! x^*   = x^0 + dt/2*v^{1/2}
+!! rho^* = rho^0 + dt/2*drhodt^{1/2}
+!!
+!! v^1   = 2*v^* - v^0     = v^0 + dt*f^{1/2}
+!! x^1   = 2*x^* - x^0     = x^0 + dt*v^*
+!! rho^1 = 2*rho^* - rho^0 = rho^0 + dt*drhodt^{1/2}
+!!
+!! Energy, smoothing length, alpha and magnetic field follow density
+!!
+!! Gives good results (and good stability) on wave and shock-type problems
+!! with a very modest courant number (C_cour = 0.8 seems to be enough).
+!! On these problems seems to do much better than leapfrog/symplectic,
+!! mainly related to the derivatives which depend on velocity (for which the
+!! other two methods are not reversible/symplectic).
+!!
+!! However, results for disks can be quite poor without reducing the timestep
+!! factor
+!!
+!!---------------------------------------------------------------------------
 	 
 SUBROUTINE step
  USE dimen_mhd
@@ -54,8 +87,8 @@ SUBROUTINE step
        alpha(i) = alphain(i)
        psi(i) = psiin(i)
     ELSE
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        vel(:,i) = velin(:,i) + hdt*force(:,i)
+       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
@@ -122,8 +155,9 @@ SUBROUTINE step
        hh(i) = hhin(i)
        psi(i) = psiin(i)
     ELSE
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        vel(:,i) = velin(:,i) + hdt*force(:,i)	    
+       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
 	  IF (hh(i).LE.0.) THEN
