@@ -16,7 +16,7 @@ SUBROUTINE setkern
  USE anticlumping
  IMPLICIT NONE			!  define local variables
  INTEGER :: i,j,iteration,iC
- REAL :: q,q2,q4,cnormk,term1
+ REAL :: q,q2,q4,cnormk
  REAL, DIMENSION(0:ikern) :: dqkern,grwijplot,grgrwij 	! only to plot kernel
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
@@ -73,6 +73,7 @@ SUBROUTINE setkern
     CALL PGLABEL ('r/h','  ','SPH cubic spline kernel')  
     CALL PGSCI(2)
     CALL PGSLS(1)
+    print*,'plotting cubic spline...'
     print*,'will crash here if compiled in double precision'
     CALL PGLINE(ikern+1,dqkern(0:ikern),wij(0:ikern))
     grwijplot(0:ikern) = grwij(0:ikern)	!*dqkern(0:ikern)
@@ -86,7 +87,7 @@ SUBROUTINE setkern
 !
 !--this is the quintic spline
 !
- IF (idivBzero.EQ.6) THEN
+ IF (idivBzero.EQ.6 .OR. idivBzero.EQ.9) THEN
  
  cnormk = 0.5/60.
  radkern = 3.0
@@ -121,15 +122,16 @@ SUBROUTINE setkern
 !
 !--plot quintic spline
 !
-!  CALL PGSCI(3)
-!  CALL PGSLS(1)
-!  CALL PGLINE(ikern+1,dqkern(0:ikern),wij(0:ikern))
-!  grwijplot(0:ikern) = grwij(0:ikern)	!*dqkern(0:ikern)
-!  CALL PGSLS(2)
-!  CALL PGLINE(ikern+1,dqkern(0:ikern),grwijplot(0:ikern))
-!  CALL PGSLS(3)
-!  CALL PGLINE(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-!  CALL PGSCI(1)
+  print*,' plotting quintic spline...'
+  CALL PGSCI(3)
+  CALL PGSLS(1)
+  CALL PGLINE(ikern+1,dqkern(0:ikern),wij(0:ikern))
+  grwijplot(0:ikern) = grwij(0:ikern)	!*dqkern(0:ikern)
+  CALL PGSLS(2)
+  CALL PGLINE(ikern+1,dqkern(0:ikern),grwijplot(0:ikern))
+  CALL PGSLS(3)
+  CALL PGLINE(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+  CALL PGSCI(1)
  
  ENDIF
 
@@ -214,16 +216,17 @@ SUBROUTINE setkern
 !
 !--this is Dan's quintic kernel (build your own quintic)
 !
-!  PRINT*,iteration,' Enter beta,alpha'
+  DO iteration = 1,3
+!  PRINT*,iteration,' Enter beta, alpha'
 !  READ*,beta,alpha
   
-!  DO iC = 1,10
+!  DO iC = 1,3
 !      alpha = beta + (radkern-beta)*(iC)/11
 !      C = 3*REAL(iC-1)
 !      PRINT*,' C = ',C
-!      C = 0.
-!      gamma = 0.
-!      PRINT*,' alpha = ',alpha
+      C = 0.
+      gamma = 0.
+      PRINT*,' alpha = ',alpha, ' beta = ',beta
 
  IF (idivBzero.EQ.9) THEN
   radkern = 2.0
@@ -236,11 +239,12 @@ SUBROUTINE setkern
 !  A = -6.
 !  B = 25.
 !  C = 1.
+
   A =  (-radkern**4 + (radkern**2 + C*gamma**2)*beta**2)		&
       /(alpha**2*(alpha**2-beta**2))      
   B = -(radkern**4 + A*alpha**4 + C*gamma**4)/(beta**4)
   cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + 64.)	! for radkern = 2 and 1D
-  print*,'cnormk = ',cnormk,' A,B = ',A,B
+!  print*,'cnormk = ',cnormk,' A,B = ',A,B
   
   DO i=0,ikern         
     q2 = i*dq2table
@@ -349,7 +353,7 @@ SUBROUTINE setkern
    ELSE
       CALL PGLABEL ('r/h','  ','SPH cubic spline kernel')  
    ENDIF   
-   CALL PGSLS(1)
+   CALL PGSLS(iteration)
    CALL PGLINE(ikern+1,dqkern(0:ikern),wij(0:ikern))
       
    grwijplot(0:ikern) = grwij(0:ikern)	!*dqkern(0:ikern)
@@ -400,7 +404,7 @@ SUBROUTINE setkern
 
 ! READ*
 
-! ENDDO	! my parameter loops
+ ENDDO	! my parameter loops
 ! ENDDO
 
  IF (iplot) CALL PGEND
