@@ -3,10 +3,15 @@
 !!-----------------------------------------------------------------
 
 SUBROUTINE logun
+ USE dimen_mhd
  USE loguns
  IMPLICIT NONE
       
- iprint = 6  ! log file / screen
+ IF (ndim.EQ.1) THEN
+    iprint = 6
+ ELSE
+    iprint = 8  ! log file / screen
+ ENDIF
  ievfile = 13
  idatfile = 12
  iread = 21  ! for reading from input file
