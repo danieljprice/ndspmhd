@@ -39,7 +39,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
  integer :: idist
  real :: xstart,ystart,deltax,deltay
  real :: psepx,psepy
- real :: ran1,ampl,xx,yy,rr2
+ real :: ran1,ampl
  real, dimension(ndim) :: xran
 !
 !--allow for tracing flow
@@ -81,14 +81,25 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
 !--adjust psep so that particles fill the volume
 !
     print*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
+    print*,' delta x,y initial  = ',deltax,deltay
     deltax = (xmax(1)-xmin(1))/(float(npartx))
     deltay = (xmax(2)-xmin(2))/(float(nparty))
-    print*,' adjusted ',deltax,deltay
+    print*,' delta x,y adjusted = ',deltax,deltay
 !
 !--or adjust the boundaries appropriately
 !
 !    xmax(2) = xmin(2) + nparty*deltay
 !    print*,' adjusted y boundary : ymax  = ',xmax(2)
+
+    if (present(offset)) then
+       if (offset) then
+          write(iprint,*) 'offset lattice'
+          xmin(1) = xmin(1) + 0.25*psep
+          xmax(1) = xmax(1) + 0.25*psep
+          xmin(2) = xmin(2) + 0.5*deltay
+          xmax(2) = xmax(2) + 0.5*deltay
+       endif
+    endif
 !
 !--allocate memory here
 !
