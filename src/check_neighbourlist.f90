@@ -7,19 +7,26 @@ subroutine check_neighbourlist
  use kernel
  use part
  use linklist
+ use get_neighbour_lists
  implicit none
  integer :: i,j,n,ineigh
- integer :: icell,icellloop,ipart,iprev,ncell,nneigh
+ integer :: icell,icellloop,ipart,iprev,ncell,nneigh,icellprev
  integer, allocatable, dimension(:) :: listneigh,numneigh ! neighbour list
  integer, allocatable, dimension(:,:) :: neighbour_list
- integer :: idone
+ integer :: idone, nlistdim
  integer, dimension(3**ndim) :: neighcell
  real :: rij,rij2,hi,q2i,q2j
  real, dimension(ndim) :: dx
- logical :: iok
+ logical :: iok, partial
+
+ partial = .true.
 
  print*,'*** checking neighbour search ***'
-
+ if (partial) print*,'*** with get_neighbours_partial ***'
+!
+!--setup link list
+!
+ call set_linklist
 !
 !--perform neighbour interactions as usual
 !
@@ -27,13 +34,16 @@ subroutine check_neighbourlist
 !--initialise quantities
 !
  nlistdim = ntotal
- allocate( listneigh(nlistdim),numneigh(ntotal) )	! max size of neighbour list
+ allocate( listneigh(nlistdim),numneigh(ntotal) )        ! max size of neighbour list
  allocate( neighbour_list(ntotal,nlistdim) )
  numneigh(:) = 0
+ neighbour_list = 0
+ 
+ if (.not.partial) then
 !
 !--Loop over all the link-list cells
 !
- loop_over_cells: do icell=1,ncellsloop		! step through all cells
+ loop_over_cells: do icell=1,ncellsloop                ! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
@@ -43,10 +53,10 @@ subroutine check_neighbourlist
 !--now loop over all particles in the current cell
 !
     i = ifirstincell(icell)
-    idone = -1	! note density summation includes current particle
+    idone = -1        ! note density summation includes current particle
     if (i.NE.-1) iprev = i
 
-    loop_over_cell_particles: do while (i.NE.-1)		! loop over home cell particles
+    loop_over_cell_particles: do while (i.NE.-1)                ! loop over home cell particles
 
 !       print*,'Doing particle ',i,nneigh,' neighbours',pmass(i)
        idone = idone + 1
@@ -55,25 +65,64 @@ subroutine check_neighbourlist
 ! 
        hi = hh(i)
        loop_over_neighbours: do n = idone+1,nneigh
-	  j = listneigh(n)
-	  dx(:) = x(:,i) - x(:,j)
-	  rij2 = DOT_PRODUCT(dx,dx) 
-	  q2i = rij2/hi**2
-	  q2j = rij2/hh(j)**2	
-	  if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)) then  
+          j = listneigh(n)
+          dx(:) = x(:,i) - x(:,j)
+          rij2 = DOT_PRODUCT(dx,dx) 
+          q2i = rij2/hi**2
+          q2j = rij2/hh(j)**2        
+          if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)) then  
              numneigh(i) = numneigh(i) + 1
-	     IF (i.NE.j) numneigh(j) = numneigh(j) + 1
-	     neighbour_list(i,numneigh(i)) = j
-	     neighbour_list(j,numneigh(j)) = i
-	  endif
+             IF (i.NE.j) numneigh(j) = numneigh(j) + 1
+             neighbour_list(i,numneigh(i)) = j
+             neighbour_list(j,numneigh(j)) = i
+          endif
        enddo loop_over_neighbours
        
        iprev = i
-       if (iprev.NE.-1) i = ll(i)		! possibly should be only IF (iprev.NE.-1)
+       if (iprev.NE.-1) i = ll(i)                ! possibly should be only IF (iprev.NE.-1)
 
     enddo loop_over_cell_particles
  enddo loop_over_cells
+ 
+ else
+!
+!--do loop using get_neighbour_list_partial
+!
+    icellprev = 0
+!
+!--Loop over all the particles in the density list
+!
+    over_particles: do i=1,npart            ! step through all cells
+!
+!--find cell of current particle
+!
+       icell = iamincell(i)
+!    PRINT*,' particle ',i,' cell = ',icell
+!
+!--if different to previous cell used, get the list of neighbours for this cell
+!  (common to all particles in the cell)
+!
+       if (icell.NE.icellprev) then
+          call get_neighbour_list_partial(icell,neighcell,listneigh,nneigh)
+       endif
+       icellprev = icell
 
+       hi = hh(i)
+       over_neighbours: do n = 1,nneigh
+          j = listneigh(n)
+          dx(:) = x(:,i) - x(:,j)
+          rij2 = dot_product(dx,dx)
+          rij = sqrt(rij2)
+          q2i = rij2/hi**2
+          if (q2i.LT.radkern2) then
+             numneigh(i) = numneigh(i) + 1
+             neighbour_list(i,numneigh(i)) = j
+          endif
+          
+       enddo over_neighbours
+
+    enddo over_particles
+ endif
 !
 !--loop over all particles again
 !
@@ -92,13 +141,13 @@ subroutine check_neighbourlist
        q2i = rij2/hi**2
        q2j = rij2/hh(j)**2
        if (q2i.LT.radkern2 .OR. q2j.LT.radkern2) then
-	  ineigh = ineigh + 1
-	  if (any(neighbour_list(i,:).EQ.j)) then
-!	     print*,j,' ok',iamincell(j)
-	  else
-	     print*,' neighbour ',j,' not found, x=',x(:,j),iamincell(j)
-	     iok = .false.
-	  endif
+          ineigh = ineigh + 1
+          if (any(neighbour_list(i,:).EQ.j)) then
+!             print*,j,' ok',iamincell(j)
+          else
+             print*,' neighbour ',j,' not found, x=',x(:,j),iamincell(j)
+             iok = .false.
+          endif
        endif
     enddo
     if (ineigh.NE.numneigh(i)) then
