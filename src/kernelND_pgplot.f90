@@ -4,6 +4,8 @@
 !!
 !!  Note for the ND case, the normalisation constants are right
 !!  only for the cubic spline in > 1D.
+!!
+!!  MUST BE COMPILED IN SINGLE PRECISION
 !!-----------------------------------------------------------------
 
 SUBROUTINE setkern    
@@ -220,23 +222,23 @@ SUBROUTINE setkern
   radkern = 2.0
   beta = 0.0
   dbeta = (0.4-beta-0.01)/40
-  DO iteration = 1,20
-  PRINT*,iteration  !!,' Enter beta, alpha'
+!  DO iteration = 1,20
+!  PRINT*,iteration  !!,' Enter beta, alpha'
   !!READ*,beta,alpha
     beta = beta + dbeta
     alpha = beta
     dalpha = dbeta
     nalpha = int((radkern-beta-0.01)/(dbeta))
-    print*,'dalpha = ',dalpha,nalpha, 'dbeta = ',dbeta,(radkern-beta-0.01)/(dbeta)
+!    print*,'dalpha = ',dalpha,nalpha, 'dbeta = ',dbeta,(radkern-beta-0.01)/(dbeta)
 !  DO iC = 1,nalpha
       alpha = 0.4   !!alpha + dalpha
 !      C = 3*REAL(iC-1)
 !      PRINT*,' C = ',C
       C = 0.
       gamma = 0.
-      PRINT*,' alpha = ',alpha, ' beta = ',beta
 
  IF (idivBzero.EQ.9) THEN
+!      PRINT*,' alpha = ',alpha, ' beta = ',beta
   radkern = 2.0
   radkern2 = radkern*radkern
   dq2table = radkern2/REAL(ikern)
@@ -421,19 +423,19 @@ SUBROUTINE setkern
 !
 !--calculate dispersion relation for this kernel
 !
-    kernelname = ' '
-    call kernelstability1D
-     MM=nint(alpha*100)
-     PP=nint(log10(alpha)-log10(alpha*100))
-     call pgnumb(MM,PP,1,string,nc)  
-     call pgmtxt('T',-3.0,0.95,1.0,'alpha = '//string(1:nc))
-     
-     MM=nint(beta*100)
-     PP=nint(log10(beta)-log10(beta*100))
-     call pgnumb(MM,PP,1,string,nc)      
-     call pgmtxt('T',-4.5,0.95,1.0,'beta  = '//string(1:nc))
+!    kernelname = ' '
+!    call kernelstability1D
+!     MM=nint(alpha*100)
+!     PP=nint(log10(alpha)-log10(alpha*100))
+!     call pgnumb(MM,PP,1,string,nc)  
+!     call pgmtxt('T',-3.0,0.95,1.0,'alpha = '//string(1:nc))
+!     
+!     MM=nint(beta*100)
+!     PP=nint(log10(beta)-log10(beta*100))
+!     call pgnumb(MM,PP,1,string,nc)      
+!     call pgmtxt('T',-4.5,0.95,1.0,'beta  = '//string(1:nc))
 
- ENDDO	! my parameter loops
+! ENDDO	! my parameter loops
 ! ENDDO
 
     
