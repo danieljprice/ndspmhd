@@ -15,8 +15,7 @@ else
    else echo no file $runname.dat; fi
    if [ -f $runname.log ]; then echo $newname.log; mv $runname.log $newname.log;
    else echo no file $runname.log; fi
-   if [ -f $runname.sge ]; then echo $newname.sge; mv $runname.sge $newname.sge;
-   else echo no file $runname.sge; fi
+   if [ -f $runname.sge ]; then echo deleting $newname.sge; rm $runname.sge; fi
    if [ -f $runname.output ]; then echo $newname.output; mv $runname.output $newname.output;
    else echo no file $runname.output; fi
    if [ -f $runname.errors ]; then echo $newname.errors; mv $runname.errors $newname.errors;
