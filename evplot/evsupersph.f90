@@ -658,6 +658,7 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   logical :: iexist,redo
   integer :: ierr,j,nskip
 
+!--initially try a filename with .ev appended
   if (index(rootname,'.ev').eq.0) then
      evname = trim(rootname)//'.ev'
   else
@@ -667,9 +668,14 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   
   inquire (file=evname, exist=iexist)
   if (.not.iexist) then
-     print*,'***ERROR ',trim(evname),': file does not exist'
-     nsteps = 0
-     return
+     evname = trim(rootname)
+!--if no .ev file, try without the .ev
+     inquire (file=evname, exist=iexist)
+     if (.not.iexist) then
+        print*,'***ERROR ',trim(evname),': file does not exist'
+        nsteps = 0
+        return
+     endif
   endif
   open(unit=11,file=evname,status='old',form='formatted')
   
