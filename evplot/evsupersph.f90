@@ -11,11 +11,13 @@ program plotmeagraph
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
   integer nstep,npart,i,j,iprev,nfiles,ifile,ifilesteps
   integer mysteps,ipick,ipickx,nacross,ndown
+  integer ichange, iongraph, ipt
   integer iplotx(maxcol),iploty(maxcol), nplots
   integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
   integer nstepsfile(maxfile)
   real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real lim(maxcol,2),time(maxstep),ekin(maxstep)
+  real hpos,vpos
   character, dimension(maxfile) :: rootname*20, legendtext*120
   character*23 :: filename
   character*24 :: title,label(maxcol),dummy
@@ -27,6 +29,9 @@ program plotmeagraph
   mysteps=maxstep
   ncol = 21
   icycle = .false.
+  hpos = 0.4
+  vpos = 8.0
+  iongraph = 1
   !
   !--get filename(s)
   !
@@ -80,24 +85,32 @@ program plotmeagraph
 !
 !--read legend text from the legend file, if it exists
 !
-  open(unit=50,file='legend',status='old',ERR=22)
-  print*,'reading labels from legend file...'
-  do ifile=1,nfiles  
-     read(50,"(a)",ERR=21,END=20) legendtext(ifile)
-  enddo
-  close(unit=50)
-  goto 23
-20 continue
-   print*,'error: end of file in legend file'
-   close(unit=50)
-   goto 23
-21 continue
-   print*,'error reading from legend file'
-   close(unit=50)
-22 continue
-   legendtext(1:nfiles) = rootname(1:nfiles)
-23 continue
+  if (nfiles.gt.1) then
+     open(unit=50,file='legend',status='old',ERR=22)
+     print*,'reading labels from legend file...'
+     do ifile=1,nfiles  
+        read(50,"(a)",ERR=21,END=20) legendtext(ifile)
+     enddo
+     close(unit=50)
+     goto 23
+20   continue
+     print*,'error: end of file in legend file'
+     legendtext(ifile:nfiles) = rootname(ifile:nfiles)
+     close(unit=50)
+     goto 23
+21   continue
+     print*,'error reading from legend file'
+     close(unit=50)
+22   continue
+     legendtext(1:nfiles) = rootname(1:nfiles)
+23   continue
 
+     open(unit=51,file='legendpos',status='old',ERR=33)
+     read(51,*,ERR=31,END=31) hpos,vpos,iongraph
+31   continue
+     close(51)     
+33   continue
+   endif
 !
 !--set plot limits
 !
@@ -162,8 +175,10 @@ program plotmeagraph
   print 12
   print 13,ncol+3,'Read new data'
   print 13,ncol+4,'Change number of timesteps read'
-  print 13,ncol+5,'Do auto update'          
-  print 13,ncol+6,'Exit supersphplotev'
+  print 13,ncol+5,'Adjust legend position'
+  print 13,ncol+6,'Adjust plot limits'
+  print 13,ncol+7,'Do auto update'          
+  print 13,ncol+8,'Exit supersphplotev'
   print 12
   print*,'Enter y axis or selection: '
 11 format(1x,i2,')',1x,a)
@@ -175,7 +190,7 @@ program plotmeagraph
      print*,'Enter x axis: '
      read*,ipickx
   endif
-  if ((ipick.ge.ncol+6).or.(ipick.lt.1)) stop
+  if ((ipick.ge.ncol+8).or.(ipick.lt.1)) stop
 
   if (ipick.eq.ncol+1) then
      if (nplotsmulti.eq.0) ipick = ncol+2
@@ -220,6 +235,28 @@ program plotmeagraph
      print *,' Steps = ',mysteps
      goto 200
   elseif (ipick.eq.ncol+5) then
+     print*,'Enter horizontal position as fraction of x axis:'
+     read*,hpos
+     print*,'Enter vertical offset from top of graph in character heights:'
+     read*,vpos
+     print*,'Enter number of plot on page to place legend'
+     read*,iongraph
+     open(unit=51,file='legendpos',status='replace',ERR=43)
+         write(51,*) hpos,vpos,iongraph
+     close(51)	 
+43   continue     
+     goto 200
+  elseif (ipick.eq.ncol+6) then
+     print*,'Enter plot number to change limits'
+     read*,ichange
+     if (ichange.gt.0 .and. ichange.le.ncol) then
+        print*,' Enter ',trim(label(ichange)),' min:'
+	read*,lim(ichange,1)
+	print*,' Enter ',trim(label(ichange)),' max:'
+        read*,lim(ichange,2)
+     endif
+     goto 200
+  elseif (ipick.eq.ncol+7) then
      icycle = .not.icycle
      print *,' cycle = ',icycle
      goto 200	  
@@ -249,10 +286,10 @@ program plotmeagraph
         call PGBEGIN(0,'?',1,2)
      endif
   else
-     !nacross = nplots/2
-     !ndown = nplots/nacross
-     ndown = nplots/2
-     nacross = nplots/ndown
+     nacross = 1
+     ndown = nplots/nacross
+     !ndown = nplots/2
+     !nacross = nplots/ndown
      if (ndown.eq.1 .and. nacross.gt.1) then
         call PGBEGIN(0,'?',nacross,ndown)
      else
@@ -262,7 +299,7 @@ program plotmeagraph
         call pgpap(11.7,0.5/sqrt(2.))
      endif
   endif
-  if (nplots.gt.2) call PGSCH(2.0)
+  !!if (nplots.gt.2) call PGSCH(2.0)
 !
 !--plot graphs (icycle only sets up at the moment)
 !
@@ -309,11 +346,25 @@ program plotmeagraph
         call pgslw(3)
         do ifile=1,nfiles
            call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
-           if (i.eq.1) call legend(ifile,legendtext(ifile))
+           if (i.eq.iongraph .and. nfiles.gt.1) call legend(ifile,legendtext(ifile),hpos,vpos)
            !call PGSCI(ifile) ! or change line colour between plots
-           call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+           
+	   call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
                 evdata(1:nstepsfile(ifile),iploty(i),ifile))
-        enddo
+           !
+           !--if more than 5 files, plot points on the line to make a new
+           !  line style
+	   !
+	   if (ifile.gt.5) then
+	      call pgsls(1)
+	      do ipt=1,nstepsfile(ifile)
+	         if (mod(ipt,10).eq.0) then
+	            call PGPT(1,evdata(ipt,iplotx(i),ifile), &
+                         evdata(ipt,iploty(i),ifile),mod(ifile,5) + 1)
+	         endif
+	      enddo
+	   endif
+	enddo
         call pgslw(1)
 
      enddo
@@ -467,10 +518,11 @@ end subroutine getmax
 !--draw a legend for different line styles
 !  uses current line style and colour
 !
-subroutine legend(icall,text)
+subroutine legend(icall,text,hpos,vposin)
   implicit none
   integer, intent(in) :: icall
   character(len=*), intent(in) :: text
+  real, intent(in) :: vposin
   real, dimension(2) :: xline,yline
   real :: xch, ych, xmin, xmax, ymin, ymax
   real :: vspace, hpos, vpos
@@ -481,8 +533,8 @@ subroutine legend(icall,text)
 !  in units of the character height
 !
   vspace = 1.5  ! (in units of character heights)
-  hpos = 0.4   ! distance from edge, in fraction of viewport
-  vpos = 8.0 + (icall-1)*vspace  ! distance from top, in units of char height
+!  hpos = 0.4   ! distance from edge, in fraction of viewport
+  vpos = vposin + (icall-1)*vspace  ! distance from top, in units of char height
 
   call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
   call pgqcs(4,xch,ych) ! query character height in x and y units 
@@ -492,6 +544,11 @@ subroutine legend(icall,text)
   xline(2) = xline(1) + 3.*xch
 
   call pgline(2,xline,yline)            ! draw line segment
+!!--make up line style if > 5 calls (must match actual line drawn)
+  if (icall.gt.5) then
+     call pgpt(2,xline,yline,mod(icall,5)+1)
+     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),mod(icall,5)+1)
+  endif  
   call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
 
 !!  call pgmtxt('T',vpos,0.1,0.0,trim(text))  ! write text
