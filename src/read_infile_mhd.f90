@@ -32,7 +32,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*) gamma
   READ(iread,*) iener,gconst,polyk
   READ(iread,*) icty,ndirect
-  READ(iread,*) iprterm
+  READ(iread,*) ialtform
   READ(iread,*) iav,alphamin,beta
   READ(iread,*) iavlim,avconst
   READ(iread,*) ikernav
@@ -95,7 +95,7 @@ SUBROUTINE read_infile(infile)
 	 polyk = 1.0
 	 icty = 0
 	 ndirect = nmax
-	 iprterm = 0
+	 ialtform = 0
 	 iav = 1
 	 alphamin = 0.1
 	 beta = 2.0

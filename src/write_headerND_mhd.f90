@@ -87,7 +87,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !
 !--general options on form of equations
 !
-    WRITE (iprint,99009) iener, icty, iprterm, iav, imhd
+    WRITE (iprint,99009) iener, icty, ialtform, iav, imhd
 99009 FORMAT(' Options: ',/,						&
       6x,' Energy equation  : ',i2,5x,' Continuity Equation  :',i2,/,	&
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,	&

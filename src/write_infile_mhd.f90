@@ -31,7 +31,7 @@ SUBROUTINE write_infile(infile)
   WRITE(iread,30) gamma
   WRITE(iread,40) iener,gconst,polyk
   WRITE(iread,50) icty,ndirect
-  WRITE(iread,60) iprterm
+  WRITE(iread,60) ialtform
   WRITE(iread,70) iav,alphamin,beta
   WRITE(iread,80) iavlim,avconst
   WRITE(iread,90) ikernav

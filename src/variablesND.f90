@@ -126,7 +126,7 @@ END MODULE loguns
 MODULE options
  IMPLICIT NONE
  INTEGER :: iener,icty,iav,ibound,iavlim,ikernav
- INTEGER :: iprterm,idumpghost,ihvar
+ INTEGER :: ialtform,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
  INTEGER :: itoystar,ixsph,ianticlump
  INTEGER :: igravity,ikernel
