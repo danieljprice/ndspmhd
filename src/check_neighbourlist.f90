@@ -14,7 +14,6 @@ subroutine check_neighbourlist
  integer, allocatable, dimension(:) :: listneigh,numneigh ! neighbour list
  integer, allocatable, dimension(:,:) :: neighbour_list
  integer :: idone, nlistdim
- integer, dimension(3**ndim) :: neighcell
  real :: rij,rij2,hi,q2i,q2j
  real, dimension(ndim) :: dx
  logical :: iok, partial
@@ -48,7 +47,7 @@ subroutine check_neighbourlist
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    call get_neighbour_list(icell,neighcell,listneigh,nneigh)
+    call get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
@@ -103,7 +102,7 @@ subroutine check_neighbourlist
 !  (common to all particles in the cell)
 !
        if (icell.NE.icellprev) then
-          call get_neighbour_list_partial(icell,neighcell,listneigh,nneigh)
+          call get_neighbour_list_partial(icell,listneigh,nneigh)
        endif
        icellprev = icell
 

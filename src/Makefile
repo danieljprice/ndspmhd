@@ -10,9 +10,9 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C =  g95
-F90FLAGS =  -O -C ##-WB -r8
-LDFLAGS =## -Vaxlib
+F90C =  ifc
+F90FLAGS =  -O -C -WB -r8
+LDFLAGS = -Vaxlib
 ##LDFLAGS = -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -L/sw/lib/pgplot95 -lpgplot
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 

@@ -115,7 +115,7 @@ SUBROUTINE initialise
 !
  call primitive2conservative
 
- call check_neighbourlist
+! call check_neighbourlist
 !
 !--Set derivatives to zero until calculated
 !      

@@ -36,7 +36,6 @@ contains
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh,numneigh ! neighbour list
     integer :: idone
-    integer, dimension(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -76,7 +75,7 @@ contains
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-       call get_neighbour_list(icell,neighcell,listneigh,nneigh)
+       call get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
@@ -116,9 +115,9 @@ contains
 !
              if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
                   .AND. .not.(i.GT.npart.AND.j.GT.npart)) then
-                if (i.eq.140 .or. j.eq.140) then
-                   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj
-                endif
+                !if (i.eq.1 .or. j.eq.1) then
+                !   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj
+                !endif
 
                 if (i.LE.npart) numneigh(i) = numneigh(i) + 1
                 if (j.LE.npart .and. j.ne.i) numneigh(j) = numneigh(j) + 1
@@ -196,10 +195,9 @@ contains
             
     enddo loop_over_cells
     
-    print*,'ikernav = ',ikernav
-    print*,'end of density, rho, gradh = ',rho(140),gradh(140),hh(140),numneigh(140)
-    print*,'minimum number of neighbours = ',MINVAL(numneigh),MINLOC(numneigh),rho(MINLOC(numneigh))
-    print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
+    !print*,'end of density, rho, gradh = ',rho(1),gradh(1),hh(1),numneigh(1)
+    !print*,'minimum number of neighbours = ',MINVAL(numneigh),MINLOC(numneigh),rho(MINLOC(numneigh))
+    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
 
     return
   end subroutine density
@@ -240,9 +238,8 @@ contains
 
     integer :: i,j,n
     integer :: icell,ipart,nneigh
-    integer, dimension(npart) :: listneigh, numneigh ! up to 10% of particles in each cell
+    integer, dimension(npart) :: listneigh, numneigh
     integer :: icellprev
-    integer, dimension(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -291,7 +288,7 @@ contains
 !  (common to all particles in the cell)
 !
        if (icell.NE.icellprev) then
-          call get_neighbour_list_partial(icell,neighcell,listneigh,nneigh)
+          call get_neighbour_list_partial(icell,listneigh,nneigh)
        endif
        icellprev = icell
 
@@ -319,7 +316,7 @@ contains
 !--do interaction if r/h < compact support size
 !
           if (q2i.LT.radkern2) then
-             if (i.eq.140) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
+             !if (i.eq.1) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
 !      
 !--interpolate from kernel table (using hi)
@@ -348,9 +345,8 @@ contains
 
     enddo loop_over_particles
 
-    print*,'finished density_partial, rho, gradh, h =',rho(140),gradh(140),hh(140),numneigh(140)
-    print*,'minimum number of neighbours = ',MINVAL(numneigh),MINLOC(numneigh),rho(MINLOC(numneigh))
-    print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
+    !print*,'finished density_partial, rho, gradh, h =',rho(1),gradh(1),hh(1),numneigh(1)
+    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
 
     return
   end subroutine density_partial

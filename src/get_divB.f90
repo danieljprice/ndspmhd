@@ -25,7 +25,6 @@ SUBROUTINE get_divB(divBonrho,ntot)
  INTEGER :: icell,iprev,nneigh,nlistdim
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
  INTEGER :: idone
- INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -63,7 +62,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    CALL get_neighbour_list(icell,neighcell,listneigh,nneigh)
+    CALL get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
