@@ -256,10 +256,13 @@ subroutine read_dump(dumpfile,tfile)
        call coord_transform(x(:,i),ndim,igeomfile,xnew(:),ndim,igeom)
        call vector_transform(x(:,i),vel(1:ndim,i),ndim,igeomfile, &
                                     vecnew(1:ndim),ndim,igeom)                                    
-       x(:,i) = xnew(:)
        vel(1:ndim,i) = vecnew(1:ndim)
+       call vector_transform(x(:,i),Bfield(1:ndim,i),ndim,igeomfile, &
+                                    vecnew(1:ndim),ndim,igeom)                                    
+       Bfield(1:ndim,i) = vecnew(1:ndim)
+       x(:,i) = xnew(:)
     enddo
-    write(iprint,*) 'WARNING: vector transform not yet implemented on B'
+    if (ndimV.gt.ndim) write(iprint,*)'WARNING: DOES NOT DO 2.5D YET'
  endif
  
  
