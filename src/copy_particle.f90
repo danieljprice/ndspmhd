@@ -1,7 +1,7 @@
 !
 !--copies all the particle properties from particle j to particle i
 !  just so you don't have to remember everything carried by the particles
-!  *does not copy particle position*
+!  *does not copy particle position or velocity*
 !
 subroutine copy_particle(i,j)
   use debug
@@ -11,12 +11,13 @@ subroutine copy_particle(i,j)
   use hterms
   use part
   use rates
+  use unityfunc
   use xsph
   implicit none
   integer :: i,j
 
   if (idebug(1:4).eq.'copy') write(iprint,*) 'copying particle ',j,' to particle ',i
-  vel(:,i) = vel(:,j)
+!!  vel(:,i) = vel(:,j)
   pmass(i) = pmass(j)
   rho(i) = rho(j)
   hh(i) = hh(j)
@@ -28,6 +29,9 @@ subroutine copy_particle(i,j)
   psi(i) = psi(j)
   gradh(i) = gradh(j)
   sqrtg(i) = sqrtg(j)
+
+!!  unity(i) = unity(j)
+!!  gradunity(:,i) = gradunity(:,j)
 
   force(:,i) = force(:,j)
   drhodt(i) = drhodt(j)

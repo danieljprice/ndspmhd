@@ -493,7 +493,9 @@ contains
 ! Note that local variables are used from get_rates
 !--------------------------------------------------------------------------------------
   subroutine rates_core
+!!    use unityfunc
     implicit none
+!!    real :: grkerncorri,grkerncorrj
 !
 !--use either average h, average kernel gradient or Springel/Hernquist type
 !
@@ -524,6 +526,16 @@ contains
           grkerni = grkern
           grkernj = grkern
        endif
+!
+!--correct kernel gradient using correction terms (if calculated)
+!       
+!       if (iunity.ne.0) then
+!          grkerni = grkerni/unity(i)
+!	  grkernj = grkernj/unity(j)
+!	  grkerncorri = wabi/unity(i)**2
+!	  grkerncorrj = wabj/unity(j)**2
+!       endif
+       
     endif
 !
 !--define local copies of quantities
@@ -625,8 +637,8 @@ contains
     !
     !--add pressure terms to force
     !
-    force(:,i) = force(:,i) - pmassj*prterm*dr(:)
-    force(:,j) = force(:,j) + pmassi*prterm*dr(:)
+    force(:,i) = force(:,i) - pmassj*prterm*dr(:) !!!- grkerncorri*gradunity(:,i))
+    force(:,j) = force(:,j) + pmassi*prterm*dr(:) !!!- grkerncorrj*gradunity(:,j))
 !----------------------------------------------------------------------------
 !  time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - used in dudt, dhdt and av switch

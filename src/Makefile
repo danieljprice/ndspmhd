@@ -66,9 +66,9 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
-#SETUP1D = setup_wave_x_ND_mhd.f90
+SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
@@ -119,7 +119,7 @@ SOURCES = sphND_mhd.f90   \
 	 read_infile_mhd.f90 riemannsolver.f90 \
 	 set_fixedbound.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
-	 smooth.f90 utils.f90 \
+	 smooth.f90 unity.f90 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
 	 divBcorrect.f90 get_divB.f90
 #	 check_neighbourlist.f90
