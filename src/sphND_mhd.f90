@@ -61,7 +61,7 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-v4-1'
+    version = 'NDSPMHD-3D-v5-0'
 !   * equations use general alternative formulation
 !   * compiles in 3D
 !   * set_ghosts totally rewritten -> works in up to 3D
@@ -72,6 +72,7 @@ PROGRAM SUPERSPMHD_ND
 !   * my symmetrisation of vsig - but not for MHD yet
 !   * can have different boundary options in different dimensions
 !   * set_uniform cartesian can be called multiple times
+!   * shock setups in 3D
 !   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
