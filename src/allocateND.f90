@@ -28,10 +28,11 @@ SUBROUTINE alloc(newsizein)
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: newsizein
  INTEGER :: newsize,ioldsize,idumsize
- REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumalphain
+ REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumalphain,dumpsiin
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
- REAL, DIMENSION(newsizein) :: dumalpha,dumdaldt,dumhh,dumgradh,dumpr,dumspsound
- REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt
+ REAL, DIMENSION(newsizein) :: dumalpha,dumpsi
+ REAL, DIMENSION(newsizein) :: dumdaldt,dumhh,dumgradh,dumpr,dumspsound
+ REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
  REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBconsin
  REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBcons,dumdBconsdt,dumfmag
@@ -85,6 +86,7 @@ SUBROUTINE alloc(newsizein)
     dumhhin(1:idumsize) = hhin(1:idumsize)
     dumenin(1:idumsize) = enin(1:idumsize)
     dumalphain(1:idumsize) = alphain(1:idumsize)
+    dumpsiin(1:idumsize) = psiin(1:idumsize)
     
     dumxin(:,1:idumsize) = xin(:,1:idumsize)
     dumvelin(:,1:idumsize) = velin(:,1:idumsize)
@@ -108,6 +110,8 @@ SUBROUTINE alloc(newsizein)
     dumdendt(1:idumsize) = dendt(1:idumsize)
     dumalpha(1:idumsize) = alpha(1:idumsize)
     dumdaldt(1:idumsize) = daldt(1:idumsize)
+    dumpsi(1:idumsize) = psi(1:idumsize)
+    dumdpsidt(1:idumsize) = dpsidt(1:idumsize)    
     dumhh(1:idumsize) = hh(1:idumsize)
     dumdhdt(1:idumsize) = dhdt(1:idumsize)
     dumgradh(1:idumsize) = gradh(1:idumsize)
@@ -127,14 +131,14 @@ SUBROUTINE alloc(newsizein)
 !
 !--initial particle properties
 !
-    DEALLOCATE (pmass,xin,rhoin,hhin,enin,alphain)
+    DEALLOCATE (pmass,xin,rhoin,hhin,enin,alphain,psiin)
     DEALLOCATE (velin)
     IF (ALLOCATED(Bconsin)) DEALLOCATE (Bconsin)
 !
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
-    DEALLOCATE(alpha,daldt,hh,dhdt,gradh,pr)
+    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bcons)) DEALLOCATE(Bcons)
     IF (ALLOCATED(dBconsdt)) DEALLOCATE(dBconsdt)
@@ -184,7 +188,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE (pmass(newsize))
     ALLOCATE (xin(ndim,newsize))
     ALLOCATE (rhoin(newsize),hhin(newsize))
-    ALLOCATE (enin(newsize),alphain(newsize))
+    ALLOCATE (enin(newsize),alphain(newsize),psiin(newsize))
     ALLOCATE (velin(ndimV,newsize))
     ALLOCATE (Bconsin(ndimB,newsize))
 !
@@ -194,7 +198,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(vel(ndimV,newsize),force(ndimV,newsize))
     ALLOCATE(rho(newsize),drhodt(newsize))
     ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
-    ALLOCATE(alpha(newsize),daldt(newsize))
+    ALLOCATE(alpha(newsize),daldt(newsize),psi(newsize),dpsidt(newsize))
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),pr(newsize))
     ALLOCATE(Bcons(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBconsdt(ndimB,newsize))	! mag field
@@ -240,6 +244,7 @@ SUBROUTINE alloc(newsizein)
     hhin(1:idumsize) = dumhhin(1:idumsize)
     enin(1:idumsize) = dumenin(1:idumsize)
     alphain(1:idumsize) = dumalphain(1:idumsize)
+    psiin(1:idumsize) = dumpsiin(1:idumsize)
     
     xin(:,1:idumsize) = dumxin(:,1:idumsize)
     velin(:,1:idumsize) = dumvelin(:,1:idumsize)
@@ -263,6 +268,8 @@ SUBROUTINE alloc(newsizein)
     dendt(1:idumsize) = dumdendt(1:idumsize)
     alpha(1:idumsize) = dumalpha(1:idumsize)
     daldt(1:idumsize) = dumdaldt(1:idumsize)
+    psi(1:idumsize) = dumpsi(1:idumsize)
+    dpsidt(1:idumsize) = dumdpsidt(1:idumsize)
     hh(1:idumsize) = dumhh(1:idumsize)
     dhdt(1:idumsize) = dumdhdt(1:idumsize)
     gradh(1:idumsize) = dumgradh(1:idumsize)

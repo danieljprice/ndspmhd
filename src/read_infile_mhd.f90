@@ -39,7 +39,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*) ihvar,hfact
   READ(iread,*) idumpghost
   READ(iread,*) imhd,imagforce
-  READ(iread,*) idivBzero
+  READ(iread,*) idivBzero,psidecayfact
   READ(iread,*) ianticlump,eps,neps
   READ(iread,*) ixsph,xsphfac
   READ(iread,*) igravity
@@ -74,13 +74,16 @@ SUBROUTINE read_infile(infile)
  IF ((hfact.LE.1.0).OR.(hfact.GT.2.0)) THEN
     WRITE(iprint,100) 'hfact too low/high (1.0 < hfact < 2.0)'
  ENDIF
-
+ IF (psidecayfact.LT.0.0) THEN
+    WRITE(iprint,100) 'psidecayfact < 0.0'
+ ENDIF
+ 
 100   FORMAT(/' read_infile: warning: ',a)
  RETURN
             
 999   WRITE(iprint,1000) infile      
 1000  FORMAT (' Input file ',a20,' not found')
-      WRITE(iprint,*) ' Would you like to create one with default options?'
+      WRITE(*,*) ' Would you like to create one with default options?'
       READ*,ians
       IF (ians.EQ.'y'.OR.ians.EQ.'Y') CALL write_infile(infile)
 

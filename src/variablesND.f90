@@ -133,7 +133,7 @@ MODULE options
  INTEGER :: igravity,ikernel
  INTEGER :: igeom
  INTEGER, DIMENSION(ndim) :: ibound  
- REAL :: damp
+ REAL :: damp,psidecayfact
 END MODULE
 
 !-------------------------------------------------------------------
@@ -146,7 +146,7 @@ MODULE part
  INTEGER, DIMENSION(:), ALLOCATABLE :: itype
  REAL, DIMENSION(:), ALLOCATABLE :: pmass,sqrtg
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
- REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,alpha
+ REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,alpha,psi
  REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bcons
 END MODULE part 
@@ -157,7 +157,7 @@ END MODULE part
 
 MODULE part_in
  IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,alphain
+ REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,alphain,psiin
  REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bconsin
 END MODULE
@@ -177,7 +177,7 @@ END MODULE
 
 MODULE rates
  IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,daldt,dhdt
+ REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,daldt,dhdt,dpsidt
  REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBconsdt
 END MODULE rates
 

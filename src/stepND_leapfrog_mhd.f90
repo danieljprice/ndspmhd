@@ -27,7 +27,7 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
  REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
- REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin,uuin
+ REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin,uuin,dpsidtin
  REAL :: hdt
 !
 !--allow for tracing flow
@@ -47,6 +47,7 @@ SUBROUTINE step
     enin(i) = en(i)
     uuin(i) = uu(i)
     alphain(i) = alpha(i)
+    psiin(i) = psi(i)
     
     forcein(:,i) = force(:,i)
     dBconsdtin(:,i) = dBconsdt(:,i)
@@ -54,6 +55,7 @@ SUBROUTINE step
     dhdtin(i) = dhdt(i)
     dendtin(i) = dendt(i)
     daldtin(i) = daldt(i)
+    dpsidtin(i) = dpsidt(i)
  ENDDO
 !
 !--if doing divergence correction then do correction to magnetic field
@@ -75,6 +77,7 @@ SUBROUTINE step
        hh(i) = hhin(i)	    
        en(i) = enin(i)
        alpha(i) = alphain(i)
+       psi(i) = psiin(i)
     ELSE
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
@@ -87,7 +90,8 @@ SUBROUTINE step
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldtin(i)	   
+       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldtin(i)	  
+       IF (idivBzero.GE.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
     ENDIF
  ENDDO
 !
@@ -125,6 +129,7 @@ SUBROUTINE step
        hh(i) = hhin(i)
        en(i) = enin(i)
        alpha(i) = alphain(i)
+       psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*(force(:,i)+forcein(:,i))	    
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*(dBconsdt(:,i)+dBconsdtin(:,i))	  
@@ -137,7 +142,8 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))	   
+       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))
+       IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))	   
     ENDIF 
 	      
  ENDDO

@@ -96,7 +96,7 @@ SUBROUTINE get_rates
 !
 !  (artificial viscosity quantities)
 !      
- REAL :: vsig,vsigi,vsigj,vsigav,viss,eni,enj,ediff,qdiff
+ REAL :: vsig,vsigi,vsigj,vsigav,viss,eni,enj,ediff,ediffB,qdiff
  REAL :: spsoundi,spsoundj,visc,envisc,uvisc
  REAL :: alphai,alphaav,source,tdecay1    
 !
@@ -112,6 +112,11 @@ SUBROUTINE get_rates
 !  (gravity)
 ! 
  REAL :: poten
+!
+!--div B correction
+! 
+ REAL :: gradpsiterm,dtcourant2
+
 !
 !--allow for tracing flow
 !      
@@ -136,6 +141,7 @@ SUBROUTINE get_rates
   dudt(i) = 0.0
   dendt(i) = 0.0
   dBconsdt(:,i) = 0.0
+  dpsidt(i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -413,6 +419,20 @@ SUBROUTINE get_rates
 		   envisc = avterm*(vissv+vissB)*grkern!*abs(rx)
 	           uvisc = avterm*vissu*grkern		   
 		   ELSEIF (iav.EQ.2) THEN
+		   avterm = 0.5*alphaav*vsig*rhoav1
+!--viscosity (kinetic energy term)
+                   visc = avterm*grkern
+		   vissv = -0.5*(DOT_PRODUCT(dvel,dvel))		    
+!--ohmic dissipation (magnetic energy term)
+		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
+		   dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
+		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+!--vissu is the dissipation energy from thermal conductivity
+		   vissu = udiss_frac*(uu(i) - uu(j))
+!--envisc is the total contribution to the thermal energy equation
+		   envisc = avterm*(vissv+vissB)*grkern!*abs(rx)
+	           uvisc = avterm*vissu*grkern		   
+		   ELSEIF (iav.GT.2) THEN
 		   STOP 'crap av choice'
 !--viscosity (kinetic energy term)
 		   vsigii = vsigi + 0.5*beta*viss
@@ -432,9 +452,15 @@ SUBROUTINE get_rates
 	           uvisc = 0.5*alphaav*vsig*vissu		   
 		   
 		   ENDIF
-		ELSE
+		ELSEIF (iav.NE.0) THEN
 		   visc = 0.0
-		   dBdtvisc(:) = 0.
+		   !!avterm = 0.5*alphaav*vsig*rhoav1		    
+!--ohmic dissipation (magnetic energy term)
+		   !!Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
+		   !!dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
+		   !!vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1		   
+		   !!!dBdtvisc(:) = 0.
+		   !!envisc = avterm*vissB*grkern
 		   envisc = 0.
 		   uvisc = 0.
 	        ENDIF	
@@ -452,12 +478,11 @@ SUBROUTINE get_rates
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
-		IF (ndimV.GT.ndim) THEN 
+		IF (iav.EQ.2) THEN 
 		  force(:,i) = force(:,i)	&
-		             - pmassj*(prterm*dr(:)+visc*vunit(:))
+		             - pmassj*(prterm*dr(:)-visc*dvel(:))
 		  force(:,j) = force(:,j)	&
-		             + pmassi*(prterm*dr(:)+visc*vunit(:))  
-
+		             + pmassi*(prterm*dr(:)-visc*dvel(:)) 
 		ELSE
 		  force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
 		  force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
@@ -561,18 +586,29 @@ SUBROUTINE get_rates
 !--time derivative of magnetic field (divide by rho later) - in generalised form
 !
 !  (evolving B/rho)
-		  IF (imhd.EQ.1) THEN
+		  IF (imhd.EQ.1) THEN   ! divided by rho later
 		     dBconsdt(:,i) = dBconsdt(:,i)		&
                    - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
 		     dBconsdt(:,j) = dBconsdt(:,j) 		&
      		   - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
 
-		     IF (iav.NE.0) THEN		! add dissipative term ***check
+		     IF (iav.NE.0) THEN		! add dissipative term
 	                dBconsdt(:,i) = dBconsdt(:,i)		&
                          + rhoi*pmassj*dBdtvisc(:)*grkern		   
 		        dBconsdt(:,j) = dBconsdt(:,j)		&
                          - rhoj*pmassi*dBdtvisc(:)*grkern
 	             ENDIF
+		     IF (idivBzero.GE.2) THEN
+!
+!--calculate grad psi (divergence correction term)
+!		  
+		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad phi)
+			
+		        dBconsdt(:,i) = dBconsdt(:,i)  & ! nb dBconsdt is divided by rho later
+		        + pmassj*gradpsiterm*dr(:)
+			dBconsdt(:,j) = dBconsdt(:,j)  & ! nb dBconsdt is divided by rho later
+		        + pmassi*gradpsiterm*dr(:)
+		     ENDIF
 !   (evolving B)
 		  ELSEIF (imhd.EQ.11) THEN	! note divided by rho later		  
 		     dBconsdt(:,i) = dBconsdt(:,i)		&
@@ -586,7 +622,18 @@ SUBROUTINE get_rates
 		        dBconsdt(:,j) = dBconsdt(:,j)		&
                          - rho2j*pmassi*dBdtvisc(:)*grkern
 	             ENDIF
-		  
+		     
+		     IF (idivBzero.GE.2) THEN  ! add hyperbolic correction term
+!
+!--calculate grad psi (divergence correction term)
+!		  
+		        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad phi)
+			
+		        dBconsdt(:,i) = dBconsdt(:,i)  & ! nb dBconsdt is divided by rho later
+		        + rhoi*pmassj*gradpsiterm*dr(:)
+			dBconsdt(:,j) = dBconsdt(:,j)  & ! nb dBconsdt is divided by rho later
+		        + rhoj*pmassi*gradpsiterm*dr(:)
+		     ENDIF
 		  ENDIF
 		
 		ELSE	! if no mhd
@@ -626,25 +673,37 @@ SUBROUTINE get_rates
 		     			 -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
 		   ENDIF	   
 ! (dissipation term)
-		   v2i = DOT_PRODUCT(veli,dr)**2	! energy along line
-		   v2j = DOT_PRODUCT(velj,dr)**2	! of sight		   
+	           IF (iav.EQ.2) THEN
+		      v2i = DOT_PRODUCT(veli,veli)	! energy along line
+		      v2j = DOT_PRODUCT(velj,velj)	! of sight		   		   
+		   ELSE
+		      v2i = DOT_PRODUCT(veli,dr)**2	! energy along line
+		      v2j = DOT_PRODUCT(velj,dr)**2	! of sight		   
+		   ENDIF
 		   B2i = (DOT_PRODUCT(Bi,Bi) - DOT_PRODUCT(Bi,dr)**2)	!  "   " 
 		   B2j = (DOT_PRODUCT(Bj,Bj) - DOT_PRODUCT(Bj,dr)**2)
    		   enj = udiss_frac*uu(j) + 0.5*v2j + Bdiss_frac*0.5*B2j*rhoav1
 		   eni = udiss_frac*uu(i) + 0.5*v2i + Bdiss_frac*0.5*B2i*rhoav1
+		   ediffB = Bdiss_frac*0.5*rhoav1*(B2i-B2j)
 		   ediff = eni - enj 
 		   IF (dvdotr.LT.0) THEN ! bug was in line below
-		    IF (iav.EQ.1) THEN
+		    IF (iav.EQ.1 .OR. iav.EQ.2) THEN
 		       qdiff = -avterm*ediff*grkern
-		    ELSEIF (iav.EQ.2) THEN
+		    ELSEIF (iav.EQ.3) THEN
 		       qdiff = -0.5*alphaav*vsig*ediff
 		    ENDIF
 		   ELSE	! this is just the MHD bits if applying Bvisc everywhere
-		   qdiff = 0.
+		   qdiff = -avterm*ediffB*grkern
 		   ENDIF
 
 		   dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi+qdiff)
 		   dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj+qdiff)     		
+! (source term for hyperbolic divergence correction)		
+		   IF (idivBzero.GE.2) THEN
+		      dendt(i) = dendt(i) + pmassj*projBi*gradpsiterm
+		      dendt(j) = dendt(j) + pmassi*projBj*gradpsiterm
+		   ENDIF
+		
 		ENDIF
 !
 !--compute thermal energy derivative even if using total energy equation
@@ -683,6 +742,7 @@ SUBROUTINE get_rates
 
  fhmax = 0.0
  dtforce = 1.e6
+ dtcourant2 = 1.e6
  
  DO i=1,npart
  
@@ -737,6 +797,14 @@ SUBROUTINE get_rates
     fonh = forcemag/hh(i)
     IF (fonh.GT.fhmax) fhmax = fonh
 !
+!--calculate simpler estimate of dtcourant
+!
+    valfven2i = 0.
+    IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
+    vsig = SQRT(spsound(i)**2. + valfven2i) + SQRT(DOT_PRODUCT(vel(:,i),vel(:,i))) 	! approximate vsig only
+    dtcourant2 = min(dtcourant2,hh(i)/vsig)
+
+!
 !--calculate time derivative of alpha (artificial dissipation coefficient)
 !  see Morris and Monaghan (1997)
 !     
@@ -762,7 +830,17 @@ SUBROUTINE get_rates
     ELSE
        daldt(i) = 0.
     ENDIF
-      
+!
+!--calculate time derivative of divergence correction parameter psi
+!      
+    SELECT CASE(idivBzero)
+       CASE(2:7)
+          valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
+          vsig = spsound(i)**2. + valfven2i 	! approximate vsig only
+          dpsidt(i) = -vsig*divB(i) - psidecayfact*psi(i)*SQRT(vsig)/hh(i)          
+       CASE DEFAULT
+          dpsidt(i) = 0.
+    END SELECT
  ENDDO
 !
 !--calculate timestep constraint from the forces
@@ -773,6 +851,8 @@ SUBROUTINE get_rates
     CALL quit
  ENDIF    
  IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
+ print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
+ !!dtcourant = 0.2*dtcourant2
      
  IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
  IF (ALLOCATED(phi)) DEALLOCATE(phi)

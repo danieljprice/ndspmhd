@@ -54,10 +54,10 @@ F90FLAGS = -O4 -C -xtypemap=real:64,double:64,integer:32
 
 # use the appropriate dimensions module
 
-SOURCES1D = dimen1D.f90 
-SOURCES2D = dimen2D.f90
-SOURCES25D = dimen25D.f90
-SOURCES3D = dimen3D.f90
+SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
+SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
+SOURCES25D = dimen25D.f90 variablesND.f90 direct_sum_poisson2D.f90
+SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 
 ######################################################################
 ########### choose the setup file in each dimension here #############
@@ -76,19 +76,19 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
-SETUP2D = setup_polytropeND.f90
+#SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-#SETUP2D = setup_shockND.f90
+SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
-#SETUP25D = setup_alfvenwaveND_x.f90
-SETUP25D = setup_Bxpeak25D_mhd.f90
+SETUP25D = setup_alfvenwaveND_x.f90
+#SETUP25D = setup_Bxpeak25D_mhd.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -98,12 +98,11 @@ SETUP3D = setup_alfvenwaveND_x.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = variablesND.f90 sphND_mhd.f90   \
+SOURCES = sphND_mhd.f90   \
          boundaryND_1D.f90 \
 	 coord_transform.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
-	 direct_sum_poisson.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces.f90 \
 	 get_neighbour_listND.f90 get_neighbour_listND_partial.f90 \
@@ -121,19 +120,19 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 
 # these are the ordinary cartesian versions
-SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_leapfrog_mhd.f90
+SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_mhd.f90
 
 # these files are for the gr version of the code
 SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outputND_mhd_gr.f90 \
 	    stepND_mhd_gr.f90
 	 
-OBJECTS1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
+OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
-OBJECTS2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
+OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-OBJECTS25D = $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
+OBJECTS25D =  $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	     $(SETUP25D:.f90=.o)
-OBJECTS3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
+OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
 	    $(SETUP3D:.f90=.o)
 
 OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \

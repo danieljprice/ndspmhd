@@ -45,7 +45,7 @@ SUBROUTINE output(t,nstep)
 !--write header line to this data block in data file
 !
  IF (imhd.NE.0) THEN
-    ndata = ndim + 7 + 2*ndimB + ndimV	! number of columns apart from co-ords
+    ndata = ndim + 8 + 2*ndimB + ndimV	! number of columns apart from co-ords
  ELSE
     ndata = ndim + 6 + ndimV
  ENDIF
@@ -65,7 +65,7 @@ SUBROUTINE output(t,nstep)
     IF (imhd.NE.0) THEN	! MHD
 
        WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
-        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
+        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i),psi(i)
 
     ELSE   ! non-MHD
 
@@ -83,7 +83,7 @@ SUBROUTINE output(t,nstep)
  ierr(3) = flush(iprint)
  IF ( ANY(ierr.NE.0) ) WRITE(*,*) 'Error flushing files, see Makefile ',ierr 
   			  
-30    FORMAT (23(1pe14.6,1x),:)	! make sure the format statement has >/=	
+30    FORMAT (24(1pe14.6,1x),:)	! make sure the format statement has >/=	
 				! max number of columns in the write statement
 
  RETURN

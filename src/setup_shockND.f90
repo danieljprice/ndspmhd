@@ -37,7 +37,7 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 0.    
+ dsmooth = 20.    
  const = sqrt(4.*pi)
  densleft = 1.0
  densright = 1.0
@@ -118,7 +118,7 @@ subroutine setup
  ibound(2:ndim) = 3	! periodic in yz
  nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
  boxlength = 2.0
- sidelength(1) = 120.	! relative dimensions of boundaries
+ sidelength(1) = 128.	! relative dimensions of boundaries
  sidelength(2:ndim) = 6.
  xmin(1) = -1.0
  xmax(1) = xmin(1) + boxlength
@@ -205,15 +205,18 @@ subroutine setup
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
-       if (delta.GT.0.) THEN
-          vel(1,i) = vxright
-          if (ndimV.ge.2) vel(2,i) = vyright
-          if (ndimV.ge.3) vel(3,i) = vzright 
-       else
-          vel(1,i) = vxleft
-          if (ndimV.ge.2) vel(2,i) = vyleft
-          if (ndimV.ge.3) vel(3,i) = vzleft       
-       endif
+       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
+       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
+       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
+!       if (delta.GT.0.) THEN
+!          vel(1,i) = vxright
+!          if (ndimV.ge.2) vel(2,i) = vyright
+!          if (ndimV.ge.3) vel(3,i) = vzright 
+!       else
+!          vel(1,i) = vxleft
+!          if (ndimV.ge.2) vel(2,i) = vyleft
+!          if (ndimV.ge.3) vel(3,i) = vzleft       
+!       endif
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif       
