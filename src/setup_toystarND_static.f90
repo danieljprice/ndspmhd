@@ -1,6 +1,9 @@
 !!------------------------------------------------------------------------!!
 !!                                                                        !!
-!!  Setup for a uniform spherical distribution in 1, 2 or 3 dimensions    !!
+!!  Setup for the toy star static solution in 1, 2 or 3 dimensions        !!
+!!                                                                        !!
+!!  Sets up a uniform spherical distribution in 1, 2 or 3 dimensions,     !!
+!!  which should then be damped to the static toy star solution           !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
@@ -15,6 +18,7 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
+ USE polyconst
  USE setup_params
 !
 !--define local variables
@@ -22,7 +26,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i,j
  REAL :: rmax,totmass,totvol
- REAL :: rhozero,uuzero,massp
+ REAL :: rhozero,uuzero,massp,rhocentre
 
  WRITE(iprint,*) 'Uniform spherical distribution'
 !
@@ -47,12 +51,15 @@ SUBROUTINE setup
     totvol = 4./3.*pi*rmax**3
  END SELECT
   
- totmass = totvol
- rhozero = totmass/totvol
+ rhocentre = 1.0		! toy star central density 
+ totmass = 2*pi*polyk*rhocentre**(gamma-1.)  ! mass of the toy star 
+ 
+ rhozero = totmass/totvol	! initial density
  massp = totmass/REAL(npart)
  uuzero = 0.1
- WRITE(iprint,10) rhozero,uuzero
-10 FORMAT(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
+ WRITE(iprint,10) rhocentre,totmass
+10 FORMAT(/,' Toy star static solution ',/, &
+            '     central density: ',f7.3, ' total mass = ',f7.3,/)
 !
 !--set these for all particles
 ! 

@@ -82,7 +82,8 @@ SETUP1D = setup_alfvenwaveND_x.f90
 #SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
-SETUP2D = setup_disc2D.f90
+#SETUP2D = setup_disc2D.f90
+SETUP2D = setup_toystarND_static.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
 SETUP25D = setup_alfvenwaveND_x.f90

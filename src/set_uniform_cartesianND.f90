@@ -30,10 +30,10 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  REAL, INTENT(IN) :: psep
  LOGICAL, INTENT(IN) :: offset
  
- INTEGER :: i,j,k,ntot,npartx,nparty,npartz,ipart,iseed
+ INTEGER :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  INTEGER :: idist
  REAL :: gam1,const,xstart,ystart,deltax,deltay
- REAL :: psepx,psepy
+ REAL :: psepx,psepy,ampl
  REAL, DIMENSION(ndim) :: xran
 !
 !--allow for tracing flow
@@ -46,12 +46,14 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     idist = idistin
  ENDIF
  
+ npartin = npart    ! this is how many particles have already been set up
+ 
  SELECT CASE(idist)
 !
 !--hexagonal close packed arrangement 
 !  (in 3D, 2D this is the same as body centred)
 !
- CASE(2)
+ CASE(2,12)
  
     IF (ndim.EQ.3) STOP 'close packed not implemented in 3D'
 !
@@ -104,7 +106,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--body centred lattice
 !
- CASE(3)
+ CASE(3,13)
     IF (ndim.EQ.3) STOP 'body centred not implemented in 3D'
 !
 !--determine number of particles
@@ -144,9 +146,9 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     ENDDO 
 !
 !--random particle distribution
-!  (uses random number generator ran1 from numerical recipes)
+!  (uses random number generator ran1 in module random)
 ! 
- CASE(4)
+ CASE(4,14)
     ntot = PRODUCT((xmax(:)-xmin(:))/psep)
     npart = ntot
     WRITE(iprint,*) 'Random particle distribution, npart = ',ntot 
@@ -192,8 +194,8 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--allocate memory here
 !
     ntot = npartx*nparty*npartz
-    ipart = npart
-    npart = npart + ntot	! add to particles already setup
+    ipart = npartin
+    npart = npartin + ntot	! add to particles already setup
     WRITE(iprint,*) 'Cubic lattice, adding ',ntot,', npart = ',npart,npartx,nparty,npartz
     WRITE(iprint,*) 'xmin = ',xmin, ' xmax = ',xmax
     CALL alloc(npart)
@@ -215,6 +217,26 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
        ENDDO
     ENDDO
  END SELECT
+ 
+!
+!--if idist > 10 apply a small random perturbation to the particle positions
+! 
+ IF (idist.GE.10) THEN
+!
+!--initialise random number generator
+!    
+    iseed = -268
+    xran(1) = ran1(iseed)
+    ampl = 0.1*psep	! perturbation amplitude
+    
+    DO i=npartin+1,npart  ! apply to new particles only
+       DO j=1,ndim
+          xran(j) = ran1(iseed)
+       ENDDO
+       x(:,i) = x(:,i) + ampl*(xran(:)-0.5)
+    ENDDO    
+ ENDIF
+ 
 !
 !--set total number of particles = npart
 !
