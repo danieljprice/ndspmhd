@@ -30,7 +30,7 @@ SUBROUTINE alloc(newsizein)
  INTEGER :: newsize,ioldsize,idumsize
  REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
- REAL, DIMENSION(2,newsizein) :: dumalpha,dumalphain,dumdaldt
+ REAL, DIMENSION(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  REAL, DIMENSION(newsizein) :: dumpsi
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
@@ -199,7 +199,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(vel(ndimV,newsize),force(ndimV,newsize))
     ALLOCATE(rho(newsize),drhodt(newsize))
     ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
-    ALLOCATE(alpha(2,newsize),alphain(2,newsize),daldt(2,newsize))
+    ALLOCATE(alpha(3,newsize),alphain(3,newsize),daldt(3,newsize))
     ALLOCATE(psi(newsize),dpsidt(newsize))
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),pr(newsize))
     ALLOCATE(Bcons(ndimB,newsize))

@@ -10,8 +10,8 @@
 !-------------------------------------------------------------------
 MODULE artvi
  IMPLICIT NONE
- REAL :: alphamin,beta,avdecayconst
- REAL :: avfact,udiss_frac,alphaBmin
+ REAL :: beta,avfact,avdecayconst
+ REAL :: alphamin,alphaumin,alphaBmin
 END MODULE artvi
 
 !-------------------------------------------------------------------
@@ -126,7 +126,7 @@ END MODULE loguns
 MODULE options
  use dimen_mhd
  IMPLICIT NONE
- INTEGER :: iener,icty,iav,iavlim,ikernav
+ INTEGER :: iener,icty,iav,iavlim,iaulim,iaBlim,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump

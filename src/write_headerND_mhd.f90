@@ -116,12 +116,14 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !--artificial viscosity options
 !     
     IF (iav.NE.0) THEN
-       WRITE (iprint,80) alphamin,beta,iavlim,avdecayconst,avfact
-80  FORMAT(' Artificial viscosity: ',/,			&
-         6x,' alpha (min) = ',f10.6,' beta = ',f10.6,/,		&
-         6x,' Morris & Monaghan AV limiter : ',i2,		&
-         '  with decay constant : ',f10.6,/,                     &
-	 6x,' Source term multiplied by : ',f10.6, /)
+       WRITE (iprint,80) alphamin,alphaumin,alphaBmin,beta, &
+                         iavlim,iaulim,iaBlim,avdecayconst,avfact
+80  FORMAT(' Artificial dissipative terms: ',/,			&
+         6x,' alpha (min) = ',f6.2,f6.2,f6.2,' beta = ',f6.2,/,		&
+         6x,' viscosity limiter   : ',i2,/, &
+	 6x,' conduction limiter  : ',i2,/, &
+	 6x,' resistivity limiter : ',i2,/, &
+         6x,' decay constant = ',f6.2,', av source term x',f10.6, /)
     ENDIF
 !
 !--general constants

@@ -92,7 +92,8 @@ SUBROUTINE initialise
 !--setup additional quantities that are not done in setup
 !
  alpha(1,:) = alphamin
- alpha(2,:) = alphaBmin
+ alpha(2,:) = alphaumin
+ alpha(3,:) = alphaBmin
  gradh = 0.
  divB = 0.
  curlB = 0.

@@ -26,10 +26,10 @@ EDITOR = nedit
 # -xtypemap=real:64,double:64,integer:32 for double precision
 # -ftrap = %all traps floating point exceptions
 #
-#FC = f90
-#F90C = f90
-#F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
-##LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
+FC = f90
+F90C = f90
+F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
+#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
 #FC = lf95
@@ -39,12 +39,12 @@ EDITOR = nedit
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Intel fortran
-FC = ifc
-F90C = ifc
-FFLAGS = -O ##-CB -std90 -check all
-F90FLAGS = -O -WB ##-CB -std90 -check all
+#FC = ifc
+#F90C = ifc
+#FFLAGS = -O ##-CB -std90 -check all
+#F90FLAGS = -O -WB ##-CB -std90 -check all
 ##LDFLAGS =  -lg2c -L/usr/local/pgplot -lpgplot -L/usr/X11R6/lib -lX11 -Vaxlib
-LDFLAGS = -Vaxlib
+#LDFLAGS = -Vaxlib
 ## ------------------------------------------------------------------ ##
 
 # define the implicit rule to make a .o file from a .f90 file
@@ -67,10 +67,10 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-#SETUP1D = setup_shock1DND_mhd2.f90
+SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
-SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
+#SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 #SETUP1D = setup_shockND.f90
