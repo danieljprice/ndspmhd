@@ -55,7 +55,7 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
     DO j=1,ntot       
        if (i.ne.j) then
        dx = x(:,i) - x(:,j)
-       rij2 = DOT_PRODUCT(dx,dx) + 0.01**2
+       rij2 = DOT_PRODUCT(dx,dx) !!+ 0.01**2
        rij = SQRT(rij2)
        term(:) = dx(:)/(rij*rij2)
        
