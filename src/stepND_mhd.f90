@@ -67,16 +67,11 @@ SUBROUTINE step
 !--Mid-point Predictor step
 !      
  hdt = 0.5*dt
-! DO i=1,npart
-!    xin(:,i) = x(:,i)
-!    velin(:,i) = vel(:,i)
-!    Bevolin(:,i) = Bevol(:,i)
-!    rhoin(i) = rho(i)
-!    hhin(i) = hh(i)
-!    enin(i) = en(i)
-!    alphain(:,i) = alpha(:,i)
-!    psiin(i) = psi(i)
-! ENDDO         
+
+ DO i=1,npart
+    Bevol(:,i) = Bevolin(:,i)
+    psi(i) = psiin(i)
+ ENDDO         
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
@@ -87,14 +82,22 @@ SUBROUTINE step
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
  ELSEIF (idivBzero.GE.2) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
-    nsubsteps_divB = 2
+    nsubsteps_divB = -1
     !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
     !print*,'nsubsteps_divB = ',nsubsteps_divB
-
-    !--use grad psi and div B from previous step in substepping
-    !  (not ones calculated in this rates call)
+!
+!--do predictor substepping on Bevol and psi (returns values updated to half step)
+!
     gradpsiprev = gradpsi
     divBprev = divB
+    IF (nsubsteps_divB.GE.0) THEN
+       IF (nsubsteps_divB.GT.0) THEN
+          CALL set_linklist ! update neighbours for divB/gradpsi calls
+          IF (ANY(ibound.GT.1)) CALL set_ghost_particles
+       ENDIF
+       CALL substep_divB(1,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
+                         x,hh,pmass,itype,npart,ntotal)
+    ENDIF
  ENDIF
    
  DO i=1,npart
@@ -112,19 +115,19 @@ SUBROUTINE step
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 
        IF (imhd.NE.0) THEN
-          Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-          IF (nsubsteps_divB.EQ.0) THEN
-             Bevol(:,i) = Bevol(:,i) + hdt*gradpsi(:,i)
+          IF (nsubsteps_divB.LT.0) THEN
+             Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
              psi(i) = psiin(i) + hdt*dpsidt(i)
           ENDIF
+          Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        ENDIF
+       IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (ihvar.EQ.1) THEN
 !           hh(i) = hfact(pmass(i)/rho(i))**dndim        ! my version
           hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! Joe's           
        ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
-       IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
     ENDIF
@@ -169,39 +172,18 @@ SUBROUTINE step
 !
  CALL get_rates
 
+ DO i=1,npart
+    Bevol(:,i) = Bevolin(:,i)
+    psi(i) = psiin(i)
+ ENDDO
 !
-!--do substepping for div B correction
+!--do substepping on corrector for div B correction
 !
- IF (nsubsteps_divB.gt.0) THEN
-    print*,' max div B = ',maxval(divB(1:npart)),maxloc(divB(1:npart)),rho(maxloc(divB(1:npart))), &
-    ' nsubsteps_divB = ',nsubsteps_divB
-    print*,'npart = ',npart, 'ntotal = ',ntotal
-    IF (imhd.GE.11) THEN
-       CALL substep_divB(dt,nsubsteps_divB,Bevolin(:,1:ntotal), &
-            psiin(1:ntotal),divB(1:ntotal),gradpsi(:,1:ntotal), &
-            x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
-            itype(1:ntotal),npart,ntotal)
-    ELSE
-       DO i=1,ntotal
-          Bfield(:,i) = Bevolin(:,i)*rho(i)
-          gradpsiprev(:,i) = gradpsi(:,i)*rho(i)
-       ENDDO
-       print*,'max grad psi = ',maxval(gradpsiprev(:,1:ntotal))
-       CALL substep_divB(dt,nsubsteps_divB,Bfield(:,1:ntotal), &
-            psiin(1:ntotal),divB(1:ntotal),gradpsiprev(:,1:ntotal), &
-            x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
-            itype(1:ntotal),npart,ntotal)
-       DO i=1,ntotal
-          Bevolin(:,i) = Bfield(:,i)/rho(i)
-          gradpsi(:,i) = gradpsiprev(:,i)/rho(i)
-       ENDDO
-    ENDIF
+ IF (nsubsteps_divB.GE.0) THEN
+    CALL substep_divB(2,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
+                      x,hh,pmass,itype,npart,ntotal)
  ENDIF
 
-! print*,'----------------------------'
-! do i=17,25
-!    print*,i,'force = ',force(:,i)
-! enddo
 !
 !--Mid-point Corrector step
 !
@@ -229,17 +211,17 @@ SUBROUTINE step
           rho(i) = rhoin(i) + hdt*drhodt(i)
           IF (rho(i).LE.0.) THEN
              WRITE(iprint,*) 'step: rho -ve ',i,rho(i)
-                 CALL quit
+             CALL quit
           ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
        IF (imhd.NE.0) THEN
-          Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-          IF (nsubsteps_divB.eq.0) THEN
-             Bevol(:,i) = Bevol(:,i) + hdt*gradpsi(:,i)
+          IF (nsubsteps_divB.LT.0) THEN
+             Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
              psi(i) = psiin(i) + hdt*dpsidt(i)
           ENDIF          
+          Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        ENDIF
     ENDIF 
               

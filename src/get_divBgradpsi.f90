@@ -189,7 +189,11 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !
  DO i=1,npart
     if (rho(i).ge.0.) then
-       gradpsi(:,i) = gradpsi(:,i)/rho(i)
+       if (imhd.ge.11) then ! evolving B
+          gradpsi(:,i) = gradpsi(:,i)/rho(i)
+       else                 ! evolving B/rho
+          gradpsi(:,i) = gradpsi(:,i)/rho(i)**2       
+       endif
        divB(i) = divB(i)/rho(i)
     else
        write(*,*) 'ERROR: get_divBgradpsi: rho < 0.'
