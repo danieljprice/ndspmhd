@@ -57,6 +57,58 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--determine number of particles
 ! 
+    deltax = psep
+    deltay = 0.5*SQRT(3.)*psep
+    npartx = INT((xmax(1)-xmin(1))/deltax)
+    nparty = INT((xmax(2)-xmin(2))/deltay)
+    npartz = 1
+    
+    !--check that nparty is divisible by 3 for periodic boundaries
+!
+!--adjust psep so that particles fill the volume
+!
+    PRINT*,'npartx,y = ',npartx,nparty,deltax,deltay
+!    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
+!    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
+!    PRINT*,' adjusted ',deltax,deltay
+!
+!--or adjust the boundaries appropriately
+!
+    xmax(2) = nparty*deltay
+    PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
+!
+!--allocate memory here
+!
+    ntot = npartx*nparty
+    
+    WRITE(iprint,*) 'Close packed distribution, npart = ',ntot
+    
+    CALL alloc(ntot)
+    npart = ntot
+
+    ystart = 0.5*deltay		!psepy
+    ipart = 0
+    DO k=1,npartz
+       DO j=1,nparty
+          xstart = 0.25*psep
+          IF (MOD(j,2).EQ.0) xstart = xstart + 0.5*psep
+          DO i = 1,npartx
+             ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
+             x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
+             IF (ndim.GE.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
+	     if (ipart.eq.1) print*,' x1 -xmin = ',x(1,ipart)-xmin(1),psep,0.25*psep
+	     if (ipart.eq.32) print*,'xmax -x32 = ',xmax(1)-x(1,ipart),0.5*psep
+          ENDDO
+       ENDDO
+    ENDDO 
+!
+!--body centred lattice
+!
+ CASE(3)
+    IF (ndim.EQ.3) STOP 'body centred not implemented in 3D'
+!
+!--determine number of particles
+! 
     npartx = INT((xmax(1)-xmin(1))/(SQRT(2.)*psep))
     nparty = INT((xmax(2)-xmin(2))/(SQRT(2.)*psep))
     npartz = 1
@@ -90,12 +142,6 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
           ENDDO
        ENDDO
     ENDDO 
-!
-!--body centred lattice
-!
- CASE(3)
-    PRINT*,' 3D body centred setup not implemented'
-    CALL quit
 !
 !--random particle distribution
 !  (uses random number generator ran1 from numerical recipes)

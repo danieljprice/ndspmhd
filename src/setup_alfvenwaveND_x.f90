@@ -15,6 +15,7 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
+ USE polyconst
  USE setup_params
 !
 !--define local variables
@@ -41,7 +42,7 @@ SUBROUTINE setup
 ! anglez = 45.	! angle in degrees z plane
 ! anglexy = anglexy*pi/180.	! convert to radians
  runit(1) = 1.0	        !0.5*SQRT(3.) !COS(anglexy)
- runit(2) = 0.		!0.5	!SIN(anglexy)
+ IF (ndim.GE.2) runit(2) = 0.		!0.5	!SIN(anglexy)
 ! runit(3) = 0.
  WRITE(iprint,*) ' runit = ',runit
 !
@@ -84,15 +85,16 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  uuzero = przero/(gam1*rhozero)
+ polyk = przero/(rhozero**gamma)	! override setting in input
 !
 !--initially set up a uniform density grid (also determines npart)
 !
  PRINT*,' setting up uniform density grid'
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)	! 2 = close packed
+ CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !
- totmass = rhozero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
+ totmass = rhozero*PRODUCT(xmax(:)-xmin(:))
  massp = totmass/FLOAT(npart) ! average particle mass
  PRINT*,'npart,massp = ',npart,massp
  
