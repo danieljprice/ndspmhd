@@ -65,7 +65,7 @@ SUBROUTINE write_infile(infile)
 180 FORMAT(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 
  WRITE(iprint,200) infile
-200 FORMAT (' Input file ',a20,' created successfully')
+200 FORMAT (' input file ',a20,' created successfully')
 
  RETURN
       
