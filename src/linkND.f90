@@ -93,6 +93,7 @@ SUBROUTINE link
 !
 !--when doing calculation, in 1/2/3D 
 !  don't do last cell/row of cells/face of cells as these are purely ghosts
+!  (NOTE THIS IS ONLY TRUE IF dxcell divides xmax-xmin EXACTLY) 
 !  really should make a list of cells to do in 3D as should skip the top row
 !  of every block. At the moment this is just slightly inefficient.
 !

@@ -20,11 +20,11 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
  INTEGER, INTENT(IN) :: icell
  INTEGER, DIMENSION(*), INTENT(OUT) :: listneigh
  INTEGER, INTENT(OUT) :: nneigh
- INTEGER, DIMENSION(3*2**(ndim-1) - 1), INTENT(OUT) :: neighcell
+ INTEGER, DIMENSION(3**ndim), INTENT(OUT) :: neighcell
  INTEGER :: nneighcell,ipart,ncellsxy
  INTEGER :: i,j,k
  LOGICAL :: debugging
- LOGICAL :: leftmost,rightmost,toprow,endblock
+ LOGICAL :: leftmost,rightmost,bottomrow,toprow,endblock
 !
 !--allow for tracing flow (removed for speed)
 !      
@@ -36,6 +36,7 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
  leftmost = .false.
  rightmost = .false.
  toprow = .false.
+ bottomrow = .false.
  endblock = .false.
 
  IF (MOD(icell,ncellsx(1)).EQ.1) leftmost = .true.
@@ -43,6 +44,7 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
  IF (ndim.GE.2) THEN
     ncellsxy = ncellsx(2)*ncellsx(1)
     IF (MOD(icell-1,ncellsxy).GT.(ncellsxy-ncellsx(1)-1)) toprow = .true.
+    IF (MOD(icell-1,ncellsxy).LE.ncellsx(1)-1) bottomrow = .true.    
     IF (ndim.GE.3 .AND. (ncells-icell.LT.ncellsxy)) endblock = .true.    
  ENDIF
 !
@@ -90,6 +92,18 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
           neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) + 1
        ENDIF	  
     ENDIF
+    IF (.NOT.bottomrow) THEN		! next block, below
+       IF (.NOT.leftmost) THEN			! next block, below left
+          nneighcell = nneighcell + 1
+          neighcell(nneighcell) = icell + ncellsxy - ncellsx(1) - 1
+       ENDIF
+       nneighcell = nneighcell + 1		! next block, below	
+       neighcell(nneighcell) = icell + ncellsxy - ncellsx(1)
+       IF (.NOT.rightmost) THEN			! next block, below right
+          nneighcell = nneighcell + 1
+          neighcell(nneighcell) = icell + ncellsxy - ncellsx(1) + 1
+       ENDIF	  
+    ENDIF
  ENDIF
 
  IF (debugging) THEN
@@ -97,6 +111,7 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
     IF (rightmost) PRINT*,'rightmost'
     IF (leftmost) PRINT*,'leftmost'
     IF (toprow) PRINT*,'toprow'
+    IF (bottomrow) PRINT*,'bottomrow'
     IF (endblock) PRINT*,'endblock'
     PRINT*,' number of neighbouring cells = ',nneighcell
     PRINT*, (neighcell(i),i=1,nneighcell)
