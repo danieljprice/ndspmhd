@@ -57,7 +57,7 @@ PROGRAM multirun
  polyk = 0.6
  icty = 0
  ndirect = nmax
- iprterm = 4
+ ialtform = 4
  iav = 2
  alphamin = 0.1
  beta = 2.0
