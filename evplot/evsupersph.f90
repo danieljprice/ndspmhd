@@ -664,7 +664,6 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   else
      evname = trim(rootname)
   endif
-  print "(a,a)",' opening ',trim(evname)
   
   inquire (file=evname, exist=iexist)
   if (.not.iexist) then
@@ -677,6 +676,8 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
         return
      endif
   endif
+  print "(a,a)",' opening ',trim(evname)
+  
   open(unit=11,file=evname,status='old',form='formatted')
   
   call get_ncolumns(11,ncolumns)
