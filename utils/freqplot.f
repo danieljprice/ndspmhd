@@ -55,6 +55,7 @@ c
       
       call pgbegin(0,'?',1,1)
       call pgsch(2.0)
+      call pgslw(5)
       call pgenv(0.0,REAL(npts+1),0.0,SQRT(0.5*(npts+2)*(npts+3)),0,1)
       call pglabel('n','\gw',' ')
       call pgsch(1.1)

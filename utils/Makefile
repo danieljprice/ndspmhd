@@ -13,13 +13,13 @@
 ## Compiler flags
 F90C =  g95
 F90FLAGS =  -O -Wall
-LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
+LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 .SUFFIXES:
-.SUFFIXES:.f90 .o
+.SUFFIXES:.f .f90 .o
 # Fortran flags same as F90
-#FC = $(F90C)
-#FFLAGS = $(F90FLAGS)
+FC = $(F90C)
+FFLAGS = $(F90FLAGS)
 
 # define the implicit rule to make a .o file from a .f90 file
 %.o : %.f90
