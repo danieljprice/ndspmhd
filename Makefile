@@ -8,7 +8,7 @@ SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 EDITOR = nedit
 
 intro:
-	echo 'try make install'
+	echo "specify number of dimensions, e.g. 'make 1D' or try 'make install'"
 
 install: 
 	echo 'Making copies of useful scripts...'
