@@ -28,7 +28,7 @@ SUBROUTINE set_ghost_particles
  INTEGER :: i,j,ighostprev,istart,ighostx
  INTEGER :: imaxmin,imaxminprev,imaxminprevprev
  INTEGER :: idimen,idimenprev,idimenprevprev
- INTEGER :: ipart,jpart,jprev
+ INTEGER :: ipart,jpart,jprev,jtemp
  REAL, DIMENSION(ndim) :: dxbound,xpart
  REAL, DIMENSION(ndim,maxbound) :: xnew
  REAL :: dx,dxshift,xbound,xperbound
@@ -45,6 +45,8 @@ SUBROUTINE set_ghost_particles
  nbound(:) = 2 		! 2 boundaries in each dimension (ie. cartesian)
 			! this could be changed elsewhere
 			! must not be > maxbound
+ jtemp = 1861
+! PRINT*,'jtemp = ',jtemp
 !
 !--use maximum value of h - check 2h is not bigger than box size
 ! 
@@ -52,8 +54,7 @@ SUBROUTINE set_ghost_particles
  dxbound(:) = radkern*hhmax	! this is the maximum distance away from boundary
 ! PRINT*,' hhmax, hhmin = ',hhmax,MAXLOC(hh(1:npart)),MINVAL(hh(1:npart)),MINLOC(hh(1:npart))
  IF (ANY ((xmax(:)-xmin(:)) < dxbound)) THEN
-    WRITE(iprint,*) ' hhmax too large = ',hhmax,MAXLOC(hh(1:npart))
-    CALL quit
+    WRITE(iprint,*) 'WARNING: ghost: hhmax too large = ',hhmax,MAXLOC(hh(1:npart))
  ENDIF
 !
 !--loop over all the particles (with link list could supply a list of 
@@ -66,9 +67,11 @@ SUBROUTINE set_ghost_particles
 !  (for efficiency in this case should use max h of all particles near boundary)
 !
     WHERE (ibound.EQ.2) dxbound(:) = radkern*hh(jpart)
-    ireflect = .false.
+!    IF (jpart.EQ.jtemp) PRINT*,jpart,' x = ',x(:,jpart)
     
     over_dimen: DO idimen = 1, ndim		! over spatial dimensions
+
+       ireflect = .false.
       
        over_maxmin: DO imaxmin = 1, nbound(idimen)	! over xmax, xmin  
 !
@@ -112,6 +115,9 @@ SUBROUTINE set_ghost_particles
 !--set ghost position in current dimension equal to shifted position
 !	     
 	     xpart(idimen) = xnew(idimen,imaxmin)
+!	     IF (jpart.EQ.jtemp) THEN
+!	        PRINT*,jpart,' dim=',idimen,'bnd=',imaxmin,' ghost = ',xpart
+!	     ENDIF
 !
 !--make the ghost particle at this position
 !
@@ -130,14 +136,18 @@ SUBROUTINE set_ghost_particles
 ! (could be up to 12 edge reflections of this particle in 3D)
 !	       
 		   IF (imakeghost(idimenprev,imaxminprev)) THEN
-!		      PRINT*,'edge', idimen,idimenprev
 !
 !--set ghost particle position in previous dimension to shifted position
 !		      
 		      xpart(idimenprev) = xnew(idimenprev,imaxminprev)
+!		      IF (jpart.EQ.jtemp) THEN
+!		         PRINT*,'edge', idimen,idimenprev,'bnd=',imaxmin,imaxminprev,xpart
+!		         PRINT*,'i_ghost = ',ntotal+1
+!		      ENDIF
 !
 !--make the ghost particle at this position
 !
+		      IF (ibound(idimenprev).EQ.2) ireflect = .true.
 		      CALL makeghost(jpart,xpart,ireflect)
 !
 !--make a corner ghost if ghosts set in both previous dimensions
@@ -147,7 +157,6 @@ SUBROUTINE set_ghost_particles
 		        idimenprevprev = idimenprev-1	! in 3D
 		        DO imaxminprevprev = 1,nbound(idimenprevprev)
 			   IF (imakeghost(idimenprevprev,imaxminprevprev)) THEN
-!			      PRINT*,'corner',idimen,idimenprev,idimenprevprev	
 ! 
 !--set ghost particle position in previous dimension to shifted position
 !		          
@@ -155,7 +164,13 @@ SUBROUTINE set_ghost_particles
 !
 !--make the ghost particle at this position
 !
+!			      IF (jpart.EQ.jtemp) THEN
+!			         PRINT*,'corner',idimen,idimenprev,idimenprevprev				         
+!			      ENDIF	 
+			      IF (ibound(idimenprevprev).EQ.2) ireflect = .true.
 		              CALL makeghost(jpart,xpart,ireflect)
+!--reset boundary
+			      xpart(idimenprevprev) = x(idimenprevprev,jpart)
 			   ENDIF	! made ghost in previous dimension
 			ENDDO	! over boundaries
 		      ENDIF	! if > 2D
@@ -190,6 +205,7 @@ SUBROUTINE set_ghost_particles
     alpha(i) = alpha(j)
     Bfield(:,i) = Bfield(:,j)
     divB(i) = divB(j)
+!    IF (j.EQ.jtemp) PRINT*,' ghost ',i
  ENDDO
 !
 !--set unused elements of the array to zero (can cause errors in eos)
