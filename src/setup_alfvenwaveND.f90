@@ -122,6 +122,9 @@ SUBROUTINE setup
        Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)
        Bfield(2,i) = Bparallel*runit(2) + Bperp*runit(1)
        Bfield(3,i) = Bz
+       Bconst(1,i) = Bparallel*runit(1)
+       Bconst(2,i) = Bparallel*runit(2)
+       Bconst(3,i) = 0.
     ENDIF 
  ENDDO
 
