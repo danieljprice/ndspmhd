@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS =  -O -Wall -r8
+F90FLAGS =  -O -C -Wall -r8
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -54,11 +54,11 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-SETUP2D = setup_unifdisND.f90
+#SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-#SETUP2D = setup_toystarND_static.f90
+SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -78,7 +78,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = sphND_mhd.f90   \
+SOURCES = readwrite_dumps.f90 sphND_mhd.f90   \
          boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
@@ -87,7 +87,7 @@ SOURCES = sphND_mhd.f90   \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
-	 interpolate_kernel.f90 \
+	 interpolate_kernel.f90 int_from_string.f90 \
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 \
 	 random.f90 ratesND_mhd.f90 \

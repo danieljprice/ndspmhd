@@ -339,10 +339,11 @@ END PROGRAM
 SUBROUTINE quit
  USE loguns
  USE timestep
+ USE dumpfiles
  IMPLICIT NONE
 
  WRITE(iprint,*) 'performing graceful exit...'
- CALL output(time,-nsteps) ! dump particles before crashing
+ CALL write_dump(time,-nsteps) ! dump particles before crashing
 !
 !--Close all open files and exit
 !
