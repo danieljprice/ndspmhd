@@ -53,7 +53,7 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
- dsmooth = 0. 
+ dsmooth = 20. 
  densleft = 1.0
  densright = 1.0
  prleft = 1000.0

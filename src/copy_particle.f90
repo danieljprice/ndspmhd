@@ -28,6 +28,7 @@ subroutine copy_particle(i,j)
   alpha(:,i) = alpha(:,j)
   psi(i) = psi(j)
   gradh(i) = gradh(j)
+  gradhaniso(i) = gradhaniso(j)
   sqrtg(i) = sqrtg(j)
 
 !!  unity(i) = unity(j)
