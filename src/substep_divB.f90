@@ -84,11 +84,11 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  dopredictor = .true.
  docorrector = .true.
  
- if ((icall.eq.2) .and. (istep.eq.1)) dopredictor = .false.
- if ((icall.eq.1) .and. (istep.eq.nloops)) docorrector = .false.
+! if ((icall.eq.2) .and. (istep.eq.1)) dopredictor = .false.
+! if ((icall.eq.1) .and. (istep.eq.nloops)) docorrector = .false.
 
  if (dopredictor) then
-    write(iprint,*) ' substep: predictor'
+    write(iprint,*) ' substep: predictor ',psi(2),Bevol(:,2)
     !
     !--Mid-point Predictor step
     !
@@ -130,9 +130,10 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
           Bfield(:,i) = Bevol(:,i)*rho(i)
        ENDIF
     ENDDO
+    print*,psi(2),Bevol(:,2),divB(2),gradpsi(:,2),rho(2)
     CALL get_divBgradpsi(divB,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
-    print*,' max divB = ',maxval(divB(1:npart)), &
-            rho(maxloc(divB(1:npart))),maxloc(divB(1:npart))
+    print*,'after mini rates: max divB = ',maxval(divB(1:npart)),maxloc(divB(1:npart))
+    print*,psi(2),Bevol(:,2),divB(2),gradpsi(:,2),rho(2)
 
  endif
  

@@ -82,7 +82,7 @@ SUBROUTINE step
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
  ELSEIF (idivBzero.GE.2) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
-    nsubsteps_divB = -1
+    nsubsteps_divB = 1
     !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
     !print*,'nsubsteps_divB = ',nsubsteps_divB
 !
@@ -95,8 +95,12 @@ SUBROUTINE step
           CALL set_linklist ! update neighbours for divB/gradpsi calls
           IF (ANY(ibound.GT.1)) CALL set_ghost_particles
        ENDIF
-       CALL substep_divB(1,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
-                         x,hh,pmass,itype,npart,ntotal)
+       CALL substep_divB(1,dt,nsubsteps_divB,Bevol(:,1:ntotal),psi(1:ntotal), &
+                         divB(1:ntotal),gradpsi(:,1:ntotal), &
+                         x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+                         itype(1:ntotal),npart,ntotal)
+       CALL output(0.0,1)
+       read*
     ENDIF
  ENDIF
    
@@ -179,10 +183,10 @@ SUBROUTINE step
 !
 !--do substepping on corrector for div B correction
 !
- IF (imhd.GT.0 .and. idivBzero.GE.2 .and. nsubsteps_divB.GE.0) THEN
-    CALL substep_divB(2,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
-                      x,hh,pmass,itype,npart,ntotal)
- ENDIF
+! IF (imhd.GT.0 .and. idivBzero.GE.2 .and. nsubsteps_divB.GE.0) THEN
+!    CALL substep_divB(2,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
+!                      x,hh,pmass,itype,npart,ntotal)
+! ENDIF
 
 !
 !--Mid-point Corrector step
