@@ -70,6 +70,7 @@ PROGRAM SUPERSPMHD_ND
 !   * handles zero pressure
 !   * fix for negative thermal energies
 !   * my symmetrisation of vsig - but not for MHD yet
+!   * can have different boundary options in different dimensions
 !   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
@@ -288,7 +289,7 @@ PROGRAM SUPERSPMHD_ND
        .OR.(nsteps.GE.nmax)  ) THEN
  
 !--if making movies and need ghosts to look right uncomment the line below, 
-       IF (idumpghost.EQ.1 .AND. ibound.GE.2) CALL set_ghost_particles
+       IF (idumpghost.EQ.1 .AND. ANY(ibound.GE.2)) CALL set_ghost_particles
        CALL output(time,nsteps)
        noutput = noutput + 1
        tprint = noutput*tout

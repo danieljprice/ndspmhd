@@ -137,13 +137,13 @@ SUBROUTINE initialise
 !--set ghost particles initially - set if normal ghosts are used
 !  or if using fixed particle boundaries and no fixed particles have been set
 !
- set_fixed_particles = (ibound.EQ.1 .AND. ALL(itype.EQ.0)  &
+ set_fixed_particles = (ANY(ibound.EQ.1) .AND. ALL(itype.EQ.0)  &
                         .AND..NOT.(ndim.EQ.1 .AND. nbpts.GT.0) )
  IF (set_fixed_particles) WRITE(iprint,*) 'setting up fixed particles'
- IF (ibound.GT.1 .OR. set_fixed_particles) CALL set_ghost_particles
+ IF (ANY(ibound.GT.1) .OR. set_fixed_particles) CALL set_ghost_particles
 !  in 1D setup can just specify the number of particles to hold fixed
 !  this is for backwards compatibility of the code
- IF (ibound.EQ.1 .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
+ IF (ALL(ibound.EQ.1) .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
     itype(1:nbpts) = 1
     itype((npart-nbpts):ntotal) = 1
  ENDIF
@@ -197,7 +197,7 @@ SUBROUTINE initialise
 !
 !--make sure ghost particle quantities are the same
 !
- IF (ibound.GT.1 .OR. set_fixed_particles) THEN
+ IF (ANY(ibound.GT.1) .OR. set_fixed_particles) THEN
     DO i=npart+1,ntotal	
        j = ireal(i)
        rho(i) = rho(j)

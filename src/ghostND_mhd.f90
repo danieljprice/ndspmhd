@@ -27,7 +27,8 @@ SUBROUTINE set_ghost_particles
  INTEGER :: imaxmin,imaxminprev,imaxminprevprev
  INTEGER :: idimen,idimenprev,idimenprevprev
  INTEGER :: ipart,jpart,jprev
- REAL :: dx,dxshift,dxbound,xbound,xperbound
+ REAL :: dx,dxshift,xbound,xperbound
+ REAL, DIMENSION(ndim) :: dxbound
  INTEGER, PARAMETER :: maxbound = 2	! maximum no. of boundaries in each dim.
  INTEGER, DIMENSION(ndim) :: nbound	! number of boundaries in each dim.
  REAL, DIMENSION(ndim) :: xpart
@@ -48,7 +49,7 @@ SUBROUTINE set_ghost_particles
 !--use maximum value of h - check 2h is not bigger than box size
 ! 
  hhmax = MAXVAL(hh(1:npart))
- dxbound = radkern*hhmax	! this is the maximum distance away from boundary
+ dxbound(:) = radkern*hhmax	! this is the maximum distance away from boundary
 ! PRINT*,' hhmax, hhmin = ',hhmax,MAXLOC(hh(1:npart)),MINVAL(hh(1:npart)),MINLOC(hh(1:npart))
  IF (ANY ((xmax(:)-xmin(:)) < dxbound)) THEN
     WRITE(iprint,*) ' hhmax too large = ',hhmax,MAXLOC(hh(1:npart))
@@ -64,7 +65,7 @@ SUBROUTINE set_ghost_particles
 !  for periodic must use hmax as particle sees different particles as ghosts
 !  (for efficiency in this case should use max h of all particles near boundary)
 !
-    IF (ibound.EQ.2) dxbound = radkern*hh(jpart)
+    WHERE (ibound.EQ.2) dxbound(:) = radkern*hh(jpart)
     
     over_dimen: DO idimen = 1, ndim		! over spatial dimensions
       
@@ -88,7 +89,7 @@ SUBROUTINE set_ghost_particles
 !
 !--copy if dx < 2h, don't copy if on or over the boundary (dx <= 0)
 !  
-          imakeghost(idimen,imaxmin) = ((dx.LT.dxbound).AND.(dx.GT.0))
+          imakeghost(idimen,imaxmin) = ((dx.LT.dxbound(idimen)).AND.(dx.GT.0))
           
 	  IF (imakeghost(idimen,imaxmin)) THEN
 !
@@ -100,9 +101,9 @@ SUBROUTINE set_ghost_particles
 !--xnew is the shifted position of the ghost particle
 !  save this for each boundary to use for edges/corners
 !	     
-	     IF (ibound.EQ.3) THEN	! periodic
+	     IF (ibound(idimen).EQ.3) THEN	! periodic
 	        xnew(idimen,imaxmin) = xperbound + dxshift
-	     ELSE			! other
+	     ELSEIF (ibound(idimen).EQ.2) THEN	! reflective
 	        xnew(idimen,imaxmin) = xbound - dxshift
 	     ENDIF
 !
@@ -231,11 +232,11 @@ SUBROUTINE makeghost(jpart,xghost)
 !
 !--copy velocities
 !
- IF (ibound.EQ.2) THEN 		! reflecting
+ WHERE (ibound.EQ.2) 	 		! reflecting
     vel(:,ipart) = -vel(:,jpart)	! should reflect all vels
- ELSE				! periodic / fixed particles
+ ELSEWHERE (ibound.EQ.3)		! periodic / fixed particles
     vel(:,ipart) = vel(:,jpart)
- ENDIF
+ END WHERE
 !
 !--ireal for ghosts refers to the real particle of which they are ghosts
 !  

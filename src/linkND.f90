@@ -45,7 +45,7 @@ SUBROUTINE link
 !--use maximum value of h for cell size
 ! (this is already calculated in set_ghosts if using ghost particles)
  
- IF (ibound.LE.1) hhmax = MAXVAL(hh(1:npart))
+ IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
  
  dxcell = radkern*hhmax		! size of link list cell (=compact support region)
  IF (dxcell.LE.0) THEN
@@ -58,7 +58,7 @@ SUBROUTINE link
  xminpart(:) = xmin(:)
  xmaxpart(:) = xmax(:)
 
- IF (ibound.LE.1) THEN
+ IF (ANY(ibound.LE.1)) THEN	! could do this for each boundary individually
 !
 !--find max/min of particle distribution, including ghost particles
 !  (add/subtract 0.00001 to make sure all particles are within these limits)
@@ -96,7 +96,7 @@ SUBROUTINE link
 !  really should make a list of cells to do in 3D as should skip the top row
 !  of every block. At the moment this is just slightly inefficient.
 !
- IF (ibound.LE.1) THEN	! BUG FIXED HERE (should be ibound.LE.1)
+ IF (ANY(ibound.LE.1)) THEN	! BUG FIXED HERE (should be ibound.LE.1)
     ncellsloop = ncells
  ELSE
     IF (ndim.EQ.1) ncellsloop = ncells - 1

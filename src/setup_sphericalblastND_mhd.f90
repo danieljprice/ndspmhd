@@ -20,6 +20,7 @@ SUBROUTINE setup
  USE loguns
  USE bound
  USE eos
+ USE kernel
  USE options
  USE part
  USE part_in
@@ -35,6 +36,7 @@ SUBROUTINE setup
  REAL, DIMENSION(ndim) :: xblast, dblast
  REAL, DIMENSION(ndimB) :: Bzero
  REAL :: rbuffer, exx
+ REAL :: q2, wab, grkern
 !
 !--set boundaries
 !            	    
@@ -47,7 +49,7 @@ SUBROUTINE setup
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rblast = 0.01		! radius of the initial blast
+ rblast = 0.5*psep		! radius of the initial blast
  rbuffer = rblast	!+10.*psep		! radius of the smoothed front
  Bzero(:) = 0.0
  IF (imhd.NE.0) THEN
@@ -81,28 +83,37 @@ SUBROUTINE setup
 !
  totmass = rhozero*PRODUCT(xmax(:)-xmin(:))	! assumes cartesian boundaries
  massp = totmass/FLOAT(ntotal) ! average particle mass
+! enblast = enblast/massp   ! enblast is now the energy to put in a single particle
 !
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
     velin(:,ipart) = 0.
+!--uniform density and smoothing length
     rhoin(ipart) = rhozero
     pmass(ipart) = massp
+    hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
+
     dblast(:) = xin(:,ipart)-xblast(:) 
     radius = SQRT(DOT_PRODUCT(dblast,dblast))
-    IF (radius.LT.rblast) THEN
-       pri = prblast
-       uui = enblast
-    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
-       exx = exp((radius-rblast)/(psep))
-       pri = (prblast + przero*exx)/(1.0+exx)
-       uui = (enblast + enzero*exx)/(1.0+exx)
-    ELSE
-       pri = przero
-       uui = enzero
-    ENDIF   
+!
+!--smooth energy injection using the SPH kernel
+!    
+    q2 = radius**2/(hhin(ipart))**2
+    CALL interpolate_kernel(q2,wab,grkern)
+    uui = enblast*wab/(hhin(ipart))**ndim
+!    IF (radius.LT.rblast) THEN
+!       pri = prblast
+!       uui = enblast
+!    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
+!       exx = exp((radius-rblast)/(psep))
+!       pri = (prblast + przero*exx)/(1.0+exx)
+!       uui = (enblast + enzero*exx)/(1.0+exx)
+!    ELSE
+!       pri = przero
+!       uui = enzero
+!    ENDIF   
     uuin(ipart) = uui	!pri/(gam1*rhozero)
-    hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
     Bin(:,ipart) = Bzero(:)
  ENDDO
 !

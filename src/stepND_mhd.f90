@@ -78,7 +78,7 @@ SUBROUTINE step
 !	  
 	  IF (uu(i).LT.0.) THEN
 	     WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-	     uu(i) = uuin(i) + hdt*dudt(i)
+	     uu(i) = 0.		!uuin(i) + hdt*dudt(i)
 	  ENDIF
        ELSEIF (iener.GE.1) THEN
   	  uu(i) = uuin(i) + hdt*dudt(i)
@@ -90,15 +90,17 @@ SUBROUTINE step
 !--for periodic boundaries, allow particles to cross the domain
 !  (this is only temporary as it is for the predicted quantity)
 !    
-    IF (ibound.EQ.3) THEN
+    IF (ANY(ibound.EQ.3)) THEN
        DO jdim=1,ndim
-          IF (x(jdim,i).GT.xmax(jdim)) THEN
-!	     print*,' xold,xmax,xnew = ',i,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
-	     x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-	  ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
-!	     print*,' xold,xmin,xnew = ',i,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
-             x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-          ENDIF	  
+          IF (ibound(jdim).EQ.3) THEN	! if periodic in this dimension
+	     IF (x(jdim,i).GT.xmax(jdim)) THEN
+!	        print*,' xold,xmax,xnew = ',i,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
+	        x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
+	     ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
+!	        print*,' xold,xmin,xnew = ',i,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
+                x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
+             ENDIF	  
+	  ENDIF
        ENDDO
     ENDIF	 
 
@@ -107,7 +109,7 @@ SUBROUTINE step
 !
 !--set ghost particles if ghost boundaries are used
 !	 
- IF (ibound.GE.2) CALL set_ghost_particles
+ IF (ANY(ibound.GE.2)) CALL set_ghost_particles
 !
 !--call link list to find neighbours
 !
@@ -117,14 +119,14 @@ SUBROUTINE step
 !
  IF (icty.LE.0) THEN
     CALL iterate_density
-    IF (ibound.GT.1) THEN
+    IF (ANY(ibound.GT.1)) THEN
        DO i=npart+1,ntotal		! update ghosts
           j = ireal(i)
           rho(i) = rho(j)
           hh(i) = hh(j)
           gradh(i) = gradh(j)       
        ENDDO
-    ELSEIF (ibound.EQ.1) THEN           ! rewrite over fixed particles
+    ELSEIF (ANY(ibound.EQ.1)) THEN           ! rewrite over fixed particles
        WHERE (itype(:) .EQ. 1)
           rho(:) = rhoin(:)
 	  hh(:) = hhin(:)
@@ -214,14 +216,14 @@ SUBROUTINE step
 !    ikernav = 3
 !    CALL iterate_density ! renormalise density *and* smoothing length
 !    ikernav = ikernavprev
-    IF (ibound.GT.1) THEN
+    IF (ANY(ibound.GT.1)) THEN
        DO i=npart+1,ntotal		! update ghosts
           j = ireal(i)
           rho(i) = rho(j)
           hh(i) = hh(j)
           gradh(i) = gradh(j)       
        ENDDO
-    ELSEIF (ibound.EQ.1) THEN           ! rewrite over fixed particles
+    ELSEIF (ANY(ibound.EQ.1)) THEN           ! rewrite over fixed particles
        WHERE (itype(:) .EQ. 1)
           rho(:) = rhoin(:)
 	  hh(:) = hhin(:)
@@ -349,7 +351,7 @@ SUBROUTINE step
  ENDIF    
  IF (dtforce.GT.0.0) dtforce = SQRT(1./fhmax)
  
- IF (ibound.NE.0) CALL boundary	! inflow/outflow/periodic boundary conditions
+ IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
