@@ -58,7 +58,7 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-SETUP2D = setup_toystarND_static.f90
+SETUP2D = toystar2D_utils.f90 setup_toystarND_static.f90 
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -148,7 +148,10 @@ crap:
 ## files from elsewhere
 
 geometry.o:
-	$(FC) -c $(FFLAGS) ../plot/geometry.f90 -o $@
+	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
+        
+toystar2D_utils.o:
+	$(F90C) -c $(F90FLAGS) ../plot/toystar2D_utils.f90 -o $@
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
