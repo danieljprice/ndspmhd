@@ -114,7 +114,7 @@ END MODULE kernelextra
 MODULE linklist
  USE dimen_mhd
  IMPLICIT NONE
- INTEGER, DIMENSION(:), ALLOCATABLE :: ll,ifirstincell,iamincell
+ INTEGER, DIMENSION(:), ALLOCATABLE :: ll,ifirstincell,iamincell,numneigh
  INTEGER, DIMENSION(ndim) :: ncellsx
  INTEGER :: ncells,ncellsloop
  REAL :: dxcell
