@@ -95,9 +95,8 @@ SOURCES = sphND_mhd.f90   \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 sobolsequence.f90 substep_divB.f90 utils.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
-	 divBcorrect.f90 get_divB.f90 get_curl.f90 get_divBgradpsi.f90 
-#	 check_neighbourlist.f90
-#	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
+	 divBcorrect.f90 get_divB.f90 get_curl.f90 get_divBgradpsi.f90 \
+	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
 SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_mhd.f90

@@ -46,7 +46,7 @@ SUBROUTINE set_linklist
 ! (this is already calculated in set_ghosts if using ghost particles)
  
  IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
- 
+ print*,'radkern = ',radkern,ibound,ALL(ibound.LE.1),hh(1)
  dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
  IF (dxcell.LE.0) THEN
     WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax     
