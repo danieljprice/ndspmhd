@@ -57,8 +57,8 @@ SUBROUTINE alloc(newsizein)
 !
 !--check for errors
 ! 
- IF (newsizein.EQ.0) THEN
-    WRITE(iprint,*) 'Error: size=0 in call to allocate'
+ IF (newsizein.LE.0) THEN
+    WRITE(iprint,*) 'Error: size<=0 in call to allocate : ',newsizein
     CALL quit
  ENDIF
 !
