@@ -22,7 +22,7 @@ program plotmeagraph
   print*,' Welcome to Dan''s supersphplotev 2003... '
 
   mysteps=maxstep
-  ncol = 6
+  ncol = 21
   icycle = .false.
   !
   !--get filename
