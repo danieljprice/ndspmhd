@@ -135,13 +135,6 @@ program plotmeagraph
   enddo
   lim(1,1) = 0.0
 
-!
-!--open file for frequency output
-!
-  if (igetfreq) then
-     print*,'opening ',trim(rootname(1))//'.freq for output'
-     open(unit=8,file=trim(rootname(1))//'.freq',status='replace')
-  endif
   title = ' '
 
 !------------------------------------------      
