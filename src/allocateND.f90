@@ -63,7 +63,7 @@ SUBROUTINE alloc(newsizein)
     newsize = newsizein   
  ENDIF
 
- IF (trace .AND. reallocate) THEN
+ IF (reallocate) THEN
     WRITE(iprint,*) 'Reallocating memory for all arrays, old, new =',SIZE(rho),newsize
  ELSEIF (trace) THEN
     WRITE(iprint,*) 'Allocating memory for all arrays',newsize
