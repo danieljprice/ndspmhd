@@ -135,7 +135,13 @@ SUBROUTINE boundary
        itype(npart-nbpts-1) = 0
        
     ENDIF
- 
+!
+!  adjust ireal
+!    
+    ireal = 0
+    ireal(1:nbpts) = nbpts+1
+    ireal(npart-nbpts+1:npart) = npart-nbpts
+
     ntotal = npart
 !    WRITE(iprint,*) ' New number of particles = ',npart
 !
