@@ -388,7 +388,7 @@ subroutine get_rates
 !
     valfven2i = 0.
     if (imhd.ne.0) valfven2i = dot_product(Bfield(:,i),Bfield(:,i))*rho1i
-    vsig = sqrt(spsound(i)**2. + valfven2i)      ! approximate vsig only
+    vsig = sqrt(spsound(i)**2 + valfven2i)      ! approximate vsig only
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
 !--calculate time derivative of alpha (artificial dissipation coefficients)
@@ -409,8 +409,12 @@ subroutine get_rates
        !--artificial thermal conductivity parameter
        !
        if (iavlim(2).ne.0 .and. iener.gt.0) then
-          sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
-          if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
+          if (uu(i).gt.0.) then
+	     sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
+          else
+	     sourceu = 0.
+	  endif
+	  if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
        endif
        !
