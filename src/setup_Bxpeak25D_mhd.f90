@@ -31,11 +31,10 @@ SUBROUTINE setup
 !
 !--check number of dimensions is right
 !
- IF (ndim.NE.2) STOP ' ndim must be = 2 for MHD rotor problem'
  IF (ndimV.NE.3) STOP ' need ndimV=3 for this problem'
 !
 !--set boundaries
-!            	    
+!                        
  ibound = 3     ! reflective ghosts (boundaries not important in this problem)
  nbpts = 0      ! no fixed particles
  xmin(:) = -0.5 ! unit square
@@ -45,11 +44,11 @@ SUBROUTINE setup
 !--setup parameters for the problem
 ! 
  xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
- rbump = 0.125		! radius of the initial bump
+ rbump = 0.125        ! radius of the initial bump
  Bzero(:) = 0.
- IF (imhd.NE.0) Bzero(3) = 1.0/const	! uniform field in Bz direction
- przero = 6.0		! initial pressure
- denszero = 1.0		! ambient density
+ IF (imhd.NE.0) Bzero(3) = 1.0/const        ! uniform field in Bz direction
+ przero = 6.0                ! initial pressure
+ denszero = 1.0                ! ambient density
  
  gam1 = gamma - 1.
 
@@ -61,7 +60,7 @@ SUBROUTINE setup
 !--setup uniform density grid of particles (2D) 
 !  (determines particle number and allocates memory)
 !
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
+ CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)        ! 2 = close packed arrangement
 
  ntotal = npart
 !
