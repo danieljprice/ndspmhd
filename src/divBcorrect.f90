@@ -3,19 +3,22 @@
 !!
 !!--------------------------------------------------------------------------
 
-SUBROUTINE divBcorrect(npts,ntot)
+SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
  USE dimen_mhd
  USE debug
  USE loguns
  
  USE bound
- USE part
  USE derivB
  USE options
+ USE part
  USE timestep
  IMPLICIT NONE
+ INTEGER, INTENT(IN) :: npts, ntot
+ REAL, DIMENSION(ndimV,ntot), INTENT(INOUT) :: Btemp
+ REAL, DIMENSION(ntot), INTENT(INOUT) :: psitemp
  REAL, PARAMETER :: pi = 3.14159265358979
- INTEGER :: i,ntot,npts,icall
+ INTEGER :: i,icall
  REAL :: phi,dpi,ecrap,momcrap
  REAL, DIMENSION(npts) :: source
  REAL, DIMENSION(ntot) :: divBonrho
@@ -201,7 +204,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !
 !--calculate signal velocity
 !
-!       vsig2 = dot_product(Bin(:,i),Bin(:,i)
+!       valfven2 = dot_product(Btemp(:,i),Btemp(:,i))/rho(i)
 !
 !--now evolve the constrained magnetic field within the hydro timestep
 !      

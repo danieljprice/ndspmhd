@@ -6,12 +6,13 @@
 subroutine copy_particle(i,j)
   use debug
   use loguns
+  use eos
   use derivB
   use fmagarray
   use hterms
   use part
   use rates
-  use unityfunc
+!!  use unityfunc
   use xsph
   implicit none
   integer :: i,j
@@ -31,6 +32,8 @@ subroutine copy_particle(i,j)
   gradh(i) = gradh(j)
   gradhaniso(i) = gradhaniso(j)
   sqrtg(i) = sqrtg(j)
+  spsound(i) = spsound(j)
+  pr(i) = pr(j)
 
 !!  unity(i) = unity(j)
 !!  gradunity(:,i) = gradunity(:,j)

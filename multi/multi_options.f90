@@ -46,21 +46,42 @@ PROGRAM multirun
  DO i=1,nruns
     SELECT CASE(i)
        CASE(1)
-        iavlim = 1
-        idivBzero = 0
+        iener = 2
        CASE(2)
-        iavlim = 1
-	idivBzero = 1
+        imhd = 1
        CASE(3)
-        iavlim = 2
-	idivBzero = 0
+        iener = 3
+        imhd = 11
        CASE(4)
-        iavlim = 2
-	idivBzero = 1	
+        iener = 3
+	imhd = 1
        CASE(5)
-        iavlim = 0
-	idivBzero = 0
-	alphamin = 1.0	
+        ikernav = 1
+       CASE(6)
+        ikernav = 2
+       CASE(7)
+        ikernav = 3
+       CASE(8)
+        iav = 1
+       CASE(9)
+        iav = 3
+       CASE(10)
+        iav = 2
+       CASE(11)
+        idivBzero = 2
+	psidecayfact = 0.1
+       CASE(12)
+        idivBzero = 2
+	psidecayfact = 0.2
+       CASE(13)
+        idivBzero = 2
+	psidecayfact = 0.4
+       CASE(14)
+        idivBzero = 2
+	psidecayfact = 0.8
+       CASE(15)
+        idivBzero = 2
+	psidecayfact = 1.6
     END SELECT
     IF (i.GE.10) THEN
        filenum = ACHAR(48+i/10)//ACHAR(48+mod(i,10))

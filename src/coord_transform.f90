@@ -29,7 +29,7 @@ subroutine coord_transform(xin,ndimin,itypein,xout,ndimout,itypeout)
 !--check for errors in input
 !
   if (itypeout.eq.itypein) then
-     print*,'Warning: coord transform: typein = typeout, doing nothing'
+     xout(1:ndimout) = xin(1:ndimout)
      return
   elseif (ndimin.lt.1.or.ndimin.gt.3) then
      print*,'Error: coord transform: invalid number of dimensions on input'
