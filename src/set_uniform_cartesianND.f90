@@ -17,6 +17,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  USE debug
  USE loguns
 
+ USE options
  USE part
 !
 !--define local variables
@@ -76,12 +77,17 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--or adjust the boundaries appropriately
 !
-    xmax(2) = nparty*deltay
+    !!--for periodic boundaries, ymax needs to be divisible by 2
+    if (ibound(2).eq.3) then
+       nparty = 2*INT(nparty/2)
+       print*,' periodic boundaries: adjusting nparty = ',nparty
+    endif
+    xmax(2) = xmin(2) + nparty*deltay
     PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
 !
 !--allocate memory here
 !
-    ntot = npartx*nparty
+    ntot = npartx*nparty + npartin
     
     WRITE(iprint,*) 'Close packed distribution, npart = ',ntot
     
@@ -89,7 +95,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     npart = ntot
 
     ystart = 0.5*deltay		!psepy
-    ipart = 0
+    ipart = npartin
     DO k=1,npartz
        DO j=1,nparty
           xstart = 0.25*psep
@@ -126,7 +132,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--allocate memory here
 !
     ntot = 2*npartx*nparty
-    WRITE(iprint,*) 'Close packed distribution, npart = ',ntot
+    WRITE(iprint,*) 'Body centred distribution, npart = ',ntot
     
     CALL alloc(ntot)
     npart = ntot

@@ -1,6 +1,12 @@
 !!------------------------------------------------------------------------!!
 !!  Generic setup for ND shock tubes in rectangular boxes                 !!
-!!  This version does equal mass particles                                !!
+!!  This version does equal mass particles so that the particle           !!
+!!  spacing changes if densleft .ne. densright. Does this by setting up   !!
+!!  a uniform cartesian distribution in each half of the tube. This means !!
+!!  that the density is *not* smoothed at the interface and furthermore   !!
+!!  that the density will be *wrong* unless                               !!
+!!  psepright = (densleft/densright)**(1./ndim)                           !!
+!!  is an exact division of the box width                                 !!
 !!------------------------------------------------------------------------!!
 subroutine setup
  use dimen_mhd
@@ -15,9 +21,9 @@ subroutine setup
  integer :: i,j
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
- real :: dsmooth, exx, delta
+ real :: dsmooth, exx, delta, const
  real :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
- real, dimension(ndimV) :: vleft, vright
+ real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
  real, dimension(ndim) :: sidelength,xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright
  real :: total_mass, volume
@@ -25,40 +31,31 @@ subroutine setup
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup'
-!
-!--set boundaries
-!            	    
- ibound(1) = 2		! reflecting in x
- ibound(2:3) = 3	! periodic in yz
- nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
- boxlength = 1.0
- sidelength(1) = 120.	! relative dimensions of boundaries
- sidelength(2) = 6.
- sidelength(3) = 6.
- xmin(1) = -0.5
- xmax(1) = xmin(1) + boxlength
- xmin(2:3) = -0.5*boxlength*sidelength(2:3)/sidelength(1)
- xmax(2:3) = abs(xmin(2:3))
- 
- xshock = (xmax(1) + xmin(1))/2.0
+ if (trace) write(iprint,*) ' Entering subroutine setup'
+ if (ndim.lt.2) stop 'ndim needs to be > 1D for this setup'
+ if (ndimV.lt.3) write(iprint,*) 'Warning: ndimV < 3: Bz not used'
 !
 !--set default values
 !
- dsmooth = 20.    
- densleft = 4.0
+ dsmooth = 0.    
+ const = sqrt(4.*pi)
+ densleft = 1.0
  densright = 1.0
- prleft = 1.0
- prright = 0.1795
- vleft = 0.
- vright = 0.
+ prleft = 20.0
+ prright = 1.0
+ vxleft = 10.
+ vxright = -10.
+ vyleft = 0.
+ vyright = 0.
+ vzleft = 0.
+ vzright = 0.
  if (imhd.ne.0) then
-    Bxinit = 0.
-    Byleft = 0.
-    Byright = 0.
+    Bxinit = 5./const
+    Byleft = 5./const
+    Byright = 5./const
     Bzleft = 0.
     Bzright = 0.
- endif
+ endif 
 !
 !--read shock parameters from the .shk file
 !
@@ -67,9 +64,9 @@ subroutine setup
  open(UNIT=ireadf,FILE=shkfile,STATUS='old',FORM='formatted',ERR=666)
    read(ireadf,*,ERR=667,END=667) densleft,densright
    read(ireadf,*,ERR=667,END=667) prleft,prright
-   read(ireadf,*,ERR=667,END=667) vleft(1),vright(1)
-   read(ireadf,*,ERR=667,END=667) vleft(2),vright(2)
-   read(ireadf,*,ERR=667,END=667) vleft(3),vright(3)
+   read(ireadf,*,ERR=667,END=667) vxleft,vxright
+   read(ireadf,*,ERR=667,END=667) vyleft,vyright
+   read(ireadf,*,ERR=667,END=667) vzleft,vzright
    if (imhd.ne.0) then
       read(ireadf,*,ERR=667,END=667) Bxinit
       read(ireadf,*,ERR=667,END=667) Byleft,Byright
@@ -78,17 +75,31 @@ subroutine setup
  close(UNIT=ireadf)
  goto 668
 666 write(iprint,*) 'shock parameters file not found, using defaults...'
+    write(iprint,*) 'Writing ',shkfile,' with initial left/right states'
+    open(UNIT=ireadf,FILE=shkfile,STATUS='replace',FORM='formatted')
+       write(ireadf,*) densleft,densright
+       write(ireadf,*) prleft,prright
+       write(ireadf,*) vxleft,vxright
+       write(ireadf,*) vyleft,vyright
+       write(ireadf,*) vzleft,vzright
+       write(ireadf,*) Bxinit
+       write(ireadf,*) Byleft,Byright
+       write(ireadf,*) Bzleft,Bzright       
+    close(UNIT=ireadf)
+    
+
     goto 668
 667 write(iprint,*) 'error in shock parameters file, using some defaults...'  
+    close(UNIT=ireadf)
 668 continue
 !
 !--print setup parameters to the log file
 !
- write(iprint,10) ndim,densleft,densright,prleft,prright,vleft(1),vright(1),   &
-                  vleft(2),vright(2),vleft(3),vright(3)
+ write(iprint,10) ndim,densleft,densright,prleft,prright,vxleft,vxright,   &
+                  vyleft,vyright,vzleft,vzright
  if (imhd.ne.0) write(iprint,20) Bxinit,Byleft,Byright,Bzleft,Bzright
 
-10 FORMAT( 1x,i1,'D shock: dens L: ',f8.3,' R: ',f8.3,/,   &
+10 FORMAT(/,1x,i1,'D shock: dens L: ',f8.3,' R: ',f8.3,/,   &
            '           pr  L: ',f8.3,' R: ',f8.3,/,   &
            '           vx  L: ',f8.3,' R: ',f8.3,/,   &
            '           vy  L: ',f8.3,' R: ',f8.3,/,   &
@@ -96,6 +107,26 @@ subroutine setup
 20 FORMAT( '           Bx   : ',f8.3,/,   &	   	   	   
            '           By  L: ',f8.3,' R: ',f8.3,/,   &
            '           Bz  L: ',f8.3,' R: ',f8.3,/)
+!
+!--set boundaries
+!            	    
+ if ((abs(vxleft).gt.1.e-4).or.(abs(vxright).gt.1.e-4)) then
+    ibound(1) = 1               ! fixed x particles
+ else
+    ibound(1) = 2		! reflecting in x
+ endif
+ ibound(2:ndim) = 3	! periodic in yz
+ nbpts = 0		! must use fixed particles if inflow/outflow at boundaries
+ boxlength = 2.0
+ sidelength(1) = 120.	! relative dimensions of boundaries
+ sidelength(2:ndim) = 6.
+ xmin(1) = -1.0
+ xmax(1) = xmin(1) + boxlength
+ xmin(2:ndim) = -0.5*boxlength*sidelength(2:ndim)/sidelength(1)
+ xmax(2:ndim) = abs(xmin(2:ndim))
+ 
+ xshock = (xmax(1) + xmin(1))/2.0
+
 !
 !--now setup the shock
 ! 
@@ -116,14 +147,29 @@ subroutine setup
  psepleft = psep
  psepright = psep*(densleft/densright)**(1./ndim)
  
- call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,.false.)  ! set left half
+ call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,.false.)  ! set left half
+ xmin = xminleft
  volume = PRODUCT(xmaxleft-xminleft)
  total_mass = volume*densleft
  massp = total_mass/npart
  
- call set_uniform_cartesian(1,psepright,xminright,xmaxright,.false.) ! set right half
+ call set_uniform_cartesian(2,psepright,xminright,xmaxright,.false.) ! set right half
+ xmax = xmaxright
 
  print*,'npart = ',npart
+!
+!--if using moving boundaries, fix the particles near the boundaries
+!
+ nbpts = 0
+ if (ibound(1).eq.1) then
+    do i=1,npart
+       if ((x(1,i).lt.(xmin(1) + 6.*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - 6.*psepright))) then
+          itype(i) = 1
+	  nbpts = nbpts + 1
+       endif
+    enddo
+ endif   
 !
 !--now set particle properties
 !
@@ -141,27 +187,35 @@ subroutine setup
     if (delta.GT.dsmooth) then
        dens(i) = densright
        uu(i) = uuright 
-       vel(:,i) = vright(:) 
-       Bfield(2,i) = Byright
-       Bfield(3,i) = Bzright
+       vel(1,i) = vxright
+       if (ndimV.ge.2) vel(2,i) = vyright
+       if (ndimV.ge.3) vel(3,i) = vzright 
+       if (ndimV.ge.2) Bfield(2,i) = Byright
+       if (ndimV.ge.3) Bfield(3,i) = Bzright
     elseif (delta.LT.-dsmooth) then
        dens(i) = densleft
        uu(i) = uuleft
-       vel(:,i) = vleft(:)
-       Bfield(2,i) = Byleft
-       Bfield(3,i) = Bzleft
+       vel(1,i) = vxleft
+       if (ndimV.ge.2) vel(2,i) = vyleft
+       if (ndimV.ge.3) vel(3,i) = vzleft
+       if (ndimV.ge.2) Bfield(2,i) = Byleft
+       if (ndimV.ge.3) Bfield(3,i) = Bzleft
     else
        exx = exp(delta)       
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
        if (delta.GT.0.) THEN
-          vel(:,i) = vright(:)
+          vel(1,i) = vxright
+          if (ndimV.ge.2) vel(2,i) = vyright
+          if (ndimV.ge.3) vel(3,i) = vzright 
        else
-          vel(:,i) = vleft(:)
+          vel(1,i) = vxleft
+          if (ndimV.ge.2) vel(2,i) = vyleft
+          if (ndimV.ge.3) vel(3,i) = vzleft       
        endif
-       Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
-       Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
+       if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
+       if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif       
     pmass(i) = massp    
  enddo
