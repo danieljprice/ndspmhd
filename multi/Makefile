@@ -2,10 +2,6 @@
 ##     Makefile for multirun.f90 	     			     ##
 ##     Written by Daniel Price					     ##
 ##     Institute of Astronomy, Cambridge, UK, 2002	 	     ##
-##
-##    First time this is run, type Make initial
-##    to compile the relevant files from the SPMHD code
-##    After that, just make as usual
 ##-------------------------------------------------------------------##
 
 
