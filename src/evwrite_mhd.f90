@@ -195,7 +195,7 @@ SUBROUTINE evwrite(t)
 !
 !--flush the buffer so that the line is written to the file immediately
 !
- CALL flush(ievfile)
+! CALL flush(ievfile)
  
  RETURN
 END SUBROUTINE evwrite
