@@ -39,8 +39,8 @@ subroutine get_rates
  real :: rij,rij2
  real :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav,rhoav1,rhoij
  real :: pmassi,pmassj
- real :: Prho2i,Prho2j,prterm
- real :: hi,hi1,hj,hj1,hi21,hj21    
+ real :: Prho2i,Prho2j,prterm,pri,prj
+ real :: hi,hi1,hj,hj1,hi21,hj21
  real :: hav,hav1,h21
  real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
  real, dimension(ndim) :: dx
@@ -207,7 +207,8 @@ subroutine get_rates
        rho2i = rhoi*rhoi
        rhoi5 = sqrt(rhoi)
        rho1i = 1./rhoi
-       rho21i = rho1i*rho1i       
+       rho21i = rho1i*rho1i
+       pri = pr(i)
        Prho2i = pr(i)*rho21i
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
@@ -226,9 +227,9 @@ subroutine get_rates
        endif
        ! mhd definitions
        if (imhd.ne.0) then
-	  Bconsti(:) = Bconst(:,i)
+          Bconsti(:) = Bconst(:,i)
           Brho2i = dot_product(Brhoi,Brhoi)
-	  !Brho2i = dot_product((Bi + Bconsti)*rho1i,(Bi + Bconsti)*rho1i)
+          !Brho2i = dot_product((Bi + Bconsti)*rho1i,(Bi + Bconsti)*rho1i)
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
        endif
@@ -254,7 +255,7 @@ subroutine get_rates
            j = listneigh(n)
            if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
            dx(:) = x(:,i) - x(:,j)
-      !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
+           !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
            hj = hh(j)
            hj1 = 1./hj
            hj21 = hj1*hj1
@@ -373,7 +374,7 @@ subroutine get_rates
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
     if (iener.ne.3 .and. iener.ne.0) then
-       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)
+       if (iav.ge.0) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)
        dendt(i) = dudt(i)
     endif
 !
@@ -417,11 +418,11 @@ subroutine get_rates
        !
        if (iavlim(2).ne.0 .and. iener.gt.0) then
           if (uu(i).gt.0.) then
-	     sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
+             sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
           else
-	     sourceu = 0.
-	  endif
-	  if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
+             sourceu = 0.
+          endif
+          if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
        endif
        !
@@ -431,7 +432,7 @@ subroutine get_rates
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = abs(divB(i))*SQRT(rho1i)
-	  sourceB = MAX(sourceJ,sourcedivB)
+          sourceB = MAX(sourceJ,sourcedivB)
           if (iavlim(3).eq.2) sourceB = sourceB*(2.0-alpha(3,i))
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
        endif
@@ -499,6 +500,8 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine rates_core
     implicit none
+    real :: prstar, vstar
+    real :: projvi, projvj
 !
 !--calculate both kernels if using anticlumping kernel
 !
@@ -584,12 +587,15 @@ contains
     velj(:) = vel(:,j)            
     dvel(:) = veli(:) - velj(:)
     dvdotr = dot_product(dvel,dr)
+    projvi = dot_product(veli,dr)
+    projvj = dot_product(velj,dr)
     rhoj = rho(j)
     rho1j = 1./rhoj
     rho2j = rhoj*rhoj
     rho21j = rho1j*rho1j
     rhoj5 = sqrt(rhoj)
-    rhoij = rhoi*rhoj            
+    rhoij = rhoi*rhoj
+    prj = pr(j)        
     Prho2j = pr(j)*rho21j
     spsoundj = spsound(j)
     pmassj = pmass(j)
@@ -668,14 +674,26 @@ contains
 !  artificial dissipation terms
 !----------------------------------------------------------------------------
 
-    if (iav.ne.0) call artificial_dissipation
+    if (iav.gt.0) call artificial_dissipation
 
 !----------------------------------------------------------------------------
 !  pressure term (generalised form)
 !----------------------------------------------------------------------------
     if (iprterm.ge.0) then
-       prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
-              + phij_on_phii*Prho2j*sqrtgj*grkernj
+       if (iav.lt.0) then
+          if (abs(pri-prj).gt.1.e-2) then
+             call riemannsolver(gamma,pri,prj,projvi,projvj, &
+               spsoundi,spsoundj,prstar,vstar)
+             prterm = prstar*(phii_on_phij*rho21i*sqrtgi*grkerni &
+                         + phij_on_phii*rho21j*sqrtgj*grkernj)
+          else
+            prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
+                 + phij_on_phii*Prho2j*sqrtgj*grkernj
+          endif
+       else
+          prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
+                 + phij_on_phii*Prho2j*sqrtgj*grkernj
+       endif
     else
        prterm = 0.
     endif
@@ -705,13 +723,18 @@ contains
 !                         outside loop and in artificial_dissipation)
 !------------------------------------------------------------------------
    
-    if (iener.eq.3) call energy_equation
+    if (iener.eq.3) then
+       call energy_equation
+    elseif (iener.gt.0 .and. iav.lt.0) then
+       dudt(i) = dudt(i) + pmassj*prstar*(rho21i)*dvdotr*grkerni
+       dudt(j) = dudt(j) + pmassi*prstar*(rho21j)*dvdotr*grkernj
+    endif
 
 !------------------------------------------------------------------------
 !  grad u term for dissipation switch
 !------------------------------------------------------------------------
 
-    if (iav.ne.0 .and. iavlim(2).ne.0) then
+    if (iav.gt.0 .and. iavlim(2).ne.0) then
        graduterm = uu(j)-uu(i)
        gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
        gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
@@ -934,7 +957,7 @@ contains
 !                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj
 !	  divBonrho =  projBrhoi*rho1i*grkerni + &
 !	               projBrhoj*rho1j*grkernj
-	  
+
           if (ndimV.gt.ndim) then
              faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
                                   + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
@@ -942,9 +965,9 @@ contains
 
        else
           faniso(:) = (Brhoi(:)*projBrhoi &
-	             - Bconsti(:)*projBconsti*rho21i)*phij_on_phii*grkerni &
+                     - Bconsti(:)*projBconsti*rho21i)*phij_on_phii*grkerni &
                     + (Brhoj(:)*projBrhoj &
-		     - Bconstj(:)*projBconstj*rho21j)*phii_on_phij*grkernj
+                     - Bconstj(:)*projBconstj*rho21j)*phii_on_phij*grkernj
        endif
 
        !
