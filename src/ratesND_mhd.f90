@@ -348,11 +348,12 @@ SUBROUTINE get_rates
 !  and also in the artificial viscosity)
 !
 		IF (dvdotr.LT.0.) THEN
-		   vunit(:) = -dvel(:)/vmag	! unit vector in direction of velocity
+		   vunit(:) = abs(dvel(:))/vmag	! unit vector in direction of velocity
+		   !vunit = dr
 		   IF (ndimV.GT.ndim) THEN	! if using 1.5D or 2.5D
 		      viss = abs(DOT_PRODUCT(dvel,vunit))
 		   ELSE				! normal
-		      viss = abs(dvdotr)		    
+		     viss = abs(dvdotr)		    
 		   ENDIF
 		ENDIF 
 !
@@ -408,10 +409,10 @@ SUBROUTINE get_rates
 		   ENDIF
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = dB(:) - dr(:)*projdB
-		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1**2
-		   vissB = -0.5*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   dBdtvisc(:) = 0.5*Bdiss_frac*alphaav*vsig*Bvisc(:)*rhoav1**2
+		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
-		   vissu = gconst*(uu(i) - uu(j))
+		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
 		   envisc = 0.5*alphaav*vsig*(vissv+vissB)*rhoav1*grkern!*abs(rx)
 	           uvisc = 0.5*alphaav*vsig*vissu*rhoav1*grkern		   
@@ -435,7 +436,7 @@ SUBROUTINE get_rates
 		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1
 		   vissB = -0.5*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
-		   vissu = gconst*(uu(i) - uu(j))
+		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
 		   envisc = 0.5*alphaav*vsig*(vissv+vissB) !*abs(rx)
 	           uvisc = 0.5*alphaav*vsig*vissu		   
@@ -462,10 +463,15 @@ SUBROUTINE get_rates
 !--add pressure and viscosity terms to force (equation of motion)
 !
 		IF (ndimV.GT.ndim) THEN
+!		  force(1:ndim,i) = force(1:ndim,i)	&
+!		             - pmassj*(prterm+visc)*dr(1:ndim)
+!		  force(1:ndim,j) = force(1:ndim,j)	&
+!		             + pmassi*(prterm+visc)*dr(1:ndim)  
 		  force(:,i) = force(:,i)	&
 		             - pmassj*(prterm*dr(:)+visc*vunit(:))
 		  force(:,j) = force(:,j)	&
 		             + pmassi*(prterm*dr(:)+visc*vunit(:))  
+
 		ELSE
 		  force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
 		  force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
@@ -643,8 +649,8 @@ SUBROUTINE get_rates
 		   ENDIF
 		   B2i = (DOT_PRODUCT(Bi,Bi) - DOT_PRODUCT(Bi,dr)**2)	!  "   " 
 		   B2j = (DOT_PRODUCT(Bj,Bj) - DOT_PRODUCT(Bj,dr)**2)
-   		   enj = gconst*uu(j) + 0.5*v2j + 0.5*B2j*rhoav1
-		   eni = gconst*uu(i) + 0.5*v2i + 0.5*B2i*rhoav1
+   		   enj = udiss_frac*uu(j) + 0.5*v2j + Bdiss_frac*0.5*B2j*rhoav1
+		   eni = udiss_frac*uu(i) + 0.5*v2i + Bdiss_frac*0.5*B2i*rhoav1
 		   ediff = eni - enj 
 		   IF (dvdotr.LT.0) THEN ! bug was in line below
 		    IF (iav.EQ.1) THEN

@@ -29,7 +29,8 @@ subroutine set_default_options
    nout = -1
    gamma = 5./3.
    iener = 3
-   gconst = 1.0
+   udiss_frac = 1.0
+   Bdiss_frac = 1.0
    polyk = 1.0
    icty = 0
    ndirect = nmax

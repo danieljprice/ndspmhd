@@ -30,7 +30,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*) psep
   READ(iread,*) tmax,tout,nmax,nout
   READ(iread,*) gamma
-  READ(iread,*) iener,gconst,polyk
+  READ(iread,*) iener,udiss_frac,Bdiss_frac,polyk
   READ(iread,*) icty,ndirect
   READ(iread,*) ialtform
   READ(iread,*) iav,alphamin,beta
@@ -54,8 +54,8 @@ SUBROUTINE read_infile(infile)
  IF (nout.GT.nmax) WRITE(iprint,100) 'no output nout > nmax'
  IF (nout.EQ.0) STOP 'error in input: nout = 0'
  IF (gamma.LT.1.) WRITE(iprint,100) 'gamma < 1.0 '
- IF ((iener.EQ.3).AND.(gconst.LT.0.)) THEN
-    WRITE(iprint,100) 'gconst < 0.'
+ IF ((iener.EQ.3).AND.(udiss_frac.LT.0.).OR.(Bdiss_frac.LT.0.)) THEN
+    WRITE(iprint,100) 'udiss_frac or Bdiss_frac < 0.'
  ELSEIF ((iener.EQ.0).AND.(polyk.LT.0.)) THEN
     WRITE(iprint,100) 'polyk < 0.'      
  ENDIF
