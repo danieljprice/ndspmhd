@@ -54,6 +54,7 @@ SUBROUTINE read_infile(infile)
  IF (nout.GT.nmax) WRITE(iprint,100) 'no output nout > nmax'
  IF (nout.EQ.0) STOP 'error in input: nout = 0'
  IF (gamma.LT.1.) WRITE(iprint,100) 'gamma < 1.0 '
+ IF (abs(gamma-1.).lt.1.e-3 .AND. iener.NE.0) STOP 'must use iener = 0 for isothermal eos'
  IF ((iener.EQ.3).AND.(udiss_frac.LT.0.).OR.(Bdiss_frac.LT.0.)) THEN
     WRITE(iprint,100) 'udiss_frac or Bdiss_frac < 0.'
  ELSEIF ((iener.EQ.0).AND.(polyk.LT.0.)) THEN
