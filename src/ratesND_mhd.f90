@@ -180,6 +180,8 @@ subroutine get_rates
        phi(1:ntotal) = rho(1:ntotal)
     case(2)            ! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
        phi(1:ntotal) = sqrt(pr(1:ntotal))/rho(1:ntotal)    
+    case(3)
+       phi(1:ntotal) = 1./rho(1:ntotal)       
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
@@ -278,7 +280,7 @@ subroutine get_rates
      
            rij2 = dot_product(dx,dx)
            rij = sqrt(rij2)
-           if (rij.eq.0.) then
+           if (rij.le.1.e-10) then
               write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                 call quit
            endif      
@@ -560,7 +562,7 @@ contains
        Brho2j = dot_product(Brhoj,Brhoj)
        valfven2j = Brho2j*rhoj
     endif
-    
+        
     !--maximum velocity for timestep control
     !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
     !            vsigdtc = vmag + spsoundi + spsoundj        &
