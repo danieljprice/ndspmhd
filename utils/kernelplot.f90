@@ -10,26 +10,26 @@ program kernelplot
  implicit none
  integer :: i,j,nkernels,nacross,ndown,ilinestyle,nepszero
  integer, dimension(10) :: iplotorder
- real :: q,q2,xmin,xmax,ymin,ymax,epszero
+ real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
  character(len=50) :: text
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 6
+ nkernels = 9
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 5
  epszero = -0.2
- nepszero = 5
+ nepszero = 4
  hfact = 1.5
- samepage = .false.
+ samepage = .true.
  trace = .true.
- nacross = 3
- ndown = 2
+ nacross = 2
+ ndown = 1
  xmin = 0.0
  xmax = 3.2
- ymin = -3.5
+ ymin = -1.0  !!3.5
  ymax = 1.7
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
@@ -37,7 +37,7 @@ program kernelplot
 
  if (samepage) then
     call pgbegin(0,'?',1,1) 
-    !!call pgpap(11.7,0.6/sqrt(2.))  ! change paper size
+    if (nacross.eq.2 .and. ndown.eq.1) call pgpap(11.7,0.6/sqrt(2.))  ! change paper size
     !!call pgenv(xmin,xmax,ymin,ymax,0,1)
     call pgsch(1.5)
     !!call pgenv(xmin,xmax,ymin,ymax,0,1)
@@ -52,8 +52,12 @@ program kernelplot
  neps = nepszero
 
  do j=1,nkernels
-    if (idivBzero.eq.5) then
+    if (idivBzero.eq.5 .and. j.lt.7) then
        eps = eps+0.2
+    else
+       eps = 0.4
+       if (j.eq.7) neps = 3
+       neps = neps + 1
     endif
     
     ikernel = iplotorder(j)
@@ -68,8 +72,37 @@ program kernelplot
        dqkern(i) = q
     enddo
     if (samepage) then
+       hpos = 0.7
+       vpos = 3.0
+       if (j.lt.7) then
        call danpgtile(1,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
+       !
+       !--plot legend
+       !
+        call legend(1,'W',hpos,vpos)
+        call pgsls(2)
+        call legend(2,'\(2266)W',hpos,vpos)
+        call pgsls(1)
+	call legend(0,'\ge = 0.0-1.0',hpos-0.125,vpos+4.5)      
+        write(text,"(a,i1)") 'n = ',neps
+        call legend(0,text,hpos-0.125,vpos+6.0)
+
+       else
+        call danpgtile(2,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
+       !
+       !--plot legend
+       !
+        call legend(1,'W',hpos,vpos)
+        call pgsls(2)
+        call legend(2,'\(2266)W',hpos,vpos)
+        call pgsls(1)       
+        write(text,"(a,f3.1)") '\ge = ',eps
+        call legend(0,text,hpos-0.125,vpos+4.5)
+	call legend(0,'n = 3-5',hpos-0.125,vpos+6.0)
+
+       endif
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
+       
     else
        call pgsch(0.6)
        if (mod(j,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
@@ -95,7 +128,7 @@ program kernelplot
     call pgsls(1)
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (idivBzero.eq.5) then
-       !!call pgsls(j+2)
+!       !!call pgsls(j+2)
        call pgline(ikern+1,dqkern(0:ikern),wijaniso(0:ikern))
     endif
 !
@@ -104,21 +137,21 @@ program kernelplot
     call pgsls(2)
     call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
     if (idivBzero.eq.5) then
-       call pgsls(j+2)
-       write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
-       call legend(j,text,0.5,3.0)
+!       call pgsls(j+2)
+       !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
+       !!call legend(j,text,0.5,3.0)
        call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))    
     endif
 !
 !--second derivative
 !
-    call pgsls(3)
-    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-    if (idivBzero.eq.5) then
-       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
-    endif
+    !call pgsls(3)
+    !call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+    !if (idivBzero.eq.5) then
+    !   call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+    !endif
     call pgsls(1)
-    call pgsci(1)
+!    call pgsci(1)
  enddo
  
  read*

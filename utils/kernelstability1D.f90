@@ -233,7 +233,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   real, dimension(npart) :: x
   real :: hh,kx,cs2,pmass,gamma,rhozero,RR
   real :: przero,Bxzero,priso,praniso
-  real :: sum1, sum2, sum3, sum4
+  real :: sum1, sum2, sum3, sum4, sum5, sum6, sum7, sum8
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
   real :: dx, dr, q2, eps, term
@@ -242,6 +242,10 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   sum2 = 0.
   sum3 = 0.
   sum4 = 0.
+  sum5 = 0.
+  sum6 = 0.
+  sum7 = 0.
+  sum8 = 0.
 !
 !--calculate pressure from cs2 and gamma
 !  
@@ -253,7 +257,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
 !
 !--calculate kernel in denominator of anticlumping term
 !
-  q2 = (1./1.5)**2
+  q2 = (0.2)**2
   index = INT(q2*ddq2table)
   index1 = index + 1
   IF (index.GT.ikern) index = ikern
@@ -310,21 +314,34 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
      sum3 = sum3 + (1. - COS(kx*dx))*gradgradWcorr
      sum4 = sum4 + SIN(kx*dx)*gradWcorr*dr
+     sum5 = sum5 + dx*gradW*dr
+     sum6 = sum6 + dx*gradWcorr*dr
+     sum7 = sum7 + 0.5*dx**2*gradgradW
+     sum8 = sum8 + 0.5*dx**2*gradgradWcorr
   enddo
 ! 
+!!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum1/sum7
+!  sum1 = kx**2
+!  sum3 = kx**2
+!  sum4 = -kx
+!  sum2 = sum2/sum5
+!  sum4 = sum4/sum6
+!  sum1 = sum1/sum7
+!  sum3 = sum3/sum8
+
   priso = przero + 0.5*Bxzero**2
   praniso = -Bxzero**2
 !
 !--dispersion relation (adiabatic and isothermal)
 !  isotropic terms using normal kernel
 !  
-  omegasq1D = (2.*pmass/rhozero)*(priso/rhozero)*sum1 &
-            + (pmass/rhozero)**2*(cs2 - 2.*priso/rhozero)*sum2**2
+  omegasq1D = + (2.*pmass/rhozero)*(priso/rhozero)*sum1 &
+            - (pmass/rhozero)**2*(2.*priso/rhozero - cs2)*sum2**2
 !
 !--add anisotropic terms (using anticlumping kernel)
 !
   omegasq1D = omegasq1D + (2.*pmass/rhozero)*praniso/rhozero*sum3  &
-            - 2.*(pmass/rhozero)**2*(praniso/rhozero)*sum2*sum4
+            - (pmass/rhozero)**2*(2.*praniso/rhozero)*sum2*sum4
   
 end function omegasq1D
 
