@@ -1,17 +1,17 @@
-!!-------------------------------------------------------------------------
+!!--------------------------------------------------------------------------------
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
 !! This version uses a reversible (symplectic) verlet predictor-corrector method
 !!
-!! NB: It is symplectic and manifestly time-reversible if the density is
+!! NB: It is time-reversible if the density is
 !! calculated by direct summation and the equation of state is isothermal or
 !! polytropic and obviously also only if there is no dissipation.
 !!
 !! At the moment there is no XSPH and no direct summation replacement of density
 !!
-!! current version not as good as the leapfrog integrator for anything 
-!! involving viscosity
-!!-------------------------------------------------------------------------
+!! current version gives slightly worse performance than the leapfrog integrator
+!! but much better than the naive predictor-corrector
+!!--------------------------------------------------------------------------------
 	 
 SUBROUTINE step
  USE dimen_mhd
@@ -122,7 +122,7 @@ SUBROUTINE step
 !  average of the old and new timestep: ie.
 !  1/dt_1/2 = 1/2 ( 1/dt_0 + 1/dt_1 ) -> use this to get dt_1 given dt_1/2 and dt_0
 !
- dthalf = min(dtforce,dtcourant)
+ dthalf = min(C_force*dtforce,C_cour*dtcourant)
  dt1 = 2.*dthalf - dt0	! this averaging so dt0 can be = 0 to begin with  !1./(2./dthalf - 1./dt0)
  dt = 0.5*(dt1 + dt0)	! this is the total time advanced over the whole timestep
  hdt = 0.5*dt1
