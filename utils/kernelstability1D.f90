@@ -1,8 +1,9 @@
-subroutine kernelstability1D
+subroutine kernelstability1D(iplot,nacross,ndown)
   use kernel
   implicit none
   integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
-  integer :: i,j,ipart,mm,pp,nc,icall
+  integer, intent(in) :: iplot, nacross, ndown
+  integer :: i,j,ipart,mm,pp,nc
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
   real, dimension(ny) :: yaxis
@@ -13,12 +14,10 @@ subroutine kernelstability1D
   real :: xmin, psep, pmass, rhozero, cs2, R
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
+  real :: charheight
   character(len=5) :: string,labely
   logical :: negstress
-  save icall
   
-  icall = icall + 1
-  !print*,'icall = ',icall
   cs2 = 1.0
   rhozero = 1.0
   psep = 1.0
@@ -83,7 +82,7 @@ subroutine kernelstability1D
 !
 !!  call pgbegin(0,'?',1,1)
 !!  call pgsch(1.2)
-  call danpgtile(icall,3,2,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
+  call danpgtile(iplot,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
                  'kx',TRIM(labely),TRIM(kernelname),0,0)
 !  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
 !  call pglabel('kx',TRIM(labely),TRIM(kernelname)) ! use this for movie
@@ -111,9 +110,10 @@ subroutine kernelstability1D
   do i=1,ncont
      write(string,"(f5.2)") levels(i)
      !!print*,'level = ',levels(i),string
-     call pgsch(0.5) ! character height
-     call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,20)
-     call pgsch(0.6)
+     call pgqch(charheight) ! query character height
+     call pgsch(0.5*charheight)   ! shrink character height
+     call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,14)
+     call pgsch(charheight) ! restore character height
   enddo
 !!  call pgend
 
