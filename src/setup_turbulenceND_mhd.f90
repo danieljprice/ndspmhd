@@ -26,12 +26,13 @@ SUBROUTINE setup
 !--define local variables
 !      
  IMPLICIT NONE
- INTEGER :: i,j,ntot,ipart
+ INTEGER :: i,j,ntot,ipart,nfreq
  REAL :: rhozero,przero,spsound2
  REAL, DIMENSION(ndimV) :: velzero,Bzero
- REAL :: totmass,volume,massp,const
- REAL :: rbuffer, exx,Ekin
- REAL :: Ewave,beta,beta_gammie,length
+ REAL :: totmass,volume,massp
+ REAL :: rbuffer, exx,Ekin,ekinpart,pindex
+ REAL :: Ewave,Emag,beta,beta_gammie,length
+ REAL :: vrms,Brms
 !
 !--check number of dimensions is right
 !
@@ -46,12 +47,11 @@ SUBROUTINE setup
  xmin(:) = -0.5
  xmax(:) = 0.5
  length = 1.0	! length of box in each direction
- const = 4.*pi 
 !
 !--setup parameters for the problem (could read these from file)
 ! 
  beta_gammie = 0.01	! Gammie and Ostriker use a funny beta
- beta = 2.*beta_gammie	! this is the usual beta (ratio of pressures)
+ beta = 0.5*beta_gammie	! this is the usual beta (ratio of pressures)
 
  rhozero = 1.0		! initial density
  velzero(1) = 0.	! initial velocities
@@ -92,9 +92,43 @@ SUBROUTINE setup
     Bfield(:,ipart) = Bzero(:)
  ENDDO
 !
-!--now call routine to do the Gaussian random perturbation
+!--now call routine to set up the velocity field
 !
- CALL set_vperp(xmin,xmax,Ekin)
+ pindex = -2  ! P(k) = k**pindex
+ nfreq = 32   ! wavelengths down to lambda/32
+ CALL set_powerspec1D(x(1,:),vel(2,:),npart,xmin(1),xmax(1),pindex,nfreq)
+!
+!--normalise according to kinetic energy
+!
+ ekinpart = 0.
+ DO i = 1,npart
+    ekinpart = ekinpart + 0.5*pmass(i)*DOT_PRODUCT(vel(:,i),vel(:,i))
+ ENDDO
+ vel(2,1:npart) = vel(2,1:npart)*sqrt(Ekin/ekinpart)
+!
+!
+!--set up magnetic field
+!
+ Bfield(2,:) = vel(2,:)*SQRT(rhozero)
+!
+!--work out rms velocity and mag field perturbations
+!
+ Brms = 0.
+ vrms = 0.
+ Ewave = 0.
+ Ekin = 0.
+ Emag = 0.
+ DO i=1,npart
+    Ekin = Ekin + 0.5*pmass(i)*DOT_PRODUCT(vel(:,i),vel(:,i))
+    Emag = Emag + 0.5*pmass(i)*Bfield(2,i)**2/rhozero
+    Brms = Brms + SQRT((Bfield(2,i)/Bzero(1))**2)
+    vrms = vrms + SQRT(vel(2,i)**2/spsound2)
+ ENDDO
+ Ewave = Ekin + Emag
+ vrms = vrms/REAL(npart)
+ Brms = Brms/REAL(npart)
+ WRITE(iprint,*) ' rms velocity perturbation = ',vrms,' mag field = ',Brms
+ WRITE(iprint,*) ' Ekin = ',Ekin,' Emag = ',Emag,' Ewave = ',Ewave
 !
 !--allow for tracing flow
 !

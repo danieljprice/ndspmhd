@@ -202,9 +202,9 @@ SUBROUTINE get_rates
        valfveni = SQRT(valfven2i)
               
        gradhi = 1./(1. - gradh(i))
-       IF (gradhi.LE.0.5) THEN
-          WRITE(iprint,*) 'Error in grad h terms, part ',i,gradhi
-       ENDIF   
+!       IF (gradhi.LE.0.5) THEN
+!          WRITE(iprint,*) 'Error in grad h terms, part ',i,gradhi
+!       ENDIF   
        hi = hh(i)
        hi1 = 1./hi
        hi21 = hi1*hi1
