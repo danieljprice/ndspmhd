@@ -32,15 +32,16 @@ SUBROUTINE step
 !--Mid-point Predictor step
 !      
  hdt = 0.5*dt
- DO i=1,npart
-    xin(:,i) = x(:,i)
-    velin(:,i) = vel(:,i)
-    Bconsin(:,i) = Bcons(:,i)
-    rhoin(i) = rho(i)
-    hhin(i) = hh(i)
-    enin(i) = en(i)
-    alphain(i) = alpha(i)
- ENDDO         
+! DO i=1,npart
+!    xin(:,i) = x(:,i)
+!    velin(:,i) = vel(:,i)
+!    Bconsin(:,i) = Bcons(:,i)
+!    rhoin(i) = rho(i)
+!    hhin(i) = hh(i)
+!    enin(i) = en(i)
+!    alphain(i) = alpha(i)
+!    psiin(i) = psi(i)
+! ENDDO         
  
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
@@ -51,6 +52,7 @@ SUBROUTINE step
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(i) = alphain(i)
+       psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
@@ -63,7 +65,8 @@ SUBROUTINE step
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-       IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	   
+       IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	 
+       psi(i) = psiin(i) + hdt*dpsidt(i)  
     ENDIF
 !
 !--for periodic boundaries, allow particles to cross the domain
@@ -117,6 +120,7 @@ SUBROUTINE step
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(i) = alphain(i)
        hh(i) = hhin(i)
+       psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
@@ -136,7 +140,8 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	   
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)	  
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
+       psi(i) = psiin(i) + hdt*dpsidt(i)	  
     ENDIF 
 	      
  ENDDO
@@ -192,6 +197,8 @@ SUBROUTINE step
 !	  hhin(i) = hh(i)
        ENDIF	     
        hhin(i) = hh(i)
+       psiin(i) = 2.*psi(i) - psiin(i)
+       psi(i) = psiin(i)
     ENDDO
 	 
  ELSE
@@ -230,6 +237,8 @@ SUBROUTINE step
           enin(i) = 2.*en(i) - enin(i)
           en(i) = enin(i)
        ENDIF
+       psiin(i) = 2.*psi(i) - psiin(i)
+       psi(i) = psiin(i)
     ENDDO
     
  ENDIF

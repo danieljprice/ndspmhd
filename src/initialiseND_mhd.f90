@@ -28,7 +28,7 @@ SUBROUTINE initialise
  IMPLICIT NONE
  CHARACTER(LEN=20) :: infile,evfile
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
- INTEGER :: ntot,ierr
+ INTEGER :: ntot,ierr,nstart
  INTEGER :: i,j,iktemp,npart1
  REAL :: hmin,hmax,have
  LOGICAL :: set_fixed_particles
@@ -101,6 +101,7 @@ SUBROUTINE initialise
  
  CALL setkern		! setup kernel tables
  npart = 0
+ itype = 0
  CALL setup    		! setup particles, allocation of memory is called
  			! could replace this with a call to read_dump
 !
@@ -149,8 +150,10 @@ SUBROUTINE initialise
 !  this is for backwards compatibility of the code
 !
  IF (ALL(ibound.EQ.1) .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
+    write(iprint,*) 'fixing first and last ',nbpts,' particles'
     itype(1:nbpts) = 1
-    itype((npart-nbpts+1):ntotal) = 1
+    nstart = npart - nbpts + 1
+    itype(nstart:ntotal) = 1
  ENDIF
 !
 !--If using direct sum for density, compute initial density from direct sum
@@ -195,29 +198,6 @@ SUBROUTINE initialise
     CALL primitive2conservative
  ENDIF
 !
-!--make sure ghost particle quantities are the same
-!  (copy both conservative and primitive here)
-!
- IF (ANY(ibound.GT.1) .OR. set_fixed_particles) THEN
-    DO i=npart+1,ntotal	
-       j = ireal(i)
-       rho(i) = rho(j)
-       hh(i) = hh(j)
-       gradh(i) = gradh(j)
-       pr(i) = pr(j)
-       en(i) = en(j)
-       uu(i) = uu(j)
-       Bfield(:,i) = Bfield(:,j)
-       Bcons(:,i) = Bcons(:,j)
-    ENDDO
-    IF (set_fixed_particles) THEN
-       ! fix the ghost particles that have been set
-       npart1 = npart + 1
-       itype(npart1:ntotal) = 1	! set all these particles to be fixed
-       npart = ntotal		! no ghosts
-    ENDIF
- ENDIF                      
-!
 !--Set derivatives to zero until calculated
 !      
  drhodt = 0.
@@ -228,6 +208,32 @@ SUBROUTINE initialise
  daldt = 0.    
  dBconsdt = 0.
  dpsidt = 0.
+ DO i=1,npart
+    xin(:,i) = x(:,i)
+    velin(:,i) = vel(:,i)
+    Bconsin(:,i) = Bcons(:,i)
+    rhoin(i) = rho(i)
+    hhin(i) = hh(i)
+    enin(i) = en(i)
+    alphain(i) = alpha(i)
+    psiin(i) = psi(i)
+ ENDDO         
+!
+!--make sure ghost particle quantities are the same
+!  (copy both conservative and primitive here)
+!
+ IF (ANY(ibound.GT.1) .OR. set_fixed_particles) THEN
+    DO i=npart+1,ntotal	
+       j = ireal(i)
+       call copy_particle(i,j)
+    ENDDO
+    IF (set_fixed_particles) THEN
+       ! fix the ghost particles that have been set
+       npart1 = npart + 1
+       itype(npart1:ntotal) = 1	! set all these particles to be fixed
+       npart = ntotal		! no ghosts
+    ENDIF
+ ENDIF
 !
 !--write second header to logfile/screen
 !
