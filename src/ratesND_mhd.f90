@@ -109,7 +109,7 @@ subroutine get_rates
 !
 !--div B correction
 ! 
- real :: gradpsiterm,vsig2,dtcourant2
+ real :: gradpsiterm,vsig2,vsig2max,vsigmax,dtcourant2
 
 !
 !--allow for tracing flow
@@ -315,6 +315,22 @@ subroutine get_rates
 !  loop over the particles again, subtracting external forces and source terms
 !----------------------------------------------------------------------------
  
+!
+!--calculate maximum vsig over all the particles for use in the hyperbolic cleaning
+!
+ vsig2max = 0.
+! print*,'calculating vsig2max...'
+ if (imhd.ne.0 .and. idivBzero.ge.2) then
+    do i=1,npart
+       valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/rho(i)
+       vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
+       vsig2max = max(vsig2max,vsig2) 
+    enddo
+ endif
+! print*,' vsig2max = ',vsig2max
+ vsigmax = SQRT(vsig2max)
+ 
+ 
  do i=1,npart
  
     rho1i = 1./rho(i)
@@ -425,7 +441,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -vsig2*divB(i) - psidecayfact*psi(i)*vsig/hh(i)          
+          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)          
        case DEFAULT
           dpsidt(i) = 0.
     end select
