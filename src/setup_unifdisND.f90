@@ -27,14 +27,14 @@ SUBROUTINE setup
 !
 !--set boundaries
 ! 	    
- ibound = 2	! boundaries
+ ibound = 3	! boundaries
  nbpts = 0	! use ghosts not fixed
  xmin(:) = -0.5	! set position of boundaries
  xmax(:) = 0.5
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+ CALL set_uniform_cartesian(4,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass

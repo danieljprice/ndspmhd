@@ -812,6 +812,7 @@ contains
     !  resistivity in induction equation
     !  (applied everywhere)
     !--------------------------------------------
+    if (imhd.ne.0) then
     if (iav.ge.2) then
        Bvisc(:) = dB(:)*rhoav1
     else
@@ -824,6 +825,8 @@ contains
     !
     dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
     dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
+
+    endif
 
     !--------------------------------------------------
     !  dissipation terms in energy equation
@@ -853,6 +856,7 @@ contains
        !
        !  magnetic energy terms - applied everywhere
        !
+       if (imhd.ne.0) then
        if (iav.ge.2) then
           B2i = dot_product(Bi,Bi) ! total magnetic energy 
           B2j = dot_product(Bj,Bj) 
@@ -861,6 +865,7 @@ contains
           B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
        endif
        qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
+       endif
        !
        !  add to total energy equation
        !
