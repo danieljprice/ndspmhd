@@ -9,28 +9,30 @@
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
+ use dimen_mhd
+ use debug
+ use loguns
  
- USE eos
- USE options
- USE part
- USE setup_params
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !      
- IMPLICIT NONE
- INTEGER :: i,j
- REAL :: rmax,totmass,totvol
- REAL :: denszero,uuzero,massp
+ implicit none
+ integer :: i,j
+ real :: rmax,totmass,totvol
+ real :: denszero,uuzero,massp
 
- WRITE(iprint,*) 'Polytrope'
- IF (igravity.EQ.0) WRITE(iprint,*) 'WARNING: gravity not set'
+ write(iprint,*) 'polytrope'
+ if (igravity.eq.0) write(iprint,*) 'warning: gravity not set'
 !
 !--set bounds of initial setup
 !                   
@@ -39,25 +41,25 @@ SUBROUTINE setup
 !
 !--setup a uniform sphere of particles
 ! 
- CALL set_uniform_spherical(1,0.0,rmax)	! 4 = random
+ call set_uniform_spherical(1,rmax)	! 4 = random
 !
 !--set particle properties
 ! 
- SELECT CASE (ndim)
-  CASE(1)
+ select case (ndim)
+  case(1)
     totvol = 2.*rmax
-  CASE(2)
+  case(2)
     totvol = pi*rmax**2
-  CASE(3)
+  case(3)
     totvol = 4./3.*pi*rmax**3
- END SELECT
+ end select
   
  totmass = totvol
  denszero = totmass/totvol
- massp = totmass/REAL(npart)
+ massp = totmass/real(npart)
  uuzero = 0.1
- WRITE(iprint,10) denszero,uuzero
-10 FORMAT(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
+ write(iprint,10) denszero,uuzero
+10 format(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
 !
 !--set these for all particles
 ! 
@@ -65,7 +67,7 @@ SUBROUTINE setup
  dens(:) = denszero
  uu(:) = uuzero
  pmass(:) = massp
- Bfield(:,:) = 0.
+ bfield(:,:) = 0.
  
- RETURN
-END SUBROUTINE setup
+ return
+end subroutine setup

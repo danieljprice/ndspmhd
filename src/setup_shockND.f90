@@ -21,6 +21,8 @@ subroutine setup
  use part
  use setup_params
  use timestep  ! uses tmax for moving boundaries
+ 
+ use uniform_distributions
  implicit none
  integer :: i,j
  real :: densleft,densright,prleft,prright

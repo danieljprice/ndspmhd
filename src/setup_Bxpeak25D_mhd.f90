@@ -6,32 +6,34 @@
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !      
- IMPLICIT NONE
- INTEGER :: i,j,ntot,npartx,nparty,ipart
- REAL :: denszero,przero
- REAL :: pri,rbump,rr
- REAL :: totmass,gam1,massp,const
- REAL, DIMENSION(ndim) :: xorigin, dx
- REAL, DIMENSION(ndimV) :: Bzero
+ implicit none
+ integer :: i,j,ntot,npartx,nparty,ipart
+ real :: denszero,przero
+ real :: pri,rbump,rr
+ real :: totmass,gam1,massp,const
+ real, dimension(ndim) :: xorigin, dx
+ real, dimension(ndimv) :: Bzero
 !
 !--check number of dimensions is right
 !
- IF (ndimV.NE.3) STOP ' need ndimV=3 for this problem'
+ if (ndimv.ne.3) stop ' need ndimv=3 for this problem'
 !
 !--set boundaries
 !                        
@@ -39,56 +41,56 @@ SUBROUTINE setup
  nbpts = 0      ! no fixed particles
  xmin(:) = -0.5 ! unit square
  xmax(:) = 1.5
- const = SQRT(4.*pi) 
+ const = sqrt(4.*pi) 
 !
 !--setup parameters for the problem
 ! 
  xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
  rbump = 0.125        ! radius of the initial bump
  Bzero(:) = 0.
- IF (imhd.NE.0) Bzero(3) = 1.0/const        ! uniform field in Bz direction
+ if (imhd.ne.0) Bzero(3) = 1.0/const        ! uniform field in bz direction
  przero = 6.0                ! initial pressure
  denszero = 1.0                ! ambient density
  
  gam1 = gamma - 1.
 
- WRITE(iprint,*) 'Two dimensional div B advection problem '
- WRITE(iprint,10) denszero,rbump,Bzero(3),przero
-10 FORMAT(/,' density  = ',f10.3,', size of bump = ',f6.3,/, &
-            ' Initial Bz   = ',f6.3,', pressure = ',f6.3,/)
+ write(iprint,*) 'Two dimensional div B advection problem '
+ write(iprint,10) denszero,rbump,bzero(3),przero
+10 format(/,' density  = ',f10.3,', size of bump = ',f6.3,/, &
+            ' initial Bz   = ',f6.3,', pressure = ',f6.3,/)
 !
-!--setup uniform density grid of particles (2D) 
+!--setup uniform density grid of particles (2d) 
 !  (determines particle number and allocates memory)
 !
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)        ! 2 = close packed arrangement
+ call set_uniform_cartesian(1,psep,xmin,xmax,.false.)        ! 2 = close packed arrangement
 
  ntotal = npart
 !
 !--determine particle mass in ambient medium
 !
- totmass = denszero*PRODUCT(xmax(:)-xmin(:))
- massp = totmass/FLOAT(ntotal) ! average particle mass
+ totmass = denszero*product(xmax(:)-xmin(:))
+ massp = totmass/float(ntotal) ! average particle mass
 !
 !--now assign particle properties
 ! 
- DO ipart=1,ntotal
+ do ipart=1,ntotal
     dx(:) = x(:,ipart)-xorigin(:) 
-    rr = DOT_PRODUCT(dx,dx)
-    Bfield(:,ipart) = Bzero(:)
-    IF (rr.LE.rbump) THEN
+    rr = dot_product(dx,dx)
+    Bfield(:,ipart) = bzero(:)
+    if (rr.le.rbump) then
        Bfield(1,ipart) = (4096.*rr**4 - 128.*rr**2 + 1.)/const
-    ENDIF  
+    endif  
     pmass(ipart) = massp
     dens(ipart) = denszero
     vel(:,ipart) = 0.
     vel(1:ndim,ipart) = 1.0
     pri = przero 
     uu(ipart) = pri/(gam1*denszero)
- ENDDO
+ enddo
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) '  Exiting subroutine setup'
+ if (trace) write(iprint,*) '  exiting subroutine setup'
             
- RETURN
-END
+ return
+end

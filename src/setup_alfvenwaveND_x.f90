@@ -4,54 +4,56 @@
 !     >> should be compiled with ndimB = 3
 !----------------------------------------------------------------
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !            
- IMPLICIT NONE
- INTEGER :: i
-! REAL, PARAMETER :: pi = 3.1415926536
- REAL, DIMENSION(3) :: rvec
- REAL, DIMENSION(ndim) :: runit
- REAL :: massp,totmass,denszero,gam1,uuzero,przero
- REAL :: anglexy,ampl,wk,xlambda,rmax
- REAL :: valfven
- REAL :: vampl_par,vampl_perp,vamplz,vamply,vamplx
- REAL :: vparallel,vperp,vz,vperp0,vz0
- REAL :: Bparallel,Bperp,Bz,Bperp0,Bz0
- REAL :: perturb_sin, perturb_cos
+ implicit none
+ integer :: i
+! real, parameter :: pi = 3.1415926536
+ real, dimension(3) :: rvec
+ real, dimension(ndim) :: runit
+ real :: massp,totmass,denszero,gam1,uuzero,przero
+ real :: anglexy,ampl,wk,xlambda,rmax
+ real :: valfven
+ real :: vampl_par,vampl_perp,vamplz,vamply,vamplx
+ real :: vparallel,vperp,vz,vperp0,vz0
+ real :: bparallel,bperp,bz,bperp0,bz0
+ real :: perturb_sin, perturb_cos
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup'
+ if (trace) write(iprint,*) ' entering subroutine setup'
 !
 !--set direction of wave propagation (runit is unit vector in this direction)
 !
 ! anglexy = 30.	! angle in degrees x,y plane
 ! anglez = 45.	! angle in degrees z plane
 ! anglexy = anglexy*pi/180.	! convert to radians
- rvec(1) = 1.0	        !0.5*SQRT(3.) !COS(anglexy)
+ rvec(1) = 1.0	        !0.5*sqrt(3.) !cos(anglexy)
  rvec(2) = 0.
  rvec(3) = 0.
- IF (ndim.EQ.1) THEN ! in 1D must be in x direction
+ if (ndim.eq.1) then ! in 1d must be in x direction
     rvec(1) = 1.0
-    rvec(2) = 0.	!0.5	!SIN(anglexy)
- ENDIF   
+    rvec(2) = 0.	!0.5	!sin(anglexy)
+ endif   
 
  runit(1:ndim) = rvec(1:ndim) 
 
- WRITE(iprint,*) ' runit = ',runit
+ write(iprint,*) ' runit = ',runit
 !
 !--set boundaries
 ! 	    
@@ -60,18 +62,18 @@ SUBROUTINE setup
  xmin(:) = 0.0	! set position of boundaries
  xmax(:) = 1.0
  !!if (ndim.ge.2) xmax(2:ndim) = 0.5		!/runit(:)
- PRINT*,'xmin,xmax = ',xmin,xmax
+ print*,'xmin,xmax = ',xmin,xmax
 !
 !--read/set wave parameters
 ! 
- rmax = DOT_PRODUCT((xmax(:)-xmin(:)),runit)
+ rmax = dot_product((xmax(:)-xmin(:)),runit)
  ampl = 0.001
-! WRITE (*,*) 'Enter amplitude of disturbance'
-! READ (*,*) ampl
+! write (*,*) 'enter amplitude of disturbance'
+! read (*,*) ampl
  
- xlambda = 1.0	!/COS(anglexy)	!*rmax
-! WRITE (*,*) 'Enter wavelength lambda'
-! READ (*,*) xlambda
+ xlambda = 1.0	!/cos(anglexy)	!*rmax
+! write (*,*) 'enter wavelength lambda'
+! read (*,*) xlambda
     
  wk = 2.0*pi/xlambda	! 	wave number
 
@@ -84,9 +86,9 @@ SUBROUTINE setup
  vz0 = 0.1
  denszero = 1.0
  przero = 0.1
- Bparallel = 1.0
- Bperp0 = 0.1 
- Bz0 = 0.1
+ bparallel = 1.0
+ bperp0 = 0.1 
+ bz0 = 0.1
 !
 !--work out dependent parameters
 !
@@ -96,22 +98,22 @@ SUBROUTINE setup
 !
 !--initially set up a uniform density grid (also determines npart)
 !
- PRINT*,' setting up uniform density grid'
- CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
+ print*,' setting up uniform density grid'
+ call set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !
- totmass = denszero*PRODUCT(xmax(:)-xmin(:))
- massp = totmass/FLOAT(npart) ! average particle mass
- PRINT*,'npart,massp = ',npart,massp
+ totmass = denszero*product(xmax(:)-xmin(:))
+ massp = totmass/float(npart) ! average particle mass
+ print*,'npart,massp = ',npart,massp
  
- DO i=1,npart        
-    perturb_sin = SIN(wk*DOT_PRODUCT(x(:,i),runit))
-    perturb_cos = COS(wk*DOT_PRODUCT(x(:,i),runit))
+ do i=1,npart        
+    perturb_sin = sin(wk*dot_product(x(:,i),runit))
+    perturb_cos = cos(wk*dot_product(x(:,i),runit))
     vperp = vperp0*perturb_sin
     vz = vz0*perturb_cos
-    Bperp = Bperp0*perturb_sin
-    Bz = Bz0*perturb_cos
+    bperp = bperp0*perturb_sin
+    bz = bz0*perturb_cos
     
     
     vel(1,i) = vparallel*rvec(1) - vperp*rvec(2)
@@ -124,27 +126,27 @@ SUBROUTINE setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-    uu(i) = uuzero !+ pri/dens(i)*ampl*SIN(wk*ri)	! if not polytropic
+    uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)	! if not polytropic
 
-    IF (imhd.GE.1) THEN 
-       Bfield(1,i) = Bparallel*rvec(1) - Bperp*rvec(2)
-       Bfield(2,i) = Bparallel*rvec(2) + Bperp*rvec(1)
-       Bfield(3,i) = Bz
-    ENDIF 
- ENDDO
+    if (imhd.ge.1) then 
+       bfield(1,i) = bparallel*rvec(1) - bperp*rvec(2)
+       bfield(2,i) = bparallel*rvec(2) + bperp*rvec(1)
+       bfield(3,i) = bz
+    endif 
+ enddo
 
- Bconst(:) = 0.
- Bconst(1) = Bparallel*rvec(1)
- Bconst(2) = Bparallel*rvec(2)
+ bconst(:) = 0.
+ bconst(1) = bparallel*rvec(1)
+ bconst(2) = bparallel*rvec(2)
 
  ntotal = npart
  
- valfven = SQRT(Bparallel**2/denszero)
+ valfven = sqrt(bparallel**2/denszero)
 
 !----------------------------
 
- WRITE(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
- WRITE(iprint,*) ' alfven speed = ',valfven
+ write(iprint,*) ' wave set: amplitude = ',ampl,' wavelength = ',xlambda,' k = ',wk
+ write(iprint,*) ' alfven speed = ',valfven
  
- RETURN
-END
+ return
+end

@@ -3,36 +3,38 @@
 !!  Generic setup for the 2D Orszag-Tang vortex test in MHD               !!
 !!                                                                        !!
 !!  Gives particles a variable separation so the mass per SPH particle    !!
-!!  is constant. Shock is smoothed slightly (simple smoothing).           !!
+!!  is constant. shock is smoothed slightly (simple smoothing).           !!
 !!                                                                        !!
 !!  Note for all MHD setups, only the magnetic field should be setup      !!
-!!  Similarly the thermal energy is setup even if using total energy.     !!
+!!  similarly the thermal energy is setup even if using total energy.     !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !      
- IMPLICIT NONE
- INTEGER :: i,j,ntot,npartx,nparty,ipart
- REAL :: betazero,denszero,przero,vzero,Bzero,uuzero,machzero
- REAL :: totmass,gam1,massp,const
+ implicit none
+ integer :: i,j,ntot,npartx,nparty,ipart
+ real :: betazero,denszero,przero,vzero,bzero,uuzero,machzero
+ real :: totmass,gam1,massp,const
 !
 !--check number of dimensions is right
 !
- IF (ndim.NE.2) STOP ' ndim must be = 2 for Orszag-Tang vortex'
+ if (ndim.ne.2) stop ' ndim must be = 2 for orszag-tang vortex'
 !
 !--set boundaries
 !            	    
@@ -49,63 +51,63 @@ SUBROUTINE setup
  betazero = 10./3.
  machzero = 1.0
  vzero = 1.0
- Bzero = 1.0/SQRT(const)
- przero = 0.5*Bzero**2*betazero
+ bzero = 1.0/sqrt(const)
+ przero = 0.5*bzero**2*betazero
  denszero = gamma*przero*machzero
 ! denszero = 1.0
  
  gam1 = gamma - 1.
-! npartx = INT((xmax(1)-xmin(1))/psep)
-! nparty = INT((xmax(2)-xmin(2))/psep)
+! npartx = int((xmax(1)-xmin(1))/psep)
+! nparty = int((xmax(2)-xmin(2))/psep)
  uuzero = przero/(gam1*denszero)
 
- WRITE(iprint,*) 'Two dimensional Orszag-Tang vortex problem '
- WRITE(iprint,10) betazero,machzero,Bzero,denszero,przero
-10 FORMAT(/,' beta        = ',f6.3,', mach number = ',f6.3,/, &
-            ' Initial B   = ',f6.3,', density = ',f6.3,', pressure = ',f6.3,/)
+ write(iprint,*) 'two dimensional orszag-tang vortex problem '
+ write(iprint,10) betazero,machzero,bzero,denszero,przero
+10 format(/,' beta        = ',f6.3,', mach number = ',f6.3,/, &
+            ' initial b   = ',f6.3,', density = ',f6.3,', pressure = ',f6.3,/)
 !
 !--allocate memory here
 !
 ! ntot = npartx*nparty
-! CALL alloc(ntot)
+! call alloc(ntot)
 ! npart = ntot
 ! ntotal = ntot
 !
-!--setup uniform density grid of particles (2D) with sinusoidal field/velocity
+!--setup uniform density grid of particles (2d) with sinusoidal field/velocity
 !  determines particle number and allocates memory
- CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
+ call set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
 
  ntotal = npart
 !
 !--determine particle mass
 !
  totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
- massp = totmass/FLOAT(ntotal) ! average particle mass
+ massp = totmass/float(ntotal) ! average particle mass
 !
 !--now assign particle properties
 ! 
- DO ipart=1,ntotal
-    vel(1,ipart) = -vzero*SIN(2.*pi*x(2,ipart))
-    vel(2,ipart) = vzero*SIN(2.*pi*x(1,ipart))
-    IF (ndimV.EQ.3) vel(3,ipart) = 0.
+ do ipart=1,ntotal
+    vel(1,ipart) = -vzero*sin(2.*pi*x(2,ipart))
+    vel(2,ipart) = vzero*sin(2.*pi*x(1,ipart))
+    if (ndimv.eq.3) vel(3,ipart) = 0.
     dens(ipart) = denszero
     pmass(ipart) = massp
     uu(ipart) = uuzero
-    IF (imhd.GE.1) THEN 
-       Bfield(1,ipart) = -Bzero*SIN(2.*pi*x(2,ipart))
-       Bfield(2,ipart) = Bzero*SIN(4.*pi*x(1,ipart))
-       IF (ndimV.EQ.3) Bfield(3,ipart) = 0.0	
-    ELSE
-       Bfield(:,ipart) = 0.
-    ENDIF 
+    if (imhd.ge.1) then 
+       bfield(1,ipart) = -bzero*sin(2.*pi*x(2,ipart))
+       bfield(2,ipart) = bzero*sin(4.*pi*x(1,ipart))
+       if (ndimv.eq.3) bfield(3,ipart) = 0.0	
+    else
+       bfield(:,ipart) = 0.
+    endif 
 !       print*,ipart,x(:,ipart),dens(ipart),uu(ipart),pmass(ipart)
-!       IF (MOD(i,1000).EQ.0) read*
- ENDDO
+!       if (mod(i,1000).eq.0) read*
+ enddo
 
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) '  Exiting subroutine setup'
+ if (trace) write(iprint,*) '  exiting subroutine setup'
             
- RETURN
-END
+ return
+end

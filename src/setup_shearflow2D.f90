@@ -2,30 +2,32 @@
 !     Set up a uniform density cartesian grid of particles in ND
 !----------------------------------------------------------------
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !            
- IMPLICIT NONE
- INTEGER :: i
- REAL :: massp,volume,totmass
- REAL :: denszero,uuzero,cs0,polyk0
+ implicit none
+ integer :: i
+ real :: massp,volume,totmass
+ real :: denszero,uuzero,cs0,polyk0
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup(unifdis)'
- WRITE(iprint,*) '2D Cartesian shear flow'
+ if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ write(iprint,*) '2d cartesian shear flow'
 !
 !--set boundaries
 ! 	    
@@ -36,38 +38,38 @@ SUBROUTINE setup
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(11,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass
 !
  denszero = 1.0
- volume = PRODUCT(xmax(:)-xmin(:))
+ volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
- massp = totmass/FLOAT(ntotal) ! average particle mass
+ massp = totmass/float(ntotal) ! average particle mass
 !
 !--sound speed
 !
  cs0 = 0.05
  uuzero = cs0**2/(gamma*(gamma-1))
  polyk0 = cs0**2/(gamma*denszero**(gamma-1.))
- WRITE(iprint,*) ' cs0 = ',cs0, ' u = ',uuzero
- WRITE(iprint,*) ' polyk = ',polyk,' should be = ',polyk0
+ write(iprint,*) ' cs0 = ',cs0, ' u = ',uuzero
+ write(iprint,*) ' polyk = ',polyk,' should be = ',polyk0
 !
 !--now assign particle properties
 ! 
- DO i=1,ntotal
+ do i=1,ntotal
     vel(:,i) = 0.
-    vel(2,i) = SIN(2.*pi*x(1,i))
+    vel(2,i) = sin(2.*pi*x(1,i))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero ! isothermal
-    Bfield(:,i) = 0.
- ENDDO 
+    bfield(:,i) = 0.
+ enddo 
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) '  Exiting subroutine setup'
+ if (trace) write(iprint,*) '  exiting subroutine setup'
   
- RETURN
-END
+ return
+end

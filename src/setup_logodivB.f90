@@ -16,6 +16,8 @@ subroutine setup
  use options
  use part
  use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !      
