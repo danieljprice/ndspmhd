@@ -25,8 +25,13 @@ LDFLAGS = -lpgplot -lX11 -lF77
 OBJECTS = dimen1D.o variablesND.o kernelND.o  \
 	  kernelplot.o kernelstability1D.o danpgtile.o
 
+OBJSPHDERIV = kernelND.o variablesND.o sphderiv.o interpolate_kernel.o
+
 kernelplot : $(OBJECTS)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
+
+sphderiv : $(OBJSPHDERIV)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJSPHDERIV)
 
 dimen1D.o :
 	$(F90C) -c $(F90FLAGS) ../src/dimen1D.f90 -o $@
@@ -39,6 +44,10 @@ kernelND.o :
 
 danpgtile.o :
 	$(F90C) -c $(F90FLAGS) ../plot/danpgtile.f -o $@
+
+interpolate_kernel.o :
+	$(F90C) -c $(F90FLAGS) ../src/interpolate_kernel.f90 -o $@
+
 
 clean :
 	rm *.o *.mod
