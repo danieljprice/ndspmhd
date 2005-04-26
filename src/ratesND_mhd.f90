@@ -190,7 +190,7 @@ subroutine get_rates
 !
  loop_over_cells: do icell=1,ncellsloop            ! step through all cells
 
-    !print*,'> doing cell ',icell
+    !!print*,'> doing cell ',icell
     !
     !--get the list of neighbours for this cell 
     !  (common to all particles in the cell)
@@ -203,7 +203,7 @@ subroutine get_rates
 
     loop_over_cell_particles: do while (i.ne.-1)      ! loop over home cell particles
 
-       !print*,'Doing particle ',i,x(:,i),valfven2i,rho(i),hh(i)
+       !!print*,'Doing particle ',i,'of',npart,x(:,i),rho(i),hh(i)
        idone = idone + 1
        rhoi = rho(i)
        rho2i = rhoi*rhoi

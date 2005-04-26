@@ -96,6 +96,7 @@ subroutine primitive2conservative
   use dimen_mhd
   use debug
   use loguns
+  use bound, only:ireal
   use hterms, only:rhomin
   use eos
   use options
@@ -103,7 +104,7 @@ subroutine primitive2conservative
   use setup_params
   use timestep
   implicit none
-  integer :: i,iktemp
+  integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
@@ -162,12 +163,18 @@ subroutine primitive2conservative
   call equation_of_state(pr(1:npart),spsound(1:npart), &
                          uu(1:npart),dens(1:npart),gamma,polyk,npart)  
 !
-!--copy the conservative variables onto the ghost particles??
+!--copy the conservative variables onto the ghost particles
 !  
-!  do i=npart+1,ntotal
-!     j = ireal(i)
-!     call copy_particle(
-!  enddo
+  if (any(ibound.gt.1)) then
+     do i=npart+1,ntotal
+        j = ireal(i)
+        en(i) = en(j)
+        pr(i) = pr(j)
+        spsound(i) = spsound(j)
+        Bevol(:,i) = Bevol(:,j)
+   !     call copy_particle(
+     enddo
+  endif
 
 !
 !--call rates to get initial timesteps, div B etc
