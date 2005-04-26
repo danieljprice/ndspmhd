@@ -18,6 +18,7 @@ contains
     use loguns
     use linklist
     use options
+    use part, only:ntotal
 !
 !--define local variables
 !
@@ -110,9 +111,17 @@ contains
              endif
              listneigh(j) = ipart
              ipart = ll(ipart)
+             !--make sure we have a real particle
+             if (ipart.gt.ntotal .or. ipart.lt.0) then
+                write(iprint,*) 'ERROR in neighbour lists: ipart = ',ipart
+             endif
 !         print*,'listneigh ',j,'= ',listneigh(j)
           enddo
           j = j + 1
+          !--make sure we have a real particle
+          if (ipart.gt.ntotal .or. ipart.lt.0) then
+             write(iprint,*) 'ERROR in neighbour lists: ipart = ',ipart
+          endif
           listneigh(j) = ipart
        endif
 !    IF (j.GT.0) THEN 
