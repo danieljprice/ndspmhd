@@ -4,6 +4,7 @@
 !!
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim)
+  use setup_params, only:xlayer,dwidthlayer,Alayercs
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
@@ -47,6 +48,13 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         !
 !        fext(:) = fext(:) - dr(:)*drr2
 !     enddo
+  case(4)
+!
+!--boundary layer for acoustic-shock problem
+!
+     fext(:) = 0.
+     fext(1) = Alayercs*dwidthlayer*1./(COSH((xpart(1)-xlayer)*dwidthlayer))**2
+
   case default
      
      fext(:) = 0.
