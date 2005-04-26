@@ -137,7 +137,7 @@ SUBROUTINE setup
  ENDDO
  
  j = 2     
- DO WHILE (x(1,j).LT.xmax(1))
+ DO WHILE (x(1,j).LT.xmax(1) .AND. x(1,j).GT.xmin(1))
     dx0 = massp/dens(j)
     xhalf = x(1,j) + 0.5*dx0  !x at the mid point
     delta = xhalf/psep
@@ -199,6 +199,7 @@ SUBROUTINE setup
 
  npart = j-1
  ntotal = npart
+ print*,'end of setup, npart = ',npart
 !
 !--if using ghosts adjust outer boundary to lie half a particle spacing away
 !

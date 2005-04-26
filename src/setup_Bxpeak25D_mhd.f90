@@ -45,19 +45,19 @@ subroutine setup
 !
 !--setup parameters for the problem
 ! 
- xorigin(:) = 0.5 ! co-ordinates of the centre of the initial blast
- rbump = 2./sqrt(8.)        ! radius of the initial bump
- read(rootname(6:7),*,iostat=ierr) ibump
- if (ierr.eq.0) then
-    print*,'ibump = ',ibump
- else
-    read(rootname(6:6),*,iostat=ierr) ibump
-    if (ierr.eq.0) then
-       print*,'ibump = ',ibump
-    else
+ xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
+ rbump = 1./sqrt(8.)        ! radius of the initial bump
+! read(rootname(6:7),*,iostat=ierr) ibump
+! if (ierr.eq.0) then
+!    print*,'ibump = ',ibump
+! else
+!    read(rootname(6:6),*,iostat=ierr) ibump
+!    if (ierr.eq.0) then
+!       print*,'ibump = ',ibump
+!    else
        ibump = 1
-    endif
- endif
+!    endif
+! endif
  rbump = rbump/ibump  !!/16.
  rbump2 = rbump*rbump
  Bzero(:) = 0.
