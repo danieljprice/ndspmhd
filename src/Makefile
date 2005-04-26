@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS = -O -fbounds-check -Wall
+F90FLAGS = -O -r8 ##-fbounds-check -Wall
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
@@ -30,8 +30,7 @@ FFLAGS = $(F90FLAGS)
 # use the appropriate dimensions module
 
 SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
-SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90 \
-            direct_sum_poisson2D_vec.f90
+SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
 SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 
 ######################################################################
@@ -48,9 +47,10 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 #SETUP1D = setup_shockND.f90
+#SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
-#SETUP2D = setup_orszagtang2D_mhd.f90
+SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
@@ -66,7 +66,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
-SETUP2D = setup_Bxpeak25D_mhd.f90
+#SETUP2D = setup_Bxpeak25D_mhd.f90
 #SETUP2D = setup_disc2D_2.f90
 #SETUP2D = setup_logodivB.f90
 
@@ -83,7 +83,7 @@ SETUP3D = setup_disc3D.f90
 SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          allocateND.f90 readwrite_dumps.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND.f90 check_setup.f90 \
+         boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
          get_neighbour_lists.f90 \
@@ -100,8 +100,8 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 set_fixedbound.f90 \
 	 sobolsequence.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
-	 divBcorrect.f90 get_divB.f90 get_curl.f90 get_divBgradpsi.f90 \
-	 check_neighbourlist.f90
+	 get_divB.f90 divBcorrect.f90 get_curl.f90 get_divBgradpsi.f90 \
+	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
 SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
