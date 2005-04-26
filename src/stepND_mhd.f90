@@ -76,7 +76,7 @@ SUBROUTINE step
 !--if doing divergence correction then do correction to magnetic field
 ! 
  nsubsteps_divB = -1
- IF (idivBzero.GE.10) THEN
+ IF (idivBzero.GE.10 .and. MOD(nsteps,10).EQ.0) THEN
     CALL divBcorrect(npart,ntotal)
     Bevolin(:,1:ntotal) = Bevol(:,1:ntotal)
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'

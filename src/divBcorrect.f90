@@ -13,14 +13,17 @@ SUBROUTINE divBcorrect(npts,ntot)
  USE options
  USE part
  USE timestep
+
+ USE getdivB
+ 
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npts, ntot
  REAL, PARAMETER :: pi = 3.14159265358979
  INTEGER :: i,icall
  REAL :: phi,dpi,ecrap,momcrap
  REAL, DIMENSION(npts) :: source
- REAL, DIMENSION(ntot) :: divBonrho
- REAL, DIMENSION(ndimV,ntot) :: curlBonrho
+ REAL, DIMENSION(size(rho)) :: divBonrho
+ REAL, DIMENSION(ndimV,size(rho)) :: curlBonrho
  REAL, DIMENSION(ndimV,npts) :: sourcevec,curlA
  REAL, DIMENSION(ndim,npts) :: gradphi
  LOGICAL :: debugging
@@ -55,6 +58,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--get neighbours and calculate density if required
 !
        if (debugging) write(iprint,*) ' linking ...'
+       if (any(ibound.gt.1)) call set_ghost_particles
        call set_linklist
        if (debugging) write(iprint,*) ' calculating density...'
        if (icty.le.0) call iterate_density
@@ -62,7 +66,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--calculate div B source term for poisson equation
 !       
        if (debugging) write(iprint,*) ' calculating div B before correction'
-       call get_divB(divBonrho,ntot)
+       call get_divB(divBonrho(1:ntot),ntot)
        if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
        divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
 
@@ -123,6 +127,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--get neighbours and calculate density if required
 !
        if (debugging) write(iprint,*) ' linking ...'
+       if (any(ibound.gt.1)) call set_ghost_particles
        call set_linklist
        if (debugging) write(iprint,*) ' calculating density...'
        if (icty.le.0) call iterate_density
@@ -148,6 +153,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !
 !--specify the source term for the Poisson equation
 !    
+       sourcevec = 0.
        do i=1,npart
           sourcevec(:,i) = pmass(i)*curlBonrho(:,i)*dpi
        enddo
@@ -155,7 +161,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--calculate the correction to the magnetic field
 ! 
        write(iprint,"(a)",ADVANCE='NO') ' div B correction by vector projection step...'
-       !!CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
+       CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
 !
 !--correct the magnetic field
 !              
@@ -172,17 +178,27 @@ SUBROUTINE divBcorrect(npts,ntot)
           ENDDO
        ENDIF
        if (ntot.gt.npart) then
+          !
+          !--overwrite B near boundary
+          !
           do i=npart+1,ntot
-             call copy_particle(i,ireal(i))
+             call copy_particle(ireal(i),i)
           enddo
        endif
        
        if (debugging) then
           write(iprint,*) ' calculating div/curl B after correction'
           call get_divB(divBonrho,ntot)
-          if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
+          !
+          !--set divB to zero on ghosts and on real counterparts
+          !  this is to avoid problems at the boundary
+          !
+          do i=npart+1,ntot
+             divBonrho(i) = 0.
+             divBonrho(ireal(i)) = 0.
+          enddo
           divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
-
+          
           call get_curl(curlBonrho,ntot)
           if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
           do i=1,ntot
