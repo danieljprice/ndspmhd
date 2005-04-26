@@ -77,7 +77,7 @@ subroutine iterate_density
      enddo
   endif
   if (any(pmass(1:npart).ne.pmass(1))) then
-     rhomin = minval(rho(1:npart))
+     rhomin = 0. !!minval(rho(1:npart))
   else
      rhomin = 0.
   endif
@@ -106,12 +106,12 @@ subroutine iterate_density
 !--calculate the density (using h), for either all the particles or
 !  only on a partial list
 !     
-!     if (ncalc.eq.npart) then
-!        call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
-!        !call output(0.0,1)
-!     else
+     if (ncalc.eq.npart) then
+        call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
+!!        call output(0.0,1)
+     else
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
-!     endif
+     endif
      
      ncalctotal = ncalctotal + ncalc
      ncalcprev = ncalc
@@ -140,7 +140,7 @@ subroutine iterate_density
                  print*,'warning: omega < 1.e-5 ',i,omegai
                  if (abs(omegai).eq.0.) call quit
               endif
-              gradh(i) = 1.  !!!/omegai   ! this is what *multiplies* the kernel gradient in rates etc
+              gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
 !
 !--perform Newton-Raphson iteration to get new h
 !      
@@ -247,7 +247,7 @@ subroutine iterate_density
 
 
 !--NB: itsdensity is also used in step  
-  if (itsdensity.gt.2 .or. (itsdensity.gt.1 .and. ndim.ge.2)) then
+  if ((itsdensity.gt.1 .and. ndim.ge.2)) then
      write(iprint,*) ' Finished density, iterations = ', &
                      itsdensity, ncalctotal,' used rhomin = ',rhomin
   endif
