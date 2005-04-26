@@ -76,8 +76,8 @@ subroutine get_rates
 !  (av switch)
 !
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
- real :: graduterm
- real, dimension(:,:), allocatable :: gradu
+ real :: graduterm, graddivvmag
+ real, dimension(:,:), allocatable :: gradu, graddivv
 !
 !  (alternative forms)
 !
@@ -107,7 +107,6 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax,dtcourant2
- integer :: idim
 
 !
 !--allow for tracing flow
@@ -119,7 +118,7 @@ subroutine get_rates
  nlistdim = ntotal
  allocate ( listneigh(nlistdim),STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
- allocate ( phi(ntotal), gradu(ndim,ntotal), STAT=ierr )
+ allocate ( phi(ntotal), gradu(ndim,ntotal), graddivv(ndimV,ntotal), STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr  
  listneigh = 0
 !
@@ -143,6 +142,7 @@ subroutine get_rates
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
   gradu(:,i) = 0.0
+  graddivv(:,i) = 0.0
  enddo
 !
 !--set MHD quantities to zero if mhd not set
@@ -373,6 +373,7 @@ subroutine get_rates
        curlB(:,i) = curlB(:,i)*rho1i
     endif    
     gradu(:,i) = gradu(:,i)*rho1i
+    graddivv(:,i) = graddivv(:,i)
 !
 !--calculate time derivative of the smoothing length from the density derivative
 !
@@ -443,11 +444,17 @@ subroutine get_rates
        !
        !--artificial viscosity parameter
        !
-       if (iavlim(1).ne.0) then
+       select case(iavlim(1))
+       case(1)
           source = max(drhodt(i)*rho1i,0.0)
           if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))      
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
-       endif
+       case(2)
+          graddivvmag = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
+          !!print*,'graddivvmag = ',graddivvmag,max(drhodt(i)*rho1i,0.0)
+          source = hh(i)*graddivvmag*(2.0-alpha(1,i))
+          daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
+       end select
        !
        !--artificial thermal conductivity parameter
        !
@@ -517,7 +524,7 @@ subroutine get_rates
  enddo
 
  if (allocated(listneigh)) deallocate(listneigh)
- if (allocated(phi)) deallocate(phi,gradu)
+ if (allocated(phi)) deallocate(phi,gradu,graddivv)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
       
  return
@@ -691,6 +698,8 @@ contains
     vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
     vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
+    !!vsiglin = vsigi + vsigj
+    !!vsignonlin = beta*abs(dvdotr)
     
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
@@ -775,10 +784,17 @@ contains
 !  grad u term for dissipation switch
 !------------------------------------------------------------------------
 
-    if (iav.gt.0 .and. iavlim(2).ne.0) then
-       graduterm = uu(j)-uu(i)
-       gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
-       gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
+    if (iav.gt.0) then
+       if (iavlim(2).ne.0) then
+          graduterm = uu(j)-uu(i)
+          gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
+          gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
+       endif
+       if (iavlim(1).eq.2) then
+          !!graddivvterm = 
+          graddivv(:,i) = graddivv(:,i) + pmassj*rho1j/rij*dvdotr*grkerni*dr(:)
+          graddivv(:,j) = graddivv(:,j) - pmassi*rho1i/rij*dvdotr*grkernj*dr(:)
+       endif
     endif
 
 !----------------------------------------------------------------------------
@@ -947,7 +963,6 @@ contains
 !----------------------------------------------------------------
   subroutine mhd_terms
     implicit none
-    real :: divBonrho
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
