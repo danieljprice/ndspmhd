@@ -1,60 +1,64 @@
+module getdivB
+ use get_neighbour_lists
+ implicit none
+ 
+contains
+
 !!------------------------------------------------------------------------
 !! Computes an SPH estimate of div B
 !! This version computes div B on all particles
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-SUBROUTINE get_divB(divBonrho,ntot)
- USE dimen_mhd
- USE debug
- USE loguns
+subroutine get_divB(divBonrho,ntot)
+ use dimen_mhd
+ use debug
+ use loguns
  
- USE bound
- USE hterms
- USE kernel
- USE linklist
- USE options
- USE part
- USE setup_params
- USE get_neighbour_lists
+ use bound
+ use hterms
+ use kernel
+ use linklist
+ use options
+ use part
+ use setup_params
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER, INTENT(IN) :: ntot
- INTEGER :: i,j,n
- INTEGER :: icell,iprev,nneigh,nlistdim
- INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
- INTEGER :: idone
+ implicit none
+ integer, intent(in) :: ntot
+ real, dimension(:), intent(out) :: divBonrho
+ integer :: i,j,n
+ integer :: icell,iprev,nneigh
+ integer, dimension(ntot) :: listneigh ! neighbour list
+ integer :: idone
 !
 !  (particle properties - local copies)
 !      
- REAL :: rij,rij2
- REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
- REAL :: hfacwab,hfacwabi,hfacwabj
- REAL :: rho21i, rho21j, term, projdB
- REAL, DIMENSION(ndim) :: dx
- REAL, DIMENSION(ndimV) :: dr
- REAL, DIMENSION(ntot), INTENT(OUT) :: divBonrho
+ real :: rij,rij2
+ real :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
+ real :: hfacwab,hfacwabi,hfacwabj
+ real :: rho21i, rho21j, term, projdb
+ real, dimension(ndim) :: dx
+ real, dimension(ndimv) :: dr
 !
 !  (kernel quantities)
 !
- REAL :: q2,q2i,q2j      
- REAL :: wab,wabi,wabj
- REAL :: grkern,grkerni,grkernj
+ real :: q2,q2i,q2j      
+ real :: wab,wabi,wabj
+ real :: grkern,grkerni,grkernj
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine get_divB, ntot=',ntot  
+ if (trace) WRITE(iprint,*) ' Entering subroutine get_divB, ntot=',ntot  
 !
 !--initialise quantities
 !
- nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )     ! max size of neighbour list
-
+ !!!print*,'ntot = ',ntot, 'size= ',size(divBonrho)
  DO i=1,ntot
     divBonrho(i) = 0.
  ENDDO
+ listneigh = 0
 !
 !--Loop over all the link-list cells
 !
@@ -69,7 +73,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
 !
     i = ifirstincell(icell)
     idone = -1     ! note density summation includes current particle
-    IF (i.NE.-1) iprev = i
+    if (i.NE.-1) iprev = i
 
     loop_over_cell_particles: DO WHILE (i.NE.-1)          ! loop over home cell particles
 
@@ -85,8 +89,14 @@ SUBROUTINE get_divB(divBonrho,ntot)
 !
        loop_over_neighbours: DO n = idone+1,nneigh
           j = listneigh(n)
-          IF ((j.NE.i).AND..NOT.(j.GT.npart .AND. i.GT.npart)) THEN
+          if ((j.NE.i).AND..NOT.(j.GT.npart .AND. i.GT.npart)) THEN
              ! don't count particle with itself       
+!!            
+             if (j.lt.0 .or. j.gt.ntotal) then
+                print*,i,j
+                print*,listneigh(1:nneigh)
+                print*,'n=',n,' listneigh(n) = ',listneigh(n)
+             endif
              dx(:) = x(:,i) - x(:,j)
              hj = hh(j)
              hj1 = 1./hj
@@ -114,18 +124,18 @@ SUBROUTINE get_divB(divBonrho,ntot)
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-             IF (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
+             if (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
                   .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
 !
                 !       PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
-                IF (ikernav.EQ.1) THEN          
+                if (ikernav.EQ.1) THEN          
                    CALL interpolate_kernel(q2,wab,grkern)
                    wab = wab*hfacwab
                    grkern = grkern*hfacwab*hj1
-                ELSE
+                else
                    !  (using hi)
                    CALL interpolate_kernel(q2i,wabi,grkerni)
                    wabi = wabi*hfacwabi
@@ -137,12 +147,12 @@ SUBROUTINE get_divB(divBonrho,ntot)
                    !  (calculate average)            
                    wab = 0.5*(wabi + wabj)                  
                    grkern = 0.5*(grkerni + grkernj)
-                ENDIF
+                endif
 
-                IF (ikernav.NE.3) THEN
+                if (ikernav.NE.3) THEN
                    grkerni = grkern
                    grkernj = grkern
-                ENDIF         
+                endif         
 !
 !--calculate div B
 !
@@ -155,29 +165,30 @@ SUBROUTINE get_divB(divBonrho,ntot)
 
                 !divBonrho(i) = divBonrho(i) + pmass(j)*term
                 !divBonrho(j) = divBonrho(j) - pmass(i)*term
-                !      ELSE
+                !      else
                 !         PRINT*,' r/h > 2 '      
                 
-             ENDIF
-          ENDIF! j .ne. i   
+             endif
+          endif! j .ne. i   
        ENDDO loop_over_neighbours
        
        iprev = i
-       IF (iprev.NE.-1) i = ll(i)          ! possibly should be only IF (iprev.NE.-1)
+       if (iprev.NE.-1) i = ll(i)          ! possibly should be only if (iprev.NE.-1)
     ENDDO loop_over_cell_particles
     
  ENDDO loop_over_cells
 
- IF (ikernav.EQ.3) THEN
+ if (ikernav.EQ.3) THEN
     do i=1,ntotal
        divBonrho(i) = gradh(i)*divBonrho(i)/rho(i)**2
     enddo
- ELSE
+ else
     do i=1,ntotal
        divBonrho(i) = divBonrho(i)/rho(i)**2
     enddo
- ENDIF
+ endif
 
  RETURN
 END SUBROUTINE get_divB
-      
+
+end module getdivB   
