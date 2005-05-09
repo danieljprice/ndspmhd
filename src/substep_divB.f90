@@ -43,12 +43,12 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
  INTEGER, DIMENSION(ntot), INTENT(IN) :: itype
  REAL, INTENT(IN) :: dtfull
  REAL, DIMENSION(ndimV,ntot), INTENT(INOUT) :: Bevol,gradpsi
- REAL, DIMENSION(ntot), INTENT(INOUT) :: psi,divBi,rho
+ REAL, DIMENSION(ntot), INTENT(INOUT) :: psi,divBi
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass
+ REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass, rho
  REAL, DIMENSION(ntot) :: psiin
  REAL, DIMENSION(ndimV,ntot) :: Bevolin, Bfield
- REAL :: dpsidti
+ REAL :: dpsidti, alphasub
  INTEGER :: i,j,istep,indexmax,nsubsteps,nloops,isteptot
  INTEGER, DIMENSION(1) :: imaxpart
  REAL :: dtsub,hdt,vsig2substep,vsigsubstep, maxdivBi,crap1,crap2
@@ -73,17 +73,16 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
  print*,' nsubsteps = ',nsubsteps, ' vsigmax = ',vsigsubstep,sqrt(vsig2max)
  imaxpart = maxloc(abs(divBi(1:npart)))
  print*,' maxdivBi = ',divBi(imaxpart),' on part',imaxpart
- print*,'npart = ',npart,ntot
+ !!print*,'npart = ',npart,ntot
  
  print*,'min h = ',minval(hh(1:npart))
  print*,'dt should be = ',minval(hh(1:npart))/vsigsubstep
  
- psi(:) = 0.
  psiin = psi
  Bevolin = Bevol 
-!! rho = rhoin
- divBi(:) = 0.
- gradpsi(:,:) = 0.
+! divBi(:) = 0.
+! gradpsi(:,:) = 0.
+ alphasub = 0.1
 
  nloops = nsubstepsin + 1
 
@@ -102,7 +101,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
 ! if ((icall.eq.1) .and. (istep.eq.nloops)) docorrector = .false.
 
  if (dopredictor) then
-    write(iprint,*) ' substep: predictor '  !!,psi(2),Bevol(:,2),Bevolin(:,2),gradpsi(:,2),hdt
+    write(iprint,*) ' substep: predictor ',Bevol(:,imaxpart) !!,Bevolin(:,2) !!,gradpsi(:,2),hdt
     !
     !--Mid-point Predictor step
     !
@@ -151,8 +150,6 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
           Bevol(:,i) = Bevol(:,j)
           Bfield(:,i) = Bfield(:,j)
           psi(i) = psi(j)
-          rho(i) = rho(j)
-          !!hh(i) = hh(j)
        ENDDO
     ENDIF
 
@@ -168,10 +165,10 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
     !enddo
     !print*,'before mini rates: max divBi = ',maxdivBi,imaxpart
 
-    CALL get_divBgradpsi(divBi,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
+    CALL get_divBgradpsi(divBi,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot,alphasub)
     
-    maxdivBi = 0.
-    imaxpart = 0
+    maxdivBi = -1.0
+    imaxpart = 1
     do i=1,npart
        if (itype(i).eq.0) then
           if (abs(divBi(i)).gt.maxdivBi) then
@@ -180,6 +177,9 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
           endif
        endif
        divB(i) = divBi(i)
+    enddo
+    do i=npart+1,ntot
+       divB(i) = divB(ireal(i))
     enddo
     print*,'after mini rates: max divBi = ',maxdivBi,imaxpart,istep,real(isteptot)
     isteptot = isteptot + 1
@@ -194,8 +194,6 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
     !
     !--Mid-point Corrector step
     !
-
-
     DO i=1,npart
        dpsidti = -vsig2substep*divBi(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
        IF (itype(i).EQ.1) THEN

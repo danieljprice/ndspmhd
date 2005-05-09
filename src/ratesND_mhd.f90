@@ -372,8 +372,8 @@ subroutine get_rates
        divB(i) = divB(i)*rho1i            !*rhoi
        curlB(:,i) = curlB(:,i)*rho1i
     endif    
-    gradu(:,i) = gradu(:,i)*rho1i
-    graddivv(:,i) = graddivv(:,i)
+    if (iavlim(2).eq.1) gradu(:,i) = gradu(:,i)*rho1i
+    !!graddivv(:,i) = graddivv(:,i)
 !
 !--calculate time derivative of the smoothing length from the density derivative
 !
@@ -445,11 +445,11 @@ subroutine get_rates
        !--artificial viscosity parameter
        !
        select case(iavlim(1))
-       case(1)
+       case(1,2)
           source = max(drhodt(i)*rho1i,0.0)
           if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))      
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
-       case(2)
+       case(3)
           graddivvmag = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
           !!print*,'graddivvmag = ',graddivvmag,max(drhodt(i)*rho1i,0.0)
           source = hh(i)*graddivvmag*(2.0-alpha(1,i))
@@ -458,14 +458,21 @@ subroutine get_rates
        !
        !--artificial thermal conductivity parameter
        !
-       if (iavlim(2).ne.0 .and. iener.gt.0) then
-          if (uu(i).gt.0.) then
-             sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
-          else
-             sourceu = 0.
-          endif
-          if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
-          daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
+       if (iener.gt.0) then
+          select case(iavlim(2))
+          case(1)
+             if (uu(i).gt.0.) then
+                sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
+             else
+                sourceu = 0.
+             endif          
+             !!if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
+             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
+          case(2)
+             !--this is using h*/sqrt(u)*(del^2 u) as the source
+             sourceu = hh(i)*abs(gradu(1,i))/sqrt(uu(i))
+             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
+          end select
        endif
        !
        !--artificial resistivity parameter if iavlim > 10
@@ -785,11 +792,16 @@ contains
 !------------------------------------------------------------------------
 
     if (iav.gt.0) then
-       if (iavlim(2).ne.0) then
+       select case(iavlim(2))
+       case(2)
+          graduterm = (uu(i)-uu(j))/rij
+          gradu(1,i) = gradu(1,i) + pmassj*rho1j*graduterm*grkerni
+          gradu(1,j) = gradu(1,j) - pmassi*rho1i*graduterm*grkernj      
+       case(1)
           graduterm = uu(j)-uu(i)
           gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
           gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
-       endif
+       end select
        if (iavlim(1).eq.2) then
           !!graddivvterm = 
           graddivv(:,i) = graddivv(:,i) + pmassj*rho1j/rij*dvdotr*grkerni*dr(:)

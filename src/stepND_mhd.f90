@@ -80,8 +80,9 @@ SUBROUTINE step
     CALL divBcorrect(npart,ntotal)
     Bevolin(:,1:ntotal) = Bevol(:,1:ntotal)
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
- ELSEIF (idivBzero.GE.2) THEN
+ ELSEIF (idivBzero.GE.1) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
+    print*,'max div B = ',maxdivB
     
     nsubsteps_divB = -1
     !IF (maxdivB.gt.1.0) then
@@ -94,30 +95,34 @@ SUBROUTINE step
 !
     gradpsiprev = gradpsi
     divBprev = divB
-    IF (nsubsteps_divB.GE.0 .and. vsig2max.gt.0. .and. maxdivB.gt.10.0) THEN
+    IF (nsubsteps_divB.GE.0 .and. vsig2max.gt.0.) THEN
        IF (nsubsteps_divB.GT.0) THEN
           IF (ANY(ibound.GE.2)) CALL set_ghost_particles
           CALL set_linklist ! update neighbours for divB/gradpsi calls
+          CALL iterate_density ! calculate density for divB/gradpsi calls
        ENDIF
        CALL output(0.0,1)
        !psidecayfact = 1.0
-       !DO i=1,40
-          CALL substep_divB(1,dt,100,Bevol(:,1:ntotal),psi(1:ntotal), &
+       psi = 0.
+       divB = 0.
+       gradpsi = 0.
+       DO i=1,100
+          CALL substep_divB(1,dt,0,Bevol(:,1:ntotal),psi(1:ntotal), &
                          divB(1:ntotal),gradpsi(:,1:ntotal), &
                          x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
                          rho(1:ntotal),itype(1:ntotal),npart,ntotal)
           !CALL evwrite(real(i),crap1,crap2)
-          CALL output(psidecayfact,1)
-       !ENDDO   
-          divBlammax = 1000.0
-          DO i=1,npart
-             if (abs(divB(i)).gt.1.e-5) then
-             divBlam = sqrt(dot_product(Bevol(:,i),Bevol(:,i)))*rho(i)/abs(divB(i))
-             divBlammax = min(divBlam,divBlammax)
-             endif
-          ENDDO
-          print*,'min wavelength = ',divBlammax
-          read*
+          CALL output(psidecayfact,i)
+       ENDDO   
+!          divBlammax = 1000.0
+!          DO i=1,npart
+!             if (abs(divB(i)).gt.1.e-5) then
+!             divBlam = sqrt(dot_product(Bevol(:,i),Bevol(:,i)))*rho(i)/abs(divB(i))
+!             divBlammax = min(divBlam,divBlammax)
+!             endif
+!          ENDDO
+!          print*,'min wavelength = ',divBlammax
+!          read*
 
        !DO i=1,50
 !          psidecayfact = 0.16

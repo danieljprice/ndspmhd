@@ -10,12 +10,12 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-F90C = ifc
-F90FLAGS =  -O3 -WB -r8
-LDFLAGS = -Vaxlib
-#F90C =  g95
-#F90FLAGS = -O -r8 ##-fbounds-check -Wall
-#LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+#F90C = ifc
+#F90FLAGS =  -O -C -WB -r8
+#LDFLAGS = -Vaxlib
+F90C =  g95
+F90FLAGS = -O -r8 -Wall##-fbounds-check -Wall
+LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -50,7 +50,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
-SETUP2D = setup_orszagtang2D_mhd.f90
+#SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
@@ -60,7 +60,7 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90 
-#SETUP2D = setup_shockND.f90
+SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
