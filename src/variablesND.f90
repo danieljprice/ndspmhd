@@ -139,7 +139,7 @@ MODULE loguns
  IMPLICIT NONE
  INTEGER :: iprint,ievfile,idatfile,iread,ireadf
  INTEGER :: ifile
- CHARACTER(LEN=20) :: rootname       ! name of the run
+ CHARACTER(LEN=120) :: rootname       ! name of the run
 END MODULE loguns   
 
 !-------------------------------------------------------------------

@@ -52,14 +52,14 @@ PROGRAM SUPERSPMHD_ND
  IMPLICIT NONE
  INTEGER, PARAMETER :: maxruns = 20
  INTEGER :: i,iprev,irun, nruns
- CHARACTER(LEN=20), DIMENSION(maxruns) :: runname
+ CHARACTER(LEN=len(rootname)), DIMENSION(maxruns) :: runname
 !
 !--version number
 !
     version = 'NDSPMHD-3D-v5-3'
 !   * multiple runnames off command line (does them in order)
 !   * dissipation switches for resistivity and conductivity
-!   * anticlumping term implemented as a modified kernela gradient
+!   * anticlumping term implemented as a modified kernel gradient
 !   * gradh terms calculated for anticlumping kernel (**removed)
 !   * particle info explicitly passed to density, density_partial
 !   * external_forces subroutine cleaned up + potential calculation
