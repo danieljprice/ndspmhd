@@ -56,7 +56,7 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-2
+  tol = 1.e-5
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
@@ -238,6 +238,20 @@ subroutine iterate_density
            gradh(i) = gradh(j)
         enddo
      endif
+     !
+     !--analytically-corrected boundaries
+     !
+!     if (any(ibound.eq.-1)) then
+!        do i=1,npart
+!           dxmin = abs(x(:,i) - xmin(:))/hh(i)
+!           dxmax = abs(x(:,i) - xmax(:))/hh(i)
+!           if (any(dxmin.gt.radkernel)) then
+!              normfactor = wijint(i)
+!           elseif (any(dxmin.gt.radkernel)) then
+!          
+!           endif
+!        enddo
+!     endif
           
      !!call output(0.0,1)
      !!read*
@@ -280,48 +294,4 @@ subroutine iterate_density
 !     call pgend
   
   return
-  
- contains
- 
-!------------------------------------------------------------
-! these functions define the relationship between h and rho
-!------------------------------------------------------------
-  real function hrho(hfacti,pmassi,rhoi)
-   use dimen_mhd
-   use loguns
-   implicit none
-   real :: pmassi,rhoi,hfacti
-   
-   if (rhoi.le.0.) write(iprint,*) '*** ERROR: rho < 0 in hrho'
-   hrho = hfacti*(pmassi/rhoi)**dndim
-    
-  end function hrho
-  
-  real function rhoh(hfacti,pmassi,hi)
-   use dimen_mhd
-   implicit none
-   real :: hfacti, pmassi, hi
-   
-   rhoh = pmassi*(hfacti/hi)**dndim
-  
-  end function rhoh
-  
-  real function dhdrho(hi,rhoi)
-   use dimen_mhd
-   implicit none
-   real :: hi, rhoi
-  
-   dhdrho = -hi/(ndim*rhoi)
-  
-  end function dhdrho
-  
-  real function drhodh(rhoi,hi)
-   use dimen_mhd
-   implicit none
-   real :: rhoi, hi
-   
-   drhodh = -ndim*rhoi/hi
-   
-  end function drhodh
-  
 end subroutine iterate_density
