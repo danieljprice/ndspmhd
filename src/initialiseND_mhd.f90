@@ -188,18 +188,10 @@ SUBROUTINE initialise
  else
     rhomin = 0.
  endif
-
 !
 !--if using fixed particle boundaries, set them up
 !
  IF (ANY(ibound.EQ.1)) CALL set_fixedbound
-!
-!--calculate the conservative quantities (rho, en, B/rho)
-!  this also sets the smoothing length
-!
- call primitive2conservative
-
-! call check_neighbourlist
 !
 !--Set derivatives to zero until calculated
 !      
@@ -212,6 +204,14 @@ SUBROUTINE initialise
  dBevoldt = 0.
  dpsidt = 0.
  gradpsi = 0.
+!
+!--calculate the conservative quantities (rho, en, B/rho)
+!  this also sets the smoothing length
+!
+ call primitive2conservative
+
+! call check_neighbourlist
+
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
