@@ -15,7 +15,7 @@ program kernelplot
  logical :: samepage
  character(len=50) :: text
 
- data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 8, 9/   ! order in which kernels are plotted
+ data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 8, 21/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 10
  iprint = 6   ! make sure output from kernel setup goes to screen
