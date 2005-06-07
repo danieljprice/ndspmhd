@@ -14,15 +14,12 @@ contains
 !!------------------------------------------------------------------------
 
   subroutine density(x,pmass,hh,rho,gradh,npart)
-    use dimen_mhd
-    use debug
-    use loguns
- 
-    use bound
-    use kernel
-    use linklist
-    use options
-    use setup_params
+    use dimen_mhd, only:ndim
+    use debug, only:trace
+    use loguns, only:iprint
+    use kernel, only:radkern2
+    use linklist, only:ll,ifirstincell,numneigh,ncellsloop
+    use options, only:ikernav
     !use matrixcorr
 !
 !--define local variables
@@ -33,7 +30,7 @@ contains
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho, gradh
  
-    integer :: i,j,n,idim
+    integer :: i,j,n
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh
     integer :: idone
@@ -143,10 +140,6 @@ contains
                    grkerni = grkern
                    grkernj = grkern
                 else
-              !
-              !--calculate both kernels if using the anticlumping term
-              !  (so can calculate grad h terms for both kernels)
-              !
               !  (using hi)
                    call interpolate_kernel(q2i,wabi,grkerni)
                    wabi = wabi*hfacwabi
@@ -234,13 +227,12 @@ contains
 !!------------------------------------------------------------------------
   
   subroutine density_partial(x,pmass,hh,rho,gradh,npart,nlist,ipartlist)
-    use dimen_mhd
-    use debug
-    use loguns
+    use dimen_mhd, only:ndim
+    use debug, only:trace
+    use loguns, only:iprint
  
-    use bound
-    use kernel
-    use linklist
+    use kernel, only:radkern2
+    use linklist, only:iamincell,numneigh
     !use matrixcorr
 !
 !--define local variables
@@ -253,8 +245,8 @@ contains
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
-    integer :: i,j,n,idim
-    integer :: icell,ipart,nneigh,minneigh,minpart
+    integer :: i,j,n
+    integer :: icell,ipart,nneigh !!,minneigh,minpart
     integer, dimension(npart) :: listneigh
     integer :: icellprev
 !
