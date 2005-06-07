@@ -69,7 +69,7 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin
 !! real :: vsigii,vsigjj
 !
 !  (av switch)
@@ -85,7 +85,7 @@ subroutine get_rates
 !
 !  (kernel related quantities)
 !
- real :: q2,q2i,q2j
+ real :: q2i,q2j
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
  real :: gradhi
@@ -543,7 +543,7 @@ contains
     implicit none
     real :: prstar, vstar
     real :: projvi, projvj, dvsigdtc
-    real :: hav,hav1,h21
+    real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
 !
 !--calculate both kernels if using anticlumping kernel
@@ -615,6 +615,8 @@ contains
          wabi = wabi*hfacwabi
          grkerni = grkerni*hfacgrkerni
          !  (using hj)
+         hfacwabj = hj1**ndim
+         hfacgrkernj = hfacwabj*hj1
          call interpolate_kernel(q2j,wabj,grkernj)
          wabj = wabj*hfacwabj
          grkernj = grkernj*hfacgrkernj
@@ -709,8 +711,7 @@ contains
     vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
     vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
-    !!vsiglin = vsigi + vsigj
-    !!vsignonlin = beta*abs(dvdotr)
+    vsignonlin = beta*abs(dvdotr)
     
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
@@ -840,6 +841,7 @@ contains
     real :: qdiff
     real :: vissv,vissB,vissu
     real :: term,dpmomdotr
+    real :: termnonlin
     !
     !--definitions
     !      
@@ -853,6 +855,8 @@ contains
        dpmomdotr = -dvdotr
     endif
     term = 0.5*vsig*rhoav1*grkern
+    termnonlin = term
+    !!termnonlin = 0.5*vsignonlin*rhoav1*grkern
 
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
@@ -879,7 +883,7 @@ contains
     else
        Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
     endif
-    dBdtvisc(:) = alphaB*term*Bvisc(:)
+    dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
     
     !
     !--add to d(B/rho)/dt (converted to dB/dt later if required)
@@ -966,8 +970,8 @@ contains
        !
        !  add to thermal energy equation
        ! 
-       dudt(i) = dudt(i) + pmassj*term*(vissv + vissB + vissu)
-       dudt(j) = dudt(j) + pmassi*term*(vissv + vissB - vissu)    
+       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termnonlin*(vissB + vissu))
+       dudt(j) = dudt(j) + pmassi*(term*(vissv) + termnonlin*(vissB - vissu))    
     endif
     
     return
