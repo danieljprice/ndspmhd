@@ -12,29 +12,29 @@
 !!        NOT boundaryND_1D.f90 (ie. no inflow/outflow)                   !!
 !!------------------------------------------------------------------------!!
 subroutine setup
- use dimen_mhd
- use debug
- use loguns
- use bound
+ use dimen_mhd, only:ndim,ndimV
+ use debug, only:trace
+ use loguns, only:rootname,ireadf,iprint
+ use bound, only:xmin,xmax
  use eos
  use options
  use part
  use setup_params
- use timestep  ! uses tmax for moving boundaries
+ use timestep, only:tmax
  
  use uniform_distributions
  implicit none
- integer :: i,j
+ integer :: i,npartold,nparty
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
  real :: dsmooth, exx, delta, const
  real :: massp,masspleft,masspright,Bxinit,Byleft,Byright,Bzleft,Bzright
  real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
- real, dimension(ndim) :: sidelength,xminleft,xminright,xmaxleft,xmaxright
- real :: boxlength, xshock, gam1, psepleft, psepright
+ real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
+ real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,mach_R,mach_L,vjump,gamm1
  character(len=20) :: shkfile
- logical :: equalmass
+ logical :: equalmass, stretchx
 !
 !--allow for tracing flow
 !
@@ -46,6 +46,7 @@ subroutine setup
 !
  dsmooth = 0.   
  equalmass = .true.   ! use equal mass particles??
+ stretchx = .true.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
  gamm1 = gamma - 1.
  
@@ -135,13 +136,12 @@ subroutine setup
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
  boxlength = 1.0
- sidelength(1) = 512.        ! relative dimensions of boundaries
- if (ndim.ge.2) sidelength(2:ndim) = 6.
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
+ nparty = 4
  if (ndim.ge.2) then
-    xmin(2:ndim) = 0.0   !-0.5*boxlength*sidelength(2:ndim)/sidelength(1)
-    xmax(2:ndim) = xmin(2:ndim) + 4.*psep !!!abs(xmin(2:ndim))
+    xmin(2:ndim) = 0.0
+    xmax(2:ndim) = xmin(2:ndim) + nparty*psep !!!abs(xmin(2:ndim))
  endif
 !
 !--extend boundaries if inflow
@@ -172,19 +172,43 @@ subroutine setup
  psepright = psep*(densleft/densright)**(1./ndim)
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
-    print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
-    print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
-!!    massp = (psep**ndim)*densright
-    call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
-    xmin = xminleft
-    volume = PRODUCT(xmaxleft-xminleft)
-    total_mass = volume*densleft
-    massp = total_mass/npart
-    masspleft = massp
-    masspright = massp
- 
-    call set_uniform_cartesian(1,psepright,xminright,xmaxright,fill=.true.) ! set right half
-    xmax = xmaxright
+    if (stretchx) then
+       !--this makes the density jump by stretching in the x direction only
+       psepleftx = psep
+       pseprightx = psep*(densleft/densright)
+       print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
+       print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
+       call set_uniform_cartesian(1,psep,xminleft,xmaxleft,psepx=psepleftx)  ! set left half
+       xmin = xminleft
+       xminleft(1) = xshock - npart/nparty*psep !!! = xminleft
+       xmin(1) = xshock - npart/nparty*psep !!! = xminleft
+       volume = PRODUCT(xmaxleft-xminleft)
+       total_mass = volume*densleft
+       massp = total_mass/npart
+       print*,'particle mass = ',massp
+       masspleft = massp
+       masspright = massp
+
+       npartold = npart
+       call set_uniform_cartesian(1,psep,xminright,xmaxright,psepx=pseprightx) ! set right half
+       xmax = xmaxright
+       xmax(1) = xshock + (npart-npartold)/nparty*pseprightx 
+    else
+       !--this sets up a square lattice    
+       print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
+       print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
+   !!    massp = (psep**ndim)*densright
+       call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
+       xmin = xminleft
+       volume = PRODUCT(xmaxleft-xminleft)
+       total_mass = volume*densleft
+       massp = total_mass/npart
+       masspleft = massp
+       masspright = massp
+
+       call set_uniform_cartesian(1,psepright,xminright,xmaxright,fill=.true.) ! set right half
+       xmax = xmaxright
+    endif
  else  ! set all of volume if densities are equal
     call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
     volume = PRODUCT(xmax-xmin)
@@ -224,7 +248,7 @@ subroutine setup
     delta = (x(1,i) - xshock)/psep
     if (delta.GT.dsmooth) then
        dens(i) = densright
-       uu(i) = uuright 
+       uu(i) = uuright
        vel(1,i) = vxright
        pmass(i) = masspright
        if (ndimV.ge.2) vel(2,i) = vyright
@@ -263,6 +287,21 @@ subroutine setup
     endif           
     Bfield(1,i) = Bxinit
  enddo
+!
+!--if no smoothing applied, get rho from a sum and then set u to give a
+!  smooth pressure jump (no spikes)
+!
+ if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
+    call primitive2conservative
+    do i=1,npart
+       if (x(1,i).le.xshock) then
+          uu(i) = prleft/(gam1*rho(i))
+       else
+          uu(i) = prright/(gam1*rho(i))
+       endif
+    enddo
+ endif
+
 !
 !--setup const component of mag field which can be subtracted
 !
