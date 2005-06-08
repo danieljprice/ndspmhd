@@ -13,7 +13,8 @@ contains
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,perturb)
+subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
+           fill,adjustbound,offset,perturb,psepx,psepy,psepz)
 !
 !--include relevant global variables
 !
@@ -32,13 +33,12 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,
  integer, intent(in) :: idistin
  real, dimension(ndim), intent(inout) :: xmin, xmax
  real, intent(in) :: psep
- real, intent(in), optional :: perturb
+ real, intent(in), optional :: perturb,psepx,psepy,psepz
  logical, intent(in), optional :: offset,fill,adjustbound
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  integer :: idist
  real :: xstart,ystart,deltax,deltay,deltaz
- real :: psepx,psepy
  real :: ran1,ampl
  real, dimension(ndim) :: xran,xcentre
  logical :: adjustdeltas
@@ -69,6 +69,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,
 ! 
     deltax = psep
     deltay = 0.5*sqrt(3.)*psep
+    if (present(psepx)) deltax = psepx
+    if (present(psepy)) deltay = 0.5*sqrt(3.)*psepy
+    
     npartx = int((xmax(1)-xmin(1))/deltax)
     nparty = int((xmax(2)-xmin(2))/deltay)
     npartz = 1
@@ -158,11 +161,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,
 !
 !--adjust psep so that particles fill the volume
 !
-    psepx = (xmax(1)-xmin(1))/(float(npartx)*sqrt(2.))
-    psepy = (xmax(2)-xmin(2))/(float(nparty)*sqrt(2.))
+    deltax = sqrt(2.)*(xmax(1)-xmin(1))/(float(npartx)*sqrt(2.))
+    deltay = 0.5*sqrt(2.)*(xmax(2)-xmin(2))/(float(nparty)*sqrt(2.))
 !    print*,'psep = ',psepx,psepy,psep
-    deltax = sqrt(2.)*psepx
-    deltay = 0.5*sqrt(2.)*psepy    
 !
 !--allocate memory here
 !
@@ -246,6 +247,10 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,
     deltax = psep
     deltay = psep
     deltaz = psep
+    if (present(psepx)) deltax = psepx
+    if (present(psepy)) deltay = psepy
+    if (present(psepz)) deltaz = psepz
+    
     npartx = int((xmax(1)-xmin(1))/deltax)    
     if (ndim.ge.2) then
        nparty = int((xmax(2)-xmin(2))/deltay)    
