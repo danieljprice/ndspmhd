@@ -24,7 +24,7 @@ subroutine iterate_density
   use part
   use setup_params
   use density_summations
-  use linklist, only:numneigh
+  !!use linklist, only:numneigh
 !
 !--define local variables
 !
@@ -56,7 +56,7 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-5
+  tol = 1.e-2
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
