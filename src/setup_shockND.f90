@@ -148,9 +148,13 @@ subroutine setup
 !
  if (vxleft.gt.0.) then
     xmin(1) = xmin(1) - vxleft*tmax - 6.*psep
+ else
+    xmin(1) = xmin(1) - 6.*psep
  endif
  if (vxright.lt.0.) then
     xmax(1) = xmax(1) - vxright*tmax + 6.*psep
+ else
+    xmax(1) = xmax(1) + 6.*psep
  endif
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
