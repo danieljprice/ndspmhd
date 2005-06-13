@@ -35,7 +35,7 @@ subroutine setup
 
  write(iprint,*) 'uniform spherical distribution (for toy star)'
  iuserings = .false.
- iequalmass = .true.
+ iequalmass = .false.
 !
 !--set bounds of initial setup
 !                   
@@ -69,7 +69,7 @@ subroutine setup
  elseif (iequalmass) then
     call set_uniform_spherical(4,2*rmax) !!!,perturb=0.5)        ! 4 = random
  else
-    call set_uniform_spherical(2,rmax,centred=.true.) 
+    call set_uniform_spherical(2,rmax,centred=.true.,trim=0.5*psep) 
  endif
 !
 !--set particle properties
