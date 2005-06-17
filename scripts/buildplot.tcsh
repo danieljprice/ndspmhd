@@ -5,19 +5,24 @@
 #
 if $# != 2 then
    echo Usage: $0 version description
+   echo "(NB: run cvs -q tag 'version_`date`' and modify supersphplot.f90 *first* before doing build)"
 else
 #
 #--get current cvs copy from the repository and rename directory
 #
+   set date=`date '+%d/%m/%y'`
    set vernum=$1
+   echo 'date = '$date
    echo 'version = '$vernum
    echo 'comment = '$argv[2]
    set builddir='supersphplot'
    echo 'creating build in directory '/tmp/$builddir
    cd /tmp
-   mv /tmp/ndspmhd /tmp/ndspmhd_old
+   rm -r /tmp/ndspmhd
+   rm -r /tmp/supersphplot
    cvs export -Dtoday ndspmhd/plot
    mv ./ndspmhd/plot $builddir
+   rmdir ndspmhd
    cd $builddir
 #
 #  add various things to the build directory
@@ -28,7 +33,7 @@ else
    echo $vernum > ./docs/version
 #--changelog
    cd ~/ndspmhd/plot
-   cvs2cl -t
+   cvs2cl
    cp ChangeLog /tmp/$builddir
    cp /tmp/$builddir/ChangeLog ~/web/supersphplot/download
 #--tar file of directory
@@ -50,7 +55,7 @@ else
    cat version-* > version_history
    cp version_history /tmp/$builddir/docs
 #--add comment to latex version for documentation
-   echo $vernum' & '$argv[2] '\\' > versiontex-$vernum.tex
+   echo $vernum" & "$date" & "$argv[2] "\\" > versiontex-$vernum.tex
    cat versiontex-*.tex > version_history_tex.tex
    cp version_history_tex.tex /tmp/$builddir/docs
 #
@@ -69,7 +74,7 @@ else
    cp supersphplot.ps.gz ~/web/supersphplot/userguide
    cp supersphplot.pdf ~/web/supersphplot/userguide
    echo 'building html documentation...'
-   latex2html supersphplot.tex >& /tmp/html.output
+   latex2html supersphplot.tex
    rm -r ~/web/supersphplot/userguide/html
    mv supersphplot ~/web/supersphplot/userguide/html
    rm *.aux *.blg *.dvi *.log *.toc
