@@ -18,7 +18,7 @@ subroutine setup
  use bound
  use eos
  use options
- use part
+ use part, only:npart,x,vel,dens,uu,Bfield,pmass
  use setup_params
  
  use geometry
@@ -27,7 +27,7 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j
+ integer :: i
  real :: rmax,totmass,totvol,gamm1,rr2
  real :: denszero,uuzero,massp,denscentre,volpart
  real, dimension(ndim) :: xnew
@@ -134,20 +134,23 @@ subroutine modify_dump
  use debug
  use loguns
  use eos, only:gamma,polyk
- use part
+ use part, only:npart,x,vel,pmass
  use geometry
  use timestep, only:time
  use setup_params, only:pi
  implicit none
  integer :: i,ierr,jmode,smode
- real :: rr,Ctstar,Atstar,scalefac,sigma2,sigma,rstar,denscentre,gamm1
- real :: omegasq,cs2centre,ekin,ekin_norm
+ real :: Ctstar,Atstar,scalefac,sigma2,sigma,rstar,denscentre,gamm1
+ real :: omegasq,cs2centre,ekin,ekin_norm,amplitude,alpha,betatstar
  real, dimension(ndim) :: xcyl,velcyl,dvel
  character(len=len(rootname)+6) :: tstarfile
  character(len=30) :: dummy
  logical :: oscills
 
  time = 0.
+ amplitude = 0.05
+ alpha = 1.0
+ betatstar = 2.*pi
 
  jmode = 2
  smode = 0
@@ -160,7 +163,7 @@ subroutine modify_dump
  tstarfile = rootname(1:len_trim(rootname))//'.tstar2D'
  open(unit=ireadf,err=11,file=tstarfile,status='old',form='formatted')
     read(ireadf,*,err=12) dummy
-    read(ireadf,*,err=12) dummy
+    read(ireadf,*,err=12) alpha, betatstar
     read(ireadf,*,err=12) jmode,smode
  close(unit=ireadf)
  oscills = .true.
@@ -173,19 +176,27 @@ subroutine modify_dump
 13 continue   
    if (jmode.lt.0) oscills = .false.
 
- write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
+ if (oscills) then
+    write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
+ else
+    write(iprint,*) 'NONLINEAR MODES: alpha = ',alpha,' beta = ',betatstar
+ endif
  
  gamm1 = gamma - 1.
  if (gamm1.lt.1.e-5) then
     stop 'error: gamma - 1 <= 0'
  endif
-
- omegasq = 1.0
- sigma2 = 0.5*omegasq*(gamm1)*((jmode+smode)*(jmode+smode + 2./gamm1) - smode**2)
- if (sigma2.lt.1.e-5) then
-    print*,'ERROR sigma2 < 0 in perturbation'
- else
-    sigma = sqrt(sigma2)
+!
+!--work out frequency of oscillation
+!
+ if (oscills) then
+    omegasq = 1.0
+    sigma2 = 0.5*omegasq*(gamm1)*((jmode+smode)*(jmode+smode + 2./gamm1) - smode**2)
+    if (sigma2.lt.1.e-5) then
+       print*,'ERROR sigma2 < 0 in perturbation'
+    else
+       sigma = sqrt(sigma2)
+    endif
  endif
 
  denscentre = 1.0
@@ -198,39 +209,55 @@ subroutine modify_dump
  write(iprint,*) 'denscentre = ',denscentre,' cs_0 = ',sqrt(cs2centre)
 
 !
-!--work out frequency of oscillation
+!--set velocity perturbation
 !
- ekin = 0.
- ekin_norm = 0.
- do i=1,npart
-    !--get r,theta
-    call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
-    
-    !--set v_r
-    velcyl(1) = scalefac*detadr(jmode,smode,xcyl(1)/rstar,gamma)*COS(smode*xcyl(2))
-    !--set theta_dot
-    velcyl(2) = -scalefac*etar(jmode,smode,xcyl(1)/rstar,gamma)*smode*SIN(smode*xcyl(2))/xcyl(1)**2
-    !!print*,'v_phi = ',velcyl(2),xcyl(2),etar(jmode,smode,xcyl(1)/rstar,gamma)
-    !--now transform back to get vx, vy
-    call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
-    if (xcyl(1).lt.1.e-5) then
-       print*,' r = 0 on particle ',i,' xcyl(1) = ',xcyl(1), &
-              ' v_cyl = ',velcyl,' v_cart = ',dvel
-    endif
-    !--now perturb v with appropriate amplitude
-    vel(1:ndim,i) = dvel(1:ndim)
-    ekin = ekin + 0.5*pmass(i)*dot_product(vel(1:ndim,i),vel(1:ndim,i))
-    ekin_norm = ekin_norm + 0.5*pmass(i)
- enddo
-!
-!--normalise the amplitude
-!
- ekin_norm = (0.05)**2*cs2centre*ekin_norm
- write(iprint,*) ' ekin = ',ekin, ' ekin_norm = ',ekin_norm
- vel = vel*sqrt(ekin_norm/ekin)
+ if (oscills) then
+    ekin = 0.
+    ekin_norm = 0.
+    do i=1,npart
+       !--get r,theta
+       call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
+
+       !--set v_r
+       velcyl(1) = scalefac*detadr(jmode,smode,xcyl(1)/rstar,gamma)*COS(smode*xcyl(2))
+       !--set theta_dot
+       velcyl(2) = -scalefac*etar(jmode,smode,xcyl(1)/rstar,gamma)*smode*SIN(smode*xcyl(2))/xcyl(1)**2
+       !!print*,'v_phi = ',velcyl(2),xcyl(2),etar(jmode,smode,xcyl(1)/rstar,gamma)
+       !--now transform back to get vx, vy
+       call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
+       if (xcyl(1).lt.1.e-5) then
+          print*,' r = 0 on particle ',i,' xcyl(1) = ',xcyl(1), &
+                 ' v_cyl = ',velcyl,' v_cart = ',dvel
+       endif
+       !--now perturb v with appropriate amplitude
+       vel(1:ndim,i) = dvel(1:ndim)
+       ekin = ekin + 0.5*pmass(i)*dot_product(vel(1:ndim,i),vel(1:ndim,i))
+       ekin_norm = ekin_norm + 0.5*pmass(i)
+    enddo
+   !
+   !--normalise the amplitude
+   !
+    ekin_norm = (amplitude)**2*cs2centre*ekin_norm
+    write(iprint,*) ' ekin = ',ekin, ' ekin_norm = ',ekin_norm
+    vel = vel*sqrt(ekin_norm/ekin)
+
+    Atstar = scalefac*sqrt(ekin_norm/ekin)
+    write(iprint,*) ' v = ',Atstar,'*detadr(r)'
+ else
+    do i=1,npart
+       !--get r, theta
+       call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
+       !--set v_r
+       velcyl(1) = alpha*xcyl(1)
+       !--set theta_dot
+       velcyl(2) = betatstar
+       !--now transform back to get vx, vy
+       call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
+       !--now perturb v with appropriate amplitude
+       vel(1:ndim,i) = dvel(1:ndim)
+    enddo
+ endif
  
- Atstar = scalefac*sqrt(ekin_norm/ekin)
- write(iprint,*) ' v = ',Atstar,'*detadr(r)'
 !
 !--rewrite the tstar2D file giving the amplitude
 !  
@@ -239,7 +266,7 @@ subroutine modify_dump
  open(unit=ireadf,iostat=ierr,file=tstarfile,status='replace',form='formatted')
  if (ierr.eq.0) then
     write(ireadf,*,iostat=ierr) denscentre,Ctstar,Atstar
-    write(ireadf,*,iostat=ierr) 0.
+    write(ireadf,*,iostat=ierr) alpha,betatstar
     write(ireadf,*,iostat=ierr) jmode,smode
     if (ierr /= 0) write(iprint,*) 'ERROR WRITING TO ',trim(tstarfile)
     close(unit=ireadf)
