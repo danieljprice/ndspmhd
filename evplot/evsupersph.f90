@@ -9,10 +9,10 @@ program plotmeagraph
   use system_commands
   implicit none
   integer :: ncol
-  integer, parameter :: maxfile=10
+  integer, parameter :: maxfile=25
   integer, parameter :: maxstep=6000
   integer, parameter :: maxcol=22        ! (6)21 (non)MHD        maximum number of columns
-  integer :: i,iprev,nfiles,ifile,ifilesteps, iargc
+  integer :: i,nfiles,ifile,ifilesteps
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,ierr
   integer :: ichange, iongraph, ipt
@@ -54,7 +54,6 @@ program plotmeagraph
   !
   !--get filename(s)
   !
-  iprev = 1
   i = 1
   nfiles = 0
   call get_number_arguments(nfiles)
@@ -146,35 +145,36 @@ program plotmeagraph
   !
   label = 'crap    '  ! default name
 
-  label(1) = 'nstep          '
-  label(2) = 'time           '  ! name for each column of data
-  label(3) = 'E_kinetic      '
-  label(4) = 'E_internal     '
-  label(5) = 'E_magnetic     '
-  label(6) = 'E_total        '
-  label(7) = 'Linear momentum'
+  label(1) = 'time           '  ! name for each column of data
+  label(2) = 'E_kinetic      '
+  label(3) = 'E_internal     '
+  label(4) = 'E_magnetic     '
+  label(5) = 'E_total        '
+  label(6) = 'Linear momentum'
 
   if (ncol.gt.6) then
-     label(8) = 'Total flux     '
-     label(9) = 'Cross helicity '
-     label(10) = 'Plasma beta (min)'
-     label(11) = 'Plasma beta (ave)'
-     label(12) = 'Plasma beta (max)'
-     label(13) = 'div B (average)  '
-     label(14) = 'div B (maximum)  '
-     label(15) = 'int (div B) dV   '
-     label(16) = 'Fmag dot B/|Fmag| (av)'
-     label(17) = 'Fmag dot B/|Fmag| (max)'
-     label(18) = 'Fmag dot B/|force| (av)'
-     label(19) = 'Fmag dot B/|force| (max)'            
-     label(20) = 'omega_mhd (average)'
-     label(21) = 'omega_mhd (max) '
-     label(22) = '% particles with omega < 0.01 '
+     label(7) = 'Total flux     '
+     label(8) = 'Cross helicity '
+     label(9) = 'Plasma beta (min)'
+     label(10) = 'Plasma beta (ave)'
+     label(11) = 'Plasma beta (max)'
+     label(12) = 'div B (average)  '
+     label(13) = 'div B (maximum)  '
+     label(14) = 'int (div B) dV   '
+     label(15) = 'Fmag dot B/|Fmag| (av)'
+     label(16) = 'Fmag dot B/|Fmag| (max)'
+     label(17) = 'Fmag dot B/|force| (av)'
+     label(18) = 'Fmag dot B/|force| (max)'            
+     label(19) = 'omega_mhd (average)'
+     label(20) = 'omega_mhd (max) '
+     label(21) = '% particles with omega < 0.01 '
   endif
+  label(ncol) = 'nstep          '
+
   !
   !--overwrite column labels if columns file exists
   !
-  call read_columns_file(ncol,label(2:ncol+1))
+  call read_columns_file(ncol,label(1:ncol))
 
   if (ANY(itrans.ne.0)) then
      do i=1,ncol
@@ -484,7 +484,7 @@ program plotmeagraph
            !
            !--work out period of oscillation from spacing of minima/maxima
            !
-           if (igetfreq .and. iplotx(i).eq.2) then
+           if (igetfreq .and. iplotx(i).eq.1) then
               print*,rootname(ifile)
               call getmax(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
                           evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
@@ -493,7 +493,7 @@ program plotmeagraph
               !--output this to a file
               !
               print*,'writing to frequency file'
-              write(8,*) freqmin,freqmax,rootname(ifile)
+              write(8,*) freqmin,freqmax,trim(rootname(ifile))
            endif
            
            
@@ -627,7 +627,7 @@ end program plotmeagraph
      goto 23
 20   continue
      print*,'error: end of file in columns file'
-     do i=icol-1,ncolumns
+     do i=icol,ncolumns
         write(label(i),*) 'column',i
      enddo
      close(unit=51)
@@ -686,7 +686,7 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
      ncolumns = maxcols
      print*,'***WARNING: array too small: reading first ',ncolumns,' only'
   else
-     print*,'ncolumns = ',ncolumns
+     print*,'ncolumns in file = ',ncolumns-1
   endif
   
   redo = .true.
@@ -696,8 +696,8 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
      ierr = 0
      i = 1
      do while (i.le.nsteps .and. ierr.eq.0)
-        evdata(i,1) = real(i)
-        read(11,*,iostat=ierr) evdata(i,2:ncolumns)
+        evdata(i,ncolumns) = real(i)
+        read(11,*,iostat=ierr) evdata(i,1:ncolumns-1)
         if (nskip.gt.0) then
            do j=1,nskip
               read(11,*,iostat=ierr) dummy
@@ -725,7 +725,7 @@ subroutine readev(nsteps,evdata,maxcols,ncolumns,rootname)
   close(unit=11)
   
   if (i.gt.1) then
-     print*,' t=',evdata(i-1,2),' nsteps = ',i-1 
+     print*,' t=',evdata(i-1,1),' nsteps = ',i-1 
   else
      print*,'** WARNING: file empty!! no timesteps'
   endif
@@ -794,6 +794,7 @@ end subroutine get_ncolumns
 !-------------------------------------------------------------------------
 subroutine getmax(datain,time,max,freq,freq2)
   implicit none
+  integer, parameter :: noffset = 3 ! >1 gives extra checks
   integer i,max,nmax,nmin
   real datain(max),time(max),timeprev,timeprev2
   real freq,freq2,avper,avper2,period,omega,omega2,pi
@@ -807,30 +808,37 @@ subroutine getmax(datain,time,max,freq,freq2)
   nmax = 0
   nmin = 0
   
-  do i=2,max-1
+  do i=1+noffset,max-(noffset+1)
      if ((datain(i).gt.datain(i-1)).and.(datain(i).gt.datain(i+1))) then
-        
-        nmax = nmax + 1
-        if (mod(nmax,2).eq.0) then
-           period = time(i)-timeprev            
-           print 10,'max',time(i),period,1./period
-           timeprev = time(i)
-           avper = avper + period
+        if ((datain(i).gt.datain(i-noffset)).and. &
+            (datain(i).gt.datain(i+noffset))) then
+           nmax = nmax + 1
+           if (mod(nmax,2).eq.0) then
+              period = time(i)-timeprev            
+              print 10,'max',time(i),period,1./period
+              timeprev = time(i)
+              avper = avper + period
+           endif
+        else
+           print*,'max period of ',time(i)-timeprev,' rejected'
         endif
             
      elseif ((datain(i).lt.datain(i-1)).and.   &
           (datain(i).lt.datain(i+1))) then
-        
-        nmin = nmin + 1
-        if (mod(nmin,2).eq.1) then
-           if (nmin.gt.1) then
-              period = time(i)-timeprev2            
-              print 10,'min',time(i),period,1./period
-              avper2 = avper2 + period
+        if ((datain(i).lt.datain(i-noffset)).and. &
+            (datain(i).lt.datain(i+noffset))) then        
+           nmin = nmin + 1
+           if (mod(nmin,2).eq.1) then
+              if (nmin.gt.1) then
+                 period = time(i)-timeprev2            
+                 print 10,'min',time(i),period,1./period
+                 avper2 = avper2 + period
+              endif
+              timeprev2 = time(i)       
            endif
-           timeprev2 = time(i)       
+        else
+           print*,'min period of ',time(i)-timeprev2,' rejected'
         endif
-        
      endif
   enddo
 10 format(a,' at t = ',f8.4,' period = ',f8.4,' freq = ',f8.4)
