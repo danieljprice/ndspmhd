@@ -5,7 +5,8 @@
 #
 if $# != 2 then
    echo Usage: $0 version description
-   echo "(NB: run cvs -q tag 'version_`date`' and modify supersphplot.f90 *first* before doing build)"
+   echo "(NB: run cvs -q tag 'v1_x_x--`date +%d/%m/%y`' and modify supersphplot.f90 *first* before doing build)"
+   nedit ~/ndspmhd/plot/supersphplot.f90 &
 else
 #
 #--get current cvs copy from the repository and rename directory
@@ -33,7 +34,7 @@ else
    echo $vernum > ./docs/version
 #--changelog
    cd ~/ndspmhd/plot
-   cvs2cl
+   cvs2cl -t
    cp ChangeLog /tmp/$builddir
    cp /tmp/$builddir/ChangeLog ~/web/supersphplot/download
 #--tar file of directory
@@ -44,6 +45,8 @@ else
    echo 'copying '$tarfile' to download directory'
    cd ~/web/supersphplot/download
    mv *.tar* ./archive
+   #--get rid of stupid .DS_Store files
+   rm .DS_Store ./archive/.DS_Store ../userguide/.DS_Store
    cd /tmp
    cp $tarfile.gz ~/web/supersphplot/download
    cp $tarfile.gz ~/supersphplot-releases/
@@ -74,6 +77,7 @@ else
    cp supersphplot.ps.gz ~/web/supersphplot/userguide
    cp supersphplot.pdf ~/web/supersphplot/userguide
    echo 'building html documentation...'
+   nedit ~/web/supersphplot/main.html &
    latex2html supersphplot.tex
    rm -r ~/web/supersphplot/userguide/html
    mv supersphplot ~/web/supersphplot/userguide/html
