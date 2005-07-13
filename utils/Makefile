@@ -24,13 +24,13 @@ CC = $(F90C)
 
 # define the implicit rule to make a .o file from a .f90 file
 %.o : %.f90
-	$(F90C) -c $(F90FLAGS) $(LDFLAGS) $< -o $@
+	$(F90C) -c $(F90FLAGS) $< -o $@
 
 # define the implicit rule for compiling directly from a single .f90 file
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS = dimen1D.o variablesND.o kernelND.o  \
+OBJECTS = dimen3D.o variablesND.o kernelND.o  \
 	  kernelplot.o kernelstability1D.o danpgtile.o
 
 OBJSPHDERIV = kernelND.o variablesND.o sphderiv.o interpolate_kernel.o
