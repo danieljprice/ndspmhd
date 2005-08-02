@@ -213,7 +213,7 @@ SUBROUTINE evwrite(t,etot,momtot)
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
-30  FORMAT(20(1pe18.10,1x),1pe8.2)
+30  FORMAT(24(1pe18.10,1x),1pe8.2)
       
  ELSE
     alphatstarav = alphatstarav/FLOAT(npart)
@@ -221,7 +221,7 @@ SUBROUTINE evwrite(t,etot,momtot)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,alphatstarav,betatstarav
-40  FORMAT(20(1pe18.10,1x))        
+40  FORMAT(24(1pe18.10,1x))        
 
  ENDIF
 
