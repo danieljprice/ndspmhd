@@ -99,10 +99,6 @@ subroutine get_rates
  real :: vsigdtc,zero,fhmax, fonh, forcemag
  integer :: ierr
 !
-!  (gravity)
-! 
- real :: poten
-!
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
@@ -297,7 +293,7 @@ subroutine get_rates
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
  if (igravity.ne.0) call direct_sum_poisson( &
-                     x(:,1:npart),pmass(1:npart),poten,fgrav(:,1:npart),npart)
+                     x(:,1:npart),pmass(1:npart),potengrav,fgrav(:,1:npart),npart)
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -714,7 +710,7 @@ contains
     !!vsignonlin = vsigi + vsigj !!!beta*abs(dvdotr)
     
     ! vsigdtc is the signal velocity used in the timestep control
-    vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
+    vsigdtc = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
     dvsigdtc = 1./vsigdtc
     vsigmax = max(vsigmax,vsigdtc)
     !
