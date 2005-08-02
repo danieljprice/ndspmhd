@@ -39,7 +39,7 @@ subroutine write_infile(infile)
   write(iread,70) iav,alphamin,alphaumin,alphabmin,beta
   write(iread,80) iavlim(:),avdecayconst
   write(iread,90) ikernav
-  write(iread,100) ihvar,hfact
+  write(iread,100) ihvar,hfact,tolh
   write(iread,110) idumpghost
   write(iread,120) imhd,imagforce
   write(iread,130) idivbzero,psidecayfact
@@ -49,6 +49,7 @@ subroutine write_infile(infile)
   write(iread,170) damp
   write(iread,180) ikernel
   write(iread,190) iexternal_force
+  write(iread,200) C_cour, C_force
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -60,7 +61,7 @@ subroutine write_infile(infile)
 70 format(i1,2x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphab(min), beta')
 80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, ab limiter, constant for this(0.1-0.2)')
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
-100 format(i1,2x,f5.3,28x,'! hvariable (0:no 1:yes) initial h factor')
+100 format(i1,2x,f5.3,28x,'! variable h, initial h factor, h tolerance')
 110 format(i1,35x,'! dump ghost particles? (0: no 1: yes)')
 120 format(i2,4x,i1,29x,'! magnetic field (0:off 1:on) and force algorithm(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
@@ -70,9 +71,10 @@ subroutine write_infile(infile)
 170 format(f7.4,29x,'! artificial damping (0.0 or few percent)')
 180 format(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i1,35x,'! external force (1: toy star, 2:1/r^2 )')
+200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
 
- write(iprint,200) infile
-200 format (' input file ',a20,' created successfully')
+ write(iprint,300) infile
+300 format (' input file ',a20,' created successfully')
 
  return
       
@@ -118,7 +120,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50) iav,alphamin,alphaumin,alphabmin,beta
   read(iread,*,err=50) iavlim(:),avdecayconst
   read(iread,*,err=50) ikernav
-  read(iread,*,err=50) ihvar,hfact
+  read(iread,*,err=50) ihvar,hfact,tolh
   read(iread,*,err=50) idumpghost
   read(iread,*,err=50) imhd,imagforce
   read(iread,*,err=50) idivbzero,psidecayfact
@@ -128,6 +130,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50) damp
   read(iread,*,err=50) ikernel
   read(iread,*,err=50) iexternal_force
+  read(iread,*,err=50) C_Cour, C_force
  close(unit=iread)
 
  goto 55
@@ -167,6 +170,10 @@ subroutine read_infile(infile)
  endif
  if (psidecayfact.lt.0.0) then
     write(iprint,100) 'psidecayfact < 0.0'
+ endif
+ if (tolh.lt.1.e-12) then
+    write(iprint,100) 'tolh really, really tiny (probably zero)!!'
+    stop
  endif
  
 100   format(/' read_infile: warning: ',a)
