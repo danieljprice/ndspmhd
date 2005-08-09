@@ -14,7 +14,6 @@ SUBROUTINE alloc(newsizein)
  USE derivB
  USE eos
  USE fmagarray
- USE gravity
  USE hterms
  USE linklist
  USE options

@@ -41,9 +41,8 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
 !      
  IF (trace) WRITE(iprint,*) ' Entering subroutine direct_sum_poisson'
 !
-!--reset forces initially
+!--reset potential (BUT NOT FORCE) initially
 !
- gradphi = 0.
  phi = 0.
 !
 !--calculate gravitational force by direct summation
@@ -51,24 +50,25 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
  DO i=1,ntot
     sourcei = source(i)
     
-!!    DO j=i+1,ntot
-    DO j=1,ntot       
-       if (i.ne.j) then
+    DO j=i+1,ntot
        dx = x(:,i) - x(:,j)
-       rij2 = DOT_PRODUCT(dx,dx) !!+ 0.01**2
+       rij2 = DOT_PRODUCT(dx,dx) + 0.1**2
        rij = SQRT(rij2)
        term(:) = dx(:)/(rij*rij2)
        
-!       phi(i) = phi(i) + 
-!       phi(j) = phi(j) + 
+       phi(i) = phi(i) - source(j)/rij
+       phi(j) = phi(j) - sourcei/rij
        
-       gradphi(:,i) = gradphi(:,i) + source(j)*term(:)
-!!       gradphi(:,j) = gradphi(:,j) - sourcei*term(:)
-       endif
+       gradphi(:,i) = gradphi(:,i) - source(j)*term(:)
+       gradphi(:,j) = gradphi(:,j) + sourcei*term(:)
     ENDDO
  ENDDO
 
  phitot = 0.
+ DO i=1,ntot
+    phitot = phitot + 0.5*source(i)*phi(i)
+ ENDDO
+ print*,'phitot = ',phitot
 
  RETURN
 END SUBROUTINE direct_sum_poisson
