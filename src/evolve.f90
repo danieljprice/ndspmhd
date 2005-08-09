@@ -4,27 +4,27 @@
 !!  the output routines at the appropriate times                       !!
 !!---------------------------------------------------------------------!!
 
-SUBROUTINE evolve
- USE dimen_mhd
- USE debug
- USE loguns
- USE options
- USE timestep
+subroutine evolve
+ use dimen_mhd, only:ndim
+ use debug, only:trace
+ use loguns, only:iprint,ifile
+ use options, only:idumpghost,ibound
+ use timestep
 !
 !--define local variables
 !
- IMPLICIT NONE
- REAL :: tprint
- INTEGER :: noutput,nevwrite
- REAL :: t_start,t_end,t_used,tzero
- REAL :: etot, momtot, etotin, momtotin, detot, dmomtot
- CHARACTER(LEN=10) :: finishdate, finishtime
+ implicit none
+ real :: tprint
+ integer :: noutput,nevwrite
+ real :: t_start,t_end,t_used,tzero
+ real :: etot, momtot, etotin, momtotin, detot, dmomtot
+ character(len=10) :: finishdate, finishtime
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine evolve'
+ if (trace) write(iprint,*) ' Entering subroutine evolve'
 !
-!--Set initial timestep
+!--set initial timestep
 !  (nb: time is set in initialise and should not be changed here
 !   as can be non-zero from reading a dumpfile)
 !
@@ -41,9 +41,9 @@ SUBROUTINE evolve
 !
 !--calculate initial values of conserved quantities
 !
- CALL evwrite(time,etotin,momtotin)
+ call evwrite(time,etotin,momtotin)
  write(iprint,5) etotin, momtotin
-5 format(' Total energy = ',1pe8.2,2x,'Linear momentum = ',1pe8.2) 
+5 format(' Total energy = ',1pe10.2,2x,'Linear momentum = ',1pe10.2) 
 !
 !--write header for timestep table
 !      
@@ -56,86 +56,86 @@ SUBROUTINE evolve
  if (ifile.lt.0) call output(time,nsteps)
  noutput = 1
  tprint = tzero + tout
-! CALL quit
+! call quit
 !
-!--get starting CPU time
+!--get starting cpu time
 !
- CALL cpu_time(t_start)
+ call cpu_time(t_start)
 !
-! --------------------- Main loop ----------------------------------------
+! --------------------- main loop ----------------------------------------
 !
- timestepping: DO WHILE ((time.LT.tmax).AND.(nsteps.LT.nmax))
+ timestepping: do while ((time.lt.tmax).and.(nsteps.lt.nmax))
 
     time = time + dt
     nsteps = nsteps + 1
 
-    CALL step           !  Evolve data for one timestep
+    call step           !  evolve data for one timestep
 !
 !--write log every step in 2D/3D
 !
-    IF (ndim.GE.2) THEN
-       WRITE(iprint,10) time,C_force*dtforce,C_cour*dtcourant
-10     FORMAT(' t = ',f9.4,' dtforce = ',1pe10.3,' dtcourant = ',1pe10.3)
-    ENDIF
+    if (ndim.ge.2) then
+       write(iprint,10) time,C_force*dtforce,C_cour*dtcourant
+10     format(' t = ',f9.4,' dtforce = ',1pe10.3,' dtcourant = ',1pe10.3)
+    endif
     
-    IF (dt.LT.1e-8) THEN
-       WRITE(iprint,*) 'main loop: timestep too small, dt = ',dt
-       CALL quit
-    ENDIF
+    if (dt.lt.1e-8) then
+       write(iprint,*) 'main loop: timestep too small, dt = ',dt
+       call quit
+    endif
 !
-!--Write to data file if time is right
+!--write to data file if time is right
 ! 
-    IF (   (time.GE.tprint)             &
-       .OR.(time.GE.tmax)            &
-       .OR.((MOD(nsteps,nout).EQ.0).AND.(nout.GT.0))   &
-       .OR.(nsteps.GE.nmax)  ) THEN
+    if (   (time.ge.tprint)             &
+       .or.(time.ge.tmax)            &
+       .or.((mod(nsteps,nout).eq.0).and.(nout.gt.0))   &
+       .or.(nsteps.ge.nmax)  ) then
  
 !--if making movies and need ghosts to look right uncomment the line below, 
-       IF (idumpghost.EQ.1 .AND. ANY(ibound.GE.2)) CALL set_ghost_particles
-       CALL output(time,nsteps)
+       if (idumpghost.eq.1 .and. any(ibound.ge.2)) call set_ghost_particles
+       call output(time,nsteps)
        noutput = noutput + 1
        tprint = tzero + noutput*tout
-    ENDIF
+    endif
 !    
 !--calculate total energy etc and write to ev file    
 !
-    IF (MOD(nsteps,nevwrite).EQ.0) THEN
-       CALL evwrite(time,etot,momtot)
+    if (mod(nsteps,nevwrite).eq.0) then
+       call evwrite(time,etot,momtot)
        detot = max(detot,abs(etot-etotin))
        dmomtot = max(dmomtot,abs(momtot-momtotin))
-    ENDIF
+    endif
 !
-!--reach tprint exactly. Must take this out for integrator to be symplectic
+!--reach tprint exactly. must take this out for integrator to be symplectic
 !
-    IF (dt.GE.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
- ENDDO timestepping
+ enddo timestepping
 
 !------------------------------------------------------------------------
 
 !
-!--get ending CPU time
+!--get ending cpu time
 !
- CALL cpu_time(t_end)
+ call cpu_time(t_end)
 !
 !--print out total energy and momentum conservation
 !
  if (abs(momtotin).lt.1.e-6)  momtotin = 1.0
- WRITE(iprint,20) detot/etotin,dmomtot/momtotin
-20 FORMAT(/,' Max energy error   : ',1pe8.2,3x,' Max momentum error : ',1pe8.2)
+ write(iprint,20) detot/etotin,dmomtot/momtotin
+20 format(/,' Max energy error   : ',1pe10.2,3x,' Max momentum error : ',1pe10.2)
 !
-!--Now print out total code timings:
+!--now print out total code timings:
 !
  t_used = t_end - t_start
- IF (nsteps.gt.0) WRITE(iprint,30) t_used,t_used/nsteps
-30  FORMAT(' Total CPU time : ',1pe10.4,'s',2x,' Average time per step : ',f10.4,'s',/)
+ if (nsteps.gt.0) write(iprint,30) t_used,t_used/nsteps
+30  format(' Total cpu time : ',1pe10.4,'s',2x,' Average time per step : ',f10.4,'s',/)
 !
 !--print time and date of finishing
 !
- CALL date_and_time(finishdate,finishtime)
+ call date_and_time(finishdate,finishtime)
  finishdate = finishdate(7:8)//'/'//finishdate(5:6)//'/'//finishdate(1:4)
  finishtime = finishtime(1:2)//':'//finishtime(3:4)//':'//finishtime(5:)
- WRITE(iprint,"(' Run finished on ',a,' at ',a,/)") finishdate,finishtime
+ write(iprint,"(' Run finished on ',a,' at ',a,/)") finishdate,finishtime
 
- RETURN 
-END SUBROUTINE evolve
+ return 
+end subroutine evolve
