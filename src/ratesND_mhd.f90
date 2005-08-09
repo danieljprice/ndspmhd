@@ -10,7 +10,6 @@ subroutine get_rates
  use loguns
  use artvi
  use eos
- use gravity
  use hterms
  use kernel
  use linklist
@@ -88,7 +87,7 @@ subroutine get_rates
  real :: q2i,q2j
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
- real :: gradhi
+ real :: gradhi,gradhni
 !
 !  (joe's mhd fix)
 !
@@ -125,7 +124,6 @@ subroutine get_rates
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
-  drhodt(i) = 0.0
   dudt(i) = 0.0
   dendt(i) = 0.0
   dBevoldt(:,i) = 0.0
@@ -229,6 +227,7 @@ subroutine get_rates
           alphaBi = alpha(3,i)
        endif
        gradhi = gradh(i)
+       gradhni = gradhn(i)
        hi = hh(i)
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
@@ -293,7 +292,7 @@ subroutine get_rates
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
  if (igravity.ne.0) call direct_sum_poisson( &
-                     x(:,1:npart),pmass(1:npart),potengrav,fgrav(:,1:npart),npart)
+    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),npart)
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -327,26 +326,12 @@ subroutine get_rates
  
     rho1i = 1./rho(i)
 !
-!--subtract external forces
+!--add external (body) forces
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim)
        force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
     endif
-!
-!--add self-gravity force
-!
-    if (igravity.ne.0) force(1:ndim,i) = force(1:ndim,i) - fgrav(1:ndim,i)*rho1i
-!
-!--damp force if appropriate
-!
-!    if (damp.gt.1.e-10) then
-!       if (igeom.gt.1) then
-!          force(:,i) = force(:,i) - damp*pmom(:,i)
-!       else
-!          force(:,i) = force(:,i) - damp*vel(:,i)
-!       endif
-!    endif
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
@@ -361,14 +346,6 @@ subroutine get_rates
     endif    
     if (iavlim(2).eq.1) gradu(:,i) = gradu(:,i)*rho1i
     !!graddivv(:,i) = graddivv(:,i)
-!
-!--calculate time derivative of the smoothing length from the density derivative
-!
-    if (ihvar.eq.2 .or. ihvar.eq.3) then
-       dhdt(i) = -hh(i)/(ndim*(rho(i)+rhomin))*drhodt(i)
-    else
-       dhdt(i) = 0.    
-    endif
 !
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
@@ -544,6 +521,7 @@ contains
 !
 !--calculate both kernels if using anticlumping kernel
 !
+   pmassj = pmass(j)
    if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1) then
       if (ikernav.eq.1) then
          hav = 0.5*(hi + hj)
@@ -620,9 +598,9 @@ contains
          wab = 0.5*(wabi + wabj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            grkerni = grkerni*gradhi
-            grkernj = grkernj*gradh(j)
             grkern = 0.5*(grkerni + grkernj)
+            grkerni = grkerni*(1 + gradhni*gradhi/pmassj)
+            grkernj = grkernj*(1 + gradhn(j)*gradh(j)/pmassi)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
             grkerni = grkern
@@ -646,7 +624,6 @@ contains
     rhoij = rhoi*rhoj
     rhoav1 = 2./(rhoi + rhoj)
     prj = pr(j)        
-    pmassj = pmass(j)
     Prho2j = pr(j)*rho21j
     spsoundj = spsound(j)
     
@@ -756,19 +733,6 @@ contains
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
 !    force(:,j) = force(:,j) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
-
-!----------------------------------------------------------------------------
-!  time derivative of density (continuity equation) in generalised form
-!  compute this even if direct sum - used in dudt, dhdt and av switch
-!----------------------------------------------------------------------------
-!
-!    drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
-!    drhodt(j) = drhodt(j) + phij_on_phii*pmassi*dvdotr*grkernj    
-    !drhodt(i) = drhodt(i) - rho(i)*pmassj*dot_product(dvel(1:ndim),dri)*grkerni
-    !drhodt(j) = drhodt(j) - rho(j)*pmassi*dot_product(dvel(1:ndim),drj)*grkernj
-
-    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
-    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
      
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms

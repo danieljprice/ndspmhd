@@ -13,7 +13,7 @@ contains
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-  subroutine density(x,pmass,hh,rho,gradh,npart)
+  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,npart)
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
@@ -26,9 +26,9 @@ contains
 !
     implicit none
     integer, intent(in) :: npart
-    real, dimension(:,:), intent(in) :: x
+    real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, gradh
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn
  
     integer :: i,j,n
     integer :: icell,iprev,nneigh
@@ -41,6 +41,8 @@ contains
     real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2
     real :: hfacwab,hfacwabi,hfacwabj
     real, dimension(ndim) :: dx
+    real, dimension(ndim) :: veli,dvel
+    real :: dvdotr,pmassi,pmassj
 !
 !  (kernel quantities)
 !
@@ -62,7 +64,12 @@ contains
 
     do i=1,npart
        rho(i) = 0.
+       drhodt(i) = 0.
+       densn(i) = 0.
+       dndt(i) = 0.
        gradh(i) = 0.
+       densn(i) = 0.
+       gradhn(i) = 0.
        !gradmatrix(:,:,i) = 0.
     enddo
 !
@@ -89,6 +96,8 @@ contains
           hi1 = 1./hi
           hi2 = hi*hi
           hfacwabi = hi1**ndim
+          pmassi = pmass(i)
+          veli(1:ndim) = vel(1:ndim,i) 
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -165,19 +174,36 @@ contains
                                               
                 endif
 !
-!--calculate density
+!--calculate density and number density
 !
-                rho(i) = rho(i) + pmass(j)*wabi*weight
-                rho(j) = rho(j) + pmass(i)*wabj*weight
-           
+                pmassj = pmass(j)
+                rho(i) = rho(i) + pmassj*wabi*weight
+                rho(j) = rho(j) + pmassi*wabj*weight
+                densn(i) = densn(i) + wabi*weight
+                densn(j) = densn(j) + wabj*weight
+!
+!--drhodt, dndt
+!
+                if (i.ne.j) then
+                   dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
+                   dvdotr = dot_product(dvel,dx)/rij
+                   drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+                   drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
+                   dndt(i) = dndt(i) + dvdotr*grkerni
+                   dndt(j) = dndt(j) + dvdotr*grkernj
+                endif
+
                 if (ikernav.EQ.3) then
 !
 !--correction term for variable smoothing lengths
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
+!  also do the number density version
 
-                   gradh(i) = gradh(i) + pmass(j)*weight*dwdhi
-                   gradh(j) = gradh(j) + pmass(i)*weight*dwdhj
+                   gradh(i) = gradh(i) + weight*dwdhi
+                   gradh(j) = gradh(j) + weight*dwdhj
+                   gradhn(i) = gradhn(i) + pmassj*weight*dwdhi
+                   gradhn(j) = gradhn(j) + pmassi*weight*dwdhj
                 endif
                 
                 !if (i.ne.j) then
@@ -226,7 +252,7 @@ contains
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
   
-  subroutine density_partial(x,pmass,hh,rho,gradh,npart,nlist,ipartlist)
+  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,npart,nlist,ipartlist)
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
@@ -239,9 +265,9 @@ contains
 !
     implicit none
     integer, intent(in) :: npart
-    real, dimension(:,:), intent(in) :: x
+    real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, gradh
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -255,7 +281,8 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hi2
     real :: hfacwabi,hfacgrkerni
-    real, dimension(ndim) :: dx
+    real, dimension(ndim) :: dx,veli,dvel
+    real :: dvdotr
 !
 !  (kernel quantities)
 !
@@ -274,7 +301,11 @@ contains
     do ipart=1,nlist
        i = ipartlist(ipart)
        rho(i) = 0.
+       drhodt(i) = 0.
+       densn(i) = 0.
+       dndt(i) = 0.
        gradh(i) = 0.
+       gradhn(i) = 0.
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
     enddo
@@ -306,6 +337,7 @@ contains
        
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
+       veli(1:ndim) = vel(1:ndim,i) 
 !
 !--loop over current particle's neighbours
 !
@@ -335,15 +367,26 @@ contains
 !             
              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
 !
-!--calculate density
+!--calculate density and number density
 !
              rho(i) = rho(i) + pmass(j)*wabi
+             densn(i) = densn(i) + wabi
+!
+!--drhodt, dndt
+!
+             if (i.ne.j) then
+                dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
+                dvdotr = dot_product(dvel,dx)/rij
+                drhodt(i) = drhodt(i) + pmass(j)*dvdotr*grkerni
+                dndt(i) = dndt(i) + dvdotr*grkerni
+             endif
 !
 !--correction term for variable smoothing lengths
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-             gradh(i) = gradh(i) + pmass(j)*dwdhi
+             gradh(i) = gradh(i) + dwdhi
+             gradhn(i) = gradhn(i) + pmass(j)*dwdhi
           
              !do idim=1,ndim
              !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
