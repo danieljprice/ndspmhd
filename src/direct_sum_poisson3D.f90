@@ -21,39 +21,39 @@
 !!   gradphi(ndim,ntot) : gradient of the potential (for gravity this = force)
 !!----------------------------------------------------------------------------
 
-SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
- USE dimen_mhd
- USE debug
- USE loguns
+subroutine direct_sum_poisson(x,source,phitot,gradphi,ntot)
+ use dimen_mhd, only:ndim
+ use debug, only:trace
+ use loguns, only:iprint
  
- IMPLICIT NONE
- INTEGER, INTENT(IN) :: ntot
- REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: source
- REAL, DIMENSION(ntot) :: phi
- REAL, DIMENSION(ndim,ntot), INTENT(OUT) :: gradphi
- REAL, INTENT(OUT) :: phitot
- INTEGER :: i,j
- REAL, DIMENSION(ndim) :: dx,term
- REAL :: rij,rij2,sourcei
+ implicit none
+ integer, intent(in) :: ntot
+ real, dimension(ndim,ntot), intent(in) :: x
+ real, dimension(ntot), intent(in) :: source
+ real, dimension(ntot) :: phi
+ real, dimension(ndim,ntot), intent(out) :: gradphi
+ real, intent(out) :: phitot
+ integer :: i,j
+ real, dimension(ndim) :: dx,term
+ real :: rij,rij2,sourcei
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine direct_sum_poisson'
+ if (trace) write(iprint,*) ' Entering subroutine direct_sum_poisson'
 !
-!--reset potential (BUT NOT FORCE) initially
+!--reset potential (but not force) initially
 !
  phi = 0.
 !
 !--calculate gravitational force by direct summation
 !
- DO i=1,ntot
+ do i=1,ntot
     sourcei = source(i)
     
-    DO j=i+1,ntot
+    do j=i+1,ntot
        dx = x(:,i) - x(:,j)
-       rij2 = DOT_PRODUCT(dx,dx) + 0.1**2
-       rij = SQRT(rij2)
+       rij2 = dot_product(dx,dx) + 0.1**2
+       rij = sqrt(rij2)
        term(:) = dx(:)/(rij*rij2)
        
        phi(i) = phi(i) - source(j)/rij
@@ -61,14 +61,13 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
        
        gradphi(:,i) = gradphi(:,i) - source(j)*term(:)
        gradphi(:,j) = gradphi(:,j) + sourcei*term(:)
-    ENDDO
- ENDDO
+    enddo
+ enddo
 
  phitot = 0.
- DO i=1,ntot
+ do i=1,ntot
     phitot = phitot + 0.5*source(i)*phi(i)
- ENDDO
- print*,'phitot = ',phitot
+ enddo
 
- RETURN
-END SUBROUTINE direct_sum_poisson
+ return
+end subroutine direct_sum_poisson
