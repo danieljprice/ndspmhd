@@ -6,12 +6,12 @@
 
 subroutine get_rates
 ! USE dimen_mhd
- use debug
- use loguns
+ use debug, only:trace
+ use loguns, only:iprint
  use artvi
  use eos
  use hterms
- use kernel
+ use kernels, only:radkern2
  use linklist
  use options
  use part
@@ -513,6 +513,7 @@ contains
 ! Note that local variables are used from get_rates
 !--------------------------------------------------------------------------------------
   subroutine rates_core
+    use kernels, only:interpolate_kernel,interpolate_kernels
     implicit none
     real :: prstar, vstar
     real :: projvi, projvj, dvsigdtc
