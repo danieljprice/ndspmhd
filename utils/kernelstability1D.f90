@@ -1,15 +1,14 @@
 subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
-  use kernel
-  use kernelextra
+  use kernels, only:kernelname
   implicit none
-  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
+  integer, parameter :: ny = 100, nkx = 100, npart = 40, ncont = 40
   integer, intent(in) :: iplot, nacrossin, ndownin, neps
   real, intent(in) :: eps
-  integer :: i,j,ipart,mm,pp,nc,ikx
+  integer :: i,j,ipart,ikx
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
-  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4
+  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4,rhosum
   real, dimension(nkx) :: kxarray
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
@@ -17,11 +16,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   real :: xmin, psep, pmass, rhozero, przero, gamma, cs2, R
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
-  real :: charheight, hpos, vpos, term1,term2,term3,term4
+  real :: charheight, hpos, vpos, term1,term2,term3,term4,rhosumi
   character(len=5) :: string,labely
-  character(len=50) :: filename, text,title
+  character(len=50) :: text,title
   logical :: negstress, contours
-  common /terms/ term1,term2,term3,term4
+  common /terms/ term1,term2,term3,term4,rhosumi
   
   cs2 = 1.0
   rhozero = 1.0
@@ -32,8 +31,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--set various options
 !  
-  contours = .true.     ! plot whole dispersion relation or just kx=0
-  negstress = .true.    ! plot vs h or R
+  contours = .false.     ! plot whole dispersion relation or just kx=0
+  negstress = .false.    ! plot vs h or R
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
   ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
@@ -68,8 +67,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      ymax = 1.
      labely = 'R'
   else                  ! y axis is h
-     ymin = 0.5*psep
-     ymax = 2.0*psep
+     ymin = 1.0*psep
+     ymax = 5.0*psep
      labely = 'h'
   endif
 !
@@ -113,6 +112,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 	   tterm2(j) = term2/(kx**2*cs2)
 	   tterm3(j) = term3/(kx**2*cs2)
 	   tterm4(j) = term4/(kx**2*cs2)
+           rhosum(j) = rhosumi
 	endif
      enddo
   enddo
@@ -175,32 +175,42 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      !!call pgsch(1.2)
      call pgsch(1.0)
      if (iplotpos.eq.1) call pgpage
-     datmin = -10. !!min(minval(tterm1),minval(tterm2),minval(tterm3),minval(tterm4)) !-2.0   !!1.0
-     datmax = 10. !!max(maxval(tterm1),maxval(tterm2),maxval(tterm3),maxval(tterm4))
+     datmin = 0.5  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
+     datmax = 1.5  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
      call danpgtile(iplotpos,nacross,ndown, &
           ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
 !     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
      call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
-
+!
+!--plot contributions from first and second derivatives
+!
      !--set legend position
-     hpos = 0.62   ! horizontal position as % of viewport
+     hpos = 0.1   ! horizontal position as % of viewport
      vpos = 1.5  ! vertical position in character heights from top
      call pgsls(2) !sci(2)
-     call pgline(ny,yaxis(1:ny),tterm1(1:ny))
-     if (iplotpos.eq.1) call legend(1,'iso dW',hpos,vpos)
+     call pgline(ny,yaxis(1:ny),tterm1(1:ny)-1.0)
+     if (iplotpos.eq.1) call legend(1,'grad^2 W norm',hpos,vpos)
      call pgsls(3)
-     call pgline(ny,yaxis(1:ny),tterm2(1:ny))
-     if (iplotpos.eq.1) call legend(2,'iso d\u2\dW',hpos,vpos)
-     call pgsls(4)
-     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
-     if (iplotpos.eq.1) call legend(3,'aniso dW',hpos,vpos)
-     call pgsls(5)
-     call pgline(ny,yaxis(1:ny),tterm4(1:ny))
-     if (iplotpos.eq.1) call legend(4,'aniso d\u2\dW',hpos,vpos)
-     call pgsci(1)
+     call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
+     if (iplotpos.eq.1) call legend(2,'grad W norm',hpos,vpos)
+!     call pgsls(4)
+!     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
+!     if (iplotpos.eq.1) call legend(3,'aniso dW',hpos,vpos)
+!     call pgsls(5)
+!     call pgline(ny,yaxis(1:ny),tterm4(1:ny))
+!     if (iplotpos.eq.1) call legend(4,'aniso d\u2\dW',hpos,vpos)
+!     call pgsci(1)
+!     call pgsls(1)
+!
+!--also plot density estimate
+!
      call pgsls(1)
+     call pgsci(2)
+     call pgline(ny,yaxis(1:ny),rhosum(1:ny))
+     if (iplotpos.eq.1) call legend(3,'density estimate',hpos,vpos)
+     call pgsci(1)
      read*
 
      write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
@@ -212,24 +222,24 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      !
      !--plot line from file
      !
-     if (iplot.eq.1) then
-        open(unit=11,file='legend',status='old')
-20      continue
-        do i=1,4
-           call getarg(i,filename)
-	   call pgsls(i)
-           if (filename(1:1).ne.' ') then
-	      call plotfreq(filename)
-	      read(11,"(a)",end=21) text
-21            continue
-	      print*,trim(text),': ',filename
-              call legend(i,trim(text),hpos,vpos)
-	   endif
-	enddo
-        close(unit=11)
-     else
-        !!call legend(5,trim(kernelname)//', fixed h',hpos,vpos)     
-     endif
+!     if (iplot.eq.1) then
+!        open(unit=11,file='legend',status='old')
+!20      continue
+!        do i=1,4
+!           call getarg(i,filename)
+!	   call pgsls(i)
+!           if (filename(1:1).ne.' ') then
+!	      call plotfreq(filename)
+!	      read(11,"(a)",end=21) text
+!21            continue
+!	      print*,trim(text),': ',filename
+!              call legend(i,trim(text),hpos,vpos)
+!	   endif
+!	enddo
+!        close(unit=11)
+!     else
+!        !!call legend(5,trim(kernelname)//', fixed h',hpos,vpos)     
+!     endif
 
      call pgsch(charheight)
      call pgsls(1)
@@ -254,8 +264,8 @@ end subroutine kernelstability1D
 !           RR       : negative stress parameter (RR=1 gives hydro)
 !
 real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
-  use kernel
-  use kernelextra
+  use kernels, only:wij,grwij,grgrwij,grwijaniso,grgrwijaniso, &
+                    ikern,dq2table,ddq2table
   implicit none
   integer :: i,index,index1, ipart, npart, neps
   real, dimension(npart) :: x
@@ -264,8 +274,8 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   real :: sum1, sum2, sum3, sum4, sum5, sum6, sum7, sum8
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
-  real :: dx, dr, q2, eps, term, term1,term2,term3,term4
-  common /terms/ term1,term2,term3,term4
+  real :: dx, dr, q2, eps, term, term1,term2,term3,term4,rhosumi
+  common /terms/ term1,term2,term3,term4,rhosumi
 
   sum1 = 0.
   sum2 = 0.
@@ -275,6 +285,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   sum6 = 0.
   sum7 = 0.
   sum8 = 0.
+  rhosumi = 0.
 !
 !--calculate pressure from cs2 and gamma
 !  
@@ -343,13 +354,14 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
      sum3 = sum3 + (1. - COS(kx*dx))*gradgradWcorr
      sum4 = sum4 + SIN(kx*dx)*gradWcorr*dr
-!     sum5 = sum5 + dx*gradW*dr
+     sum5 = sum5 + dx*gradW*dr
 !     sum6 = sum6 + dx*gradWcorr*dr
-!     sum7 = sum7 + 0.5*dx**2*gradgradW
+     sum7 = sum7 + 0.5*dx**2*gradgradW
 !     sum8 = sum8 + 0.5*dx**2*gradgradWcorr
+     rhosumi = rhosumi + W
   enddo
 ! 
-!!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum1/sum7
+!!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum7
 !  sum1 = kx**2
 !  sum3 = kx**2
 !  sum4 = -kx

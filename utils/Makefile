@@ -30,10 +30,9 @@ CC = $(F90C)
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS = dimen3D.o variablesND.o kernelND.o  \
-	  kernelplot.o kernelstability1D.o danpgtile.o
+OBJECTS = kernelND.o kernelplot.o kernelstability1D.o danpgtile.o
 
-OBJSPHDERIV = kernelND.o variablesND.o sphderiv.o interpolate_kernel.o
+OBJSPHDERIV = kernelND.o sphderiv.o
 
 OBJMODDUMP = variablesND.o allocateND.o prompting.o \
              readwrite_dumps.o modifydump.o
