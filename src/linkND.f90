@@ -20,45 +20,45 @@
 !! 17/10/03 - Bug fix for 1D fixed particle boundaries
 !!--------------------------------------------------------------------------
 
-SUBROUTINE set_linklist
-! USE dimen_mhd
- USE debug
- USE loguns
+subroutine set_linklist
+! use dimen_mhd
+ use debug, only:trace,idebug
+ use loguns, only:iprint
  
- USE bound
- USE kernel
- USE linklist
- USE options
- USE part
+ use bound, only:xmin,xmax,hhmax
+ use kernels, only:radkern
+ use linklist
+ use options, only:ibound
+ use part, only:x,hh,npart,ntotal
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER :: i,j,icell
- INTEGER, DIMENSION(ndim) :: icellx
- REAL, DIMENSION(ndim) :: xminpart,xmaxpart
+ implicit none
+ integer :: i,j,icell
+ integer, dimension(ndim) :: icellx
+ real, dimension(ndim) :: xminpart,xmaxpart
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine link'
+ if (trace) write(iprint,*) ' Entering subroutine link'
 !
 !--use maximum value of h for cell size
 ! (this is already calculated in set_ghosts if using ghost particles)
  
- IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
+ if (all(ibound.le.1)) hhmax = maxval(hh(1:npart))
  dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
- IF (dxcell.LE.0) THEN
-    WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax,MAXLOC(hh(1:npart))    
-    CALL quit
- ENDIF
+ if (dxcell.le.0) then
+    write(iprint,*) 'error: link: max h <=0 :',hhmax,maxloc(hh(1:npart))    
+    call quit
+ endif
 !
 !--find max/min of particle distribution, including ghost particles
 !  (add/subtract 0.00001 to make sure all particles are within these limits)
 !
- DO j=1,ndim
-    xminpart(j) = MINVAL(x(j,1:ntotal)) - 0.00001
-    xmaxpart(j) = MAXVAL(x(j,1:ntotal)) + 0.00001
- ENDDO
+ do j=1,ndim
+    xminpart(j) = minval(x(j,1:ntotal)) - 0.00001
+    xmaxpart(j) = maxval(x(j,1:ntotal)) + 0.00001
+ enddo
 !
 !--add one (empty) cell to each end in each dimension
 !
@@ -68,68 +68,68 @@ SUBROUTINE set_linklist
 !--now work out total number of cells
 !
  ncellsx(:) = int((xmaxpart(:)-xminpart(:))/dxcell) + 1
- IF (ANY(ncellsx .EQ. 0)) THEN
-    WRITE(iprint,*) 'Error: link: number of cells=0:'
-    WRITE(iprint,*) 'xmin, xmax, dxcell, hhmax = ',xmin,xmax,dxcell,hhmax
-    WRITE(iprint,*) 'Max h particle ',MAXLOC(hh)
-    CALL quit
- ENDIF
+ if (any(ncellsx .eq. 0)) then
+    write(iprint,*) 'error: link: number of cells=0:'
+    write(iprint,*) 'xmin, xmax, dxcell, hhmax = ',xmin,xmax,dxcell,hhmax
+    write(iprint,*) 'max h particle ',maxloc(hh)
+    call quit
+ endif
  
- ncells = PRODUCT(ncellsx)
+ ncells = product(ncellsx)
 
- !WRITE(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
+ !write(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
 
  ncellsloop = ncells
 !
 ! allocate array memory now we know the number of cells
 ! 
- IF (ALLOCATED(ifirstincell)) DEALLOCATE( ifirstincell )
- ALLOCATE ( ifirstincell(ncells) )
+ if (allocated(ifirstincell)) deallocate( ifirstincell )
+ allocate ( ifirstincell(ncells) )
  
- DO i=1,ncells
+ do i=1,ncells
     ifirstincell(i) = -1             ! set all head of chains to -1
- ENDDO
+ enddo
 
 !
 !--work out which cell the particle is in
 !  
- DO i=1,ntotal            ! including ghosts
+ do i=1,ntotal            ! including ghosts
     ll(i) =  -1
     icellx(:) = int((x(:,i)-xminpart(:))/dxcell) + 1 
-    IF ( ANY(icellx < 0).OR.ANY(icellx > ncellsx) ) THEN
-       WRITE(iprint,*) 'link: particle crossed boundary ',i,x(:,i),icellx,ncellsx
-       CALL quit
-    ENDIF
+    if ( any(icellx < 0).or.any(icellx > ncellsx) ) then
+       write(iprint,*) 'link: particle crossed boundary ',i,x(:,i),icellx,ncellsx
+       call quit
+    endif
        
     icell = icellx(1) 
-    IF (ndim.GE.2) THEN
+    if (ndim.ge.2) then
        j = 2
        icell = icell + (icellx(j)-1)*ncellsx(j-1)
-       IF (ndim.GE.3) THEN
+       if (ndim.ge.3) then
           j = 3
           icell = icell + (icellx(j)-1)*ncellsx(j-2)*ncellsx(j-1)
-       ENDIF
-    ENDIF
+       endif
+    endif
 
     ll(i) = ifirstincell(icell)            ! link to previous start of chain
     ifirstincell(icell) = i            ! set head of chain to current particle       
     iamincell(i) = icell             ! save which cell particle is in 
-    !if (i.eq.1) PRINT*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
- ENDDO
+    !if (i.eq.1) print*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
+ enddo
 !
 !--debugging
 !
- IF (idebug(1:4).EQ.'link') THEN
+ if (idebug(1:4).eq.'link') then
     print*,'xmin,xmax,dxcell,hhmax,ncells',xmin,xmax,dxcell,hhmax,ncells
-    DO i=1,ncells
+    do i=1,ncells
        j = ifirstincell(i)
        print*,'cell ',i,' ifirstincell = ',j
-       DO WHILE (j.NE.-1 .AND. ll(j).NE.-1)
+       do while (j.ne.-1 .and. ll(j).ne.-1)
           j = ll(j)
           print*,' next =',j
-       ENDDO
+       enddo
        read*
-    ENDDO     
- ENDIF    
-END SUBROUTINE set_linklist
+    enddo     
+ endif    
+end subroutine set_linklist
       

@@ -3,18 +3,18 @@
 ! checks the neighbours 
 !
 subroutine check_neighbourlist
- use dimen_mhd
- use kernel
- use part
+ use dimen_mhd, only:ndim
+ use kernels, only:radkern2
+ use part, only:x, hh, npart,ntotal
  use linklist
  use get_neighbour_lists
  implicit none
  integer :: i,j,n,ineigh
- integer :: icell,icellloop,ipart,iprev,ncell,nneigh,icellprev
+ integer :: icell,iprev,nneigh,icellprev
  integer, allocatable, dimension(:) :: listneigh
  integer, allocatable, dimension(:,:) :: neighbour_list
  integer :: idone, nlistdim
- real :: rij,rij2,hi,q2i,q2j
+ real :: rij2,hi,q2i,q2j
  real, dimension(ndim) :: dx
  logical :: iok, partial
 
@@ -111,7 +111,6 @@ subroutine check_neighbourlist
           j = listneigh(n)
           dx(:) = x(:,i) - x(:,j)
           rij2 = dot_product(dx,dx)
-          rij = sqrt(rij2)
           q2i = rij2/hi**2
           if (q2i.LT.radkern2) then
              numneigh(i) = numneigh(i) + 1

@@ -14,11 +14,11 @@ subroutine set_ghost_particles
   use loguns
   
   use bound
-  use kernel
+  use kernels,only:radkern
   use derivB
   ! use linklist
   use options
-  use part
+  use part, only:x,hh,npart,ntotal,rho,uu,itype
 !
 !--define local variables
 !
