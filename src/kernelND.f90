@@ -1,147 +1,163 @@
-!!-----------------------------------------------------------------
-!! Sets up the tables for the kernel
-!! Returns kernel, and derivative.
-!!
-!! Default kernel is the cubic spline, however several alternatives
-!! are given, namely:
-!!  1) cubic spline
-!!  2) cubic spline with constant gradient for r/h < 2/3
-!!  3) quintic spline (max r/h = 3)
-!!  4) squashed quintic (max r/h = 2)
-!!  5) another squashed quintic (max r/h = 2)
-!!  6) a general class of quintic splines (max r/h = 2)
-!!
-!!  Note in the ND case, the normalisation constants are right
-!!  only for the cubic and quintic splines in > 1D.
-!!
-!!-----------------------------------------------------------------
+!-----------------------------------------------------------------------------
+! This module contains everything needed for the SPH kernel
+!
+! contains:
+!  setkern : sets up kernel tables
+!  interpolate_kernel : interpolation function from kernel tables
+!  interpolate_kernels : interpolation function from kernel tables
+!  interpolate_softening : interpolation function for softening kernel tables
+!
+!-----------------------------------------------------------------------------
 
-SUBROUTINE setkern  
- USE dimen_mhd
- USE debug
- USE loguns, only:iprint
- USE kernel
- USE kernelextra
- USE options, only:ikernel,ianticlump
- USE setup_params   ! for hfact in my kernel
- USE anticlumping
- IMPLICIT NONE         !  define local variables
- INTEGER :: i,j,npower
- REAL :: q,q2,q4,cnormk,cnormkaniso
- REAL :: term1,term2,term3,term4
- REAL :: dterm1,dterm2,dterm3,dterm4
- REAL :: ddterm1,ddterm2,ddterm3,ddterm4
- REAL :: alpha,beta,gamma,A,B,C,wdenom,wint
+module kernels
+ implicit none
+ integer, parameter :: ikern=4000    ! dimensions of kernel table
+ real, dimension(0:ikern) :: wij,grwij,wijaniso,grwijaniso
+ real :: dq2table,ddq2table,radkern2,radkern
+!--these variables for force softening only
+ real, dimension(0:ikern) :: potensoft,fsoft
+!--these variables needed for plotting and analysis only (not in rates etc)
+ real, dimension(0:ikern) :: grgrwij,grgrwijaniso
+ character(len=100) :: kernelname
+
+contains
+
+!-----------------------------------------------------------------
+! Sets up the tables for the kernel
+! Returns kernel, and derivative.
+!
+! Default kernel is the cubic spline, but I have experimented
+! with lots more.
+!
+!-----------------------------------------------------------------
+subroutine setkern
+ use dimen_mhd, only:ndim
+ use debug, only:trace
+ use loguns, only:iprint
+ use options, only:ikernel,ianticlump
+ use setup_params, only:pi
+ use anticlumping
+ implicit none         !  define local variables
+ integer :: i,j,npower
+ real :: q,q2,q4,cnormk,cnormkaniso
+ real :: term1,term2,term3,term4
+ real :: dterm1,dterm2,dterm3,dterm4
+ real :: ddterm1,ddterm2,ddterm3,ddterm4
+ real :: alpha,beta,gamma,a,b,c,wdenom,wint
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setkern'
+ if (trace) write(iprint,*) ' entering subroutine setkern'
 !
 !--set choice of kernel (this could be read in as a parameter)
 !
  cnormk = 0.0
+ wij = 0.
+ grwij = 0.
+ grgrwij = 0.
+ fsoft = 1.
+ potensoft = 0.
 
- SELECT CASE(ikernel)
+ select case(ikernel)
 
-  CASE(2)
+  case(2)
 !
-!--Quartic spline
+!--quartic spline
 !  
-    kernelname = 'Quartic spline'    
+    kernelname = 'quartic spline'    
 
     radkern = 2.5
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
          cnormk = 1./24.
-      CASE(2)
+      case(2)
          cnormk = 96./(1199*pi)
-      CASE(3)
+      case(3)
          cnormk = 1./(20*pi)
-    END SELECT  
-    DO i=0,ikern
+    end select  
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.0.5) THEN
+       q = sqrt(q2)
+       if (q.lt.0.5) then
           wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4
           grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
           grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
-       ELSEIF (q.LT.1.5) THEN
+       elseif (q.lt.1.5) then
           wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4
           grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3)
           grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2)   
-       ELSEIF (q.LT.2.5) THEN
+       elseif (q.lt.2.5) then
           wij(i) = (2.5-q)**4
           grwij(i) = -4.*((2.5-q)**3)
           grgrwij(i) = 12.*((2.5-q)**2)
-       ELSE
+       else
           wij(i) = 0.
           grwij(i) = 0.
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO 
+       endif
+    enddo 
 
-  CASE(3)
+  case(3)
 !
-!--this is the M_6 quintic spline (see e.g. Morris 1996, PhD thesis)
+!--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
 !
-    kernelname = 'Quintic spline'  
+    kernelname = 'quintic spline'  
     radkern = 3.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1) 
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1) 
        cnormk = 1./120.
-      CASE(2)
+      case(2)
        cnormk = 7./(478*pi)
-      CASE(3)
+      case(3)
        cnormk = 1./(120.*pi)
-    END SELECT
-    DO i=0,ikern         
+    end select
+    do i=0,ikern         
        q2 = i*dq2table
        q4 = q2*q2
-       q = SQRT(q2)
+       q = sqrt(q2)
        term1 = -5.*(3.-q)**4.
-       IF (q.LT.1.0) THEN
+       if (q.lt.1.0) then
           wij(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
           grwij(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
           grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
-       ELSEIF ((q.GE.1.0).AND.(q.LT.2.0)) THEN
+       elseif ((q.ge.1.0).and.(q.lt.2.0)) then
           wij(i) = (3.-q)**5. - 6.*(2.-q)**5.
           grwij(i) = term1 + 30*(2.-q)**4.
           grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
-       ELSEIF ((q.GE.2.0).AND.(q.LE.3.0)) THEN
+       elseif ((q.ge.2.0).and.(q.le.3.0)) then
           wij(i) = (3.-q)**5.
           grwij(i) = term1
           grgrwij(i) = 20.*(3.-q)**3.
-       ELSE
+       else
           wij(i) = 0.0
           grwij(i) = 0.0
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO
+       endif
+    enddo
 
-  CASE(5,6,7)
+  case(5,6,7)
 !
-!--this is the Do-It-Yourself quintic kernel (general class of quintic splines)
+!--this is the do-it-yourself quintic kernel (general class of quintic splines)
 !
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
+    dq2table = radkern2/real(ikern)
 
     gamma = 0.
-    IF (ikernel.EQ.5) THEN
+    if (ikernel.eq.5) then
        beta = 0.5
        alpha = 1.7   !!1.4
        kernelname = 'New quintic (1)'    
-    ELSEIF (ikernel.EQ.6) THEN
-       !--very poor on sound waves
+    elseif (ikernel.eq.6) then
        beta = 0.7
        alpha = 1.5
        kernelname = 'New quintic (2)'    
-    ELSE
-    !--match to cubic spline, ie W''(0) = -2
+    else
+    !--match to cubic spline, ie w''(0) = -2
       kernelname = 'Cubic-like quintic' 
       beta = 0.85
       !print*,' enter beta'
@@ -154,27 +170,27 @@ SUBROUTINE setkern
       dterm2 = (alpha+2)*(-alpha**2 + beta**2 - 4.)
       q = 2.*alpha*(-alpha**2 - 2.*alpha + beta**2 - 4. + sqrt(term2))/dterm2
       print*,' 3rd derivative zero at q = ',q    
-    ENDIF
-    C =0.
-    A =  (-radkern**4 + (radkern**2 + C*gamma**2)*beta**2)      &
+    endif
+    c =0.
+    a =  (-radkern**4 + (radkern**2 + c*gamma**2)*beta**2)      &
         /(alpha**2*(alpha**2-beta**2))      
-    B = -(radkern**4 + A*alpha**4 + C*gamma**4)/(beta**4)
+    b = -(radkern**4 + a*alpha**4 + c*gamma**4)/(beta**4)
     print*,'matching points = ',beta,alpha
-    SELECT CASE(ndim)
-      CASE(1)
-        cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + radkern**6)   ! for radkern = 2 and 1D
-        print*,'1D cnormk = ',cnormk,' A,B = ',A,B
-      CASE(2)
-        cnormk = 42./(2.*pi*(A*alpha**7 + B*beta**7 + C*gamma**7 + radkern**7))
-        print*,'2D cnormk = ',cnormk,' A,B = ',A,B,beta,alpha
-      CASE DEFAULT
+    select case(ndim)
+      case(1)
+        cnormk = 3./(a*alpha**6 + b*beta**6 + c*gamma**6 + radkern**6)   ! for radkern = 2 and 1d
+        print*,'1d cnormk = ',cnormk,' a,b = ',a,b
+      case(2)
+        cnormk = 42./(2.*pi*(a*alpha**7 + b*beta**7 + c*gamma**7 + radkern**7))
+        print*,'2d cnormk = ',cnormk,' a,b = ',a,b,beta,alpha
+      case default
        write(iprint,666)
        stop  
-    END SELECT
+    end select
   
-    DO i=0,ikern         
+    do i=0,ikern         
       q2 = i*dq2table
-      q = SQRT(q2)
+      q = sqrt(q2)
       term1 = (radkern-q)**5
       term2 = (alpha-q)**5
       term3 = (beta-q)**5
@@ -187,82 +203,82 @@ SUBROUTINE setkern
       ddterm2 = 20*(alpha-q)**3
       ddterm3 = 20*(beta-q)**3
       ddterm4 = 20*(gamma-q)**3
-      IF (q.LT.gamma) THEN
-         wij(i) = term1 + A*term2  + B*term3 + C*term4
-         grwij(i) = dterm1 + A*dterm2 + B*dterm3 + C*dterm4
-         grgrwij(i) = ddterm1 + A*ddterm2 + B*ddterm3 + C*ddterm4   
-      ELSEIF ((q.GE.gamma).AND.(q.LT.beta)) THEN
-         wij(i) = term1 + A*term2  + B*term3
-         grwij(i) = dterm1 + A*dterm2 + B*dterm3
-         grgrwij(i) = ddterm1 + A*ddterm2 + B*ddterm3       
-      ELSEIF ((q.GE.beta).AND.(q.LT.alpha)) THEN
-         wij(i) = term1 + A*term2
-         grwij(i) = dterm1 + A*dterm2
-         grgrwij(i) = ddterm1 + A*ddterm2
-      ELSEIF ((q.GE.alpha).AND.(q.LT.radkern)) THEN
+      if (q.lt.gamma) then
+         wij(i) = term1 + a*term2  + b*term3 + c*term4
+         grwij(i) = dterm1 + a*dterm2 + b*dterm3 + c*dterm4
+         grgrwij(i) = ddterm1 + a*ddterm2 + b*ddterm3 + c*ddterm4   
+      elseif ((q.ge.gamma).and.(q.lt.beta)) then
+         wij(i) = term1 + a*term2  + b*term3
+         grwij(i) = dterm1 + a*dterm2 + b*dterm3
+         grgrwij(i) = ddterm1 + a*ddterm2 + b*ddterm3       
+      elseif ((q.ge.beta).and.(q.lt.alpha)) then
+         wij(i) = term1 + a*term2
+         grwij(i) = dterm1 + a*dterm2
+         grgrwij(i) = ddterm1 + a*ddterm2
+      elseif ((q.ge.alpha).and.(q.lt.radkern)) then
          wij(i) = term1
          grwij(i) = dterm1
          grgrwij(i) = ddterm1
-      ELSE
+      else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
-      ENDIF
-    ENDDO
+      endif
+    enddo
 
-  CASE (8)
+  case (8)
 !
 !--(1-r^2)^3
 !   
-    npower = 5
+    npower = 6
     write(kernelname,"(a,i1)") '(1-r^2)^',npower     
 
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
-         SELECT CASE(npower)
-         CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         select case(npower)
+         case(1)
             cnormk = 0.5*3./(2.*radkern**3)
-         CASE(2)
+         case(2)
             cnormk = 0.5*15./(8.*radkern**5)
-         CASE(3)
+         case(3)
             cnormk = 0.5*35./(16.*radkern**7)
-         CASE(4)
+         case(4)
             cnormk = 0.5*315./(128.*radkern**9)
-         CASE(5)
+         case(5)
             cnormk = 0.5*693./(256.*radkern**11)
-         CASE(6)
+         case(6)
             cnormk = 0.5*3003./(1024.*radkern**13)
-         CASE(7)
+         case(7)
             cnormk = 0.5*6435./(2048.*radkern**15)    
-         CASE(8)
+         case(8)
             cnormk = 0.5*109395./(32768.*radkern**17)    
-         CASE DEFAULT
+         case default
             cnormk = 0.
-         END SELECT    
-      CASE(2)
+         end select    
+      case(2)
          cnormk = 3./(64.*pi)
-      CASE(3)
+      case(3)
          cnormk = 105./(4096.*pi)
-    END SELECT  
-    DO i=0,ikern
+    end select  
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.radkern) THEN
+       q = sqrt(q2)
+       if (q.lt.radkern) then
           wij(i) = (radkern**2-q2)**npower
           grwij(i) = -2.*npower*q*(radkern**2-q2)**(npower-1)
           grgrwij(i) = (4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
                       - 2.*npower*(radkern**2-q2)**(npower-1))
-       ELSE
+       else
           wij(i) = 0.
           grwij(i) = 0.
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO
+       endif
+    enddo
     
-   CASE (9)
+   case (9)
 !
 !--(1-r)^n - a peaked kernel (deriv non-zero at origin) - truly awful
 !   
@@ -271,243 +287,494 @@ SUBROUTINE setkern
 
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
          cnormk = 0.5*(npower+1)/radkern**(npower+1)
-      CASE(2,3)
-         STOP 'normalisation const not defined in kernel'
-    END SELECT  
-    DO i=0,ikern
+      case(2,3)
+         stop 'normalisation const not defined in kernel'
+    end select  
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.radkern) THEN
+       q = sqrt(q2)
+       if (q.lt.radkern) then
           wij(i) = (radkern-q)**npower
           grwij(i) = -npower*(radkern-q)**(npower-1)
           grgrwij(i) = npower*(npower-1)*(radkern-q)**(npower-2)
-       ELSE
+       else
           wij(i) = 0.
           grwij(i) = 0.
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO   
+       endif
+    enddo   
 
-  CASE(10)
+  case(10)
 !
-!--Gaussian
+!--gaussian
 !  
     kernelname = 'Gaussian'    
 
-    radkern = 5.0
+    radkern = 10.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
          cnormk = 1./sqrt(pi)
-      CASE(2)
+      case(2)
          cnormk = 1./pi
-      CASE(3)
+      case(3)
          cnormk = 1./(pi*sqrt(pi))
-    END SELECT  
-    DO i=0,ikern
+    end select  
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.radkern) THEN
+       q = sqrt(q2)
+       if (q.lt.radkern) then
           wij(i) = exp(-q2)
           grwij(i) = -2.*q*wij(i)
           grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
-       ELSE
+       else
           wij(i) = 0.
           grwij(i) = 0.
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO
+       endif
+    enddo
 
-  CASE(11)
+  case(11)
 !
 !--this is the usual spline based kernel modified for r/h < 2/3 to
-!   prevent particles from clumping (see Thomas & Couchman '92)
+!   prevent particles from clumping (see thomas & couchman '92)
 !      
     kernelname = 'Thomas & Couchman anti-clumping'
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
-    dq2table = radkern*radkern/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern*radkern/real(ikern)
+    select case(ndim)
+      case(1)
         cnormk = 0.66666666666   ! normalisation constant
-      CASE(2)
+      case(2)
         cnormk = 10./(7.*pi)
-      CASE(3)
+      case(3)
         cnormk = 1./pi
-    END SELECT
+    end select
    
-    DO i=0,ikern
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.1.0) THEN
+       q = sqrt(q2)
+       if (q.lt.1.0) then
           wij(i) = 1. - 1.5*q2 + 0.75*q*q2
-          IF (q.LT.2./3.) THEN
+          if (q.lt.2./3.) then
              grwij(i) = -1.
              grgrwij(i) = 0.
-          ELSE
+          else
              grwij(i) = -3.*q+ 2.25*q2
              grgrwij(i) = -3. + 4.5*q
-          ENDIF
-       ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
+          endif
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
           wij(i) = 0.25*(2.-q)**3.
           grwij(i) = -0.75*(2.-q)**2.
           grgrwij(i) = 1.5*(2.-q)
-       ELSE
+       else
           wij(i) = 0.0
           grwij(i) = 0.0
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO
+       endif
+    enddo
   
-  CASE(12)
+  case(12)
 !
-!--this is the squashed quintic spline from Bonet & Kulesegaram
+!--this is the squashed quintic spline from bonet & kulesegaram
 !
     kernelname = 'BK squashed quintic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
        cnormk = 1./16.
-      CASE DEFAULT
+      case default
        write(iprint,666)
        stop
-    END SELECT
-    DO i=0,ikern
+    end select
+    do i=0,ikern
       q2 = i*dq2table
-      q = SQRT(q2)
-      IF (q.LT.1.0) THEN
+      q = sqrt(q2)
+      if (q.lt.1.0) then
          wij(i) = (2.-q)**5 - 16.*(1.-q)**5
          grwij(i) = -5.*(2.-q)**4 + 80.*(1.-q)**4.
          grgrwij(i) = 20.*(2.-q)**3 - 320.*(1.-q)**3.
-      ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
+      elseif ((q.ge.1.0).and.(q.le.2.0)) then
          wij(i) = (2.-q)**5
          grwij(i) = -5.*(2.-q)**4
          grgrwij(i) = 20.*(2.-q)**3
-      ELSE
+      else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
-      ENDIF
-    ENDDO  
+      endif
+    enddo  
     
-  CASE(13)
+  case(13)
 !
-!--this is the Lucy kernel (to 2h not to 1h)
+!--this is the lucy kernel (to 2h not to 1h)
 !
     kernelname = 'Lucy kernel'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
        cnormk = 3./5. ! normalisation is probably wrong
-      CASE(2)
+      case(2)
        cnormk = 1/(pi)
-      CASE(3)
+      case(3)
        cnormk = 105/(16.*pi)
-      CASE DEFAULT
+      case default
        write(iprint,666)
-       STOP
-    END SELECT
-    DO i=0,ikern
+       stop
+    end select
+    do i=0,ikern
       q2 = i*dq2table
-      q = SQRT(q2)
-      IF (q.LT.2.0) THEN
+      q = sqrt(q2)
+      if (q.lt.2.0) then
          wij(i) = (1.+1.5*q)*(1.-0.5*q)**3
          grwij(i) = (1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2)
          !--note second deriv is wrong
          grgrwij(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
-      ELSE
+      else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
-      ENDIF
-    ENDDO
-  CASE(21)
+      endif
+    enddo
+
+  case(14)
 !
-!--cubic spline with vanishing second moment (from Fulk & Quinn 1996)
+!--this is a modification of the cubic spline
 !
-    kernelname = 'High order cubic spline'    
+    kernelname = 'Peaked cubic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
-       cnormk = 1./18.
-      CASE(2)
-       cnormk = 1/(pi)  !wrong
-      CASE(3)
-       cnormk = 105/(16.*pi)
-      CASE DEFAULT
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 1./8.
+      case(2)
+       cnormk = 5./(16.*pi)
+      case(3)
+       cnormk = 15./(64.*pi)
+      case default
        write(iprint,666)
-       STOP
-    END SELECT
-    DO i=0,ikern
+       stop
+    end select
+    do i=0,ikern
       q2 = i*dq2table
-      q = SQRT(q2)
-      IF (q.LT.1.0) THEN
-         wij(i) = 17.- 147./4.*q2 + 18./4.*q2*q
-         grwij(i) = -147./2.*q + 3.*18./4.*q2 
-      ELSEIF (q.LT.2.0) THEN
-         wij(i) = 0.25*(2.-q)**2*(49.-47.*q)
-         grwij(i) = -0.5*(2-q)*(49.-47.*q) - 47.*0.25*(2-q)**2
-         !--note second deriv is wrong
-         !!grgrwij(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
-      ELSE
+      q = sqrt(q2)
+      if (q.lt.2.0) then
+         wij(i) = (2.-q)**3
+         grwij(i) = -3.*(2.-q)**2
+         grgrwij(i) = 6.*(2.-q)
+      else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
-      ENDIF
-    ENDDO
+      endif
+    enddo
+    
+  case(15)
+!
+!--this is a modification of the cubic spline
+!
+    kernelname = 'Peaked cubic spline 2'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 4./7.
+      case(2)
+       cnormk = 4./(3.*pi)
+      case(3)
+       cnormk = 30./(31.*pi)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.1.0) then
+         wij(i) = 0.25*(2.-q)**3 - 0.5*(1.-q)**3
+         grwij(i) = -0.75*(2.-q)**2 + 1.5*(1.-q)**2
+         grgrwij(i) = 1.5*q
+      elseif(q.lt.2.0) then
+         wij(i) = 0.25*(2.-q)**3
+         grwij(i) = -0.75*(2.-q)**2
+         grgrwij(i) = 3. - 1.5*q
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
 
-  CASE(101)
+  case(16)
+!
+!--another version of the peaked cubic spline
+!
+    alpha = 1.0
+    print*,'enter alpha,'
+    read*,alpha
+    write(kernelname,"(a,f6.2)") 'peaked cubic spline alpha = ',alpha
+!!    kernelname = 'peaked cubic spline 3'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 1./(1. + 0.25/alpha + 1.5*alpha - alpha**2)
+      case(2)
+       cnormk = -20.*alpha/(pi*(10.*alpha**3 - 20.*alpha**2 - alpha - 4.))
+      case(3)
+       cnormk = -30.*alpha/(pi*(20.*alpha**3 - 45.*alpha**2 + 4.*alpha - 10.))
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.alpha) then
+         wij(i) = 0.25*(2.-q)**3 - 0.5/alpha*(alpha-q)**3
+         grwij(i) = -0.75*(2.-q)**2 + 1.5/alpha*(alpha-q)**2
+         grgrwij(i) = 1.5*(2.-q) - 3./alpha*(alpha-q)
+      elseif (q.lt.2.0) then
+         wij(i) = 0.25*(2.-q)**3
+         grwij(i) = -0.75*(2.-q)**2
+         grgrwij(i) = 1.5*(2.-q)
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+    
+  case(17)
+!
+!--exponential kernel
+!
+    kernelname = 'Exponential'
+   
+    radkern = 10.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 10./(6.*pi)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.radkern) then
+         wij(i) = exp(-q)
+         grwij(i) = -wij(i)
+         grgrwij(i) = -grwij(i)
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo    
+  case(21)
+!
+!--cubic spline with vanishing second moment (using monaghan 1992 method)
+!
+    kernelname = 'higher order cubic spline'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       a = 0.9
+       cnormk = 2./(3.*a - 1.)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.1.0) then
+         wij(i) = (a - q2)*(1. - 1.5*q2 + 0.75*q2*q)
+         grwij(i) = -2.*q*(1. - 1.5*q2 + 0.75*q2*q) + (a -q2)*(-3.*q + 9./4.*q2)
+         grgrwij(i) = -2. + 18.*q2 - 15.*q2*q - 3.*a + 4.5*a*q
+      elseif (q.lt.2.0) then
+         wij(i) = 0.25*(a - q2)*(2.-q)**3
+         grwij(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
+         grgrwij(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+    
+   case(23)
+!
+!--this is a modification of the cubic spline
+!
+    kernelname = 'High order peaked cubic spline 2'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       a = 381./434.
+       cnormk = 1./(7.*a/4. - 31./60.)
+      case(2)
+       cnormk = 4./(3.*pi)
+      case(3)
+       cnormk = 30./(31.*pi)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.1.0) then
+         wij(i) = (a - q2)*(0.25*(2.-q)**3 - 0.5*(1.-q)**3)
+         grwij(i) = -2.*q*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+                  + (a - q2)*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2)
+         grgrwij(i) = -2.*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+                      -4.*q*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2) &
+                      +(a - q2)*(1.5*(2.-q) - 3.*(1.-q))
+      elseif(q.lt.2.0) then
+         wij(i) = (a - q2)*(0.25*(2.-q)**3)
+         grwij(i) = -2.*q*(0.25*(2.-q)**3) + (a - q2)*(-0.75*(2.-q)**2)
+         grgrwij(i) = -2.*(0.25*(2.-q)**3) -4.*q*(-0.75*(2.-q)**2) &
+                      + (a - q2)*(1.5*(2.-q))
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+    
+  case(30)
+!
+!--these are the Ferrer's spheres from Dehnen (2001)
+!
+    kernelname = 'Ferrers n=3 sphere'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 35./4096.
+      case(2)
+       cnormk = 1./(64.*pi)
+      case(3)
+       cnormk = 315./(32768.*pi)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.2.0) then
+         wij(i) = (4.-q2)**3
+         grwij(i) = -6.*q*(4.-q2)**2
+         grgrwij(i) = 24.*q2*(4.-q2) - 6.*(4.-q2)**2
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+    
+  case(31)
+!
+!--these are the Ferrer's spheres from dehnen (2001)
+!
+    kernelname = 'Ferrers n=6 sphere'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 3003./16777216.
+      case(2)
+       cnormk = 7./(16384.*pi)
+      case(3)
+       cnormk = 45045./(134217728.*pi)
+      case default
+       write(iprint,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.2.0) then
+         wij(i) = (4.-q2)**6
+         grwij(i) = -12.*q*(4.-q2)**5
+         grgrwij(i) = 120.*q2*(4.-q2)**4 - 12.*(4.-q2)**5
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+  case(101)
 !
 !--this is the potential and force corresponding to the cubic spline
 !      
-    kernelname = 'potential'    
+    kernelname = 'Potential'    
    
     radkern = 3.5
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(3)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(3)
        cnormk = 1.
-      CASE DEFAULT
+      case default
        write(iprint,666)
-       STOP
-    END SELECT
-    DO i=0,ikern
+       stop
+    end select
+    do i=0,ikern
       q2 = i*dq2table
-      q = SQRT(q2)
+      q = sqrt(q2)
       q4 = q2*q2
       !
       ! note that the potential does not need to be divided by r
       ! (tabulated like this to prevent numerical divergences)
       ! however the force must be divided by 1/r^2
       !
-      IF (q.LT.1.0) THEN 
-         wij(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
-         grwij(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
-      ELSEIF (q.LT.2.0) THEN
-         wij(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
-         grwij(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
-      ELSE
-         wij(i) = -1./q
-         grwij(i) = 1.0
-      ENDIF
-    ENDDO
+      if (q.lt.1.0) then 
+         potensoft(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
+         fsoft(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
+      elseif (q.lt.2.0) then
+         potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
+         fsoft(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+      else
+         potensoft(i) = -1./q
+         fsoft(i) = 1.0
+      endif
+    enddo
     
-  CASE(102)
+  case(102)
 !
 !--this is the force softening kernel corresponding to the cubic spline
 !      
@@ -515,145 +782,157 @@ SUBROUTINE setkern
    
     radkern = 3.5
     radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(3)
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(3)
        cnormk = 1.
-      CASE DEFAULT
+      case default
        write(iprint,666)
-       STOP
-    END SELECT
-    DO i=0,ikern
+       stop
+    end select
+    do i=0,ikern
       q2 = i*dq2table
-      q = SQRT(q2)
+      q = sqrt(q2)
       q4 = q2*q2
-      IF (q.LT.1.0) THEN
+      if (q.lt.1.0) then
          !!wij(i) = 2./3.*q2*q - 0.3*q4*q + 0.1*q4*q2 - 1.4*q
          wij(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
-      ELSEIF (q.LT.2.0) THEN
+      elseif (q.lt.2.0) then
          !!wij(i) = 4./3.*q2*q - q4 + 0.3*q4*q - q4*q2/30. - 1.6*q + 1./(15.)
          wij(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
-      ELSE
+      else
          !!wij(i) = -1.
          wij(i) = 1.0
          grgrwij(i) = 0.
-      ENDIF
-    ENDDO
+      endif
+    enddo
 
-  CASE DEFAULT  
+  case default  
 !
-!--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
+!--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernelname = 'Cubic spline'    
+    kernelname = 'cubic spline'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
-    dq2table = radkern*radkern/REAL(ikern)    
-    SELECT CASE(ndim)
-      CASE(1)
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
         cnormk = 0.66666666666
-      CASE(2)
+      case(2)
         cnormk = 10./(7.*pi)
-      CASE(3)
+      case(3)
         cnormk = 1./pi
-    END SELECT
+    end select
 !
 !--setup kernel table
 !   
-    DO i=0,ikern
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (q.LT.1.0) THEN
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! note that the potential does not need to be divided by r
+       ! (tabulated like this to prevent numerical divergences)
+       ! however the force must be divided by 1/r^2
+       !
+       if (q.lt.1.0) then
+          potensoft(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
+          fsoft(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
           wij(i) = 1. - 1.5*q2 + 0.75*q*q2
           grwij(i) = -3.*q+ 2.25*q2
           grgrwij(i) = -3. + 4.5*q
-       ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
+          fsoft(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
           wij(i) = 0.25*(2.-q)**3.
           grwij(i) = -0.75*(2.-q)**2.
           grgrwij(i) = 1.5*(2.-q)
-       ELSE
+       else
+          potensoft(i) = -1./q
+          fsoft(i) = 1.0
           wij(i) = 0.0
           grwij(i) = 0.0
           grgrwij(i) = 0.
-       ENDIF
-    ENDDO
+       endif
+    enddo
 
- END SELECT
+ end select
 
 !
 !--calculate modified kernel to use on anisotropic forces
 !
- IF (ianticlump.eq.1) THEN
+ if (ianticlump.eq.1) then
 !
-!--this is Joe's standard anticlumping term
+!--this is joe's standard anticlumping term
 !
-    !!j = NINT((1./hfact)**2/dq2table)
-    j = NINT((1./1.5)**2/dq2table)
+    !!j = nint((1./hfact)**2/dq2table)
+    j = nint((1./1.5)**2/dq2table)
     wdenom = wij(j)
 
-    SELECT CASE(neps) ! integral of W^{n+1} dV
-    CASE(3)
+    select case(neps) ! integral of w^{n+1} dv
+    case(3)
        wint = 122559./160160.
-    CASE(4)
+    case(4)
        wint = 200267./292864.
-    CASE(5)
+    case(5)
        wint = 825643615./1324331008.
-    END SELECT   
+    end select   
     cnormkaniso = cnormk
     !!cnormkaniso = 1./(1./cnormk + eps/(neps+1.)*wint/wdenom**neps)
     
-    DO i=0,ikern
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
-       IF (i.EQ.j) WRITE(iprint,*) ' j = ',j,q,q2,wij(j)
+       q = sqrt(q2)
+       if (i.eq.j) write(iprint,*) ' j = ',j,q,q2,wij(j)
        grwijaniso(i) = cnormkaniso*grwij(i)*(1. - 0.5*eps*(wij(i)/wdenom)**neps)
        wijaniso(i) = cnormkaniso*wij(i)*(1. - 0.5*eps/(neps+1.)*(wij(i)/wdenom)**neps) 
        grgrwijaniso(i) = cnormkaniso*(grgrwij(i)*  &
                   (1. - 0.5*eps*(wij(i)/wdenom)**neps) &
                  - 0.5*eps*neps*wij(i)**(neps-1.)/wdenom**neps*grwij(i)*grwij(i))   
-    ENDDO
+    enddo
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=TRIM(kernelname)//' & anti-clumping cubic spline' 
+    kernelname=trim(kernelname)//' & anti-clumping cubic spline' 
  
- ELSEIF (ianticlump.eq.2) THEN
+ elseif (ianticlump.eq.2) then
 !
 !--this is a modified version of the cubic spline
 !
     beta = eps
     print*,'enter beta (0.6-0.99) , currently = ',beta
     !!read*,beta
-    A = -0.25*(2.-beta)**2/(1.-beta)**2
+    a = -0.25*(2.-beta)**2/(1.-beta)**2
     if (beta.eq.0.) then
-       B = 0.
+       b = 0.
     else
-       B = -(A+1.)/beta**2
+       b = -(a+1.)/beta**2
     endif
     cnormkaniso = cnormk
-    !cnormkaniso = 0.5/(1. + 0.25*(A + B*beta**4))
-    DO i=0,ikern
+    !cnormkaniso = 0.5/(1. + 0.25*(a + b*beta**4))
+    do i=0,ikern
        q2 = i*dq2table
-       q = SQRT(q2)
+       q = sqrt(q2)
        if (q.lt.beta) then
-          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + A*(1.-q)**3 + B*(beta-q)**3)
-          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + A*(1.-q)**2 + B*(beta-q)**2)
-          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q) + B*(beta-q))       
+          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3 + b*(beta-q)**3)
+          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2 + b*(beta-q)**2)
+          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q) + b*(beta-q))       
        elseif(q.lt.1.) then
-          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + A*(1.-q)**3)
-          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + A*(1.-q)**2)
-          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + A*(1.-q))                
+          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3)
+          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2)
+          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q))                
        else
           wijaniso(i) = cnormkaniso*wij(i)
           grwijaniso(i) = cnormkaniso*grwij(i)
           grgrwijaniso(i) = cnormkaniso*grgrwij(i)
        endif
 
-    ENDDO
+    enddo
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=TRIM(kernelname)//' & modified cubic spline'   
+    kernelname=trim(kernelname)//' & modified cubic spline'   
  
- ENDIF
+ endif
 !
 !--normalise kernel
 !
@@ -661,15 +940,131 @@ SUBROUTINE setkern
  grwij = cnormk*grwij
  grgrwij = cnormk*grgrwij
 
-666 FORMAT(/,'ERROR!!! Normalisation constant not defined in kernel',/)
+666 format(/,'ERROR!!! normalisation constant not defined in kernel',/)
 !
 !--write kernel name to log file
 !
- WRITE(iprint,10) TRIM(kernelname)
-10 FORMAT(/,' Smoothing kernel = ',a,/)
+ write(iprint,10) trim(kernelname)
+10 format(/,' Smoothing kernel = ',a,/)
 !
 !--the variable ddq2table is used in interpolate_kernel
 !
  ddq2table = 1./dq2table 
 
-END SUBROUTINE setkern
+end subroutine setkern
+
+!!----------------------------------------------------------------------
+!! function to interpolate linearly from kernel tables
+!! returns kernel and derivative given q^2 = (r_a-r_b)^2/h^2
+!!
+!! must then divide returned w, grad w by h^ndim, h^ndim+1 respectively
+!!----------------------------------------------------------------------
+
+subroutine interpolate_kernel(q2,w,gradw)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w,gradw
+ real :: dxx,dwdx,dgrwdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw
+! 
+ dwdx =  (wij(index1)-wij(index))*ddq2table
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
+!
+!--interpolate for kernel and derivative
+!
+ w = (wij(index)+ dwdx*dxx)
+ gradw = (grwij(index)+ dgrwdx*dxx)
+ 
+end subroutine interpolate_kernel
+
+!!----------------------------------------------------------------------
+!! same but for kernal *and* modified kernel in anticlumping term
+!!----------------------------------------------------------------------
+subroutine interpolate_kernels(q2,w,gradw,waniso,gradwaniso)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w,gradw,waniso,gradwaniso
+ real :: dxx,dwdx,dgrwdx,dwanisodx,dgrwanisodx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw, waniso, gradwaniso
+! 
+ dwdx =  (wij(index1)-wij(index))*ddq2table
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
+ dwanisodx =  (wijaniso(index1)-wijaniso(index))*ddq2table
+ dgrwanisodx =  (grwijaniso(index1)-grwijaniso(index))*ddq2table
+!
+!--interpolate for kernel and derivative
+!
+ w = (wij(index)+ dwdx*dxx)
+ gradw = (grwij(index)+ dgrwdx*dxx)
+!
+!--interpolate for anticlumping kernel and derivative
+!
+ waniso = (wijaniso(index)+ dwanisodx*dxx)
+ gradwaniso = (grwijaniso(index)+ dgrwanisodx*dxx)
+ 
+end subroutine interpolate_kernels
+
+!!----------------------------------------------------------------------
+!! function to interpolate linearly from kernel tables
+!! returns kernel and derivative given q^2 = (r_a-r_b)^2/h^2
+!!
+!! must then divide returned w, grad w by h^ndim, h^ndim+1 respectively
+!!----------------------------------------------------------------------
+
+subroutine interpolate_softening(q2,phi,force)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: phi,force
+ real :: dxx,dphidx,dfdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for phi, force
+! 
+ dphidx =  (potensoft(index1)-potensoft(index))*ddq2table
+ dfdx =  (fsoft(index1)-fsoft(index))*ddq2table
+!
+!--interpolate for potential and force
+!
+ phi = (potensoft(index)+ dphidx*dxx)
+ force = (fsoft(index)+ dfdx*dxx)
+ 
+end subroutine interpolate_softening
+
+end module kernels
