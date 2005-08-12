@@ -87,29 +87,6 @@ MODULE matrixcorr
  REAL, DIMENSION(:,:,:), ALLOCATABLE :: gradmatrix
 END MODULE matrixcorr
 
-
-!-------------------------------------------------------------------
-!  kernel tables
-!-------------------------------------------------------------------     
-
-MODULE kernel
- IMPLICIT NONE
- INTEGER, PARAMETER :: ikern=4000    ! dimensions of kernel table
- REAL, DIMENSION(0:ikern) :: wij,grwij,wijaniso,grwijaniso
- REAL :: dq2table,ddq2table,radkern2,radkern
-END MODULE
-
-!
-!--these tables used for plotting only (not in rates etc)
-!
-
-MODULE kernelextra
- USE kernel
- IMPLICIT NONE
- REAL, DIMENSION(0:ikern) :: grgrwij,grgrwijaniso
- CHARACTER(LEN=100) :: kernelname
-END MODULE kernelextra
-
 !-------------------------------------------------------------------
 !  quantities used for link-list neighbour finding
 !-------------------------------------------------------------------
