@@ -18,7 +18,7 @@ subroutine write_infile(infile)
  use setup_params
  use timestep
  use xsph
- use anticlumping
+ use kernels, only:ianticlump,eps,neps
 !
 !--define local variables
 !      
@@ -98,7 +98,7 @@ subroutine read_infile(infile)
  use setup_params
  use timestep
  use xsph
- use anticlumping
+ use kernels, only:ianticlump,eps,neps
 !
 !--define local variables
 !      

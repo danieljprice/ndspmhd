@@ -15,7 +15,7 @@ subroutine initialise
  use derivb
  use eos
  use fmagarray
- use kernels, only:setkern
+ use kernels, only:setkern,kernelname
  use hterms
  use rates
  use timestep
@@ -148,8 +148,13 @@ subroutine initialise
 !--write first header to logfile/screen
 !
  call write_header(1,infile,evfile,logfile)    
+!
+!--setup kernel tables
+!
+ call setkern(ikernel,ndim)
+ write(iprint,10) trim(kernelname)
+10 format(/,' Smoothing kernel = ',a,/)
  
- call setkern      ! setup kernel tables
  npart = 0
  
  if (ifile.lt.0) then

@@ -15,7 +15,7 @@ subroutine set_default_options
  use setup_params
  use timestep
  use xsph
- use anticlumping
+ use kernels, only:ianticlump,eps,neps
  implicit none
 
  if (trace) write(iprint,*) 'Entering subroutine set_default_options'
