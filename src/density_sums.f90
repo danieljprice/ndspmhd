@@ -13,13 +13,14 @@ contains
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,npart)
+  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
+                     gradh,gradhn,gradsoft,npart)
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
-    use kernels, only:radkern2,interpolate_kernel
+    use kernels, only:radkern2,interpolate_kernel,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
-    use options, only:ikernav
+    use options, only:ikernav,igravity
     !use matrixcorr
 !
 !--define local variables
@@ -28,7 +29,7 @@ contains
     integer, intent(in) :: npart
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft
  
     integer :: i,j,n
     integer :: icell,iprev,nneigh
@@ -49,7 +50,7 @@ contains
     real :: q2,q2i,q2j      
     real :: wab,wabi,wabj,weight
     real :: grkern,grkerni,grkernj
-    real :: dwdhi,dwdhj ! grad h terms
+    real :: dwdhi,dwdhj,dphidhi,dphidhj ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -70,6 +71,7 @@ contains
        gradh(i) = 0.
        densn(i) = 0.
        gradhn(i) = 0.
+       gradsoft(i) = 0.
        !gradmatrix(:,:,i) = 0.
     enddo
 !
@@ -129,8 +131,12 @@ contains
 !
 !--weight self contribution by 1/2
 !
-                weight = 1.0
-                if (j.EQ.i) weight = 0.5
+                if (j.EQ.i) then
+                   weight = 0.5
+                else
+                   weight = 1.0
+                endif
+                pmassj = pmass(j)
 !       
 !--interpolate from kernel table              
 !  (use either average h or average kernel gradient)
@@ -149,12 +155,19 @@ contains
                    grkerni = grkern
                    grkernj = grkern
                 else
+                   if (igravity.ne.0 .and. ikernav.eq.3 .and. ndim.eq.3) then
+                      call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
+                      gradsoft(i) = gradsoft(i) + weight*pmassj*dphidhi/hi2
+                      call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
+                      gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj/hj2
+                   else
+                      call interpolate_kernel(q2i,wabi,grkerni)             
+                      call interpolate_kernel(q2j,wabj,grkernj)
+                   endif
               !  (using hi)
-                   call interpolate_kernel(q2i,wabi,grkerni)
                    wabi = wabi*hfacwabi
                    grkerni = grkerni*hfacwabi*hi1
               !  (using hj)
-                   call interpolate_kernel(q2j,wabj,grkernj)
                    wabj = wabj*hfacwabj
                    grkernj = grkernj*hfacwabj*hj1
               !  (calculate average)                
@@ -176,7 +189,6 @@ contains
 !
 !--calculate density and number density
 !
-                pmassj = pmass(j)
                 rho(i) = rho(i) + pmassj*wabi*weight
                 rho(j) = rho(j) + pmassi*wabj*weight
                 densn(i) = densn(i) + wabi*weight
@@ -200,10 +212,10 @@ contains
 !  need to divide by rho once rho is known
 !  also do the number density version
 
-                   gradh(i) = gradh(i) + weight*dwdhi
-                   gradh(j) = gradh(j) + weight*dwdhj
-                   gradhn(i) = gradhn(i) + pmassj*weight*dwdhi
-                   gradhn(j) = gradhn(j) + pmassi*weight*dwdhj
+                   gradh(i) = gradh(i) + weight*pmassj*dwdhi
+                   gradh(j) = gradh(j) + weight*pmassi*dwdhj
+                   gradhn(i) = gradhn(i) + weight*dwdhi
+                   gradhn(j) = gradhn(j) + weight*dwdhj
                 endif
                 
                 !if (i.ne.j) then
@@ -252,13 +264,15 @@ contains
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
   
-  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,npart,nlist,ipartlist)
+  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
+                             gradh,gradhn,gradsoft,npart,nlist,ipartlist)
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
  
-    use kernels, only:radkern2,interpolate_kernel
+    use kernels, only:radkern2,interpolate_kernel,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
+    use options, only:igravity
     !use matrixcorr
 !
 !--define local variables
@@ -267,7 +281,7 @@ contains
     integer, intent(in) :: npart
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -280,7 +294,7 @@ contains
 !      
     real :: rij,rij2
     real :: hi,hi1,hi2
-    real :: hfacwabi,hfacgrkerni
+    real :: hfacwabi,hfacgrkerni,pmassj
     real, dimension(ndim) :: dx,veli,dvel
     real :: dvdotr
 !
@@ -288,7 +302,7 @@ contains
 !
     real :: q2i      
     real :: wabi,grkerni    
-    real :: dwdhi ! grad h terms
+    real :: dwdhi,dphidhi ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -306,6 +320,7 @@ contains
        dndt(i) = 0.
        gradh(i) = 0.
        gradhn(i) = 0.
+       gradsoft(i) = 0.
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
     enddo
@@ -356,10 +371,16 @@ contains
           if (q2i.LT.radkern2) then
              !!!if (i.eq.416) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
+             pmassj = pmass(j)
 !      
 !--interpolate from kernel table (using hi)
 !
-             call interpolate_kernel(q2i,wabi,grkerni)
+             if (igravity.ne.0) then
+                call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
+                gradsoft(i) = gradsoft(i) + pmassj*dphidhi/hi2
+             else
+                call interpolate_kernel(q2i,wabi,grkerni)             
+             endif
              wabi = wabi*hfacwabi
              grkerni = grkerni*hfacgrkerni
 !
@@ -369,7 +390,7 @@ contains
 !
 !--calculate density and number density
 !
-             rho(i) = rho(i) + pmass(j)*wabi
+             rho(i) = rho(i) + pmassj*wabi
              densn(i) = densn(i) + wabi
 !
 !--drhodt, dndt
@@ -377,7 +398,7 @@ contains
              if (i.ne.j) then
                 dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
                 dvdotr = dot_product(dvel,dx)/rij
-                drhodt(i) = drhodt(i) + pmass(j)*dvdotr*grkerni
+                drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
                 dndt(i) = dndt(i) + dvdotr*grkerni
              endif
 !
@@ -385,8 +406,8 @@ contains
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
-             gradh(i) = gradh(i) + dwdhi
-             gradhn(i) = gradhn(i) + pmass(j)*dwdhi
+             gradh(i) = gradh(i) + pmassj*dwdhi
+             gradhn(i) = gradhn(i) + dwdhi
           
              !do idim=1,ndim
              !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &

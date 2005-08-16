@@ -291,8 +291,12 @@ subroutine get_rates
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
- if (igravity.ne.0) call direct_sum_poisson( &
-    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),npart)
+! phi(1:ntotal) = 0.1 !!!hh(1:ntotal)
+ if (igravity.ne.0) call direct_sum_poisson_soft( &
+    x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),potengrav,force(1:ndim,1:npart),npart)
+! if (igravity.ne.0) call direct_sum_poisson( &
+!    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),npart)
+! phi = 1.
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -381,7 +385,7 @@ subroutine get_rates
 !  also check for errors in the force
 !
     if ( any(force(:,i).gt.1.e8)) then
-       write(iprint,*) 'rates: force ridiculous ',force(:,i)
+       write(iprint,*) 'rates: force ridiculous ',force(:,i),' particle ',i
        call quit
     endif
     forcemag = sqrt(dot_product(force(:,i),force(:,i)))   
@@ -587,9 +591,9 @@ contains
          wab = 0.5*(wabi + wabj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
+            grkerni = grkerni*gradhi !!(1. + gradhni*gradhi/pmassj)
+            grkernj = grkernj*gradh(j) !!(1. + gradhn(j)*gradh(j)/pmassi)
             grkern = 0.5*(grkerni + grkernj)
-            grkerni = grkerni*(1 + gradhni*gradhi/pmassj)
-            grkernj = grkernj*(1 + gradhn(j)*gradh(j)/pmassi)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
             grkerni = grkern
@@ -722,6 +726,10 @@ contains
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
 !    force(:,j) = force(:,j) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
+
+!------------------------------------------------------------------------
+!  Self-gravity term
+!------------------------------------------------------------------------
      
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms
