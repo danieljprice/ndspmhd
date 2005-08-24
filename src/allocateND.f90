@@ -63,9 +63,9 @@ SUBROUTINE alloc(newsizein)
     STOP
  ENDIF
 !
-!--set new size (add 10% so don't have to do this too often)
+!--set new size (add 10% if using ghosts so don't have to do this too often)
 !
- IF (ANY(ibound.GE.1) .AND. newsizein.GT.ioldsize) THEN
+ IF (ANY(ibound.GE.1) .AND. newsizein.GE.ioldsize) THEN
     newsize = INT(1.1*newsizein)
  ELSEIF (newsizein.EQ.ioldsize) THEN
     WRITE(iprint,*) 'allocate: old size = new size: doing nothing'
