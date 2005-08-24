@@ -40,7 +40,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
-  real, dimension(npart) :: hhin,densn,dndt
+  real, dimension(size(rho)) :: hhin,densn,dndt
   logical :: converged,redolink,usenumdens
   
 !!  integer :: itest
