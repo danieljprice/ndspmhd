@@ -1,11 +1,6 @@
 !!------------------------------------------------------------------------!!
 !!                                                                        !!
-!!  Setup for a polytrope in 1, 2 or 3 dimensions                         !!
-!!                                                                        !!
-!!  Sets up uniform spherical cloud with low temperature                  !!
-!!                                                                        !!                                                                    !!
-!!  Note for all MHD setups, only the magnetic field should be setup      !!
-!!  Similarly the thermal energy is setup even if using total energy.     !!
+!!  Setup for a uniform spherical distribution in 1, 2 or 3 dimensions    !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
@@ -27,21 +22,19 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j
  real :: rmax,totmass,totvol
  real :: denszero,uuzero,massp
 
- write(iprint,*) 'polytrope'
- if (igravity.eq.0) write(iprint,*) 'warning: gravity not set'
+ write(iprint,*) 'uniform spherical distribution'
 !
 !--set bounds of initial setup
 !                   
- rmax = 2.0
+ rmax = 1.0
  ibound = 0	! no boundaries 
 !
 !--setup a uniform sphere of particles
 ! 
- call set_uniform_spherical(1,rmax)	! 4 = random
+ call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2)	! 4 = random
 !
 !--set particle properties
 ! 
@@ -54,7 +47,7 @@ subroutine setup
     totvol = 4./3.*pi*rmax**3
  end select
   
- totmass = totvol
+ totmass = 1.0
  denszero = totmass/totvol
  massp = totmass/real(npart)
  uuzero = 0.1
@@ -67,7 +60,30 @@ subroutine setup
  dens(:) = denszero
  uu(:) = uuzero
  pmass(:) = massp
- bfield(:,:) = 0.
+ Bfield(:,:) = 0.
+ call reset_centre_of_mass(x,pmass)
  
  return
 end subroutine setup
+
+subroutine modify_dump
+ use dimen_mhd, only:ndim
+ use part, only:npart,x,vel
+ use timestep, only:time
+ implicit none
+ integer :: i
+ real :: ampl
+!
+!--reset time
+!
+ time = 0.
+ ampl = 0.2
+!
+!--apply radial velocity perturbation
+!
+ do i=1,npart
+    vel(1:ndim,i) = ampl*x(:,i)
+ enddo
+ 
+ return
+end subroutine modify_dump
