@@ -35,9 +35,9 @@ contains
 subroutine setkern(ikernel,ndim)
  implicit none         !  define local variables
  integer, intent(in) :: ikernel, ndim
- integer :: i,j,npower
+ integer :: i,j,npower,n
  real :: q,q2,q4,cnormk,cnormkaniso
- real :: term1,term2,term3,term4
+ real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4
  real :: alpha,beta,gamma,a,b,c,wdenom,wint
@@ -556,33 +556,131 @@ subroutine setkern(ikernel,ndim)
     
   case(17)
 !
-!--exponential kernel
+!--cosine**n kernel
 !
-    kernelname = 'Exponential'
+    kernelname = 'cosine**n'
    
-    radkern = 10.0
+    radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
+    n = 5
+    !print*,'enter n'
+    !read*,n
     select case(ndim)
       case(1)
-       cnormk = 10./(6.*pi)
+       select case(n)
+       case(3)
+          cnormk = 1./1.694930
+       case(4)
+          cnormk = 1./1.5
+       case(5)
+          cnormk = 1./1.359516
+       case(6)
+          cnormk = 1./1.249811
+       case(7)
+          cnormk = 1./1.163532
+       case(8)
+          cnormk = 1./1.095270
+       case default
+          cnormk = 1.
+       end select
       case default
        write(*,666)
        stop
     end select
+
     do i=0,ikern
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.radkern) then
-         wij(i) = exp(-q)
-         grwij(i) = -wij(i)
-         grgrwij(i) = -grwij(i)
+         wij(i) = cos(0.25*pi*q)**n !!sin(0.5*pi*q)/q
+         grwij(i) = -0.25*pi*n*(cos(0.25*pi*q))**(n-1)*sin(0.25*pi*q)
+         grgrwij(i) = 1./16.*pi*pi*n* &
+           ((n-1)*(cos(0.25*pi*q))**(n-2)*sin(0.25*pi*q)**2 - &
+            cos(0.25*pi*q)**n)
       else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
       endif
     enddo    
+
+  case(18)
+!
+!--Dirichlet kernel (sin(x)/x)
+!
+    kernelname = 'Dirichlet'
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+        cnormk = 1./5.194046
+      case default
+       write(*,666)
+       stop
+    end select
+
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.radkern) then
+         if (q.gt.0.) then
+            wij(i) = sin(0.75*pi*q)/q + 0.5
+            grwij(i) = 0.75*pi*cos(0.75*pi*q)/q - sin(0.75*pi*q)/q2
+         else
+            wij(i) = 0.75*pi + 0.5
+            grwij(i) = 0.
+         endif
+         grgrwij(i) = 0.
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo    
+
+  case(19)
+!
+!--sin**2/x**2
+!
+    kernelname = 'sin^2/x^2'
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+        cnormk = 1./4.35
+      case default
+       write(*,666)
+       stop
+    end select
+
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.radkern) then
+         term = 0.5*pi*q
+         if (q.gt.0.) then
+            wij(i) = (sin(term)**2)/q2
+            grwij(i) = (pi*sin(term)*cos(term))/q2 - 2.*wij(i)/q
+            grgrwij(i) = 0.5*pi*pi*(cos(term)**2 - sin(term)**2)/q2 &
+                         - 2.*pi*sin(term)*cos(term)/(q2*q) &
+                         + 6.*sin(term)**2/(q2*q2)
+         else
+            wij(i) = 0.5*pi
+            grwij(i) = 0.
+            grgrwij(i) = 0.
+         endif
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+
   case(21)
 !
 !--cubic spline with vanishing second moment (using monaghan 1992 method)
