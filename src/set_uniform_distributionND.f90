@@ -14,7 +14,7 @@ contains
 !!------------------------------------------------------------------------!!
 
 subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
-           fill,adjustbound,offset,perturb,psepx,psepy,psepz)
+           fill,adjustbound,offset,perturb,psepx,psepy,psepz,rmin,rmax)
 !
 !--include relevant global variables
 !
@@ -33,13 +33,13 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  integer, intent(in) :: idistin
  real, dimension(ndim), intent(inout) :: xmin, xmax
  real, intent(in) :: psep
- real, intent(in), optional :: perturb,psepx,psepy,psepz
+ real, intent(in), optional :: perturb,psepx,psepy,psepz,rmin,rmax
  logical, intent(in), optional :: offset,fill,adjustbound
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  integer :: idist
  real :: xstart,ystart,deltax,deltay,deltaz
- real :: ran1,ampl
+ real :: ran1,ampl,radmin,radmax,rr
  real, dimension(ndim) :: xran,xcentre
  logical :: adjustdeltas
 !
@@ -49,11 +49,26 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  write(iprint,*) 'uniform cartesian distribution '
 
  if (ndim.eq.1 .and. idistin.ne.4) then 
-    idist = 1   ! in 1d use default version
+    idist = 1   ! in 1D use default version
  else
     idist = idistin
  endif
- 
+!
+!--trim to radius
+! 
+ if (present(rmin)) then
+    radmin = rmin
+    write(iprint,*) 'rmin = ',radmin
+ else
+    radmin = -huge(radmin)
+ endif
+ if (present(rmax)) then
+    radmax = rmax
+    write(iprint,*) 'rmax = ',radmax
+ else
+    radmax = huge(radmax)
+ endif
+
  npartin = npart    ! this is how many particles have already been set up
  
  select case(idist)
@@ -62,19 +77,23 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !  (in 3d, 2d this is the same as body centred)
 !
  case(2)
- 
-    if (ndim.eq.3) stop 'close packed not implemented in 3D'
 !
 !--determine number of particles
 ! 
     deltax = psep
     deltay = 0.5*sqrt(3.)*psep
+    deltaz = sqrt(6.)/3.*psep
     if (present(psepx)) deltax = psepx
     if (present(psepy)) deltay = 0.5*sqrt(3.)*psepy
+    if (present(psepz)) deltaz = sqrt(6.)/3.*psepz
     
     npartx = int((xmax(1)-xmin(1))/deltax)
     nparty = int((xmax(2)-xmin(2))/deltay)
-    npartz = 1
+    if (ndim.ge.3) then
+       npartz = int((xmax(3)-xmin(3))/deltaz)
+    else
+       npartz = 1
+    endif
     
 !--for periodic boundaries, ymax needs to be divisible by 2
     if (ibound(2).eq.3) then
@@ -84,8 +103,8 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--adjust psep so that particles fill the volume
 !
-    print*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
-    print*,' delta x,y initial  = ',deltax,deltay
+    print*,' npartx,y = ',npartx,nparty,npartz  !!,deltax,deltay
+    print*,' delta x,y initial  = ',deltax,deltay,deltaz
     adjustdeltas = .true.
     if (present(fill)) then
        adjustdeltas = fill
@@ -97,6 +116,10 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
        if (adjustbound) then
           xmax(2) = xmin(2) + nparty*deltay
           print*,' adjusted y boundary : ymax  = ',xmax(2)
+          if (ndim.ge.3) then
+             xmax(3) = xmin(3) + npartz*deltaz
+             print*,' adjusted z boundary : zmax  = ',xmax(3)
+          endif
        endif
     endif
     
@@ -108,8 +131,12 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
                  - int((xmin(1)-xcentre(1))/deltax) + 1
           nparty = int((xmax(2)-xcentre(2))/deltay) &
                  - int((xmin(2)-xcentre(2))/deltay) + 1
+          if (ndim.ge.3) then
+             npartz = int((xmax(3)-xcentre(3))/deltaz) &
+                    - int((xmin(3)-xcentre(3))/deltaz) + 1
+          endif
           write(iprint,*) &
-           ' centred lattice : adjusting npartx,y = ',npartx,nparty
+           ' centred lattice : adjusting npart  = ',npartx,'x',nparty,'x',npartz
           !deltax = (xmax(1) - xmin(1))/npartx
           !deltay = (xmax(2) - xmin(2))/nparty
           write(iprint,*) '                 : adjusting deltax = ',deltax
@@ -117,41 +144,60 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
           
           xmin(1) = xcentre(1) - (npartx - 1)/2*deltax
           xmax(1) = xcentre(1) + (npartx - 1)/2*deltax
-          xmin(2) = xcentre(2) - (nparty - 1)/2*deltay
-          xmax(2) = xcentre(2) + (nparty - 1)/2*deltay
-
           xmin(1) = xmin(1) - 0.25*deltax
           xmax(1) = xmax(1) - 0.25*deltax
 
+          xmin(2) = xcentre(2) - (nparty - 1)/2*deltay
+          xmax(2) = xcentre(2) + (nparty - 1)/2*deltay
           xmin(2) = xmin(2) - 0.5*deltay
           xmax(2) = xmax(2) - 0.5*deltay
 
+          if (ndim.ge.3) then
+             xmin(3) = xcentre(3) - (npartz - 1)/2*deltaz
+             xmax(3) = xcentre(3) + (npartz - 1)/2*deltaz
+          endif
        endif
     elseif (adjustdeltas) then
        deltax = (xmax(1)-xmin(1))/(float(npartx))
        deltay = (xmax(2)-xmin(2))/(float(nparty))
-       print*,' delta x,y adjusted = ',deltax,deltay    
+       if (ndim.ge.3) deltaz = (xmax(3)-xmin(3))/(float(npartz))
+       print*,' delta x,y,z adjusted = ',deltax,deltay,deltaz
     endif
 !
 !--allocate memory here
 !
-    ntot = npartx*nparty + npartin
+    ntot = npartx*nparty*npartz + npartin
     
     write(iprint,*) ' hexagonal close packed distribution, npart = ',ntot
     
     call alloc(ntot)
     npart = ntot
 
-    ystart = 0.5*deltay      !psepy
     ipart = npartin
     do k=1,npartz
        do j=1,nparty
+          ystart = 0.5*deltay
           xstart = 0.25*deltax
-          if (mod(j,2).eq.0) xstart = xstart + 0.5*deltax
+          if (mod(k,3).eq.0) then  ! 3rd layer
+             ystart = ystart + 2./3.*deltay
+             if (mod(j,2).eq.0) xstart = xstart + 0.5*deltax
+          elseif (mod(k,3).eq.2) then ! 2nd layer
+             ystart = ystart + 1./3.*deltay
+             if (mod(j,2).eq.1) xstart = xstart + 0.5*deltax
+          elseif (mod(j,2).eq.0) then
+             xstart = xstart + 0.5*deltax
+          endif
+          !!xstart = 0.25*deltax
+          !!if (mod(j,2).eq.0) xstart = xstart + 0.5*deltax
           do i = 1,npartx
              ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              if (ndim.ge.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
+             if (ndim.ge.3) x(3,ipart) = xmin(3) + (k-1)*deltaz
+!--do not use if not within radial cuts
+             rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart))) 
+             if (rr .lt. radmin .or. &
+                 rr .gt. (radmax - 0.01*psep)) ipart = ipart - 1
           enddo
        enddo
     enddo 
@@ -182,7 +228,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     npart = ntot
 
     ystart = 0.5*deltay      !psepy
-    ipart = 0
+    ipart = npartin
     do k=1,npartz
        do j=1,2*nparty
           xstart = 0.25*deltax
@@ -191,6 +237,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
              ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              if (ndim.ge.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
+!--do not use if not within radial cuts
+             rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart)))
+             if (rr .lt. radmin .or. rr .gt. radmax) ipart = ipart - 1
           enddo
        enddo
     enddo 
@@ -210,11 +259,16 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     write(iprint,*) ' random seed = ',iseed
     xran(1) = ran1(iseed)
     
+    ipart = npartin
     do i=1,ntot
+       ipart = ipart + 1
        do j=1,ndim
           xran(j) = ran1(iseed)
        enddo
-       x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
+       x(:,ipart) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
+!--do not use if not within radial cuts
+       rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart)))
+       if (rr .lt. radmin .or. rr .gt. radmax) ipart = ipart - 1
     enddo
 !
 !--random particle distribution
@@ -305,7 +359,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
                    x(3,ipart) = xmin(3) + (k-1)*deltaz + 0.5*deltaz
                 endif
              endif
-!           print*,'new particle ',ipart,'x =', x(:,ipart)
+!--do not use if not within radial cuts
+             rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart)))
+             if (rr .lt. radmin .or. rr .gt. radmax) ipart = ipart - 1
          enddo
        enddo
     enddo
@@ -334,7 +390,15 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--set total number of particles = npart
 !
- ntotal = npart
+ write(iprint,*) ' Number of particles added = ',ipart - npartin
+ ntotal = ipart
+ npart = ntotal
+!--only allocate memory for what is needed
+ if (any(ibound.ge.1)) then
+    call alloc(int(1.1*ntotal))
+ else
+    call alloc(ntotal)
+ endif
 !
 !--allow for tracing flow
 !
@@ -393,17 +457,13 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
  else
     offset = .false.
  endif
- 
+
+  
  if (present(perturb)) then
-    call set_uniform_cartesian(idist,psep,xmin,xmax,fill=.true.,perturb=perturb,offset=offset)
+    call set_uniform_cartesian(idist,psep,xmin,xmax,perturb=perturb,offset=offset,rmax=rmax)
  else
-    call set_uniform_cartesian(idist,psep,xmin,xmax,fill=.true.,offset=offset) 
+    call set_uniform_cartesian(idist,psep,xmin,xmax,offset=offset,rmax=rmax) 
  endif
-!
-!--construct list of particles with r < rmax
-!  
- allocate ( partlist(npart), stat=ierr )
- if (ierr.ne.0) stop 'error allocating memory in uniform_spherical'
 
  if (present(rmin)) then
     if (present(trim)) then
@@ -419,6 +479,11 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
  else
     radmax = rmax
  endif
+!
+!--construct list of particles with r < rmax
+!  
+ allocate ( partlist(npart), stat=ierr )
+ if (ierr.ne.0) stop 'error allocating memory in uniform_spherical'
  
  ntemp = 0 ! actual number of particles to use
  do i=1,npart
@@ -431,6 +496,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
 !
 !--reorder particles
 !
+ write(iprint,*) 'npart (cropped) = ',ntemp, ' cropping factor = ',ntemp/real(npart)
  npart = ntemp
  ntotal = npart
  if (allocated(xtemp)) deallocate(xtemp)
