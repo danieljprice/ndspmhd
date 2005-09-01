@@ -153,7 +153,7 @@ program plotmeagraph
   label(6) = 'E_total        '
   label(7) = 'Linear momentum'
 
-  if (ncol.gt.7) then
+  if (ncol.gt.9) then
      label(8) = 'Total flux     '
      label(9) = 'Cross helicity '
      label(10) = 'Plasma beta (min)'
@@ -169,6 +169,9 @@ program plotmeagraph
      label(20) = 'omega_mhd (average)'
      label(21) = 'omega_mhd (max) '
      label(22) = '% particles with omega < 0.01 '
+  else
+     label(8) = 'rho max'
+     label(9) = 'rho mean'  
   endif
   label(ncol) = 'nstep          '
 
