@@ -36,7 +36,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL :: divBi,divBav,divBmax,divBtot
  REAL :: omegamhdi,omegamhdav,omegamhdmax
  REAL :: omegtol,fracdivBok
- REAL :: fmagabs
+ REAL :: fmagabs,rhomax,rhomean,rhomin
 !
 !--allow for tracing flow
 !      
@@ -53,8 +53,8 @@ SUBROUTINE evwrite(t,etot,momtot)
  ENDIF
  mom(:) = 0.0
  momtot = 0.0
- alphatstarav = 0.
- betatstarav = 0.
+! alphatstarav = 0.
+! betatstarav = 0.
 !
 !--mhd parameters
 !     
@@ -98,16 +98,16 @@ SUBROUTINE evwrite(t,etot,momtot)
     CALL external_potentials(iexternal_force,x(:,i),epoti,ndim)
     epot = epot + pmassi*epoti
     
-    rr = dot_product(x(1:ndim,i),x(1:ndim,i))
-    if (rr.gt.tiny(rr)) then
-       rhat(1:ndim) = x(1:ndim,i)/rr
-    else
-       rhat = 0.
-    endif
-    alphai = dot_product(vel(1:ndim,i),rhat(1:ndim))
-    betai = vel(2,i)*rhat(1) - vel(1,i)*rhat(2)
-    alphatstarav = alphatstarav + alphai
-    betatstarav = betatstarav + betai
+!    rr = dot_product(x(1:ndim,i),x(1:ndim,i))
+!    if (rr.gt.tiny(rr)) then
+!       rhat(1:ndim) = x(1:ndim,i)/rr
+!    else
+!       rhat = 0.
+!    endif
+!    alphai = dot_product(vel(1:ndim,i),rhat(1:ndim))
+!    betai = vel(2,i)*rhat(1) - vel(1,i)*rhat(2)
+!    alphatstarav = alphatstarav + alphai
+!    betatstarav = betatstarav + betai
 !
 !--mhd parameters
 !
@@ -221,11 +221,12 @@ SUBROUTINE evwrite(t,etot,momtot)
 30  FORMAT(24(1pe18.10,1x),1pe8.2)
       
  ELSE
-    alphatstarav = alphatstarav/FLOAT(npart)
-    betatstarav = betatstarav/FLOAT(npart)
+    CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
+    !alphatstarav = alphatstarav/FLOAT(npart)
+    !betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,alphatstarav,betatstarav
+    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean
 40  FORMAT(24(1pe18.10,1x))        
 
  ENDIF
@@ -233,7 +234,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
 !--flush the buffer so that the line is written to the file immediately
 !
-! CALL flush(ievfile)
+ CALL flush(ievfile)
  
  RETURN
 END SUBROUTINE evwrite
