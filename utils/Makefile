@@ -12,8 +12,9 @@
 
 ## Compiler flags
 F90C =  g95
-F90FLAGS =  -O -Wall
+F90FLAGS =  -O3 -Wall
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+DBLFLAGS = -r8
 
 .SUFFIXES:
 .SUFFIXES:.f .f90 .o
@@ -62,16 +63,16 @@ moddump3D: dimen3D.o $(OBJMODDUMP)
 	$(F90C) $(F90FLAGS) -o $@ dimen3D.o $(OBJMODDUMP)
 
 dimen1D.o :
-	$(F90C) -c $(F90FLAGS) ../src/dimen1D.f90 -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/dimen1D.f90 -o $@
 
 dimen2D.o :
-	$(F90C) -c $(F90FLAGS) ../src/dimen2D.f90 -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/dimen2D.f90 -o $@
 
 dimen3D.o :
-	$(F90C) -c $(F90FLAGS) ../src/dimen3D.f90 -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/dimen3D.f90 -o $@
 
 variablesND.o :
-	$(F90C) -c $(F90FLAGS) ../src/variablesND.f90 -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/variablesND.f90 -o $@
 
 kernelND.o :
 	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
@@ -83,13 +84,19 @@ interpolate_kernel.o :
 	$(F90C) -c $(F90FLAGS) ../src/interpolate_kernel.f90 -o $@
 
 allocateND.o : variablesND.o
-	$(F90C) -c $(F90FLAGS) ../src/allocateND.f90 -o $@
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/allocateND.f90 -o $@
 
-readwrite_dumps.o : variablesND.o
-	$(F90C) -c $(F90FLAGS) ../src/readwrite_dumps.f90 -o $@
+readwrite_dumps.o : variablesND.o geometry.o
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/readwrite_dumps.f90 -o $@
+
+modifydump.o : modifydump.f90
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) modifydump.f90 -o $@
 
 prompting.o :
 	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@
+
+geometry.o :
+	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../plot/geometry.f90 -o $@
 
 clean :
 	rm *.o *.mod
