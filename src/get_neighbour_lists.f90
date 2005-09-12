@@ -113,7 +113,7 @@ contains
              ipart = ll(ipart)
              !--make sure we have a real particle
              if (ipart.gt.ntotal .or. ipart.lt.0) then
-                write(iprint,*) 'ERROR in neighbour lists: ipart = ',ipart
+                write(iprint,*) 'ERROR in neighbour lists: ipart > ntotal ',ipart
              endif
 !         print*,'listneigh ',j,'= ',listneigh(j)
           enddo
