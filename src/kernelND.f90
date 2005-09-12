@@ -341,7 +341,8 @@ subroutine setkern(ikernel,ndim)
     dq2table = radkern*radkern/real(ikern)
     select case(ndim)
       case(1)
-        cnormk = 0.66666666666   ! normalisation constant
+        cnormk = 2./3. 
+!        cnormk = 54./85. ! normalisation constant
       case(2)
         cnormk = 10./(7.*pi)
       case(3)
@@ -351,16 +352,16 @@ subroutine setkern(ikernel,ndim)
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       if (q.lt.1.0) then
+       if (q.lt.2./3.) then
           wij(i) = 1. - 1.5*q2 + 0.75*q*q2
-          if (q.lt.2./3.) then
-             grwij(i) = -1.
-             grgrwij(i) = 0.
-          else
-             grwij(i) = -3.*q+ 2.25*q2
-             grgrwij(i) = -3. + 4.5*q
-          endif
-       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+!          wij(i) = 11./9. - q
+          grwij(i) = -1.
+          grgrwij(i) = 0.
+       elseif (q.le.1.0) then
+          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
+          grwij(i) = -3.*q+ 2.25*q2
+          grgrwij(i) = -3. + 4.5*q
+       elseif (q.le.2.0) then
           wij(i) = 0.25*(2.-q)**3.
           grwij(i) = -0.75*(2.-q)**2.
           grgrwij(i) = 1.5*(2.-q)
@@ -681,84 +682,92 @@ subroutine setkern(ikernel,ndim)
       endif
     enddo
 
+  case(20)
+!
+!--Jackson-Feyer de la Vallee Poussin Kernel
+!
+    kernelname = '[sin(q)/q]**4'
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+        cnormk = 1./8.097925
+      case default
+       write(*,666)
+       stop
+    end select
+
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.radkern) then
+         term = 0.5*pi*q
+         if (q.gt.0.) then
+            wij(i) = (sin(term)**4)/(q2*q2)
+            grwij(i) = 2./(q2*q2)*(sin(term)**3*cos(term)*pi - 2.*sin(term)**4/q)
+            grgrwij(i) = 1./(q2*q2)*(3.*sin(term)**2*cos(term)**2*pi**2 &
+                        -16.*sin(term)**3*cos(term)*pi/q - sin(term)**4*pi**2 &
+                        + 20.*(sin(term)**4)/q2)
+         else
+            wij(i) = (0.5*pi)**4
+            grwij(i) = 0.
+            grgrwij(i) = 0.
+         endif
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+    grgrwij(0) = grgrwij(1)
+
   case(21)
 !
-!--cubic spline with vanishing second moment (using monaghan 1992 method)
+!--Jackson kernel
 !
-    kernelname = 'higher order cubic spline'    
+    kernelname = 'Jackson kernel'
    
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
       case(1)
-       a = 0.9
-       cnormk = 2./(3.*a - 1.)
+        cnormk = 1./24.02428 !!/113.3185 !!/136.77!!/24.02428
       case default
        write(*,666)
        stop
     end select
+
+    npower = 2
     do i=0,ikern
       q2 = i*dq2table
       q = sqrt(q2)
-      if (q.lt.1.0) then
-         wij(i) = (a - q2)*(1. - 1.5*q2 + 0.75*q2*q)
-         grwij(i) = -2.*q*(1. - 1.5*q2 + 0.75*q2*q) + (a -q2)*(-3.*q + 9./4.*q2)
-         grgrwij(i) = -2. + 18.*q2 - 15.*q2*q - 3.*a + 4.5*a*q
-      elseif (q.lt.2.0) then
-         wij(i) = 0.25*(a - q2)*(2.-q)**3
-         grwij(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
-         grgrwij(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
+      if (q.lt.radkern) then
+         term = 0.5*pi*q
+         if (q.gt.0.) then
+            wij(i) = (sin(term)/sin(term/npower))**4
+            grwij(i) = (2.*pi/sin(term/npower)**4)*(sin(term)**3*cos(term)  &
+                     - (sin(term)**4)*cos(term/npower)/(npower*sin(term/npower)))
+            grgrwij(i) = pi*pi/sin(term/npower)**4* &
+               (3.*sin(term)**2*cos(term)**2 &
+              - 8.*sin(term)**3*cos(term)*cos(term/npower)/(npower*sin(term/npower)) &
+              - sin(term)**4  &
+              + 5.*sin(term)**4*cos(term/npower)**2/(npower*sin(term/npower))**2 &
+              + sin(term)**4/(npower**2))
+         else
+            wij(i) = (npower)**4
+            grwij(i) = 0.
+            grgrwij(i) = 0.
+         endif
       else
          wij(i) = 0.0
          grwij(i) = 0.0
          grgrwij(i) = 0.
       endif
     enddo
-    
-   case(23)
-!
-!--this is a modification of the cubic spline
-!
-    kernelname = 'High order peaked cubic spline 2'    
-   
-    radkern = 2.0
-    radkern2 = radkern*radkern
-    dq2table = radkern2/real(ikern)
-    select case(ndim)
-      case(1)
-       a = 381./434.
-       cnormk = 1./(7.*a/4. - 31./60.)
-      case(2)
-       cnormk = 4./(3.*pi)
-      case(3)
-       cnormk = 30./(31.*pi)
-      case default
-       write(*,666)
-       stop
-    end select
-    do i=0,ikern
-      q2 = i*dq2table
-      q = sqrt(q2)
-      if (q.lt.1.0) then
-         wij(i) = (a - q2)*(0.25*(2.-q)**3 - 0.5*(1.-q)**3)
-         grwij(i) = -2.*q*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
-                  + (a - q2)*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2)
-         grgrwij(i) = -2.*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
-                      -4.*q*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2) &
-                      +(a - q2)*(1.5*(2.-q) - 3.*(1.-q))
-      elseif(q.lt.2.0) then
-         wij(i) = (a - q2)*(0.25*(2.-q)**3)
-         grwij(i) = -2.*q*(0.25*(2.-q)**3) + (a - q2)*(-0.75*(2.-q)**2)
-         grgrwij(i) = -2.*(0.25*(2.-q)**3) -4.*q*(-0.75*(2.-q)**2) &
-                      + (a - q2)*(1.5*(2.-q))
-      else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
-      endif
-    enddo
-    
+    grgrwij(0) = grgrwij(1)    
   case(30)
 !
 !--these are the Ferrer's spheres from Dehnen (2001)
@@ -826,18 +835,19 @@ subroutine setkern(ikernel,ndim)
          grgrwij(i) = 0.
       endif
     enddo
-  case(101)
+
+  case(32)
 !
-!--this is the potential and force corresponding to the cubic spline
-!      
-    kernelname = 'Potential'    
+!--Cauchy kernel
+!
+    kernelname = 'Cauchy'    
    
-    radkern = 3.5
+    radkern = 20.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
-      case(3)
-       cnormk = 1.
+      case(1)
+       cnormk = 1./pi
       case default
        write(*,666)
        stop
@@ -845,36 +855,68 @@ subroutine setkern(ikernel,ndim)
     do i=0,ikern
       q2 = i*dq2table
       q = sqrt(q2)
-      q4 = q2*q2
-      !
-      ! note that the potential does not need to be divided by r
-      ! (tabulated like this to prevent numerical divergences)
-      ! however the force must be divided by 1/r^2
-      !
-      if (q.lt.1.0) then 
-         potensoft(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
-         fsoft(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
-      elseif (q.lt.2.0) then
-         potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
-         fsoft(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+      if (q.lt.radkern) then
+         wij(i) = 1./(1. + q2)
+         grwij(i) = -1./(1. + q2)**2*2.*q
+         grgrwij(i) = -2./(1. + q2)**2 + 4.*q/(1. + q2)**3*2.*q
       else
-         potensoft(i) = -1./q
-         fsoft(i) = 1.0
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      endif
+    enddo
+  case(51)
+!
+!--cubic spline with vanishing second moment (using monaghan 1992 method)
+!
+    kernelname = 'Higher order cubic spline'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       a = 0.9
+       cnormk = 2./(3.*a - 1.)
+      case default
+       write(*,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.1.0) then
+         wij(i) = (a - q2)*(1. - 1.5*q2 + 0.75*q2*q)
+         grwij(i) = -2.*q*(1. - 1.5*q2 + 0.75*q2*q) + (a -q2)*(-3.*q + 9./4.*q2)
+         grgrwij(i) = -2. + 18.*q2 - 15.*q2*q - 3.*a + 4.5*a*q
+      elseif (q.lt.2.0) then
+         wij(i) = 0.25*(a - q2)*(2.-q)**3
+         grwij(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
+         grgrwij(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
+      else
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
       endif
     enddo
     
-  case(102)
+   case(53)
 !
-!--this is the force softening kernel corresponding to the cubic spline
-!      
-    kernelname = 'force'    
+!--this is a modification of the cubic spline
+!
+    kernelname = 'High order peaked cubic spline 2'    
    
-    radkern = 3.5
+    radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
+      case(1)
+       a = 381./434.
+       cnormk = 1./(7.*a/4. - 31./60.)
+      case(2)
+       cnormk = 4./(3.*pi)
       case(3)
-       cnormk = 1.
+       cnormk = 30./(31.*pi)
       case default
        write(*,666)
        stop
@@ -882,16 +924,21 @@ subroutine setkern(ikernel,ndim)
     do i=0,ikern
       q2 = i*dq2table
       q = sqrt(q2)
-      q4 = q2*q2
       if (q.lt.1.0) then
-         !!wij(i) = 2./3.*q2*q - 0.3*q4*q + 0.1*q4*q2 - 1.4*q
-         wij(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
-      elseif (q.lt.2.0) then
-         !!wij(i) = 4./3.*q2*q - q4 + 0.3*q4*q - q4*q2/30. - 1.6*q + 1./(15.)
-         wij(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+         wij(i) = (a - q2)*(0.25*(2.-q)**3 - 0.5*(1.-q)**3)
+         grwij(i) = -2.*q*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+                  + (a - q2)*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2)
+         grgrwij(i) = -2.*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+                      -4.*q*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2) &
+                      +(a - q2)*(1.5*(2.-q) - 3.*(1.-q))
+      elseif(q.lt.2.0) then
+         wij(i) = (a - q2)*(0.25*(2.-q)**3)
+         grwij(i) = -2.*q*(0.25*(2.-q)**3) + (a - q2)*(-0.75*(2.-q)**2)
+         grgrwij(i) = -2.*(0.25*(2.-q)**3) -4.*q*(-0.75*(2.-q)**2) &
+                      + (a - q2)*(1.5*(2.-q))
       else
-         !!wij(i) = -1.
-         wij(i) = 1.0
+         wij(i) = 0.0
+         grwij(i) = 0.0
          grgrwij(i) = 0.
       endif
     enddo
