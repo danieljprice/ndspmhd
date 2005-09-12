@@ -68,5 +68,6 @@ subroutine set_default_options
    ikernel = 0
    igeom = 1
    igeomsetup = 1
+   idim = 0
    
  end subroutine set_default_options
