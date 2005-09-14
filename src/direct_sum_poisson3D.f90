@@ -14,6 +14,7 @@
 !!                   for an arbitrary quantity \eta, this is given by
 !!                   source = particle mass * eta / (4.*pi*density)
 !!               ie. source = particle mass for gravity
+!!   psoft         : softening length for plummer softening
 !!
 !! Output:
 !!
@@ -21,7 +22,7 @@
 !!   gradphi(ndim,ntot) : gradient of the potential (for gravity this = force)
 !!----------------------------------------------------------------------------
 
-subroutine direct_sum_poisson(x,source,phitot,gradphi,ntot)
+subroutine direct_sum_poisson(x,source,phitot,gradphi,psoft,ntot)
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint
@@ -32,6 +33,7 @@ subroutine direct_sum_poisson(x,source,phitot,gradphi,ntot)
  real, dimension(ntot), intent(in) :: source
  real, dimension(ntot) :: phi
  real, dimension(ndim,ntot), intent(out) :: gradphi
+ real, intent(in) :: psoft
  real, intent(out) :: phitot
  integer :: i,j
  real, dimension(ndim) :: dx,term
@@ -52,7 +54,7 @@ subroutine direct_sum_poisson(x,source,phitot,gradphi,ntot)
     
     do j=i+1,ntot
        dx = x(:,i) - x(:,j)
-       rij2 = dot_product(dx,dx) + 0.1**2
+       rij2 = dot_product(dx,dx) + psoft**2
        rij = sqrt(rij2)
        term(:) = dx(:)/(rij*rij2)
        

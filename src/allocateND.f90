@@ -33,7 +33,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  REAL, DIMENSION(newsizein) :: dumpsi
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumpr,dumspsound
- REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
+ REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt,dumpoten
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx
  REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin
  REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
@@ -132,6 +132,7 @@ SUBROUTINE alloc(newsizein)
     idumnumneigh(1:idumsize) = numneigh(1:idumsize)
     dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
     dumdens(1:idumsize) = dens(1:idumsize)
+    IF (ALLOCATED(poten)) dumpoten(1:idumsize) = poten(1:idumsize)
     IF (ALLOCATED(sourceterms)) dumsourceterms(:,1:idumsize) = sourceterms(:,1:idumsize)
     IF (ALLOCATED(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     IF (ALLOCATED(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
@@ -152,6 +153,7 @@ SUBROUTINE alloc(newsizein)
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,gradsoft,pr)
+    IF (ALLOCATED(poten)) DEALLOCATE(poten)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
     IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
@@ -220,6 +222,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(Bevol(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))  ! mag field
     ALLOCATE(gradpsi(ndimB,newsize))
+    IF (igravity.NE.0) ALLOCATE(poten(newsize))
 !
 !--equation of state
 !
@@ -294,6 +297,7 @@ SUBROUTINE alloc(newsizein)
     gradh(1:idumsize) = dumgradh(1:idumsize)
     gradhn(1:idumsize) = dumgradhn(1:idumsize)
     gradsoft(1:idumsize) = dumgradsoft(1:idumsize)
+    if (allocated(poten)) poten(1:idumsize) = dumpoten(1:idumsize)
     
     pr(1:idumsize) = dumpr(1:idumsize)
     spsound(1:idumsize) = dumspsound(1:idumsize)
