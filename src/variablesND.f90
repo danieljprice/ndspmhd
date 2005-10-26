@@ -187,7 +187,7 @@ MODULE setup_params
  IMPLICIT NONE
  INTEGER :: igeomsetup
  REAL, PARAMETER :: pi = 3.1415926536
- REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer
+ REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer,Omega,Omega2
 END MODULE setup_params
 
 !-------------------------------------------------------------------
@@ -204,7 +204,7 @@ MODULE timestep
 !
 ! (max time, time before output, dt)
 !
- REAL :: tmax,tout,dt,dt0,time,vsig2max    
+ REAL :: tmax,tout,dt,dt0,time,vsig2max,dtscale,w0,Omega0
 !
 ! (time step criterion from forces, courant condition)
 !
