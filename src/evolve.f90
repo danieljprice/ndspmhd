@@ -8,16 +8,17 @@ subroutine evolve
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint,ifile
- use options, only:idumpghost,ibound
+ use options, only:idumpghost,ibound,iexternal_force
  use timestep
+ use part, only:x,uu,pmass,npart
 !
 !--define local variables
 !
  implicit none
  real :: tprint
- integer :: noutput,nevwrite
+ integer :: i,noutput,nevwrite
  real :: t_start,t_end,t_used,tzero
- real :: etot, momtot, etotin, momtotin, detot, dmomtot
+ real :: etot, momtot, etotin, momtotin, detot, dmomtot, epoti
  character(len=10) :: finishdate, finishtime
 !
 !--allow for tracing flow
@@ -29,7 +30,17 @@ subroutine evolve
 !   as can be non-zero from reading a dumpfile)
 !
  dt = 0.
+!
+!--get total potential
+!
+ Omega0 = 0.
+ do i=1,npart
+    call external_potentials(iexternal_force,x(:,i),epoti,ndim)
+    Omega0 = Omega0 + pmass(i)*(uu(i) + epoti)
+ enddo
  dt0 = min(C_cour*dtcourant,C_force*dtforce)
+ w0 = 1./Omega0
+ dtscale = 1.0
  dtrho = huge(dtrho)
  tprint = 0.
  t_start = 0.
@@ -108,7 +119,7 @@ subroutine evolve
 !
 !--reach tprint exactly. must take this out for integrator to be symplectic
 !
-    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+!    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
  enddo timestepping
 
