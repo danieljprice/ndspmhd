@@ -214,7 +214,7 @@ subroutine setup
        xmax = xmaxright
     endif
  else  ! set all of volume if densities are equal
-    call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
     masspleft = densleft*volume/REAL(npart)
@@ -256,7 +256,7 @@ subroutine setup
        vel(1,i) = vxright
        pmass(i) = masspright
        if (ndimV.ge.2) vel(2,i) = vyright
-       if (ndimV.ge.3) vel(3,i) = vzright 
+       if (ndimV.ge.3) vel(3,i) = vzright
        if (ndimV.ge.2) Bfield(2,i) = Byright
        if (ndimV.ge.3) Bfield(3,i) = Bzright
     elseif (delta.LT.-dsmooth) then
@@ -292,10 +292,35 @@ subroutine setup
     Bfield(1,i) = Bxinit
  enddo
 !
+!--setup const component of mag field which can be subtracted
+!
+ Bconst(:) = 0.
+ Bconst(1) = Bxinit
+! if (abs(Byleft - Byright).lt.tiny(Byleft)) then
+!    Bconst(2) = Byleft
+!    write(iprint,*) 'treating constant y-field as external'
+! endif
+!
+!--setup vector potential if necessary
+!
+ if (imhd.lt.0) then
+    if (ndim.lt.2) stop 'error: can''t set up vector potential in 1D'
+    do i=1,npart
+       Bevol(:,i) = 0.
+       if (ndim.eq.2) then
+          Bevol(1,i) = -Bfield(2,i)*x(1,i)
+       else
+          Bevol(3,i) = -Bfield(2,i)*x(1,i)
+          Bevol(2,i) = Bfield(3,i)*x(1,i)
+       endif
+    enddo
+ endif
+!
 !--if no smoothing applied, get rho from a sum and then set u to give a
 !  smooth pressure jump (no spikes)
 !
  if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
+    write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
     do i=1,npart
        if (x(1,i).le.xshock) then
@@ -304,13 +329,7 @@ subroutine setup
           uu(i) = prright/(gam1*rho(i))
        endif
     enddo
- endif
-
-!
-!--setup const component of mag field which can be subtracted
-!
- Bconst(:) = 0.
- Bconst(1) = Bxinit
-
+ endif 
+ 
  return
 end subroutine setup
