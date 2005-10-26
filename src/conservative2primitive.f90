@@ -37,9 +37,12 @@ subroutine conservative2primitive
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
-  else ! if using vector potential
+  elseif (imhd.lt.0) then ! if using vector potential
      write(iprint,*) 'getting B field from vector potential...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
+     do i=1,npart
+        Bfield(:,i) = Bfield(:,i) + Bconst(:)
+     enddo
   endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
@@ -55,6 +58,8 @@ subroutine conservative2primitive
         endif
      enddo
      if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
+  elseif (iener.eq.1) then  ! en = entropy variable
+     uu = en/(gamma-1.)*rho**(gamma-1.)
   else                 ! en = thermal energy
      uu = en
   endif
@@ -69,7 +74,11 @@ subroutine conservative2primitive
   if (any(ibound.eq.1)) then
      do i=1,npart
         if (itype(i).eq.1) then
-           call copy_particle(i,ireal(i))
+           j = ireal(i)
+           uu(i) = uu(j)
+           pr(i) = pr(j)
+           spsound(i) = spsound(j)
+           Bfield(:,i) = Bfield(:,j)
         endif
      enddo
   endif
@@ -148,7 +157,7 @@ subroutine primitive2conservative
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
-  else ! if using vector potential
+  elseif (imhd.lt.0) then ! if using vector potential
      write(iprint,*) 'getting B field from vector potential (init)...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
   endif
@@ -162,6 +171,8 @@ subroutine primitive2conservative
         en(i) = uu(i) + 0.5*v2i + 0.5*B2i
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
+  elseif (iener.eq.1) then ! en = entropy
+     en = (gamma-1.)*uu/rho**(gamma-1.)
   else                ! en = thermal energy
      en = uu
   endif
@@ -180,10 +191,10 @@ subroutine primitive2conservative
         pr(i) = pr(j)
         spsound(i) = spsound(j)
         Bevol(:,i) = Bevol(:,j)
-   !     call copy_particle(
+        Bfield(:,i) = Bfield(:,j)
+!        call copy_particle(i,j)
      enddo
   endif
-
 !
 !--call rates to get initial timesteps, div B etc
 !
