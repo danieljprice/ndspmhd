@@ -15,7 +15,7 @@ subroutine initialise
  use derivb
  use eos
  use fmagarray
- use kernels, only:setkern,kernelname
+ use kernels, only:setkernels,kernelname,kernelnamealt
  use hterms
  use rates
  use timestep
@@ -151,10 +151,9 @@ subroutine initialise
 !
 !--setup kernel tables
 !
- call setkern(ikernel,ndim)
- write(iprint,10) trim(kernelname)
-10 format(/,' Smoothing kernel = ',a,/)
- 
+ call setkernels(ikernel,ikernelalt,ndim)
+ write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
+ if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
  npart = 0
  
  if (ifile.lt.0) then
@@ -165,7 +164,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- !!if (ifile.ge.0) call modify_dump
+ !if (ifile.ge.0) call modify_dump
  print*,'igeom = ',igeomsetup,igeom
  if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
  
@@ -182,7 +181,10 @@ subroutine initialise
  fmag = 0.
  psi = 0.
  sqrtg = 1.
- if (imhd.eq.0) Bfield = 0.  ! zero mag field if turned off
+ if (imhd.eq.0) then
+    Bfield = 0.  ! zero mag field if turned off
+    Bevol = 0.
+ endif
 !
 !--set minimum density if using variable particle masses
 !  and density iterations

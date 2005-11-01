@@ -523,6 +523,7 @@ contains
     real :: projvi, projvj, dvsigdtc
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
+    real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
 !
 !--calculate both kernels if using anticlumping kernel
 !
@@ -590,21 +591,26 @@ contains
          grkernj = grkern
       else
          !  (using hi)
-         call interpolate_kernel(q2i,wabi,grkerni)
+         call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)
          wabi = wabi*hfacwabi
+         wabalti = wabalti*hfacwabi
          grkerni = grkerni*hfacgrkerni
+         grkernalti = grkernalti*hfacgrkerni
          !  (using hj)
          hfacwabj = hj1**ndim
          hfacgrkernj = hfacwabj*hj1
-         call interpolate_kernel(q2j,wabj,grkernj)
+         call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
          wabj = wabj*hfacwabj
+         wabaltj = wabaltj*hfacwabj
          grkernj = grkernj*hfacgrkernj
+         grkernaltj = grkernaltj*hfacgrkernj
          !  (calculate average)              
          wab = 0.5*(wabi + wabj)
+         wabalt = 0.5*(wabalti + wabaltj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            grkerni = grkerni*gradhi !!(1. + gradhni*gradhi/pmassj)
-            grkernj = grkernj*gradh(j) !!(1. + gradhn(j)*gradh(j)/pmassi)
+            grkerni = grkerni*(1. + gradhni*gradhi/pmassj)
+            grkernj = grkernj*(1. + gradhn(j)*gradh(j)/pmassi)
             grkern = 0.5*(grkerni + grkernj)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
@@ -777,8 +783,8 @@ contains
 !  XSPH term for moving the particles
 !----------------------------------------------------------------------------
     if (ixsph.eq.1) then
-       xsphterm(:,i) = xsphterm(:,i) - pmassj*dvel(:)*rhoav1*wab
-       xsphterm(:,j) = xsphterm(:,j) + pmassi*dvel(:)*rhoav1*wab
+       xsphterm(:,i) = xsphterm(:,i) - pmassj*dvel(:)*rhoav1*wabalt
+       xsphterm(:,j) = xsphterm(:,j) + pmassi*dvel(:)*rhoav1*wabalt
     endif
     
     return

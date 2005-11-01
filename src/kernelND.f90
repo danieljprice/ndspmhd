@@ -14,15 +14,51 @@ module kernels
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
  real, parameter, private :: pi = 3.141592653589
- real, dimension(0:ikern) :: wij,grwij,wijaniso,grwijaniso
+ real, dimension(0:ikern) :: wij,grwij,wijalt,grwijalt
  real :: dq2table,ddq2table,radkern2,radkern,eps
 !--these variables for force softening only
  real, dimension(0:ikern) :: potensoft,fsoft,dphidh
 !--these variables needed for plotting and analysis only (not in rates etc)
- real, dimension(0:ikern) :: grgrwij,grgrwijaniso
- character(len=100) :: kernelname
+ real, dimension(0:ikern) :: grgrwij,grgrwijalt
+ character(len=100) :: kernelname,kernelnamealt
+ 
+ public :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
+ private :: setkerntable
 
 contains
+
+!-----------------------------------------------------------------
+! This is the interface routine (public) -- calls setkern once only
+!
+!-----------------------------------------------------------------
+subroutine setkern(ikernel,ndim)
+ implicit none
+ integer, intent(in) :: ikernel, ndim
+!
+!--setup kernel tables for primary kernel
+!
+ call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname)
+ 
+end subroutine setkern
+
+!-----------------------------------------------------------------
+! This is another interface routine (public) -- calls setkern twice
+! for both usual kernel and alternative kernel
+!
+!-----------------------------------------------------------------
+subroutine setkernels(ikernel,ikernelalt,ndim)
+ implicit none
+ integer, intent(in) :: ikernel,ikernelalt, ndim
+!
+!--setup kernel tables for primary kernel
+!
+ call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname)
+!
+!--setup kernel tables for alternative kernel
+! 
+ call setkerntable(ikernelalt,ndim,wijalt,grwijalt,grgrwijalt,kernelnamealt)
+ 
+end subroutine setkernels
 
 !-----------------------------------------------------------------
 ! Sets up the tables for the kernel
@@ -32,9 +68,11 @@ contains
 ! with lots more.
 !
 !-----------------------------------------------------------------
-subroutine setkern(ikernel,ndim)
+subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
  implicit none         !  define local variables
  integer, intent(in) :: ikernel, ndim
+ real, intent(out), dimension(:) :: wkern,grwkern,grgrwkern
+ character(len=*), intent(out) :: kernelname
  integer :: i,j,npower,n
  real :: q,q2,q4,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
@@ -43,9 +81,9 @@ subroutine setkern(ikernel,ndim)
  real :: alpha,beta,gamma,a,b,c,wdenom,wint
 
  cnormk = 0.0
- wij = 0.
- grwij = 0.
- grgrwij = 0.
+ wkern = 0.
+ grwkern = 0.
+ grgrwkern = 0.
  fsoft = 1.
  potensoft = 0.
 
@@ -72,21 +110,21 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.0.5) then
-          wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4
-          grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
-          grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
+          wkern(i) = (2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4
+          grwkern(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
+          grgrwkern(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
        elseif (q.lt.1.5) then
-          wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4
-          grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3)
-          grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2)   
+          wkern(i) = (2.5-q)**4 - 5.*(1.5-q)**4
+          grwkern(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3)
+          grgrwkern(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2)   
        elseif (q.lt.2.5) then
-          wij(i) = (2.5-q)**4
-          grwij(i) = -4.*((2.5-q)**3)
-          grgrwij(i) = 12.*((2.5-q)**2)
+          wkern(i) = (2.5-q)**4
+          grwkern(i) = -4.*((2.5-q)**3)
+          grgrwkern(i) = 12.*((2.5-q)**2)
        else
-          wij(i) = 0.
-          grwij(i) = 0.
-          grgrwij(i) = 0.
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
        endif
     enddo 
 
@@ -112,21 +150,21 @@ subroutine setkern(ikernel,ndim)
        q = sqrt(q2)
        term1 = -5.*(3.-q)**4.
        if (q.lt.1.0) then
-          wij(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
-          grwij(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
-          grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
+          wkern(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
+          grwkern(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
        elseif ((q.ge.1.0).and.(q.lt.2.0)) then
-          wij(i) = (3.-q)**5. - 6.*(2.-q)**5.
-          grwij(i) = term1 + 30*(2.-q)**4.
-          grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
+          wkern(i) = (3.-q)**5. - 6.*(2.-q)**5.
+          grwkern(i) = term1 + 30*(2.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
        elseif ((q.ge.2.0).and.(q.le.3.0)) then
-          wij(i) = (3.-q)**5.
-          grwij(i) = term1
-          grgrwij(i) = 20.*(3.-q)**3.
+          wkern(i) = (3.-q)**5.
+          grwkern(i) = term1
+          grgrwkern(i) = 20.*(3.-q)**3.
        else
-          wij(i) = 0.0
-          grwij(i) = 0.0
-          grgrwij(i) = 0.
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
        endif
     enddo
 
@@ -195,25 +233,25 @@ subroutine setkern(ikernel,ndim)
       ddterm3 = 20*(beta-q)**3
       ddterm4 = 20*(gamma-q)**3
       if (q.lt.gamma) then
-         wij(i) = term1 + a*term2  + b*term3 + c*term4
-         grwij(i) = dterm1 + a*dterm2 + b*dterm3 + c*dterm4
-         grgrwij(i) = ddterm1 + a*ddterm2 + b*ddterm3 + c*ddterm4   
+         wkern(i) = term1 + a*term2  + b*term3 + c*term4
+         grwkern(i) = dterm1 + a*dterm2 + b*dterm3 + c*dterm4
+         grgrwkern(i) = ddterm1 + a*ddterm2 + b*ddterm3 + c*ddterm4   
       elseif ((q.ge.gamma).and.(q.lt.beta)) then
-         wij(i) = term1 + a*term2  + b*term3
-         grwij(i) = dterm1 + a*dterm2 + b*dterm3
-         grgrwij(i) = ddterm1 + a*ddterm2 + b*ddterm3       
+         wkern(i) = term1 + a*term2  + b*term3
+         grwkern(i) = dterm1 + a*dterm2 + b*dterm3
+         grgrwkern(i) = ddterm1 + a*ddterm2 + b*ddterm3       
       elseif ((q.ge.beta).and.(q.lt.alpha)) then
-         wij(i) = term1 + a*term2
-         grwij(i) = dterm1 + a*dterm2
-         grgrwij(i) = ddterm1 + a*ddterm2
+         wkern(i) = term1 + a*term2
+         grwkern(i) = dterm1 + a*dterm2
+         grgrwkern(i) = ddterm1 + a*ddterm2
       elseif ((q.ge.alpha).and.(q.lt.radkern)) then
-         wij(i) = term1
-         grwij(i) = dterm1
-         grgrwij(i) = ddterm1
+         wkern(i) = term1
+         grwkern(i) = dterm1
+         grgrwkern(i) = ddterm1
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -258,14 +296,14 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.radkern) then
-          wij(i) = (radkern**2-q2)**npower
-          grwij(i) = -2.*npower*q*(radkern**2-q2)**(npower-1)
-          grgrwij(i) = (4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
+          wkern(i) = (radkern**2-q2)**npower
+          grwkern(i) = -2.*npower*q*(radkern**2-q2)**(npower-1)
+          grgrwkern(i) = (4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
                       - 2.*npower*(radkern**2-q2)**(npower-1))
        else
-          wij(i) = 0.
-          grwij(i) = 0.
-          grgrwij(i) = 0.
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
        endif
     enddo
     
@@ -289,13 +327,13 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.radkern) then
-          wij(i) = (radkern-q)**npower
-          grwij(i) = -npower*(radkern-q)**(npower-1)
-          grgrwij(i) = npower*(npower-1)*(radkern-q)**(npower-2)
+          wkern(i) = (radkern-q)**npower
+          grwkern(i) = -npower*(radkern-q)**(npower-1)
+          grgrwkern(i) = npower*(npower-1)*(radkern-q)**(npower-2)
        else
-          wij(i) = 0.
-          grwij(i) = 0.
-          grgrwij(i) = 0.
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
        endif
     enddo   
 
@@ -320,13 +358,13 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.radkern) then
-          wij(i) = exp(-q2)
-          grwij(i) = -2.*q*wij(i)
-          grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
+          wkern(i) = exp(-q2)
+          grwkern(i) = -2.*q*wkern(i)
+          grgrwkern(i) = -2.*q*grwkern(i) - 2.*wkern(i)
        else
-          wij(i) = 0.
-          grwij(i) = 0.
-          grgrwij(i) = 0.
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
        endif
     enddo
 
@@ -341,8 +379,8 @@ subroutine setkern(ikernel,ndim)
     dq2table = radkern*radkern/real(ikern)
     select case(ndim)
       case(1)
-        cnormk = 2./3. 
-!        cnormk = 54./85. ! normalisation constant
+!        cnormk = 2./3. 
+        cnormk = 54./85. ! normalisation constant
       case(2)
         cnormk = 10./(7.*pi)
       case(3)
@@ -353,22 +391,22 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.2./3.) then
-          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
-!          wij(i) = 11./9. - q
-          grwij(i) = -1.
-          grgrwij(i) = 0.
+!          wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+          wkern(i) = 11./9. - q
+          grwkern(i) = -1.
+          grgrwkern(i) = 0.
        elseif (q.le.1.0) then
-          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
-          grwij(i) = -3.*q+ 2.25*q2
-          grgrwij(i) = -3. + 4.5*q
+          wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+          grwkern(i) = -3.*q+ 2.25*q2
+          grgrwkern(i) = -3. + 4.5*q
        elseif (q.le.2.0) then
-          wij(i) = 0.25*(2.-q)**3.
-          grwij(i) = -0.75*(2.-q)**2.
-          grgrwij(i) = 1.5*(2.-q)
+          wkern(i) = 0.25*(2.-q)**3.
+          grwkern(i) = -0.75*(2.-q)**2.
+          grgrwkern(i) = 1.5*(2.-q)
        else
-          wij(i) = 0.0
-          grwij(i) = 0.0
-          grgrwij(i) = 0.
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
        endif
     enddo
   
@@ -392,17 +430,17 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.1.0) then
-         wij(i) = (2.-q)**5 - 16.*(1.-q)**5
-         grwij(i) = -5.*(2.-q)**4 + 80.*(1.-q)**4.
-         grgrwij(i) = 20.*(2.-q)**3 - 320.*(1.-q)**3.
+         wkern(i) = (2.-q)**5 - 16.*(1.-q)**5
+         grwkern(i) = -5.*(2.-q)**4 + 80.*(1.-q)**4.
+         grgrwkern(i) = 20.*(2.-q)**3 - 320.*(1.-q)**3.
       elseif ((q.ge.1.0).and.(q.le.2.0)) then
-         wij(i) = (2.-q)**5
-         grwij(i) = -5.*(2.-q)**4
-         grgrwij(i) = 20.*(2.-q)**3
+         wkern(i) = (2.-q)**5
+         grwkern(i) = -5.*(2.-q)**4
+         grgrwkern(i) = 20.*(2.-q)**3
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo  
     
@@ -430,14 +468,14 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.2.0) then
-         wij(i) = (1.+1.5*q)*(1.-0.5*q)**3
-         grwij(i) = (1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2)
+         wkern(i) = (1.+1.5*q)*(1.-0.5*q)**3
+         grwkern(i) = (1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2)
          !--note second deriv is wrong
-         grgrwij(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+         grgrwkern(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -465,13 +503,13 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.2.0) then
-         wij(i) = (2.-q)**3
-         grwij(i) = -3.*(2.-q)**2
-         grgrwij(i) = 6.*(2.-q)
+         wkern(i) = (2.-q)**3
+         grwkern(i) = -3.*(2.-q)**2
+         grgrwkern(i) = 6.*(2.-q)
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
     
@@ -499,17 +537,17 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.1.0) then
-         wij(i) = 0.25*(2.-q)**3 - 0.5*(1.-q)**3
-         grwij(i) = -0.75*(2.-q)**2 + 1.5*(1.-q)**2
-         grgrwij(i) = 1.5*q
+         wkern(i) = 0.25*(2.-q)**3 - 0.5*(1.-q)**3
+         grwkern(i) = -0.75*(2.-q)**2 + 1.5*(1.-q)**2
+         grgrwkern(i) = 1.5*q
       elseif(q.lt.2.0) then
-         wij(i) = 0.25*(2.-q)**3
-         grwij(i) = -0.75*(2.-q)**2
-         grgrwij(i) = 3. - 1.5*q
+         wkern(i) = 0.25*(2.-q)**3
+         grwkern(i) = -0.75*(2.-q)**2
+         grgrwkern(i) = 3. - 1.5*q
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -541,17 +579,17 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.alpha) then
-         wij(i) = 0.25*(2.-q)**3 - 0.5/alpha*(alpha-q)**3
-         grwij(i) = -0.75*(2.-q)**2 + 1.5/alpha*(alpha-q)**2
-         grgrwij(i) = 1.5*(2.-q) - 3./alpha*(alpha-q)
+         wkern(i) = 0.25*(2.-q)**3 - 0.5/alpha*(alpha-q)**3
+         grwkern(i) = -0.75*(2.-q)**2 + 1.5/alpha*(alpha-q)**2
+         grgrwkern(i) = 1.5*(2.-q) - 3./alpha*(alpha-q)
       elseif (q.lt.2.0) then
-         wij(i) = 0.25*(2.-q)**3
-         grwij(i) = -0.75*(2.-q)**2
-         grgrwij(i) = 1.5*(2.-q)
+         wkern(i) = 0.25*(2.-q)**3
+         grwkern(i) = -0.75*(2.-q)**2
+         grgrwkern(i) = 1.5*(2.-q)
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
     
@@ -594,15 +632,15 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.radkern) then
-         wij(i) = cos(0.25*pi*q)**n !!sin(0.5*pi*q)/q
-         grwij(i) = -0.25*pi*n*(cos(0.25*pi*q))**(n-1)*sin(0.25*pi*q)
-         grgrwij(i) = 1./16.*pi*pi*n* &
+         wkern(i) = cos(0.25*pi*q)**n !!sin(0.5*pi*q)/q
+         grwkern(i) = -0.25*pi*n*(cos(0.25*pi*q))**(n-1)*sin(0.25*pi*q)
+         grgrwkern(i) = 1./16.*pi*pi*n* &
            ((n-1)*(cos(0.25*pi*q))**(n-2)*sin(0.25*pi*q)**2 - &
             cos(0.25*pi*q)**n)
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo    
 
@@ -628,17 +666,17 @@ subroutine setkern(ikernel,ndim)
       q = sqrt(q2)
       if (q.lt.radkern) then
          if (q.gt.0.) then
-            wij(i) = sin(0.75*pi*q)/q + 0.5
-            grwij(i) = 0.75*pi*cos(0.75*pi*q)/q - sin(0.75*pi*q)/q2
+            wkern(i) = sin(0.75*pi*q)/q + 0.5
+            grwkern(i) = 0.75*pi*cos(0.75*pi*q)/q - sin(0.75*pi*q)/q2
          else
-            wij(i) = 0.75*pi + 0.5
-            grwij(i) = 0.
+            wkern(i) = 0.75*pi + 0.5
+            grwkern(i) = 0.
          endif
-         grgrwij(i) = 0.
+         grgrwkern(i) = 0.
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo    
 
@@ -665,20 +703,20 @@ subroutine setkern(ikernel,ndim)
       if (q.lt.radkern) then
          term = 0.5*pi*q
          if (q.gt.0.) then
-            wij(i) = (sin(term)**2)/q2
-            grwij(i) = (pi*sin(term)*cos(term))/q2 - 2.*wij(i)/q
-            grgrwij(i) = 0.5*pi*pi*(cos(term)**2 - sin(term)**2)/q2 &
+            wkern(i) = (sin(term)**2)/q2
+            grwkern(i) = (pi*sin(term)*cos(term))/q2 - 2.*wkern(i)/q
+            grgrwkern(i) = 0.5*pi*pi*(cos(term)**2 - sin(term)**2)/q2 &
                          - 2.*pi*sin(term)*cos(term)/(q2*q) &
                          + 6.*sin(term)**2/(q2*q2)
          else
-            wij(i) = 0.5*pi
-            grwij(i) = 0.
-            grgrwij(i) = 0.
+            wkern(i) = 0.5*pi
+            grwkern(i) = 0.
+            grgrwkern(i) = 0.
          endif
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -705,23 +743,23 @@ subroutine setkern(ikernel,ndim)
       if (q.lt.radkern) then
          term = 0.5*pi*q
          if (q.gt.0.) then
-            wij(i) = (sin(term)**4)/(q2*q2)
-            grwij(i) = 2./(q2*q2)*(sin(term)**3*cos(term)*pi - 2.*sin(term)**4/q)
-            grgrwij(i) = 1./(q2*q2)*(3.*sin(term)**2*cos(term)**2*pi**2 &
+            wkern(i) = (sin(term)**4)/(q2*q2)
+            grwkern(i) = 2./(q2*q2)*(sin(term)**3*cos(term)*pi - 2.*sin(term)**4/q)
+            grgrwkern(i) = 1./(q2*q2)*(3.*sin(term)**2*cos(term)**2*pi**2 &
                         -16.*sin(term)**3*cos(term)*pi/q - sin(term)**4*pi**2 &
                         + 20.*(sin(term)**4)/q2)
          else
-            wij(i) = (0.5*pi)**4
-            grwij(i) = 0.
-            grgrwij(i) = 0.
+            wkern(i) = (0.5*pi)**4
+            grwkern(i) = 0.
+            grgrwkern(i) = 0.
          endif
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
-    grgrwij(0) = grgrwij(1)
+    grgrwkern(0) = grgrwkern(1)
 
   case(21)
 !
@@ -747,27 +785,27 @@ subroutine setkern(ikernel,ndim)
       if (q.lt.radkern) then
          term = 0.5*pi*q
          if (q.gt.0.) then
-            wij(i) = (sin(term)/sin(term/npower))**4
-            grwij(i) = (2.*pi/sin(term/npower)**4)*(sin(term)**3*cos(term)  &
+            wkern(i) = (sin(term)/sin(term/npower))**4
+            grwkern(i) = (2.*pi/sin(term/npower)**4)*(sin(term)**3*cos(term)  &
                      - (sin(term)**4)*cos(term/npower)/(npower*sin(term/npower)))
-            grgrwij(i) = pi*pi/sin(term/npower)**4* &
+            grgrwkern(i) = pi*pi/sin(term/npower)**4* &
                (3.*sin(term)**2*cos(term)**2 &
               - 8.*sin(term)**3*cos(term)*cos(term/npower)/(npower*sin(term/npower)) &
               - sin(term)**4  &
               + 5.*sin(term)**4*cos(term/npower)**2/(npower*sin(term/npower))**2 &
               + sin(term)**4/(npower**2))
          else
-            wij(i) = (npower)**4
-            grwij(i) = 0.
-            grgrwij(i) = 0.
+            wkern(i) = (npower)**4
+            grwkern(i) = 0.
+            grgrwkern(i) = 0.
          endif
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
-    grgrwij(0) = grgrwij(1)    
+    grgrwkern(0) = grgrwkern(1)    
   case(30)
 !
 !--these are the Ferrer's spheres from Dehnen (2001)
@@ -792,13 +830,13 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.2.0) then
-         wij(i) = (4.-q2)**3
-         grwij(i) = -6.*q*(4.-q2)**2
-         grgrwij(i) = 24.*q2*(4.-q2) - 6.*(4.-q2)**2
+         wkern(i) = (4.-q2)**3
+         grwkern(i) = -6.*q*(4.-q2)**2
+         grgrwkern(i) = 24.*q2*(4.-q2) - 6.*(4.-q2)**2
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
     
@@ -826,13 +864,13 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.2.0) then
-         wij(i) = (4.-q2)**6
-         grwij(i) = -12.*q*(4.-q2)**5
-         grgrwij(i) = 120.*q2*(4.-q2)**4 - 12.*(4.-q2)**5
+         wkern(i) = (4.-q2)**6
+         grwkern(i) = -12.*q*(4.-q2)**5
+         grgrwkern(i) = 120.*q2*(4.-q2)**4 - 12.*(4.-q2)**5
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -856,13 +894,13 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.radkern) then
-         wij(i) = 1./(1. + q2)
-         grwij(i) = -1./(1. + q2)**2*2.*q
-         grgrwij(i) = -2./(1. + q2)**2 + 4.*q/(1. + q2)**3*2.*q
+         wkern(i) = 1./(1. + q2)
+         grwkern(i) = -1./(1. + q2)**2*2.*q
+         grgrwkern(i) = -2./(1. + q2)**2 + 4.*q/(1. + q2)**3*2.*q
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
   case(51)
@@ -886,17 +924,17 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.1.0) then
-         wij(i) = (a - q2)*(1. - 1.5*q2 + 0.75*q2*q)
-         grwij(i) = -2.*q*(1. - 1.5*q2 + 0.75*q2*q) + (a -q2)*(-3.*q + 9./4.*q2)
-         grgrwij(i) = -2. + 18.*q2 - 15.*q2*q - 3.*a + 4.5*a*q
+         wkern(i) = (a - q2)*(1. - 1.5*q2 + 0.75*q2*q)
+         grwkern(i) = -2.*q*(1. - 1.5*q2 + 0.75*q2*q) + (a -q2)*(-3.*q + 9./4.*q2)
+         grgrwkern(i) = -2. + 18.*q2 - 15.*q2*q - 3.*a + 4.5*a*q
       elseif (q.lt.2.0) then
-         wij(i) = 0.25*(a - q2)*(2.-q)**3
-         grwij(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
-         grgrwij(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
+         wkern(i) = 0.25*(a - q2)*(2.-q)**3
+         grwkern(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
+         grgrwkern(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
     
@@ -925,21 +963,21 @@ subroutine setkern(ikernel,ndim)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.1.0) then
-         wij(i) = (a - q2)*(0.25*(2.-q)**3 - 0.5*(1.-q)**3)
-         grwij(i) = -2.*q*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+         wkern(i) = (a - q2)*(0.25*(2.-q)**3 - 0.5*(1.-q)**3)
+         grwkern(i) = -2.*q*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
                   + (a - q2)*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2)
-         grgrwij(i) = -2.*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
+         grgrwkern(i) = -2.*(0.25*(2.-q)**3 - 0.5*(1.-q)**3) &
                       -4.*q*(-0.75*(2.-q)**2 + 1.5*(1.-q)**2) &
                       +(a - q2)*(1.5*(2.-q) - 3.*(1.-q))
       elseif(q.lt.2.0) then
-         wij(i) = (a - q2)*(0.25*(2.-q)**3)
-         grwij(i) = -2.*q*(0.25*(2.-q)**3) + (a - q2)*(-0.75*(2.-q)**2)
-         grgrwij(i) = -2.*(0.25*(2.-q)**3) -4.*q*(-0.75*(2.-q)**2) &
+         wkern(i) = (a - q2)*(0.25*(2.-q)**3)
+         grwkern(i) = -2.*q*(0.25*(2.-q)**3) + (a - q2)*(-0.75*(2.-q)**2)
+         grgrwkern(i) = -2.*(0.25*(2.-q)**3) -4.*q*(-0.75*(2.-q)**2) &
                       + (a - q2)*(1.5*(2.-q))
       else
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
       endif
     enddo
 
@@ -975,23 +1013,23 @@ subroutine setkern(ikernel,ndim)
           potensoft(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
           fsoft(i) = 4./3.*q - 1.2*q2*q + 0.5*q4
           dphidh(i) = -2.*q**2 + 1.5*q4 - 0.6*q4*q + 1.4
-          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
-          grwij(i) = -3.*q+ 2.25*q2
-          grgrwij(i) = -3. + 4.5*q
+          wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+          grwkern(i) = -3.*q+ 2.25*q2
+          grgrwkern(i) = -3. + 4.5*q
        elseif ((q.ge.1.0).and.(q.le.2.0)) then
           potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
           fsoft(i) = 8./3.*q - 3.*q2 + 1.2*q2*q - q4/6. - 1./(15.*q2)
           dphidh(i) = -4.*q2 + 4.*q2*q - 1.5*q4 + 0.2*q4*q + 1.6
-          wij(i) = 0.25*(2.-q)**3.
-          grwij(i) = -0.75*(2.-q)**2.
-          grgrwij(i) = 1.5*(2.-q)
+          wkern(i) = 0.25*(2.-q)**3.
+          grwkern(i) = -0.75*(2.-q)**2.
+          grgrwkern(i) = 1.5*(2.-q)
        else
           potensoft(i) = -1./q
           fsoft(i) = 1.0
           dphidh(i) = 0.
-          wij(i) = 0.0
-          grwij(i) = 0.0
-          grgrwij(i) = 0.
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
        endif
     enddo
 
@@ -1006,7 +1044,7 @@ subroutine setkern(ikernel,ndim)
 !
     !!j = nint((1./hfact)**2/dq2table)
     j = nint((1./1.5)**2/dq2table)
-    wdenom = wij(j)
+    wdenom = wkern(j)
 
     select case(neps) ! integral of w^{n+1} dv
     case(3)
@@ -1022,11 +1060,11 @@ subroutine setkern(ikernel,ndim)
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       grwijaniso(i) = cnormkaniso*grwij(i)*(1. - 0.5*eps*(wij(i)/wdenom)**neps)
-       wijaniso(i) = cnormkaniso*wij(i)*(1. - 0.5*eps/(neps+1.)*(wij(i)/wdenom)**neps) 
-       grgrwijaniso(i) = cnormkaniso*(grgrwij(i)*  &
-                  (1. - 0.5*eps*(wij(i)/wdenom)**neps) &
-                 - 0.5*eps*neps*wij(i)**(neps-1.)/wdenom**neps*grwij(i)*grwij(i))   
+       grwijalt(i) = cnormkaniso*grwkern(i)*(1. - 0.5*eps*(wkern(i)/wdenom)**neps)
+       wijalt(i) = cnormkaniso*wkern(i)*(1. - 0.5*eps/(neps+1.)*(wkern(i)/wdenom)**neps) 
+       grgrwijalt(i) = cnormkaniso*(grgrwkern(i)*  &
+                  (1. - 0.5*eps*(wkern(i)/wdenom)**neps) &
+                 -0.5*eps*neps*wkern(i)**(neps-1.)/wdenom**neps*grwkern(i)*grwkern(i))   
     enddo
 
     print*,'cnormk = ',cnormkaniso,eps,neps
@@ -1051,17 +1089,17 @@ subroutine setkern(ikernel,ndim)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.beta) then
-          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3 + b*(beta-q)**3)
-          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2 + b*(beta-q)**2)
-          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q) + b*(beta-q))       
+          wijalt(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3 + b*(beta-q)**3)
+          grwijalt(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2 + b*(beta-q)**2)
+          grgrwijalt(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q) + b*(beta-q))       
        elseif(q.lt.1.) then
-          wijaniso(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3)
-          grwijaniso(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2)
-          grgrwijaniso(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q))                
+          wijalt(i) = cnormkaniso*(0.25*(2.-q)**3 + a*(1.-q)**3)
+          grwijalt(i) = -3.*cnormkaniso*(0.25*(2.-q)**2 + a*(1.-q)**2)
+          grgrwijalt(i) = 6.*cnormkaniso*(0.25*(2.-q) + a*(1.-q))                
        else
-          wijaniso(i) = cnormkaniso*wij(i)
-          grwijaniso(i) = cnormkaniso*grwij(i)
-          grgrwijaniso(i) = cnormkaniso*grgrwij(i)
+          wijalt(i) = cnormkaniso*wkern(i)
+          grwijalt(i) = cnormkaniso*grwkern(i)
+          grgrwijalt(i) = cnormkaniso*grgrwkern(i)
        endif
 
     enddo
@@ -1073,17 +1111,17 @@ subroutine setkern(ikernel,ndim)
 !
 !--normalise kernel
 !
- wij = cnormk*wij
- grwij = cnormk*grwij
- grgrwij = cnormk*grgrwij
-
+ wkern = cnormk*wkern
+ grwkern = cnormk*grwkern
+ grgrwkern = cnormk*grgrwkern
+ 
 666 format(/,'ERROR!!! normalisation constant not defined in kernel',/)
 !
 !--the variable ddq2table is used in interpolate_kernel
 !
  ddq2table = 1./dq2table 
 
-end subroutine setkern
+end subroutine setkerntable
 
 !!----------------------------------------------------------------------
 !! function to interpolate linearly from kernel tables
@@ -1125,12 +1163,12 @@ end subroutine interpolate_kernel
 !!----------------------------------------------------------------------
 !! same but for kernal *and* modified kernel in anticlumping term
 !!----------------------------------------------------------------------
-subroutine interpolate_kernels(q2,w,gradw,waniso,gradwaniso)
+subroutine interpolate_kernels(q2,w,gradw,walt,gradwalt)
  implicit none
  integer :: index,index1
  real, intent(in) :: q2
- real, intent(out) :: w,gradw,waniso,gradwaniso
- real :: dxx,dwdx,dgrwdx,dwanisodx,dgrwanisodx
+ real, intent(out) :: w,gradw,walt,gradwalt
+ real :: dxx,dwdx,dgrwdx,dwaltdx,dgrwaltdx
 !
 !--find nearest index in kernel table
 ! 
@@ -1147,8 +1185,8 @@ subroutine interpolate_kernels(q2,w,gradw,waniso,gradwaniso)
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
  dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
- dwanisodx =  (wijaniso(index1)-wijaniso(index))*ddq2table
- dgrwanisodx =  (grwijaniso(index1)-grwijaniso(index))*ddq2table
+ dwaltdx =  (wijalt(index1)-wijalt(index))*ddq2table
+ dgrwaltdx =  (grwijalt(index1)-grwijalt(index))*ddq2table
 !
 !--interpolate for kernel and derivative
 !
@@ -1157,8 +1195,8 @@ subroutine interpolate_kernels(q2,w,gradw,waniso,gradwaniso)
 !
 !--interpolate for anticlumping kernel and derivative
 !
- waniso = (wijaniso(index)+ dwanisodx*dxx)
- gradwaniso = (grwijaniso(index)+ dgrwanisodx*dxx)
+ walt = (wijalt(index)+ dwaltdx*dxx)
+ gradwalt = (grwijalt(index)+ dgrwaltdx*dxx)
  
 end subroutine interpolate_kernels
 

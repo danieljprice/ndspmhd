@@ -63,7 +63,7 @@ subroutine iterate_density
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
-  usenumdens = .false.
+  usenumdens = .true.
   ncalcprev = 0
   gradh = 0.
   gradhn = 0.
@@ -156,13 +156,12 @@ subroutine iterate_density
 !
 !--overwrite if iterations are going wrong
 !
-              if (hnew.le.0. .or. gradh(i).le.0.) then
-                 print*,' warning: h or omega < 0 in iterations ',i,hnew,gradh(i)
-                 if (usenumdens) then
-                    hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
-                 else
-                    hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
-                 endif
+              if (usenumdens .and. (hnew.le.0 .or. gradhn(i).le.0)) then
+                 print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
+                 hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
+              elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.0)) then
+                 print*,' warning: h or omega < 0 in iterations',i,hnew,gradh(i)
+                 hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               endif
               !if (numneigh(i).le.1) then
               !   print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
