@@ -68,11 +68,11 @@ end subroutine setkernels
 ! with lots more.
 !
 !-----------------------------------------------------------------
-subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
+subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
  implicit none         !  define local variables
  integer, intent(in) :: ikernel, ndim
  real, intent(out), dimension(:) :: wkern,grwkern,grgrwkern
- character(len=*), intent(out) :: kernelname
+ character(len=*), intent(out) :: kernellabel
  integer :: i,j,npower,n
  real :: q,q2,q4,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
@@ -93,7 +93,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--quartic spline
 !  
-    kernelname = 'quartic spline'    
+    kernellabel = 'quartic spline'    
 
     radkern = 2.5
     radkern2 = radkern*radkern
@@ -132,7 +132,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
 !
-    kernelname = 'quintic spline'  
+    kernellabel = 'quintic spline'  
     radkern = 3.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
@@ -180,14 +180,14 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
     if (ikernel.eq.5) then
        beta = 0.5
        alpha = 1.7   !!1.4
-       kernelname = 'New quintic (1)'    
+       kernellabel = 'New quintic (1)'    
     elseif (ikernel.eq.6) then
        beta = 0.7
        alpha = 1.5
-       kernelname = 'New quintic (2)'    
+       kernellabel = 'New quintic (2)'    
     else
     !--match to cubic spline, ie w''(0) = -2
-      kernelname = 'Cubic-like quintic' 
+      kernellabel = 'Cubic-like quintic' 
       beta = 0.85
       !print*,' enter beta'
       !read*,beta
@@ -260,7 +260,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !--(1-r^2)^3
 !   
     npower = 6
-    write(kernelname,"(a,i1)") '(1-r^2)^',npower     
+    write(kernellabel,"(a,i1)") '(1-r^2)^',npower     
 
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -312,7 +312,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !--(1-r)^n - a peaked kernel (deriv non-zero at origin) - truly awful
 !   
     npower = 4
-    write(kernelname,"(a,i1)") '(2-r)^',npower     
+    write(kernellabel,"(a,i1)") '(2-r)^',npower     
 
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -341,7 +341,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--gaussian
 !  
-    kernelname = 'Gaussian'    
+    kernellabel = 'Gaussian'    
 
     radkern = 10.0
     radkern2 = radkern*radkern
@@ -373,7 +373,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !--this is the usual spline based kernel modified for r/h < 2/3 to
 !   prevent particles from clumping (see thomas & couchman '92)
 !      
-    kernelname = 'Thomas & Couchman anti-clumping'
+    kernellabel = 'Thomas & Couchman anti-clumping'
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
@@ -414,7 +414,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is the squashed quintic spline from bonet & kulesegaram
 !
-    kernelname = 'BK squashed quintic spline'    
+    kernellabel = 'BK squashed quintic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -448,7 +448,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is the lucy kernel (to 2h not to 1h)
 !
-    kernelname = 'Lucy kernel'    
+    kernellabel = 'Lucy kernel'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -483,7 +483,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is a modification of the cubic spline
 !
-    kernelname = 'Peaked cubic spline'    
+    kernellabel = 'Peaked cubic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -517,7 +517,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is a modification of the cubic spline
 !
-    kernelname = 'Peaked cubic spline 2'    
+    kernellabel = 'Peaked cubic spline 2'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -558,8 +558,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
     alpha = 1.0
     print*,'enter alpha,'
     read*,alpha
-    write(kernelname,"(a,f6.2)") 'peaked cubic spline alpha = ',alpha
-!!    kernelname = 'peaked cubic spline 3'    
+    write(kernellabel,"(a,f6.2)") 'peaked cubic spline alpha = ',alpha
+!!    kernellabel = 'peaked cubic spline 3'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -597,7 +597,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--cosine**n kernel
 !
-    kernelname = 'cosine**n'
+    kernellabel = 'cosine**n'
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -648,7 +648,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--Dirichlet kernel (sin(x)/x)
 !
-    kernelname = 'Dirichlet'
+    kernellabel = 'Dirichlet'
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -684,7 +684,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--sin**2/x**2
 !
-    kernelname = 'sin^2/x^2'
+    kernellabel = 'sin^2/x^2'
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -724,7 +724,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--Jackson-Feyer de la Vallee Poussin Kernel
 !
-    kernelname = '[sin(q)/q]**4'
+    kernellabel = '[sin(q)/q]**4'
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -765,7 +765,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--Jackson kernel
 !
-    kernelname = 'Jackson kernel'
+    kernellabel = 'Jackson kernel'
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -810,7 +810,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--these are the Ferrer's spheres from Dehnen (2001)
 !
-    kernelname = 'Ferrers n=3 sphere'    
+    kernellabel = 'Ferrers n=3 sphere'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -844,7 +844,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--these are the Ferrer's spheres from dehnen (2001)
 !
-    kernelname = 'Ferrers n=6 sphere'    
+    kernellabel = 'Ferrers n=6 sphere'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -878,7 +878,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--Cauchy kernel
 !
-    kernelname = 'Cauchy'    
+    kernellabel = 'Cauchy'    
    
     radkern = 20.0
     radkern2 = radkern*radkern
@@ -907,7 +907,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--cubic spline with vanishing second moment (using monaghan 1992 method)
 !
-    kernelname = 'Higher order cubic spline'    
+    kernellabel = 'Higher order cubic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -942,7 +942,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--this is a modification of the cubic spline
 !
-    kernelname = 'High order peaked cubic spline 2'    
+    kernellabel = 'High order peaked cubic spline 2'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -985,7 +985,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernelname = 'Cubic spline'    
+    kernellabel = 'Cubic spline'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
@@ -1068,7 +1068,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
     enddo
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=trim(kernelname)//' & anti-clumping cubic spline' 
+    kernellabel=trim(kernellabel)//' & anti-clumping cubic spline' 
  
  elseif (ianticlump.eq.2) then
 !
@@ -1105,7 +1105,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernelname)
     enddo
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=trim(kernelname)//' & modified cubic spline'   
+    kernellabel=trim(kernellabel)//' & modified cubic spline'   
  
  endif
 !
@@ -1185,16 +1185,17 @@ subroutine interpolate_kernels(q2,w,gradw,walt,gradwalt)
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
  dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
- dwaltdx =  (wijalt(index1)-wijalt(index))*ddq2table
- dgrwaltdx =  (grwijalt(index1)-grwijalt(index))*ddq2table
 !
 !--interpolate for kernel and derivative
 !
  w = (wij(index)+ dwdx*dxx)
  gradw = (grwij(index)+ dgrwdx*dxx)
 !
-!--interpolate for anticlumping kernel and derivative
+!--interpolate for alternative kernel and derivative
 !
+ dwaltdx =  (wijalt(index1)-wijalt(index))*ddq2table
+ dgrwaltdx =  (grwijalt(index1)-grwijalt(index))*ddq2table
+
  walt = (wijalt(index)+ dwaltdx*dxx)
  gradwalt = (grwijalt(index)+ dgrwaltdx*dxx)
  
