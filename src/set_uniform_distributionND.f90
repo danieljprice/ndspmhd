@@ -96,7 +96,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     endif
     
 !--for periodic boundaries, ymax needs to be divisible by 2
-    if (ibound(2).eq.3) then
+    if (ibound(2).eq.3 .and..not.present(rmax)) then
        nparty = 2*int(nparty/2)
        print*,' periodic boundaries: adjusting nparty = ',nparty
     endif
