@@ -71,7 +71,6 @@ contains
        densn(i) = 0.
        dndt(i) = 0.
        gradh(i) = 0.
-       densn(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
        !gradmatrix(:,:,i) = 0.
