@@ -100,7 +100,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
  case(1) ! toy star force (x^2 potential)
     epot = 0.5*DOT_PRODUCT(xpart,xpart)
  case(2) ! 1/r^2 force(1/r potential)
-    epot = 1./SQRT(DOT_PRODUCT(xpart,xpart))
+    epot = -1./SQRT(DOT_PRODUCT(xpart,xpart))
  case(3) ! potential from n point masses
     epot = 0.
  case default
