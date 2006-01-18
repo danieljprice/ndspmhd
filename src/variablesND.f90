@@ -123,10 +123,11 @@ MODULE options
  INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
  INTEGER :: iexternal_force,ixsph
  INTEGER :: igravity,ikernel,ikernelalt
- INTEGER :: igeom,maxdensits
+ INTEGER :: maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
- REAL :: damp,psidecayfact,tolh
+ REAL :: damp,dampz,dampr,psidecayfact,tolh
+ CHARACTER(LEN=12) :: geom
 END MODULE
 
 !-------------------------------------------------------------------
@@ -184,8 +185,9 @@ END MODULE rates
 
 MODULE setup_params
  USE dimen_mhd
+ USE options, only:geom
  IMPLICIT NONE
- INTEGER :: igeomsetup
+ CHARACTER(LEN=LEN(geom)) :: geomsetup
  REAL, PARAMETER :: pi = 3.1415926536
  REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer,Omega,Omega2
 END MODULE setup_params
