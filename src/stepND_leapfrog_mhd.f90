@@ -27,7 +27,8 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
  REAL, DIMENSION(ndimV,npart) :: forcein,dBevoldtin
- REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin,uuin,dpsidtin
+ REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin
+ REAL, DIMENSION(3,npart) :: daldtin
  REAL :: hdt
 !
 !--allow for tracing flow
@@ -54,7 +55,7 @@ SUBROUTINE step
     drhodtin(i) = drhodt(i)
     dhdtin(i) = dhdt(i)
     dendtin(i) = dendt(i)
-    daldtin(i) = daldt(:,i)
+    daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
  ENDDO
 !
@@ -95,7 +96,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldtin(:,i)	  
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldtin(:,i)	  
        IF (idivBzero.GE.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
     ENDIF
  ENDDO
@@ -147,7 +148,7 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i))
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i))
        IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))	   
     ENDIF 
 	      
