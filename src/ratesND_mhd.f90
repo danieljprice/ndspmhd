@@ -341,13 +341,13 @@ subroutine get_rates
 !--add external (body) forces
 !
     if (iexternal_force.ne.0) then
-       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim,pmom(ndimV,i))
+       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim)
        force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
     endif
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
-    if (igeom.gt.1 .and. allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
+    if (allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
 !
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)
@@ -609,8 +609,8 @@ contains
          wabalt = 0.5*(wabalti + wabaltj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            grkerni = grkerni*(1. + gradhni*gradhi/pmassj)
-            grkernj = grkernj*(1. + gradhn(j)*gradh(j)/pmassi)
+            grkerni = grkerni*gradhi !!!(1. + gradhni*gradhi/pmassj)
+            grkernj = grkernj*gradh(j) !!!(1. + gradhn(j)*gradh(j)/pmassi)
             grkern = 0.5*(grkerni + grkernj)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
@@ -814,7 +814,7 @@ contains
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
     !!rhoav1 = 2./(rhoi + rhoj)
-    if (igeom.gt.1) then
+    if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
     else
        dpmomdotr = -dvdotr
