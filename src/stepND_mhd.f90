@@ -177,6 +177,10 @@ SUBROUTINE step
        psi(i) = psiin(i)
     ELSE
        vel(:,i) = (velin(:,i) + hdt*force(:,i))/(1.+damp)
+       !--vertical damping
+       if (ndim.ge.3) vel(3,i) = vel(3,i)/(1.+dampz)
+       !--radial damping
+       if (dampr.gt.tiny(dampr) .and.ndim.ge.2) call radialdamping(vel(1:2,i),x(1:2,i),dampr)    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 
        IF (imhd.NE.0) THEN
@@ -277,6 +281,10 @@ SUBROUTINE step
        psi(i) = psiin(i)
     ELSE
        vel(:,i) = (velin(:,i) + hdt*force(:,i))/(1.+damp)            
+       !--vertical damping
+       if (ndim.ge.3) vel(3,i) = vel(3,i)/(1.+dampz)
+       !--radial damping
+       if (dampr.gt.tiny(dampr) .and.ndim.ge.2) call radialdamping(vel(1:2,i),x(1:2,i),dampr)      
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (ihvar.EQ.2 .OR. (ihvar.EQ.3 .and. itsdensity.eq.0)) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
@@ -425,3 +433,19 @@ SUBROUTINE step
       
  RETURN
 END SUBROUTINE step
+
+subroutine radialdamping(vxy,xy,dampr)
+ implicit none
+ real, intent(in), dimension(2) :: xy
+ real, intent(inout), dimension(2) :: vxy
+ real, intent(in) :: dampr
+ real, dimension(2) :: rhat
+ real :: vrad,vradnew
+ 
+ rhat(:) = xy(:)/sqrt(dot_product(xy,xy))
+ vrad = dot_product(vxy,rhat)
+ vradnew = vrad/(1. + dampr)
+ vxy(:) = vxy(:) + (vradnew - vrad)*rhat(:)
+ 
+ return
+end subroutine radialdamping
