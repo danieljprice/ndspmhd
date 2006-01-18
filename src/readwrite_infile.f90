@@ -46,7 +46,7 @@ subroutine write_infile(infile)
   write(iread,140) ianticlump,eps,neps
   write(iread,150) ixsph,xsphfac
   write(iread,160) igravity
-  write(iread,170) damp
+  write(iread,170) damp, dampz, dampr
   write(iread,180) ikernel
   write(iread,190) iexternal_force
   write(iread,200) C_cour, C_force
@@ -68,7 +68,7 @@ subroutine write_infile(infile)
 140 format(i1,2x,f5.3,2x,i2,24x,'! anticlumping term (0:off 1:on), eps, power')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
 160 format(i1,35x,'! self-gravity')
-170 format(f7.4,29x,'! artificial damping (0.0 or few percent)')
+170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
 180 format(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i1,35x,'! external force (1: toy star, 2:1/r^2 )')
 200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
@@ -127,7 +127,13 @@ subroutine read_infile(infile)
   read(iread,*,err=50) ianticlump,eps,neps
   read(iread,*,err=50) ixsph,xsphfac
   read(iread,*,err=50) igravity
-  read(iread,*,err=50) damp
+  if (ndim.eq.3) then
+     read(iread,*,err=50) damp,dampr,dampz
+  elseif (ndim.eq.2) then
+     read(iread,*,err=50) damp,dampr
+  else
+     read(iread,*,err=50) damp
+  endif
   read(iread,*,err=50) ikernel
   read(iread,*,err=50) iexternal_force
   read(iread,*,err=50) C_Cour, C_force
