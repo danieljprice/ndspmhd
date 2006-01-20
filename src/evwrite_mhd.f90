@@ -23,7 +23,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL :: ekin,etherm,emag,epot
  REAL :: pmassi,rhoi,epoti,rr
  REAL, DIMENSION(ndim) :: rhat
- REAL, DIMENSION(ndimV) :: veli,mom
+ REAL, DIMENSION(ndimV) :: veli,mom,ang,angi
  REAL :: alphai,betai,alphatstarav,betatstarav
 !
 !--mhd
@@ -38,6 +38,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL :: omegamhdi,omegamhdav,omegamhdmax
  REAL :: omegtol,fracdivBok
  REAL :: fmagabs,rhomax,rhomean,rhomin
+ REAL :: angtot
 !
 !--allow for tracing flow
 !      
@@ -54,6 +55,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  ENDIF
  mom(:) = 0.0
  momtot = 0.0
+ ang(:) = 0.
 ! alphatstarav = 0.
 ! betatstarav = 0.
 !
@@ -91,6 +93,12 @@ SUBROUTINE evwrite(t,etot,momtot)
     rhoi = rho(i)
     veli(:) = vel(:,i)  
     mom(:) = mom(:) + pmassi*veli(:)
+    if (ndim.eq.3) then
+       call cross_product3D(x(:,i),veli(:),angi(:))
+       ang(:) = ang(:) + pmassi*angi(:)
+    elseif (ndim.eq.2) then
+       ang(3) = ang(3) + pmassi*(x(1,i)*veli(2) - x(2,i)*veli(1))
+    endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
     etherm = etherm + pmassi*uu(i)
 !
@@ -195,6 +203,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  IF (iprterm.GE.0) etot = etot + etherm
  momtot = SQRT(DOT_PRODUCT(mom,mom))
  CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
+ angtot = SQRT(DOT_PRODUCT(ang,ang))
 !
 !--write line to .ev file
 !     
@@ -222,7 +231,7 @@ SUBROUTINE evwrite(t,etot,momtot)
     !betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean,dt
+    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt
 40  FORMAT(24(1pe18.10,1x))        
 
  ENDIF
@@ -234,3 +243,14 @@ SUBROUTINE evwrite(t,etot,momtot)
  
  RETURN
 END SUBROUTINE evwrite
+
+subroutine cross_product3D(veca,vecb,vecc)
+ implicit none
+ real, dimension(3), intent(in) :: veca,vecb
+ real, dimension(3), intent(out) :: vecc
+ 
+ vecc(1) = veca(2)*vecb(3) - veca(3)*vecb(2)
+ vecc(2) = veca(3)*vecb(1) - veca(1)*vecb(3)
+ vecc(3) = veca(1)*vecb(2) - veca(2)*vecb(1)
+
+end subroutine cross_product3D
