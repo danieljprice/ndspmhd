@@ -25,7 +25,7 @@ subroutine set_ghost_particles
   implicit none
   integer, parameter :: maxbound = 2 ! maximum no. of boundaries in each dim.
   integer, dimension(ndim) :: nbound ! number of boundaries in each dim.
-  integer :: i,j
+  integer :: i
   integer :: imaxmin,imaxminprev,imaxminprevprev
   integer :: idimen,idimenprev,idimenprevprev
   integer :: jpart,jtemp
@@ -45,7 +45,7 @@ subroutine set_ghost_particles
   nbound(:) = 2   ! 2 boundaries in each dimension (ie. cartesian)
    ! this could be changed elsewhere
    ! must not be > maxbound
-  jtemp = 1861
+!  jtemp = 1861
 ! PRINT*,'jtemp = ',jtemp
 !
 !--use maximum value of h - check 2h is not bigger than box size
@@ -222,7 +222,7 @@ subroutine makeghost(jpart,xghost,ireflect)
   use bound
   use loguns
   use part
-  use options, only:igeom,ibound
+  use options, only:geom,ibound
   implicit none
   integer, intent(in) :: jpart ! index of particle to be ghosted
   real, intent(in), dimension(ndim) :: xghost ! position of ghost particle
@@ -254,7 +254,7 @@ subroutine makeghost(jpart,xghost,ireflect)
 !
 !--in cylindrical coords and ibound=4, shift angle by 180 degrees
 !  
-  if (igeom.eq.2 .and. ndim.ge.2 .and. ibound(1).eq.4) then
+  if (geom(1:6).eq.'cylrpz' .and. ndim.ge.2 .and. ibound(1).eq.4) then
      x(2,ipart) = x(2,ipart) + pi
      if (x(2,ipart).gt.xmax(2)) x(2,ipart) = x(2,ipart) - 2.*pi
   endif

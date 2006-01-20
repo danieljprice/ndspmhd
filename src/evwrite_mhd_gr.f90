@@ -79,7 +79,7 @@ subroutine evwrite(t,etot,momtot)
  call conservative2primitive
       
  do i=1,npart
-    call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
+    call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
     
     pmassi = pmass(i)
     rhoi = rho(i)

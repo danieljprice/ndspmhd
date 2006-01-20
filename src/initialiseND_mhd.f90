@@ -164,9 +164,10 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- !if (ifile.ge.0) call modify_dump
- print*,'igeom = ',igeomsetup,igeom
- if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
+ !!if (ifile.ge.0) call modify_dump
+ !!geom = 'cylrpz'
+ print*,'geometry = ',geomsetup,geom
+ if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
  call check_setup       ! check for errors in the particle setup
 !
