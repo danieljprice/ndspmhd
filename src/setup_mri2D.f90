@@ -30,6 +30,19 @@ subroutine setup
  if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
  write(iprint,*) '2D magneto-rotational instability'
  if (ndim.ne.2) stop 'error: this is a 2D problem and ndim.ne.2'
+ if (ndimV.ne.3) stop 'error: we need ndimV=3 for this problem'
+!
+!--geometry is cylindrical r-z
+!
+ geom = 'cylrzp'
+ geomsetup = 'cylrzp'
+!
+!--set position of disc patch for coriolis & centrifugal forces
+!
+ Rcentre = 100.
+ Omega = (1./Rcentre**1.5)
+ Omega2 = (1./Rcentre**3)
+ iexternal_force = 2 ! 1/r^2 force
 !
 !--set boundaries
 !
@@ -37,8 +50,8 @@ subroutine setup
  ibound(2) = 3	! periodic in y   (==z)
  nbpts = 0	! use ghosts not fixed
  asize = 1.0    ! box size (corresponds to a in Hawley/Balbus 1992)
- xmin(1) = -asize  ! set position of boundaries
- xmax(1) = asize
+ xmin(1) = Rcentre-asize  ! set position of boundaries
+ xmax(1) = Rcentre+asize
  xmin(2) = -0.5*asize
  xmax(2) = 0.5*asize
 !
@@ -63,13 +76,7 @@ subroutine setup
  write(iprint,*) ' cs0 = ',cs0, ' u = ',uuzero
  write(iprint,*) ' polyk = ',polyk,' should be = ',polyk0
  polyk = polyk0
-!
-!--set position of disc patch for coriolis & centrifugal forces
-!
- Rcentre = 100.
- Omega = (1./Rcentre**1.5)
- Omega2 = (1./Rcentre**3)
- iexternal_force = 5
+
  write(iprint,*) ' Omega_c = ',Omega, ' R_c = ',Rcentre
 
 !
@@ -90,10 +97,10 @@ subroutine setup
     !
     !--set constant z field in region between -a/5 -> a/5
     !
-    if (x(1,i).gt.-0.2*asize .and. x(1,i).lt.0.2*asize) then
+    if (x(1,i).gt.(Rcentre-0.2*asize) .and. x(1,i).lt.(Rcentre+0.2*asize)) then
        Bfield(2,i) = Bzeroz
     endif
-    pmom(3,i) = -1.5*Omega*x(1,i)
+    vel(3,i) = -1.5*Omega*x(1,i)
  enddo 
 !
 !--allow for tracing flow
