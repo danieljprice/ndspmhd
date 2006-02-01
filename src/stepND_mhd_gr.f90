@@ -54,8 +54,13 @@ SUBROUTINE step
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(:,i) = alphain(:,i)
     ELSE
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        pmom(:,i) = pmomin(:,i) + hdt*force(:,i)
+!--use updated v to change position
+       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i))
+       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+!--do an 'iteration' of this to be on the safe side
+       call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i))
+       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**dndim	! my version
@@ -120,8 +125,13 @@ SUBROUTINE step
        alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
     ELSE
-       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        pmom(:,i) = pmomin(:,i) + dt*force(:,i)
+!--use updated v to change position
+       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i))
+       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+!--do an 'iteration' of this (with updated x) to be on the safe side
+       call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i))
+       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + dt*dhdt(i)
 	  IF (hh(i).LE.0.) THEN

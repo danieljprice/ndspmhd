@@ -72,9 +72,14 @@ subroutine conservative2primitive
      call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma,polyk,1)
   enddo
 
-  if (allocated(sourceterms)) then
-     call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
-                        sourceterms(:,1:npart),ndim,ndimV,npart,geom)
+  if (geom(1:4).ne.'cart') then
+     if (allocated(sourceterms)) then
+        call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
+                           sourceterms(:,1:npart),ndim,ndimV,npart,geom)
+     else
+        write(iprint,*) 'ERROR: non-cartesian geometry but source terms not allocated'
+        stop
+     endif
   endif
 !
 !--copy the primitive variables onto the ghost particles
@@ -92,6 +97,25 @@ subroutine conservative2primitive
  
   return
 end subroutine conservative2primitive
+
+!---------------------------------------------------------------------
+! this subroutine is a cut-down version of conservative2primitive
+! which just calculates v from pmom (used in timestepping)
+!---------------------------------------------------------------------
+subroutine getv_from_pmom(xi,pmomi,veli)
+ use dimen_mhd
+ use options, only:geom
+ use grutils, only:metric_diag
+ real, dimension(ndim), intent(in) :: xi
+ real, dimension(ndimV), intent(in) :: pmomi
+ real, dimension(ndimV), intent(out) :: veli
+ real, dimension(ndimV) :: gdiag
+ real :: sqrtgi
+
+ call metric_diag(xi,gdiag,sqrtgi,ndim,ndimV,geom)
+ veli(:) = pmomi(:)/gdiag(:)
+
+end subroutine getv_from_pmom
 
 !---------------------------------------------------------------------
 ! this subroutine is called after setting up the initial conditions
@@ -120,77 +144,80 @@ subroutine primitive2conservative
 !
 !--this is the procedure for general (non-relativistic) diagonal metrics
 !
-  if (geom(1:2).ne.'gr') then
-     do i=1,npart
-        call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,geom)
-        rho(i) = dens(i)*sqrtg(i)
-	hh(i) = hfact*(pmass(i)/rho(i))**dndim
-     enddo
+  do i=1,npart
+     call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,geom)
+     rho(i) = dens(i)*sqrtg(i)
+     hh(i) = hfact*(pmass(i)/rho(i))**dndim
+  enddo
 !
 !--overwrite this with a direct summation
 !  
-     if (icty.eq.0 .or. ndirect.lt.100000) then
-        write(iprint,*) 'Calculating initial density...' 
-        if (ANY(ibound.GT.1)) call set_ghost_particles
-        call set_linklist
-        iktemp = ikernav
+  if (icty.eq.0 .or. ndirect.lt.100000) then
+     write(iprint,*) 'Calculating initial density...' 
+     if (ANY(ibound.GT.1)) call set_ghost_particles
+     call set_linklist
+     iktemp = ikernav
 !        ikernav = 3		! consistent with h for first density evaluation
-        call iterate_density	! evaluate density by direct summation
-        ikernav = iktemp  
+     call iterate_density	! evaluate density by direct summation
+     ikernav = iktemp  
 !!        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
-        if (ihvar.le.0) then
-           call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
-           hh(1:npart) = hav
-        endif
+     if (ihvar.le.0) then
+        call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
+        hh(1:npart) = hav
      endif
-	
-     do i=1,npart
-        call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
-	
-        if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
-        
-        if (imhd.ge.11) then    ! if using B as conserved variable
-           Bevol(:,i) = Bfield(:,i)*gdiag(:)
-        elseif (imhd.gt.0) then ! if using B/rho as conserved variable
-           Bevol(:,i) = Bfield(:,i)*gdiag(:)/rho(i)
-        elseif (imhd.lt.0) then ! vector potential
-           stop 'vector potential not implemented for GR'
-        endif
-        
-        if (iener.eq.3) then     ! total energy is evolved
-           v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
-           B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/rho(i)
-           en(i) = uu(i) + 0.5*v2i + 0.5*B2i
-        else   ! thermal energy is evolved
-           en(i) = uu(i)
-        endif
-	
-        call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
-	     gamma,polyk,1) 	
-     enddo
+  endif
+
+  do i=1,npart
+     call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
+
+     if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
+
+     if (imhd.ge.11) then    ! if using B as conserved variable
+        Bevol(:,i) = Bfield(:,i)*gdiag(:)
+     elseif (imhd.gt.0) then ! if using B/rho as conserved variable
+        Bevol(:,i) = Bfield(:,i)*gdiag(:)/rho(i)
+     elseif (imhd.lt.0) then ! vector potential
+        stop 'vector potential not implemented for GR'
+     endif
+
+     if (iener.eq.3) then     ! total energy is evolved
+        v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
+        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/rho(i)
+        en(i) = uu(i) + 0.5*v2i + 0.5*B2i
+     else   ! thermal energy is evolved
+        en(i) = uu(i)
+     endif
+
+     call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
+	  gamma,polyk,1) 	
+  enddo
      
+  if (geom(1:4).ne.'cart') then
+     if (allocated(sourceterms)) then
+        call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
+                           sourceterms(:,1:npart),ndim,ndimV,npart,geom)
+     else
+        write(iprint,*) 'ERROR: non-cartesian geometry but source terms not allocated'
+        stop
+     endif
+  endif
 !
 !--copy the conservative variables onto the ghost particles
 !  
-     if (any(ibound.gt.1)) then
-        do i=npart+1,ntotal
-           j = ireal(i)
-           call copy_particle(i,j)
-           where(ibound.eq.2)
-              pmom(:,i) = -pmom(:,j)
-              vel(:,i) = -vel(:,j)
-           end where
-        enddo
-     endif
+  if (any(ibound.gt.1)) then
+     do i=npart+1,ntotal
+        j = ireal(i)
+        call copy_particle(i,j)
+        where(ibound.eq.2)
+           pmom(:,i) = -pmom(:,j)
+           vel(:,i) = -vel(:,j)
+        end where
+     enddo
+  endif
 !
 !--call rates to get initial timesteps, div B etc
 !
-     call get_rates     
-
-  else
-     write(iprint,*) 'GR metrics not implemented in conservative2primitive'
-     stop
-  endif
+  call get_rates     
 
   return  
 end subroutine primitive2conservative
