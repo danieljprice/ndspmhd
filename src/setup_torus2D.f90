@@ -1,5 +1,5 @@
 !----------------------------------------------------------------
-!     Set up a uniform density cartesian grid of particles in ND
+!     Set up a equilibrium torus thingie in 2D
 !----------------------------------------------------------------
 
 subroutine setup
@@ -15,6 +15,7 @@ subroutine setup
  use setup_params
  use eos
  use rates, only:force
+ use convert, only:convert_setup
  
  use uniform_distributions
 !
@@ -27,6 +28,8 @@ subroutine setup
  real :: ri,zi,rhofac,deltaphi,densi,phii,pri
  real :: deltartemp,denstemp,rtemp,deltar0,dens0
  real :: rhat(3), omegai,rpart,frad,v2onr,deltarprev
+ real :: rcyl2,rcyl,rsph
+ character(len=len(geom)) :: geomtemp
 !
 !--allow for tracing flow
 !
@@ -38,7 +41,7 @@ subroutine setup
  nbpts = 0	! use ghosts not fixed
  xmin(:) = 0.	! set position of boundaries
  xmax(:) = 0.
- iexternal_force = 6
+! iexternal_force = 2
 !
 !--set up the uniform density grid
 !
@@ -198,11 +201,57 @@ subroutine setup
  npart = ipart
  ntotal = ipart
 
- call primitive2conservative
  !
  !--balance pressure forces with centripedal acceleration
  !
  vel = 0.
+ if (iexternal_force.eq.2) then
+    print*,'setting v to balance pressure gradients'
+    !
+    !--analytic velocities
+    !
+    if (geom(1:6).eq.'cylrpz') then
+       ! get pressure forces from SPH summations
+       ! cylindricals - convert particle positions first
+       call convert_setup(geomsetup,geom)
+       call primitive2conservative
+       geomsetup = geom
+       !--in cylindricals use radial (SPH) force and set Omega to balance this
+       do i=1,npart
+          vel(2,i) = sqrt(abs(force(1,i)/x(1,i)))
+       enddo
+    else
+   ! cartesian
+       geomtemp = geom
+       geom = 'cartesian'
+       call primitive2conservative
+       geom = geomtemp
+       do i=1,npart
+          rcyl2 = DOT_PRODUCT(x(1:2,i),x(1:2,i))
+          rcyl = SQRT(rcyl2)
+          if (ndim.eq.3) then
+             rsph = sqrt(rcyl2 + x(3,i)*x(3,i))
+          else
+             rsph = rcyl
+          endif
+          v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+          !--compare to frad from SPH forces
+   !       frad = abs(dot_product(force(1:2,i),x(1:2,i)/rcyl))
+   !       print*,'v2onr, frad = ',v2onr, frad
+   !       v2onr = frad
+
+          omegai = sqrt(v2onr/rcyl)
+          vel(1,i) = -omegai*x(2,i)
+          vel(2,i) = omegai*x(1,i)
+   !       call vector_transform(x(1:2,i),vel(1:2,i),2,1,rhat(1:2),2,2)
+   !       print*,'omegai = ',omegai,rhat(2)
+          if (ndimV.ge.3) then
+             vel(3,i) = 0.
+             Bfield(3,i) = 0.
+          endif
+       enddo
+    endif
+ endif
 ! do i=1,npart
 !    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
 !    rhat(1:2) = x(1:2,i)/rpart
@@ -245,3 +294,106 @@ end function rhofunc
 
 end subroutine setup
 
+!----------------------------------------------------
+! this subroutine modifies the static configuration
+! (from the dumpfile) and gives it the appropriate
+! velocity perturbation for the rotating torus
+!----------------------------------------------------
+subroutine modify_dump
+ use dimen_mhd
+ use debug
+ use loguns
+ use options, only:iexternal_force,geom
+ use part, only:x,vel,npart
+ use rates, only:force
+ use timestep, only:time
+ use setup_params, only:geomsetup
+ use convert, only:convert_setup
+ implicit none
+ integer :: i
+ real :: omegai,rcyl2,rcyl,rsph,v2onr
+ real, parameter :: Rtorus = 1.0
+
+ 
+ write(iprint,*) 'MODIFYING INITIAL SETUP with torus rotation '
+ write(iprint,*) ' geometry of setup = ',trim(geomsetup)
+ if (iexternal_force.ne.2) then
+    write(iprint,*) '*** setting external force to 1/r^2 ***'
+ endif
+ iexternal_force = 2
+ time = 0.
+
+ !
+ !--balance pressure forces with centripedal acceleration
+ !
+! call primitive2conservative
+! do i=1,npart
+!    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+!    rhat(1:2) = x(1:2,i)/rpart
+!    rhat(3) = 0.
+!    frad = abs(dot_product(force(:,i),rhat(:)))
+!    omegai = sqrt(frad/rpart)
+!    vel(1,i) = -omegai*x(2,i)  !!/sqrt(rpart)
+!    vel(2,i) = omegai*x(1,i) !!!/sqrt(rpart)
+!    if (ndimV.ge.3) vel(3,i) = 0.
+    !!print*,'forcez = ',force(3,i),force(2,i)
+    !!v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
+    !!print*,'v2onr = ',v2onr*rhat(2),force(2,i)
+! enddo
+ !
+ !--balance pressure forces with centripedal acceleration
+ !
+ vel = 0.
+ print*,'setting v to balance pressure gradients'
+
+ if (geom(1:6).eq.'cylrpz') then
+    ! get pressure forces from SPH summations
+    ! cylindricals - convert particle positions first
+    call convert_setup(geomsetup,geom)
+    call primitive2conservative
+    geomsetup = geom
+    !--in cylindricals use radial (SPH) force and set Omega to balance this
+    do i=1,npart
+       vel(2,i) = sqrt(abs(force(1,i)/x(1,i)))
+    enddo
+ else
+
+    !
+    !--analytic velocities
+    !
+    do i=1,npart
+       select case(geomsetup(1:6))
+       case('cylrpz')
+          rcyl = x(1,i)
+          rcyl2 = rcyl*rcyl
+          if (ndim.eq.3) then
+             rsph = sqrt(rcyl2 + x(3,i)*x(3,i))
+          else
+             rsph = rcyl
+          endif
+          v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+          omegai = sqrt(v2onr/rcyl)
+          vel(2,i) = omegai
+       case('cartes')
+          rcyl2 = DOT_PRODUCT(x(1:2,i),x(1:2,i))
+          rcyl = SQRT(rcyl2)
+          if (ndim.eq.3) then
+             rsph = sqrt(rcyl2 + x(3,i)*x(3,i))
+          else
+             rsph = rcyl
+          endif
+          v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+          !--compare to frad from SPH forces
+   !       frad = abs(dot_product(force(1:2,i),x(1:2,i)/rcyl))
+   !       print*,'v2onr, frad = ',v2onr, frad
+   !       v2onr = frad
+
+          omegai = sqrt(v2onr/rcyl)
+          vel(1,i) = -omegai*x(2,i)
+          vel(2,i) = omegai*x(1,i)
+       case default
+          stop 'could not modify setup'
+       end select
+    enddo
+ endif
+end subroutine modify_dump
