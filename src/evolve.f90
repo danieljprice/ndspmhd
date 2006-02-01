@@ -86,8 +86,13 @@ subroutine evolve
 !--write log every step in 2D/3D
 !
     if (ndim.ge.2) then
-       write(iprint,10) time,C_force*dtforce,C_cour*dtcourant
-10     format(' t = ',f9.4,' dtforce = ',1pe10.3,' dtcourant = ',1pe10.3)
+       if (C_force*dtforce.lt.C_cour*dtcourant) then
+          write(iprint,10) time,C_force*dtforce     
+       else
+          write(iprint,15) time,C_cour*dtcourant
+       endif
+10     format(' t = ',f9.4,' dtforce = ',1pe10.3)
+15     format(' t = ',f9.4,' dtcourant = ',1pe10.3)
     endif
     
     if (dt.lt.1e-8) then
