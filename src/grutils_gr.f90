@@ -82,21 +82,21 @@ contains
     !
     case('cylrpz')
        sourceterms(1,:) = pr(:)/rho(:)
-       if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + x(1,:)**2*vel(2,:)
+       if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + x(1,:)*vel(2,:)**2
     !
     !--cylindrical r,z,phi
     !
     case('cylrzp')
        sourceterms(1,:) = pr(:)/rho(:)
-       if (ndimV.ge.3) sourceterms(1,:) = sourceterms(1,:) + x(1,:)**2*vel(3,:)
+       if (ndimV.ge.3) sourceterms(1,:) = sourceterms(1,:) + x(1,:)*vel(3,:)**2
     !
     !--spherical
     !
     case('sphrpt')
        do i=1,size(x(:,i))
           sourceterms(1,i) = pr(i)/rho(i)
-          if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)**2*vel(2,i)
-          if (ndimV.ge.3) sourceterms(2,i) = x(1,i)**2*vel(3,i)
+          if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)*vel(2,i)**2
+          if (ndimV.ge.3) sourceterms(2,i) = x(1,i)*vel(3,i)**2
        enddo
     !
     !--spherical polars with logarithmic radial co-ordinate
