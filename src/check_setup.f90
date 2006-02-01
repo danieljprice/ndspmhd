@@ -7,7 +7,7 @@ subroutine check_setup
   use loguns
   use part
   implicit none
-  integer :: i
+  integer :: i,j
   real, parameter :: vbig = 1.e12
   real, dimension(ndim) :: xcentre
   
@@ -31,6 +31,9 @@ subroutine check_setup
      if (dens(i).lt.tiny(dens)) then
         write(iprint,20) 'density <= 0 ',dens(i),i
         stop
+     elseif (isnan(dens(i))) then
+        write(iprint,20) 'NaNs in density',dens(i),i
+        stop
      endif
      if (pmass(i).lt.tiny(pmass)) then
         write(iprint,20) 'pmass <= 0 ',pmass(i),i
@@ -49,6 +52,13 @@ subroutine check_setup
      if (any(abs(vel(1:ndimV,i)).gt.vbig)) then
         write(iprint,10) ' contains huge velocities!! '
         stop
+     else
+        do j=1,ndimV
+           if (isnan(vel(j,i))) then
+              write(iprint,20) 'NaNs in velocities ',vel(j,i),i
+              stop
+           endif
+        enddo
      endif
      
      xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
