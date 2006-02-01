@@ -217,8 +217,17 @@ subroutine iterate_density
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
            write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
         endif
-        
+     else ! if ihvar = 0
+!
+!--overwrite gradh if not using variable h
+! 
+        do i=1,npart
+           dhdt(i) = 0.
+           gradh(i) = 1.
+           gradhn(i) = 0.
+        enddo   
      endif
+
 !
 !--write over boundary particles
 !     
