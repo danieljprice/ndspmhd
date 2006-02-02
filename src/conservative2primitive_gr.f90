@@ -29,7 +29,7 @@ subroutine conservative2primitive
   implicit none
   integer :: i,j,nerr
   real, dimension(ndimV) :: gdiag
-  real :: B2i, v2i
+  real :: B2i, v2i, dsqrtgi
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -41,20 +41,21 @@ subroutine conservative2primitive
   do i=1,npart
      call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
      
-     dens(i) = rho(i)/sqrtg(i)
+     dsqrtgi = 1./sqrtg(i)
+     dens(i) = rho(i)*dsqrtgi
      if (allocated(pmom)) vel(:,i) = pmom(:,i)/gdiag(:)
      
-     if (imhd.ge.11) then    ! if using B as conserved variable
-        Bfield(:,i) = Bevol(:,i)/gdiag(:)
-     elseif (imhd.gt.0) then ! if using B/rho as conserved variable
-        Bfield(:,i) = Bevol(:,i)*rho(i)/gdiag(:)
+     if (imhd.ge.11) then    ! if using B* as conserved variable
+        Bfield(:,i) = Bevol(:,i)*dsqrtgi
+     elseif (imhd.gt.0) then ! if using B*/rho* as conserved variable
+        Bfield(:,i) = Bevol(:,i)*dens(i)  ! this is rho(i)*sqrtg(i)
      elseif (imhd.lt.0) then
         stop 'GR vector potential not implemented'
      endif     
      
      if (iener.eq.3) then     ! total energy is evolved
         v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
-        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/rho(i)
+        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/dens(i)
         uu(i) = en(i) - 0.5*v2i - 0.5*B2i
         if (uu(i).lt.0.) then
            nerr = nerr + 1
@@ -172,17 +173,17 @@ subroutine primitive2conservative
 
      if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
 
-     if (imhd.ge.11) then    ! if using B as conserved variable
-        Bevol(:,i) = Bfield(:,i)*gdiag(:)
-     elseif (imhd.gt.0) then ! if using B/rho as conserved variable
-        Bevol(:,i) = Bfield(:,i)*gdiag(:)/rho(i)
+     if (imhd.ge.11) then    ! if using B* as conserved variable
+        Bevol(:,i) = Bfield(:,i)*sqrtg(i)
+     elseif (imhd.gt.0) then ! if using B*/rho* as conserved variable
+        Bevol(:,i) = Bfield(:,i)*sqrtg(i)/rho(i)
      elseif (imhd.lt.0) then ! vector potential
         stop 'vector potential not implemented for GR'
      endif
 
      if (iener.eq.3) then     ! total energy is evolved
         v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
-        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/rho(i)
+        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/dens(i)
         en(i) = uu(i) + 0.5*v2i + 0.5*B2i
      else   ! thermal energy is evolved
         en(i) = uu(i)
