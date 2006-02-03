@@ -44,7 +44,7 @@ subroutine write_dump(t,dumpfile)
 !
 !--write timestep header to data file
 !
- ncolumns = ndim + ndimV + 4
+ ncolumns = ndim + 2*ndimV + 4
  if (imhd.ne.0) then
     ncolumns = ncolumns + 8 + 2*ndimV ! number of columns
     iformat = 2
@@ -54,7 +54,7 @@ subroutine write_dump(t,dumpfile)
  endif
  if (geom(1:4).ne.'cart') then
     ncolumns = ncolumns + 2 + ndimV
-    iformat = 3
+    iformat = iformat + 2
  endif
  
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
@@ -100,6 +100,9 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) curlB(i,1:nprint)
      enddo
      write(idatfile) gradh(1:nprint)
+     do i=1,ndimV
+        write(idatfile) force(i,1:nprint)
+     enddo
   else
      do i=1,2
         write(idatfile) alpha(i,1:nprint)
@@ -108,6 +111,9 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) pr(1:nprint)
      write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
      write(idatfile) gradh(1:nprint)
+     do i=1,ndimV
+        write(idatfile) force(i,1:nprint)
+     enddo
   endif
   if (geom(1:4).ne.'cart') then
      write(idatfile) rho(1:nprint)
@@ -219,11 +225,33 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     write(iprint,*) 'warning: setup file contains ghosts, but none set'
  endif
 
- if (imhd.le.0 .and. iformat.eq.2) then
+ if (imhd.le.0 .and. (iformat.eq.2 .or. iformat.eq.4)) then
     write(iprint,*) 'warning: mhd input file, but MHD is off'
- elseif (imhd.gt.0 .and. iformat.ne.2) then
+ elseif (imhd.gt.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
     write(iprint,*) 'ERROR: non-mhd infile but MHD is on'
     stop
+ endif
+!
+!--switch current geometry to that of the file if not convertible
+!  (need to know whether we have a non-cartesian geometry before
+!   memory allocation)
+!
+ geomsetup = geomfile
+ if (geomsetup(1:6).ne.geom(1:6)) then
+    select case(geomsetup(1:6))
+       case('sphrpt','cylrpz','cartes')
+          write(iprint,*) 'file geometry = ',geomfile
+       case('cylrzp')
+          if (ndim.eq.2) then
+             write(iprint,*) '=> Using original co-ordinate system'
+             geom = geomsetup
+          else
+             write(iprint,*) 'file geometry = ',geomfile          
+          endif
+       case default
+         write(iprint,*) '=> Using original co-ordinate system'
+         geom = geomsetup
+    end select
  endif
 !
 !--allocate memory for the number of particles
@@ -254,7 +282,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  if (ierr /= 0) stop 'error reading dumpfile'
  read(ireadf,iostat=ierr) pmass(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
- if (iformat.eq.2 .and. imhd.ne.0) then
+ if (iformat.eq.2 .or. iformat.eq.4 .and. imhd.ne.0) then
     do i=1,3
        read(ireadf,iostat=ierr) alpha(i,1:npart)
     enddo
@@ -279,8 +307,6 @@ subroutine read_dump(dumpfile,tfile,copysetup)
 !--close the file
 !
  close(unit=ireadf)
- 
- geomsetup = geomfile
  
  write(iprint,*) 'finished reading setup file: everything is aok'
 

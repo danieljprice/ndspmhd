@@ -66,45 +66,40 @@ contains
 !--subroutine to compute source terms (derivatives of metric) for momentum equation
 !  (these are 1/(2*dens)* T^\mu\nu d(g_\mu_\nu)/dx^i
 !
-  subroutine metric_derivs(x,vel,rho,pr,sourceterms,ndim,ndimV,npart,metric)
+  subroutine metric_derivs(xi,veli,Bi,rhoi,pri,B2i,sourceterms,ndim,ndimV,metric)
     implicit none
-    integer, intent(in) :: ndim, ndimV, npart
-    real, dimension(ndim,npart), intent(in) :: x
-    real, dimension(ndimV,npart), intent(in) :: vel
-    real, dimension(npart), intent(in) :: rho, pr
-    real, dimension(ndimV,npart), intent(out) :: sourceterms
+    integer, intent(in) :: ndim, ndimV
+    real, dimension(ndim), intent(in) :: xi
+    real, dimension(ndimV), intent(in) :: veli, Bi
+    real, intent(in) :: rhoi, pri, B2i
+    real, dimension(ndimV), intent(out) :: sourceterms
     character(len=*), intent(in) :: metric
-    integer :: i
     
     select case(metric(1:6))
     !
     !--cylindrical r,phi,z
     !
     case('cylrpz')
-       sourceterms(1,:) = pr(:)/rho(:)
-       if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + x(1,:)*vel(2,:)**2
+       sourceterms(1) = (pri + 0.5*B2i)/rhoi
+       if (ndimV.ge.2) sourceterms(1) = sourceterms(1) + xi(1)*(veli(2)**2 - Bi(2)**2)
     !
     !--cylindrical r,z,phi
     !
     case('cylrzp')
-       sourceterms(1,:) = pr(:)/rho(:)
-       if (ndimV.ge.3) sourceterms(1,:) = sourceterms(1,:) + x(1,:)*vel(3,:)**2
+       sourceterms(1) = (pri + 0.5*B2i)/rhoi
+       if (ndimV.ge.3) sourceterms(1) = sourceterms(1) + xi(1)*(veli(3)**2 - Bi(3)**2)
     !
     !--spherical
     !
     case('sphrpt')
-       do i=1,size(x(:,i))
-          sourceterms(1,i) = pr(i)/rho(i)
-          if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)*vel(2,i)**2
-          if (ndimV.ge.3) sourceterms(2,i) = x(1,i)*vel(3,i)**2
-       enddo
+       sourceterms(1) = (pri + 0.5*B2i)/rhoi
+       if (ndimV.ge.2) sourceterms(1) = sourceterms(1) + xi(1)*veli(2)**2
+       if (ndimV.ge.3) sourceterms(2) = xi(1)*veli(3)**2
     !
     !--spherical polars with logarithmic radial co-ordinate
     !
     case('sphlog')
-       do i=1,npart
-          sourceterms(:,i) = 0.!! WORK THESE OUT!!
-       enddo
+       sourceterms(:) = 0.!! WORK THESE OUT!!
     !
     !--note that source terms are zero and not allocated for cartesian
     !
@@ -116,13 +111,14 @@ contains
 !
 !--function to compute the dot product of two vectors with a diagonal metric
 !
-  real function DOT_PRODUCT_GR(vec1,vec2,gdiag,ndim)
+  real function DOT_PRODUCT_GR(vec1,vec2,gdiag)
     implicit none
-    integer :: i,ndim
-    real, dimension(ndim) :: vec1,vec2,gdiag
+    integer :: i
+    real, dimension(:) :: vec1
+    real, dimension(size(vec1)) :: vec2,gdiag
     
     DOT_PRODUCT_GR = 0.
-    do i=1,ndim
+    do i=1,size(vec1)
        DOT_PRODUCT_GR = DOT_PRODUCT_GR + gdiag(i)*vec1(i)*vec2(i)
     enddo
     

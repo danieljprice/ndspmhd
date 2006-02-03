@@ -30,7 +30,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  INTEGER, INTENT(IN) :: icall
  CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,logfile
  CHARACTER(LEN=19) :: boundtype
- CHARACTER(LEN=1), DIMENSION(3) :: coord
+ CHARACTER(LEN=5), DIMENSION(3) :: coord
  CHARACTER(LEN=10) :: startdate, starttime
  REAL :: have,hmin,hmax
 !
@@ -152,9 +152,29 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--boundary options
 !
-    coord(1) = 'x'        ! this should change with different co-ordinate systems
-    coord(2) = 'y'
-    coord(3) = 'z'
+    select case(geom(1:6))
+    case('cylrpz')
+       coord(1) = 'r'
+       coord(2) = 'phi'
+       coord(3) = 'z'
+    case('cylrzp')
+       coord(1) = 'r'
+       coord(2) = 'z'
+       coord(3) = 'phi'
+    case('sphrpt')
+       coord(1) = 'r'
+       coord(2) = 'phi'
+       coord(3) = 'theta'    
+    case('sphlog')
+       coord(1) = 'log r'
+       coord(2) = 'phi'
+       coord(3) = 'theta'    
+    case default
+       coord(1) = 'x'
+       coord(2) = 'y'
+       coord(3) = 'z'
+    end select
+    
     DO i=1,ndim
        IF (ibound(i).EQ.0) boundtype = 'None'
        IF (ibound(i).EQ.1) boundtype = 'Fixed particles'
@@ -178,16 +198,16 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     WRITE(iprint,*)
     CALL minmaxave(hh(1:npart),hmin,hmax,have,npart)
     WRITE(iprint,250) 'h',hmin,hmax,have
-    CALL minmaxave(rho(1:npart),hmin,hmax,have,npart)
-    WRITE(iprint,250) 'rho',hmin,hmax,have
+    CALL minmaxave(dens(1:npart),hmin,hmax,have,npart)
+    WRITE(iprint,250) 'dens',hmin,hmax,have
     CALL minmaxave(uu(1:npart),hmin,hmax,have,npart)
     WRITE(iprint,250) 'u',hmin,hmax,have
     
-    DO i=1,ndim
+    DO i=1,ndimV
        CALL minmaxave(vel(i,1:npart),hmin,hmax,have,npart)
-       WRITE(iprint,250) 'v'//coord(i),hmin,hmax,have
+       WRITE(iprint,250) 'v'//trim(coord(i)),hmin,hmax,have
     ENDDO
-250 FORMAT (1x,a3,' min = ',1pe9.2,' max = ',1pe9.2,' av = ',1pe9.2)
+250 FORMAT (1x,a6,' min = ',1pe9.2,' max = ',1pe9.2,' av = ',1pe9.2)
     WRITE(iprint,*)
 
  ENDIF
