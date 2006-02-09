@@ -17,12 +17,13 @@ subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,c_L,c_R,pr,vstar)
   integer, parameter :: maxits = 30
   integer :: its
   real :: prnew, f_L, f_R, dfdp_L, dfdp_R, f, df, dp
-  real :: power, denom
+  real :: power, denom, cs2
 !
 !--use isothermal solver if appropriate
 !
   if (gamma.lt.1.0001) then
-     call get_pstar_isothermal(c_L,v_L,v_R,p_L/c_L,p_R/c_R,pr,vstar)
+     cs2 = c_L**2
+     call get_pstar_isothermal(cs2,v_L,v_R,p_L/cs2,p_R/cs2,pr,vstar)
      return
   endif
 !
@@ -123,7 +124,8 @@ subroutine get_pstar_isothermal(cs2,v_L,v_R,rho_L,rho_R,pstar,vstar)
   
   pstar = 0.25*(X*vdiff + sqrt(determinant))**2  
   vstar = v_L - (pstar - cs2*rho_L)/(sqrt(pstar*rho_L))
-  !vstar2 = v_R + (pstar - cs2*rho_R)/(sqrt(pstar*rho_R))
+  vstar2 = v_R + (pstar - cs2*rho_R)/(sqrt(pstar*rho_R))
+  if (abs(vstar2-vstar).gt.1.e-5) print*,'error: vstar = ',vstar,vstar2
   !print*,' pstar = ',pstar,' v_R,v_L = ',v_L,v_R,cs2,' vstar = ',vstar
   
 end subroutine get_pstar_isothermal
