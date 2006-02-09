@@ -136,7 +136,7 @@ subroutine primitive2conservative
   implicit none
   integer :: i,j,iktemp
   real, dimension(ndimV) :: gdiag
-  real :: B2i, v2i, hmin, hmax, hav, polyki
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 
@@ -153,13 +153,22 @@ subroutine primitive2conservative
 !--also work out what polyk should be if using iener = 0
 !    
      if (iener.eq.0) then
-        polyki = (gamma - 1.)*uu(i)/dens(i)**(gamma-1.)
+        gam1 = gamma - 1.
+        if (gam1.le.1.00001) then
+           polyki = 2./3.*uu(i)
+        else
+           polyki = gam1*uu(i)/dens(i)**(gam1)
+        endif
         if (abs(polyki-polyk).gt.epsilon(polyk)) then
            write(iprint,*) 'NOTE: setting polyk = ',polyki,' (infile says ',polyk,')'
            polyk = polyki
         endif
      endif
   enddo
+  if (ihvar.le.0) then
+     call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
+     hh(1:ntotal) = hav
+  endif
 !
 !--overwrite this with a direct summation
 !  

@@ -119,14 +119,31 @@ subroutine primitive2conservative
   use getcurl
   implicit none
   integer :: i,j,iktemp
-  real :: B2i, v2i, hmin, hmax, hav
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
-!--calculate conserved density (and initial smoothing length
+!--calculate conserved density (and initial smoothing length)
 !
-  rho = dens
-  hh(1:npart) = hfact*(pmass(1:npart)/(rho(1:npart)+rhomin))**dndim
+  do i=1,npart
+     rho(i) = dens(i)
+     hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
+!
+!--also work out what polyk should be if using iener = 0
+!    
+     if (iener.eq.0) then
+        gam1 = gamma - 1.
+        if (gam1.le.1.00001) then
+           polyki = 2./3.*uu(i)
+        else
+           polyki = gam1*uu(i)/dens(i)**(gam1)
+        endif
+        if (abs(polyki-polyk).gt.epsilon(polyk)) then
+           write(iprint,*) 'NOTE: setting polyk = ',polyki,' (infile says ',polyk,')'
+           polyk = polyki
+        endif
+     endif
+  enddo
   if (ihvar.le.0) then
      call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
      hh(1:ntotal) = hav
