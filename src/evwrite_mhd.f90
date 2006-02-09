@@ -132,7 +132,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
 !--Plasma beta minimum/maximum/average
 !  
-       IF (B2i.LT.1.e-5) THEN
+       IF (B2i.LT.tiny(B2i)) THEN
           betamhdi = 0.
        ELSE 
           betamhdi = pr(i)/(0.5*B2i)     
