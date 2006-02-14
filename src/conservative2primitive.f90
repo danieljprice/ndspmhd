@@ -120,26 +120,35 @@ subroutine primitive2conservative
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1
+  logical :: isetpolyk
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
 !--calculate conserved density (and initial smoothing length)
 !
+  isetpolyk = .false.
   do i=1,npart
      rho(i) = dens(i)
      hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
 !
 !--also work out what polyk should be if using iener = 0
-!    
+!  (only do this once, otherwise give an error)
+!
      if (iener.eq.0) then
         gam1 = gamma - 1.
-        if (gam1.le.1.00001) then
+        if (gamma.le.1.0001) then
            polyki = 2./3.*uu(i)
         else
            polyki = gam1*uu(i)/dens(i)**(gam1)
         endif
-        if (abs(polyki-polyk).gt.epsilon(polyk)) then
+        if (abs(polyki-polyk)/polyk.gt.1.e-8) then
            write(iprint,*) 'NOTE: setting polyk = ',polyki,' (infile says ',polyk,')'
+           if (isetpolyk) then
+              write(iprint,*) 'ERROR: particle ',i,': multiple polyk factors in setup but using iener = 0'
+              write(iprint,*) 'uu = ',uu(i),' dens = ',dens(i),' gamma = ',gamma,' polyk = ',gam1*uu(i)/dens(i)**(gam1),polyki
+              stop
+           endif
+           isetpolyk = .true.
            polyk = polyki
         endif
      endif

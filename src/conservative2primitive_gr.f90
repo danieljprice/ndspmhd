@@ -154,12 +154,12 @@ subroutine primitive2conservative
 !    
      if (iener.eq.0) then
         gam1 = gamma - 1.
-        if (gam1.le.1.00001) then
+        if (gamma.le.1.00001) then
            polyki = 2./3.*uu(i)
         else
            polyki = gam1*uu(i)/dens(i)**(gam1)
         endif
-        if (abs(polyki-polyk).gt.epsilon(polyk)) then
+        if (abs(polyki-polyk)/polyk.gt.1.e-8) then
            write(iprint,*) 'NOTE: setting polyk = ',polyki,' (infile says ',polyk,')'
            polyk = polyki
         endif
