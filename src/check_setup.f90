@@ -10,6 +10,7 @@ subroutine check_setup
   integer :: i,j
   real, parameter :: vbig = 1.e12
   real, dimension(ndim) :: xcentre
+  real :: xsep
   
   write(iprint,5) ' Checking setup... '
 5 format(/,a)
@@ -64,7 +65,19 @@ subroutine check_setup
      xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
      
   enddo
-
+!
+!--check that no particles are on top of each other
+!
+  do i=1,npart
+     do j=i+1,npart
+        xsep = dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j))
+        if (xsep.lt.tiny(xsep)) then
+           write(iprint,20) 'non-unique particle position, x= ',x(1,i),i
+           write(iprint,20) 'non-unique particle position, x= ',x(1,j),j
+           stop
+        endif
+     enddo
+  enddo
 !
 !--warnings only
 ! 
