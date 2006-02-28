@@ -22,13 +22,13 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,nrings,iring,ipart,npartphi
- real :: Rtorus,dfac,Mstar,Mtorus
+ integer :: i,nrings,nlayers,iring,iz,ipart,npartphi
+ real :: Rtorus,dfac,Mstar,Mtorus,zmax,deltaz
  real :: massp,r_in,r_out,deltar,polyn,sumA
  real :: ri,zi,rhofac,deltaphi,densi,pri
  real :: deltartemp,denstemp,rtemp,deltar0,dens0
  real :: rhat(3), omegai,rpart,frad,v2onr,rcyl2,rcyl,rsph
- real :: beta,Bzi
+ real :: beta,Bzi,dbeta,densmax
 !
 !--allow for tracing flow
 !
@@ -48,6 +48,7 @@ subroutine setup
  dfac = 1.1
  Mstar = 1.0
  Mtorus = 4.e-4
+ densmax = 1.0 ! set maximum density in torus
   
  write(iprint,*) 'Setup for beer-related torus thing (Owen, Laure)'
  write(iprint,*) 'enter approximate particle number '
@@ -56,7 +57,6 @@ subroutine setup
 
  call alloc(2*ntotal)
 
- massp = Mtorus/real(ntotal)
 !
 !--integrate to get total mass (in order to set A in P = A*rho^gamma)
 !  (Owen was particularly fussy about using A not K)
@@ -64,22 +64,46 @@ subroutine setup
  r_in = 0.1
  r_out = 1.5
  nrings = 50
+ nlayers = 20
  deltar = (r_out - r_in)/real(nrings-1)
+ zmax = 0.5
+ deltaz = 2.*zmax/real(nlayers-1)
  polyn = 1./(gamma-1.)
- sumA = 0.
- do iring=1,nrings
-    ri = r_in + (iring-1)*deltar
-    zi = 0.
-    sumA = sumA + 2.*pi*ri*deltar*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
- enddo
-!
+! sumA = 0.
+! do iring=1,nrings
+!    ri = r_in + (iring-1)*deltar
+!    zi = 0.
+!    sumA = sumA + 2.*pi*ri*deltar*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+! enddo
 !--rearrange to get A (which I call polyk)
+! polyk = ((sumA/Mtorus)**(1./polyn))/(polyn + 1.)
 !
- polyk = ((sumA/Mtorus)**(1./polyn))/(polyn + 1.)
+!--alternatively determine polyk from maximum density
+!
+ polyk = 1./((polyn + 1.)*densmax**(gamma-1.))*(dfac - 1.)/(2.*dfac)
  print*,' polyk = ',polyk
+!
 !--rhofac is the factor which multiplies rhofunc to give rho
 !  this is 1/B in Owen lingo
+!
  rhofac = 1./(polyk*(polyn+1.))**polyn
+!
+!--work out total mass in torus and set particle mass
+!
+ Mtorus = 0.
+ do iring=1,nrings
+    ri = r_in + (iring-1)*deltar
+    do iz = 1,nlayers
+       zi = (iz - 1)*deltaz - zmax
+       Mtorus = Mtorus + 2.*pi*ri*deltar*deltaz*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+!       print*,'ri = ',ri,'zi = ',zi, ' rho = ',rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    enddo
+ enddo
+ Mtorus = Mtorus*rhofac
+ print*,'torus mass = ',Mtorus
+ if (Mtorus.gt.Mstar) stop 'error Mtorus > Mstar'
+ 
+ massp = Mtorus/real(ntotal)
 
 !
 !--setup first ring at r=Rtorus
@@ -182,23 +206,26 @@ subroutine setup
  enddo
  npart = ipart
  ntotal = ipart
+ print*,'Mtorus = ',Mtorus,sum(pmass(1:npart))
 
- call primitive2conservative
- call set_linklist
- call iterate_density
- call conservative2primitive
+! call primitive2conservative
+!call set_linklist
+! call iterate_density
+! call conservative2primitive
  !
  !--balance pressure forces with centripedal acceleration
  !
  vel = 0.
  !--set magnetic field using plasma beta
- beta = 1.e4
+ beta = 1.e2
  Bzi = sqrt(2.*pr(1)/beta)
+ print*,' using beta = ',beta
  if (imhd.ne.0) then
     print*,'initial Bz field = ',Bzi
  else
     Bzi = 0.
  endif
+ dbeta = 1./beta
  
  if (iexternal_force.eq.2) then
     print*,'setting v to balance pressure gradients'
@@ -227,7 +254,7 @@ subroutine setup
        else
           rsph = rcyl
        endif
-       v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+       v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + rcyl/rsph**3
        !--compare to frad from SPH forces
        frad = abs(dot_product(force(1:2,i),x(1:2,i)/rcyl))
        
@@ -236,9 +263,17 @@ subroutine setup
        vel(2,i) = omegai*x(1,i)
 !       call vector_transform(x(1:2,i),vel(1:2,i),2,1,rhat(1:2),2,2)
 !       print*,'omegai = ',omegai,rhat(2)
-       if (ndimV.ge.3) then
+       if (ndimV.ge.3 .and. imhd.ne.0) then
           vel(3,i) = 0.
-          Bfield(3,i) = Bzi
+          densi = dens(i)
+          Bfield(3,i) = dbeta*(densi**2/rcyl &
+                      + 2.*Mstar/(polyk*gamma)*densi**(3.-gamma) &
+                      *(Rtorus/rcyl**3 - rcyl/rsph**3))
+          Bfield(1,i) = dbeta*((2.*Mstar/(polyk*gamma))*densi**(3.-gamma) &
+                       *(x(3,i)/rsph**3))*x(1,i)/rcyl
+          Bfield(2,i) = dbeta*((2.*Mstar/(polyk*gamma))*densi**(3.-gamma) &
+                       *(x(3,i)/rsph**3))*x(2,i)/rcyl
+!          print*,'B ',i,' = ',Bfield(:,i)
        endif
     enddo
  endif
@@ -294,8 +329,8 @@ subroutine setring(npartphi,ipart,ri,deltar,deltaphi,densi)
        if (ndim.ge.3) x(3,ipart) = zi
        dens(ipart) = denszi
        pmass(ipart) = massp
-       pri = polyk*densi**gamma
-       uu(ipart) = pri/(densi*(gamma-1.))
+       pri = polyk*denszi**gamma
+       uu(ipart) = pri/(denszi*(gamma-1.))
     enddo
     !--take half step in r using current deltaz
     ztemp = zi + 0.5*deltaz
@@ -309,7 +344,7 @@ subroutine setring(npartphi,ipart,ri,deltar,deltaphi,densi)
     else
        denszi = 0.
     endif
-    print*,'zi = ',ri,zi,denszi,ipart
+    !print*,'zi = ',ri,zi,denszi,ipart
  enddo
  deltaz = deltar
  denszi = densi
@@ -338,11 +373,11 @@ subroutine setring(npartphi,ipart,ri,deltar,deltaphi,densi)
            if (ndim.ge.3) x(3,ipart) = zi
            dens(ipart) = denszi
            pmass(ipart) = massp
-           pri = polyk*densi**gamma
-           uu(ipart) = pri/(densi*(gamma-1.))
+           pri = polyk*denszi**gamma
+           uu(ipart) = pri/(denszi*(gamma-1.))
         enddo
     endif
-     print*,'zi = ',ri,zi,denszi,ipart
+     !print*,'zi = ',ri,zi,denszi,ipart
  enddo
 
 end subroutine setring
