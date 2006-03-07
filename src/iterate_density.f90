@@ -168,11 +168,11 @@ subroutine iterate_density
                  nwarn = nwarn + 1
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               endif
-              !if (numneigh(i).le.1) then
-              !   print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
-              !   print*,' ERROR: particle has no neighbours, increasing h'
-              !   hnew = max(hh(i),hnew) + psep
-              !endif
+              if (numneigh(i).le.1) then
+                 !print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
+                 print*,' WARNING: particle ',i,' has no neighbours, increasing h'
+                 hnew = max(hh(i),hnew) + psep
+              endif
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !              
