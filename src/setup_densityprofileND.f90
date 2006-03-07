@@ -20,10 +20,11 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,iseed,idist
+ integer :: i,iseed,idist,j
  real :: massp,totmass,ran1
  real :: rr,rmass,rsoft
  real, dimension(ndim) :: xpos
+ real :: dxij,dxmean,q,vmax,func,vesc,vr
 !
 !--allow for tracing flow
 !
@@ -55,7 +56,7 @@ subroutine setup
 ! 
 !--initialise random number generator
  iseed = -26588
- idist = 2 ! choice of distribution
+ idist = 1 ! choice of distribution
  select case(idist)
  case(1)
     write(iprint,*) ' Plummer profile'
@@ -90,14 +91,44 @@ subroutine setup
 !
     call coord_transform(xpos(:),ndim,3,x(:,i),ndim,1)
 !
+!--set velocities following Aarseth, Henon & Wielen (1974)
+!
+    q = 0.0
+    vmax = 0.1
+    
+    do while (vmax.gt.distfn(q,idist))
+       q = ran1(iseed)
+       vmax = 0.1*ran1(iseed)
+       !!print*,i
+    enddo
+    vesc = sqrt(2.)*(1. + rr**2)**(-0.25)
+    vr = q*vesc
+    
+    vel(1,i) = (1. - 2.*ran1(iseed))*vr
+    q = ran1(iseed)
+    vel(2,i) = sqrt(vr**2 - vel(1,i)**2)*COS(2.*pi*q)
+    vel(3,i) = sqrt(vr**2 - vel(1,i)**2)*SIN(2.*pi*q)
+!
 !--set other quantities
 !
-    vel(:,i) = 0.
     dens(i) = densprofile(idist,rr,rsoft)
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.
- enddo 
+ enddo
+!
+!--find mean particle separation
+! 
+ dxmean = 0.
+ do i=1,ntotal
+    do j=i+1,ntotal
+       dxij = sqrt(dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j)))
+       dxmean = dxmean + dxij
+    enddo
+ enddo
+ dxmean = dxmean/real((ntotal**2 - ntotal)/2)
+ write(iprint,*) 'mean particle spacing = ',dxmean
+ write(iprint,*) 'suggested softening h = ',dxmean/40.,' to ',dxmean/35.
 !
 !--allow for tracing flow
 !
@@ -167,5 +198,34 @@ real function densprofile(ioption,r,rsoft)
   end select
 
 end function densprofile
+
+!
+! Function containing the distribution function for velocities
+!
+real function distfn(q,ioption)
+  implicit none
+  integer :: ioption
+  real :: q
+  
+  select case(ioption)
+  case(1)
+!
+!--Plummer sphere
+!
+   distfn = q**2*(1.-q**2)**3.5
+   
+  case(2)
+!
+!--Hernquist model
+!
+   stop 'ERROR: distribution function not implemented for hernquist profile'
+   
+  case default
+   distfn = 0.
+   print*,'ERROR in setup, wrong distribution'
+  
+  end select
+
+end function distfn
 
 end subroutine setup
