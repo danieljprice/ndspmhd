@@ -24,7 +24,7 @@ subroutine setup
  real :: massp,totmass,ran1
  real :: rr,rmass,rsoft
  real, dimension(ndim) :: xpos
- real :: dxij,dxmean,q,vmax,func,vesc,vr
+ real :: dxij,dxmean,q,vmax,vesc,vr
 !
 !--allow for tracing flow
 !
@@ -90,6 +90,10 @@ subroutine setup
 !--transform to cartesian coords
 !
     call coord_transform(xpos(:),ndim,3,x(:,i),ndim,1)
+ enddo
+ 
+ iseed = -7854
+ do i=1,ntotal
 !
 !--set velocities following Aarseth, Henon & Wielen (1974)
 !
@@ -115,6 +119,10 @@ subroutine setup
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.
+!
+!--set velocities to some fraction of equilibrium value
+!
+!    vel(:,i) = 1.2*vel(:,i)
  enddo
 !
 !--find mean particle separation
@@ -141,11 +149,11 @@ contains
 !
 ! subroutine containing mass distributions to choose from
 !
-subroutine getr_from_m(ioption,rmass,rsoft,r) 
+subroutine getr_from_m(ioption,rmass,rsoft,rr) 
   implicit none
   integer, intent(in) :: ioption
   real, intent(in) :: rmass,rsoft
-  real, intent(out) :: r
+  real, intent(out) :: rr
   real :: rmass23
 !
 !--transformation between a point in the mass distribution and a radial position
@@ -218,6 +226,7 @@ real function distfn(q,ioption)
 !
 !--Hernquist model
 !
+   distfn = 0.
    stop 'ERROR: distribution function not implemented for hernquist profile'
    
   case default
