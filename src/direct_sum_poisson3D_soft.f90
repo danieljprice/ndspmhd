@@ -20,12 +20,13 @@
 !!   fgrav(ndim,ntot) : gravitational force
 !!----------------------------------------------------------------------------
 
-subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,ntot)
+subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint
  use kernels, only:interpolate_softening,radkern2,potensoft
  use hterms, only:gradh,gradhn,gradsoft
+ use options, only:igravity
  
  implicit none
  integer, intent(in) :: ntot
@@ -33,7 +34,7 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,ntot)
  real, dimension(ntot), intent(in) :: pmass,hh
  real, dimension(ntot), intent(out) :: phi
  real, dimension(ndim,ntot), intent(inout) :: fgrav
- real :: phitot
+ real, intent(out) :: phitot
  integer :: i,j
  real, dimension(ndim) :: dx,dr
  real :: rij,rij1,rij2,rij21,pmassi,pmassj
@@ -76,10 +77,12 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,ntot)
           call interpolate_softening(q2i,phii,fmi,grkerni)
           phii = phii*hi1
           fmi = fmi*hi21
-          grkerni = grkerni*hi1**(ndim+1)*gradhi !!(1. + gradhni*gradhi/pmassj)
-          dsofti = 0.5*grkerni*gradsofti
-          fgrav(:,i) = fgrav(:,i) - pmassj*dsofti*dr(:)
-          fgrav(:,j) = fgrav(:,j) + pmassi*dsofti*dr(:)
+          if (igravity.ge.4) then
+             grkerni = grkerni*hi1**(ndim+1)*gradhi !!(1. + gradhni*gradhi/pmassj)
+             dsofti = 0.5*grkerni*gradsofti
+             fgrav(:,i) = fgrav(:,i) - pmassj*dsofti*dr(:)
+             fgrav(:,j) = fgrav(:,j) + pmassi*dsofti*dr(:)
+          endif
        else
           phii = -rij1
           fmi = rij21
@@ -88,10 +91,12 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,ntot)
           call interpolate_softening(q2j,phij,fmj,grkernj)
           phij = phij*hj1
           fmj = fmj*hj21
-          grkernj = grkernj*hj1**(ndim+1)*gradh(j) !!(1. + gradhn(j)*gradh(j)/pmassi)
-          dsoftj = 0.5*grkernj*gradsoft(j)
-          fgrav(:,i) = fgrav(:,i) - pmassj*dsoftj*dr(:)
-          fgrav(:,j) = fgrav(:,j) + pmassi*dsoftj*dr(:)
+          if (igravity.ge.4) then
+             grkernj = grkernj*hj1**(ndim+1)*gradh(j) !!(1. + gradhn(j)*gradh(j)/pmassi)
+             dsoftj = 0.5*grkernj*gradsoft(j)
+             fgrav(:,i) = fgrav(:,i) - pmassj*dsoftj*dr(:)
+             fgrav(:,j) = fgrav(:,j) + pmassi*dsoftj*dr(:)
+          endif
        else
           phij = -rij1
           fmj = rij21
