@@ -49,6 +49,58 @@ REAL FUNCTION ran1(iseed)
  RETURN
 END FUNCTION ran1
 
+!!------------------------------------------------------------------------!!
+!!
+!! Long period random number generator (see Press et al, Numerical Recipes)
+!! 
+!! Period is about 2 x 10**18
+!! 
+!! Returns a uniform random deviate between 0.0 and 1.0 (exclusive of 
+!!  endpoints). Call with iseed < 0 to initialise, thereafter do not
+!!  alter iseed between calls.
+!!
+!!------------------------------------------------------------------------!!
+
+real function ran2(iseed)
+ implicit none
+ integer, parameter :: im1=2147483563, im2=2147483399, &
+   imm1=im1-1, ia1=40014, ia2=40692, iq1=53668, iq2=52774, ir1=12211, &
+   ir2=3791, ntab=32,ndiv=1+imm1/ntab
+ real, parameter :: am=1./im1, eps=1.2e-7, rnmx=1.-eps
+ integer :: iseed,iseed2,j,k,iv(ntab),iy
+ SAVE iv,iy,iseed2
+
+ data iseed2/123456789/, iv/ntab*0/, iy/0/
+!
+!--initialise random sequence
+!
+ if (iseed.le.0) then
+    iseed = max(-iseed,1) ! iseed not zero
+    iseed2 = iseed
+    do j=ntab+8,1,-1
+       k = iseed/iq1
+       iseed = ia1*(iseed-k*iq1) - k*ir1
+       if (iseed.lt.0) iseed = iseed + im1
+       if (j.le.ntab) iv(j) = iseed
+    enddo
+    iy = iv(1)
+ endif
+ k = iseed/iq1
+ iseed = ia1*(iseed-k*iq1) - k*ir1
+ if (iseed.lt.0) iseed = iseed + im1
+ k = iseed2/iq2
+ iseed2 = ia2*(iseed2-k*iq2) - k*iq2
+ if (iseed2.lt.0) iseed2 = iseed2 + im2
+ j = 1 + iy/ndiv
+ iy = iv(j) - iseed2
+ iv(j) = iseed
+ if (iy.lt.1) iy = iy + imm1
+ ran2 = min(am*iy,rnmx)
+ return
+ 
+end function ran2
+ 
+ 
 !!-------------------------------------------------------------------------
 !!
 !! Function returns a random number drawn from a Rayleigh distribution
