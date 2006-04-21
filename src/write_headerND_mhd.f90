@@ -101,6 +101,23 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
       6x,' Energy equation  : ',i2,5x,' Continuity Equation  :',i2,/,        &
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,        &
       6x,' Magnetic fields  : ',i2,5x,' External forces      :',i2/)
+      
+    select case(igravity)
+    case(0)
+       write(iprint,60) 'OFF'    
+    case(1)
+       write(iprint,65) 'ON, fixed plummer softening',hsoft    
+    case(2)
+       write(iprint,65) 'ON, fixed kernel softening ',hsoft
+    case(3)
+       write(iprint,60) 'ON, adaptive softening'    
+    case(4)
+       write(iprint,60) 'ON, adaptive softening with energy conservation'
+    case default
+       write(iprint,60) 'ON, unknown igravity setting'    
+    end select
+60  format(' Self gravity is ',a)
+65  format(' Self gravity is ',a,': h =',1pe9.2,/)
 
     IF (imhd.NE.0) THEN
        WRITE (iprint,70) imagforce,idivBzero,ianticlump,eps,neps
@@ -125,18 +142,15 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !--general constants
 !     
     WRITE (iprint, 90) gamma
-90 FORMAT(' Equation of state: ',/,6x,' gamma = ',f10.6,/)
+90 FORMAT(' Equation of state: gamma = ',f10.6,/)
 
 !
 !--timestepping
 !     
     WRITE (iprint, 100) C_cour,C_force
-100 FORMAT(' Timestepping conditions : ',/, &
-        6x,' C_courant = ',f4.2,5x,' C_force = ',f4.2,/)
+100 FORMAT(' Timestepping conditions: C_cour = ',f4.2,', C_force = ',f4.2,/)
 
-
-    WRITE (iprint, 110)
-110 FORMAT(/,' Particle setup: ',/)
+    WRITE (iprint,"(' Particle setup: ',/)")
 
 !----------------------------------------------
 ! 2nd header after particles have been setup
@@ -147,9 +161,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--number of particles
 !     
-    WRITE (iprint, 200) npart     
-200 FORMAT(/,' Number of particles = ',i6,/)
-
+    WRITE (iprint,"(/,' Number of particles = ',i6,/)") npart
 !
 !--boundary options
 !
@@ -210,12 +222,14 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
        WRITE(iprint,250) 'v'//trim(coord(i)),hmin,hmax,have
     ENDDO
 !--mach number
-    DO i=1,npart
-       v2i = dot_product(vel(:,i),vel(:,i))
-       dummy(i) = sqrt(v2i)/spsound(i)
-    ENDDO
-    CALL minmaxave(dummy(1:npart),hmin,hmax,have,npart)
-    WRITE(iprint,250) 'Mach #',hmin,hmax,have
+    IF (iprterm.GE.0) THEN
+       DO i=1,npart
+          v2i = dot_product(vel(:,i),vel(:,i))
+          dummy(i) = sqrt(v2i)/spsound(i)
+       ENDDO
+       CALL minmaxave(dummy(1:npart),hmin,hmax,have,npart)
+       WRITE(iprint,250) 'Mach #',hmin,hmax,have
+    ENDIF
 !--plasma beta
     IF (imhd.NE.0) THEN
        DO i=1,npart
