@@ -101,29 +101,9 @@ SUBROUTINE step
     ENDIF
  ENDDO
 !
-!--allow particles to cross boundary
+!--calculate all derivatives
 !
- IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
-!
-!--set ghost particles if ghost boundaries are used
-!	 
- IF (ANY(ibound.GE.2)) CALL set_ghost_particles
-!
-!--call link list to find neighbours
-!
- CALL set_linklist
-!
-!--calculate density by direct summation
-!
- IF (icty.LE.0) CALL iterate_density
-!
-!--calculate primitive variables (u,B) from conservative variables (en,B/rho)
-!   
- CALL conservative2primitive 
-!
-!--calculate forces/rates of change using predicted quantities
-!	 
- CALL get_rates
+ call derivs
 !
 !--Leapfrog Corrector step
 !

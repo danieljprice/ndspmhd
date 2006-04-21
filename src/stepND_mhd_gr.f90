@@ -72,46 +72,13 @@ SUBROUTINE step
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
     ENDIF
-!
-!--for periodic boundaries, allow particles to cross the domain
-!  (this is only temporary as it is for the predicted quantity)
-!    
-    IF (ANY(ibound.EQ.3)) THEN
-       DO jdim=1,ndim
-          IF (ibound(jdim).EQ.3) THEN	! if periodic in this dimension
-	     IF (x(jdim,i).GT.xmax(jdim)) THEN
-!	        print*,' xold,xmax,xnew = ',i,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
-	        x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-	     ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
-!	        print*,' xold,xmin,xnew = ',i,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
-                x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-             ENDIF	  
-	  ENDIF
-       ENDDO
-    ENDIF	 
 
  ENDDO
+!
+!--calculate all derivatives
+!
+ call derivs
 
-!
-!--set ghost particles if ghost boundaries are used
-!	 
- IF (ANY(ibound.GE.2)) CALL set_ghost_particles
-!
-!--call link list to find neighbours
-!
- CALL set_linklist
-!
-!--calculate density by direct summation
-!
- IF (icty.LE.0) CALL iterate_density
-!
-!--calculate primitive variables from conservative variables
-!   
- CALL conservative2primitive
-!
-!--calculate forces/rates of change using predicted quantities
-!	 
- CALL get_rates
 !
 !--Mid-point Corrector step
 !
