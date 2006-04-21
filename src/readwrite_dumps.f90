@@ -230,8 +230,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  if (imhd.le.0 .and. (iformat.eq.2 .or. iformat.eq.4)) then
     write(iprint,*) 'warning: mhd input file, but MHD is off'
  elseif (imhd.gt.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
-    write(iprint,*) 'ERROR: non-mhd infile but MHD is on'
-    stop
+    write(iprint,*) 'WARNING: non-mhd infile but MHD is on (Bfield set to 0)'
  endif
 !
 !--switch current geometry to that of the file if not convertible
@@ -262,6 +261,11 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  ntotal = npartfile
 
  call alloc(nprintfile)
+!
+!--zero quantities which may not be explicitly read
+!
+ Bfield = 0.
+ alpha = 0.
 !
 !--read data from file (only bits needed to restart the run - do not read ghosts)
 !
