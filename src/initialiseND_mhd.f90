@@ -38,7 +38,7 @@ subroutine initialise
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
 !
- idash = index(rootname,'_init')
+ idash = index(rootname,'_')
  idot = index(rootname,'.dat')
  if (idash.ne.0) then
     if (idot.eq.0) then
