@@ -31,12 +31,13 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL, DIMENSION(ndimB) :: Bi,Brhoi,fluxtot
  REAL :: B2i,Bmagi
  REAL :: fluxtotmag,crosshel
- REAL :: betamhdi,betamhdmin,betamhdmax,betamhdav
+ REAL :: betamhdi,betamhdmin,betamhdav
  REAL :: fdotBi,fdotBmax,fdotBav
  REAL :: forcemagi,force_erri,force_err_max,force_err_av
  REAL :: divBi,divBav,divBmax,divBtot
  REAL :: omegamhdi,omegamhdav,omegamhdmax
- REAL :: omegtol,fracdivBok
+ REAL :: fracdivBok
+ REAL, PARAMETER :: omegtol = 1.E-2
  REAL :: fmagabs,rhomax,rhomean,rhomin
  REAL :: angtot
 !
@@ -63,8 +64,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !     
  IF (imhd.NE.0) THEN
     betamhdav = 0.
-    betamhdmax = 0.
-    betamhdmin = 1.E30
+    betamhdmin = huge(betamhdmin)
     divBmax = 0.
     divBav = 0.
     divBtot = 0.
@@ -74,7 +74,6 @@ SUBROUTINE evwrite(t,etot,momtot)
     force_err_av = 0.
     omegamhdav = 0.
     omegamhdmax = 0.
-    omegtol = 1.E-2
     fracdivBok = 0.
     fluxtot(:) = 0.
     fluxtotmag = 0.
@@ -138,7 +137,6 @@ SUBROUTINE evwrite(t,etot,momtot)
           betamhdi = pr(i)/(0.5*B2i)     
        ENDIF
        betamhdav = betamhdav + betamhdi
-       IF (betamhdi.GT.betamhdmax) betamhdmax = betamhdi
        IF (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
 !
 !--Maximum divergence of B
@@ -219,8 +217,8 @@ SUBROUTINE evwrite(t,etot,momtot)
 
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean,&
-          fluxtotmag,crosshel,betamhdmin,betamhdav,betamhdmax,   &
+    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt, &
+          fluxtotmag,crosshel,betamhdmin,betamhdav,  &
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
