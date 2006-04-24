@@ -56,7 +56,7 @@ SUBROUTINE step
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim
+ INTEGER :: i
  REAL :: hdt, maxdivB
  REAL :: dtrhoi
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
@@ -71,8 +71,14 @@ SUBROUTINE step
  hdt = 0.5*dt
 
  DO i=1,npart
-    Bevol(:,i) = Bevolin(:,i)
-    psi(i) = psiin(i)
+    xin(:,i) = x(:,i)
+    velin(:,i) = vel(:,i)
+    Bevolin(:,i) = Bevol(:,i)
+    rhoin(i) = rho(i)
+    hhin(i) = hh(i)
+    enin(i) = en(i)
+    alphain(:,i) = alpha(:,i)
+    psiin(i) = psi(i)
  ENDDO         
 !
 !--if doing divergence correction then do correction to magnetic field
@@ -199,7 +205,7 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
-    ENDIF   
+    ENDIF
 
  ENDDO
 
@@ -243,142 +249,43 @@ SUBROUTINE step
        IF (icty.GE.1) rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
+       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = (velin(:,i) + hdt*force(:,i))/(1.+damp)            
+       vel(:,i) = (velin(:,i) + dt*force(:,i))/(1.+damp)            
        !--vertical damping
        if (ndim.ge.3) vel(3,i) = vel(3,i)/(1.+dampz)
        !--radial damping
        if (dampr.gt.tiny(dampr) .and.ndim.ge.2) call radialdamping(vel(1:2,i),x(1:2,i),dampr)      
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (ihvar.EQ.2 .OR. (ihvar.EQ.3 .and. itsdensity.eq.0)) THEN
-          hh(i) = hhin(i) + hdt*dhdt(i)
+          hh(i) = hhin(i) + dt*dhdt(i)
           IF (hh(i).LE.0.) THEN
              WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
              CALL quit
           ENDIF
        ENDIF
        IF (icty.GE.1) THEN
-          rho(i) = rhoin(i) + hdt*drhodt(i)
+          rho(i) = rhoin(i) + dt*drhodt(i)
           IF (rho(i).LE.0.) THEN
              WRITE(iprint,*) 'step: rho -ve ',i,rho(i)
              CALL quit
           ENDIF
        ENDIF
-       IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
+       IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)           
        IF (imhd.NE.0) THEN
           IF (nsubsteps_divB.LT.0) THEN
-             Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
-             psi(i) = (psiin(i) + hdt*dpsidt(i))/(1.+eps)
+             Bevol(:,i) = Bevolin(:,i) + dt*gradpsi(:,i)
+             psi(i) = (psiin(i) + dt*dpsidt(i))/(1.+eps)
           ENDIF          
-          Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
+          Bevol(:,i) = Bevol(:,i) + dt*dBevoldt(:,i)
        ENDIF
     ENDIF 
               
  ENDDO
-                 
-!
-!--update density using a full summation every so often
-!         
- IF (MOD(nsteps,ndirect).EQ.0) THEN
-    DO i=1,npart
-       xin(:,i) = 2.*x(:,i) - xin(:,i)
-       x(:,i) = xin(:,i)
-    ENDDO
-    WRITE(iprint,*) 'taking direct sum'       
-    CALL set_linklist
-!    ikernavprev = ikernav
-!    ikernav = 3
-    CALL iterate_density ! renormalise density *and* smoothing length
-!    ikernav = ikernavprev
-    IF (ANY(ibound.GT.1)) THEN
-       DO i=npart+1,ntotal                ! update ghosts
-          j = ireal(i)
-          rho(i) = rho(j)
-          hh(i) = hh(j)
-          gradh(i) = gradh(j)       
-       ENDDO
-    ELSEIF (ANY(ibound.EQ.1)) THEN           ! rewrite over fixed particles
-       WHERE (itype(:) .EQ. 1)
-          rho(:) = rhoin(:)
-          hh(:) = hhin(:)
-       END WHERE          
-    ENDIF
-           
-    DO i=1,npart
-       rhoin(i) = rho(i)
-       velin(:,i) = 2.*vel(:,i)-velin(:,i)
-       vel(:,i) = velin(:,i)
-       IF (imhd.NE.0) THEN
-          Bevolin(:,i) = 2.*Bevol(:,i) - Bevolin(:,i)
-          Bevol(:,i) = Bevolin(:,i)
-       ENDIF             
-       IF (iener.NE.0) THEN
-          enin(i) = 2.*en(i) - enin(i)
-          en(i) = enin(i)
-       ENDIF
-       IF (ANY(iavlim.NE.0)) THEN
-          alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
-          alpha(:,i) = alphain(:,i)
-       ENDIF
-       IF (ihvar.EQ.2) THEN
-          hhin(i) = 2.*hh(i) - hhin(i)
-             hh(i) = hhin(i)
-!         hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim
-!          hhin(i) = hh(i)
-       ENDIF             
-       hhin(i) = hh(i)
-       psiin(i) = 2.*psi(i) - psiin(i)
-       psi(i) = psiin(i)
-    ENDDO
-         
- ELSE
-           
-    DO i=1,npart
-       xin(:,i) = 2.*x(:,i) - xin(:,i)
-       x(:,i) = xin(:,i)
-       velin(:,i) = 2.*vel(:,i) - velin(:,i)
-       vel(:,i) = velin(:,i)
-       IF (icty.GE.1) THEN                
-          rhoin(i) = 2.*rho(i) - rhoin(i)
-          rho(i) = rhoin(i)
-       ELSE
-          rhoin(i) = rho(i)          
-       ENDIF
-       IF (ihvar.EQ.1) THEN                ! Joe's version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim
-       ELSEIF (ihvar.EQ.2 .or. (ihvar.eq.3 .and. itsdensity.eq.0)) THEN
-          hhin(i) = 2.*hh(i) - hhin(i)
-          hh(i) = hhin(i)
-          IF (hh(i).LE.0.) THEN
-             WRITE(iprint,*) 'step: corrector: hh -ve ',i,hh(i)
-             CALL quit
-          ENDIF
-       ELSEIF (ihvar.GT.0) THEN
-          hhin(i) = hh(i)     
-       ENDIF
-       hhin(i) = hh(i)                
-       IF (ANY(iavlim.NE.0)) THEN
-          alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
-          alpha(:,i) = alphain(:,i)
-       ENDIF             
-       IF (imhd.NE.0) THEN
-          Bevolin(:,i) = 2.*Bevol(:,i) - Bevolin(:,i)
-          Bevol(:,i) = Bevolin(:,i)
-       ENDIF             
-       IF (iener.NE.0) THEN
-          enin(i) = 2.*en(i) - enin(i)
-          en(i) = enin(i)
-       ENDIF
-       psiin(i) = 2.*psi(i) - psiin(i)
-       psi(i) = psiin(i)
-    ENDDO
-    
- ENDIF
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
