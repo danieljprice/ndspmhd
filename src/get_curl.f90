@@ -47,6 +47,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !
  listneigh = 0
  curlB = 0.
+ dr(:) = 0.
 !
 !--loop over all the link-list cells
 !
@@ -84,24 +85,20 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
              hj = hh(j)
              hj1 = 1./hj
              hj2 = hj*hj
-!
-!--calculate averages of smoothing length if using this averaging
-!                
-             hfacwabj = hj1**ndim
              
              rij2 = dot_product(dx,dx)
-             rij = sqrt(rij2)
              q2i = rij2/hi2
              q2j = rij2/hj2     
-             dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
-             if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0. 
-
              !          print*,' neighbour,r/h,dx,hi,hj ',j,sqrt(q2),dx,hi,hj
 !     
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
              if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then
+
+                hfacwabj = hj1**ndim
+                rij = sqrt(rij2)
+                dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
@@ -120,9 +117,10 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !
                 dB = Bi(:) - Bvec(:,j)
                 if (ndim.eq.3) then
-                   curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
-                   curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
-                   curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
+                   call cross_product3D(dB,dr,curlBi)
+!                   curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
+!                   curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
+!                   curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
                 elseif (ndim.eq.2) then  ! just Az in 2d
                    curlBi = 0.
                    curlBi(1) = -dB(1)*dr(2) ! replace dB(3) by dB(1)
