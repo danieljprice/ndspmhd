@@ -164,7 +164,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
-! if (ifile.ge.0) call modify_dump
+ if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
@@ -184,6 +184,13 @@ subroutine initialise
  if (imhd.eq.0) then
     Bfield = 0.  ! zero mag field if turned off
     Bevol = 0.
+ endif
+!
+!--set velocities to zero if damping is set
+!
+ if (damp.gt.tiny(damp)) then
+    write(iprint,*) 'SETTING VELS TO ZERO FOR RELAXATION RUN'
+    vel = 0.
  endif
 !
 !--set minimum density if using variable particle masses
