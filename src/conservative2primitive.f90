@@ -188,6 +188,9 @@ subroutine primitive2conservative
   elseif (imhd.lt.0) then ! if using vector potential
      write(iprint,*) 'getting B field from vector potential (init)...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
+     do i=1,npart
+        Bfield(:,i) = Bfield(:,i) + Bconst(:)
+     enddo
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
