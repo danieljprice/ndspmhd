@@ -116,28 +116,26 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !                wabj = wabj*hfacwabj
                 grkernj = grkernj*hj1 !!*hfacwabj*hj1
 !
-!--calculate curl of Bvec
+!--calculate curl of Bvec (NB dB is 3-dimensional, dr is also but zero in parts)
 !
-                dB = Bi(:) - Bvec(:,j)
-                if (ndim.eq.3) then
+                dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
+!                if (ndim.eq.3) then
                    call cross_product3D(dB,dr,curlBi)
 !                   curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
 !                   curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
 !                   curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-                elseif (ndim.eq.2) then  ! just Az in 2D
-                   curlBi = 0.
-                   curlBi(1) = -dB(1)*dr(2) ! replace dB(3) by dB(1)
-                   curlBi(2) = dB(1)*dr(1)
-!                   curlBi(1) = db(1)*dr(2) - db(2)*dr(1)
-!                   curlBi(2) = 0.
-                endif
+!                elseif (ndim.eq.2) then  ! just Az in 2D
+!                   curlBi = 0.
+!                   curlBi(1) = -dB(1)*dr(2) ! replace dB(3) by dB(1)
+!                   curlBi(2) = dB(1)*dr(1)
+!                endif
                 !
                 !--compute rho * current density j
                 !
-!                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni
-!                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj
-                curlB(:,i) = curlB(:,i) + curlBi(:)*grkerni
-                curlB(:,j) = curlB(:,j) + curlBi(:)*grkernj
+                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni*hfacwabi
+                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj*hfacwabj
+!                curlB(:,i) = curlB(:,i) + curlBi(:)*grkerni
+!                curlB(:,j) = curlB(:,j) + curlBi(:)*grkernj
                 !!print*,'weight = ',weight,' m/rho h^3 = ',pmass(j)/rho(j)*hfacwabj
                 
              endif
@@ -151,8 +149,9 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  enddo loop_over_cells
 
  do i=1,npart
-!    curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
-    curlB(:,i) = weight*curlB(:,i)
+    curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
+!    curlB(:,i) = weight*curlB(:,i)*gradh(i)
+!    print*,i,curlB(:,i)
  enddo
 
  return
