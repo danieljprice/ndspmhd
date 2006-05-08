@@ -55,19 +55,19 @@ subroutine write_infile(infile)
 10 format(f14.10,22x,'! particle separation')
 20 format(f7.3,2x,f7.3,2x,i9,1x,i5,3x,'! tmax, tout, nmax, nout')
 30 format(f14.12,22x,'! gamma ')
-40 format(i1,2x,f5.3,28x,'! type of energy equation, polyk(for iener=0)')
-50 format(i1,2x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv), ndirect, maxdensits')
-60 format(i1,35x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
-70 format(i1,2x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphab(min), beta')
+40 format(i2,1x,f5.3,28x,'! type of energy equation, polyk(for iener=0)')
+50 format(i2,1x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv), ndirect, maxdensits')
+60 format(i2,36x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
+70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphab(min), beta')
 80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, ab limiter, constant for this(0.1-0.2)')
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
-100 format(i1,2x,f5.3,2x,1pe8.3,18x,'! variable h, initial h factor, h tolerance')
-110 format(i1,35x,'! dump ghost particles? (0: no 1: yes)')
+100 format(i2,1x,f5.3,2x,1pe8.3,18x,'! variable h, initial h factor, h tolerance')
+110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
 120 format(i2,4x,i1,29x,'! magnetic field (0:off 1:on) and force algorithm(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
 140 format(i1,2x,f5.3,2x,i2,24x,'! anticlumping term (0:off 1:on), eps, power')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
-160 format(i1,2x,1pe9.3,24x,'! self-gravity, fixed softening length')
+160 format(i2,1x,1pe9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
 180 format(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i1,35x,'! external force (1: toy star, 2:1/r^2 )')
@@ -112,32 +112,32 @@ subroutine read_infile(infile)
  if (trace) write(iprint,*) ' entering subroutine read_infile'
               
  open(unit=iread,err=999,file=infile,status='old',form='formatted')
-  read(iread,*,err=50) psep
-  read(iread,*,err=50) tmax,tout,nmax,nout
-  read(iread,*,err=50) gamma
-  read(iread,*,err=50) iener,polyk
-  read(iread,*,err=50) icty,ndirect,maxdensits
-  read(iread,*,err=50) iprterm
-  read(iread,*,err=50) iav,alphamin,alphaumin,alphabmin,beta
-  read(iread,*,err=50) iavlim(:),avdecayconst
-  read(iread,*,err=50) ikernav
-  read(iread,*,err=50) ihvar,hfact,tolh
-  read(iread,*,err=50) idumpghost
-  read(iread,*,err=50) imhd,imagforce
-  read(iread,*,err=50) idivbzero,psidecayfact
-  read(iread,*,err=50) ianticlump,eps,neps
-  read(iread,*,err=50) ixsph,xsphfac
-  read(iread,*,err=50) igravity,hsoft
+  read(iread,*,err=50,end=50) psep
+  read(iread,*,err=50,end=50) tmax,tout,nmax,nout
+  read(iread,*,err=50,end=50) gamma
+  read(iread,*,err=50,end=50) iener,polyk
+  read(iread,*,err=50,end=50) icty,ndirect,maxdensits
+  read(iread,*,err=50,end=50) iprterm
+  read(iread,*,err=50,end=50) iav,alphamin,alphaumin,alphabmin,beta
+  read(iread,*,err=50,end=50) iavlim(:),avdecayconst
+  read(iread,*,err=50,end=50) ikernav
+  read(iread,*,err=50,end=50) ihvar,hfact,tolh
+  read(iread,*,err=50,end=50) idumpghost
+  read(iread,*,err=50,end=50) imhd,imagforce
+  read(iread,*,err=50,end=50) idivbzero,psidecayfact
+  read(iread,*,err=50,end=50) ianticlump,eps,neps
+  read(iread,*,err=50,end=50) ixsph,xsphfac
+  read(iread,*,err=50,end=50) igravity,hsoft
   if (ndim.eq.3) then
-     read(iread,*,err=50) damp,dampr,dampz
+     read(iread,*,err=50,end=50) damp,dampr,dampz
   elseif (ndim.eq.2) then
-     read(iread,*,err=50) damp,dampr
+     read(iread,*,err=50,end=50) damp,dampr
   else
-     read(iread,*,err=50) damp
+     read(iread,*,err=50,end=50) damp
   endif
-  read(iread,*,err=50) ikernel
-  read(iread,*,err=50) iexternal_force
-  read(iread,*,err=50) C_Cour, C_force
+  read(iread,*,err=50,end=50) ikernel
+  read(iread,*,err=50,end=50) iexternal_force
+  read(iread,*,err=50,end=50) C_Cour, C_force
  close(unit=iread)
 
  goto 55
