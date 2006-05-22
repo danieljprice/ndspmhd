@@ -11,7 +11,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  USE debug
  USE loguns
  
- USE kernels, only:ianticlump,eps,neps
+ USE kernels, only:ianticlump,eps,neps,radkern
  USE artvi
  USE bound
  USE hterms, only:rhomin
@@ -26,7 +26,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i
+ INTEGER :: i,Nneigh
  INTEGER, INTENT(IN) :: icall
  CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,logfile
  CHARACTER(LEN=19) :: boundtype
@@ -203,10 +203,20 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--print out smoothing length information
 !
-    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh
+    select case(ndim)
+    case(1)
+       Nneigh = nint(2.*radkern*hfact)     
+    case(2)
+       Nneigh = nint(4.*pi*(radkern*hfact)**2)
+    case(3)
+       Nneigh = nint(4./3.*pi*(radkern*hfact)**3)
+    end select
+    
+    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh, Nneigh
 240 FORMAT(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',1pe8.2)
+      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',1pe8.2,/ &
+      6x,' Number of neighbours = ',i4)
 !
 !--print out diagnostics of run
 !
