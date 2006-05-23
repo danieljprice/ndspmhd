@@ -389,8 +389,10 @@ subroutine get_rates
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
        dendt(i) = (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
-    elseif (iener.gt.0) then
+    elseif (iener.gt.0 .and. iav.ge.0) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
+       dendt(i) = dudt(i)
+    else
        dendt(i) = dudt(i)
     endif
 !
