@@ -7,17 +7,27 @@
 subroutine evolve
  use dimen_mhd, only:ndim
  use debug, only:trace
- use loguns, only:iprint,ifile
+ use loguns, only:iprint,ifile,rootname
  use timestep, only:nsteps,nmax,time,nout,iseedMC
  use part !!, only:x,uu,pmass,npart
+ use options, only:hsoft,igravity
+ use setup_params, only:hfact,pi
+ use densityprofiles, only:exact_densityprofiles
+ use errors, only:calculate_errors
+ use rates, only:force
+ use kernels, only:radkern
 !
 !--define local variables
 !
  implicit none
- integer :: noutput,nevwrite
+ integer :: i,ierr,noutput,nevwrite
  real :: t_start,t_end,t_used,ran1
  real :: etot, momtot, etotin, momtotin, detot, dmomtot
  character(len=10) :: finishdate, finishtime
+ integer, parameter :: nexact = 10001
+ real, dimension(nexact) :: xexact, yexact
+ real, dimension(npart) :: rr,fmag,residual
+ real :: errL1,errL2,errLinf,toterrL2,toterrLinf,xmin,xmax,dxexact
 !
 !--allow for tracing flow
 !      
@@ -53,6 +63,10 @@ subroutine evolve
 !--get starting cpu time
 !
  call cpu_time(t_start)
+ toterrL2 = 0.
+ toterrLinf = 0.
+ open(unit=423,file=trim(rootname)//'.err',status='replace',form='formatted')
+ print*,'opening ',trim(rootname)//'.err',' for output'
 !
 ! --------------------- main loop ----------------------------------------
 !
@@ -70,6 +84,32 @@ subroutine evolve
 !  this also sets the smoothing length and calculates forces
 !
     call primitive2conservative
+!
+!--compute exact solution for comparison
+!
+    do i=1,npart
+       rr(i) = sqrt(dot_product(x(:,i),x(:,i)))
+       fmag(i) = sqrt(dot_product(force(:,i),force(:,i)))
+    enddo
+    xmin = 0.
+    xmax = 13.
+    if (maxval(rr(1:npart)).gt.xmax) stop 'error rrmax > xmax'
+    dxexact = (xmax - xmin)/real(nexact-1)
+    do i=1,nexact
+       xexact(i) = xmin + (i-1)*dxexact
+    enddo
+
+    call exact_densityprofiles(3,1,1.0,1.0,xexact,yexact,ierr)
+    call calculate_errors(xexact,yexact,rr,fmag,residual, &
+         errL1,errL2,errLinf)
+    toterrL2 = toterrL2 + errL2
+    toterrLinf = toterrLinf + errLinf
+    print*,nsteps,' L2 error = ',errL2,' mean = ',toterrL2/real(nsteps), &
+        ' Linf = ',errLinf,' mean = ',toterrLinf/real(nsteps)
+    write(423,*) nsteps,errL2,toterrL2/real(nsteps),toterrLinf/real(nsteps)
+!
+!--calculate errors
+!
 !
 !--write to data file if time is right
 ! 
@@ -93,6 +133,21 @@ subroutine evolve
 !    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
  enddo timestepping
+ close(unit=423)
+!
+!--write final error values to file
+!
+ open(unit=99,file='results',status='unknown',action='write', &
+      position='append',form='formatted')
+     print*,' --- final results ---'
+     if (igravity.ge.3) then
+        write(99,*) hfact,4./3.*pi*(radkern*hfact)**3,toterrL2/real(nsteps),toterrLinf/real(nsteps),nsteps     
+        print*,hfact,4./3.*pi*(radkern*hfact)**3,toterrL2/real(nsteps),toterrLinf/real(nsteps),nsteps     
+     else
+        write(99,*) hsoft,hsoft,toterrL2/real(nsteps),toterrLinf/real(nsteps),nsteps
+        print*,hsoft,hsoft,toterrL2/real(nsteps),toterrLinf/real(nsteps),nsteps
+     endif
+ close(unit=99)
 
 !------------------------------------------------------------------------
 
