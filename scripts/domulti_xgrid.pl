@@ -40,12 +40,15 @@ for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
 ##    print "copying $rootname\_init.dat $rootname$n\_init.dat \n";
 ##    system "cd $rootname; cp $rootname\_init.dat $rootname$n\_init.dat; ./$ndim$SPMHD $rootname$n\_init.dat > $rootname$n.output";
-    my $jobid = `cd $rootname; xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -in \$PWD -out \$PWD -se \$PWD/$rootname$n.errors -so \$PWD/$rootname$n.output -job submit ./$ndim$SPMHD $rootname$n`;
+    system "cd $rootname; rm $rootname$n.csh; echo '#!'/bin/tcsh > $rootname$n.csh; echo cd \$PWD >> $rootname$n.csh; echo ./$ndim$SPMHD $rootname$n '>&' $rootname$n.output >> $rootname$n.csh; chmod a+x $rootname$n.csh";
+    my $jobid = `cd $rootname; xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job submit ./$rootname$n.csh`;
+##    my $jobid = `cd $rootname; xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -in \$PWD -out \$PWD -se \$PWD/$rootname$n.errors -so \$PWD/$rootname$n.output -job submit ./$ndim$SPMHD $rootname$n`;
     print "$jobid \n";
     ($jobid) = $jobid =~ m/jobIdentifier\s+=\s+(\d+);/; # \s matches spaces (+ = at least one) \d decimals
     print "job id = $jobid \n";
-    system "cd $rootname; echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -out \$PWD -se \$PWD/$rootname$n.errors -so \$PWD/$rootname$n.output -job results -id $jobid >> getresults";
-    system "cd $rootname; echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job delete -id $jobid >> cleanup";
+    system "cd $rootname; echo echo getting results of $rootname$n... >> getresults; echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -out \$PWD -se \$PWD/$rootname$n.xgriderr -so \$PWD/$rootname$n.xgridout -job results -id $jobid >> getresults$n; echo source getresults$n >> getresults";
+    system "cd $rootname; echo echo deleting $rootname$n... >> cleanup; echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job delete -id $jobid >> cleanup";
+     system "sleep 2";
 }
 
 # call the sametime program to write simultaneous data steps
