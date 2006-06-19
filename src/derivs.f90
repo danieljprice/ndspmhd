@@ -4,14 +4,32 @@
 !
 subroutine derivs
  use loguns, only:iprint
- use options, only:ibound,icty
+ use options, only:ibound,icty,ihvar
+ use part, only:hh,x,npart
+ use setup_params, only:hfact
  implicit none
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
+ integer :: i,inext
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
 !
  if (itiming) call cpu_time(t1)
+ 
+ if (ihvar.EQ.5) then
+    inext = int(2.*hfact)
+    !!print*,'inext = ',inext
+    do i=inext+1,npart-inext
+       hh(i) = 0.5*max(abs(x(1,i+inext)-x(1,i))+abs(x(1,i+inext-1)-x(1,i)), &
+                       abs(x(1,i-inext)-x(1,i))+abs(x(1,i-inext+1)-x(1,i)))
+    enddo
+    do i=1,inext
+       hh(i) = hh(inext)
+    enddo
+    do i=npart-inext+1,npart
+       hh(i) = hh(npart-inext+1)
+    enddo
+ endif
  if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
 !
 !--set ghost particles if ghost boundaries are used
