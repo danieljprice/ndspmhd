@@ -108,6 +108,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !--adjust psep so that particles fill the volume
 !
     print*,' npartx,y = ',npartx,nparty,npartz  !!,deltax,deltay
+    print*,' partx = ',(xmax(1)-xmin(1))/deltax,(xmax(2)-xmin(2))/deltay  !!,deltax,deltay
     print*,' delta x,y initial  = ',deltax,deltay,deltaz
     adjustdeltas = .true.
     if (present(fill)) then
