@@ -25,6 +25,7 @@ subroutine setup
  real :: massp,volume,totmass,ran1
  real :: denszero,densmedium,przero,psepmedium
  real, dimension(ndim) :: xminregion,xmaxregion
+ logical, parameter :: equalmass = .false.
 !
 !--allow for tracing flow
 !
@@ -42,32 +43,41 @@ subroutine setup
  denszero = 1.0
  densmedium = 2.0
  przero = 2.5
+ if (.not.equalmass) then
 !
-!--setup -0.5 < y < -0.25 and 0.25 < y < 0.5
+!--unequal masses setup whole grid
+! 
+    call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)
+    volume = product(xmax(:)-xmin(:))
+    totmass = denszero*volume
+    massp = totmass/float(npart)
+ else
 !
- xminregion(1) = xmin(1)
- xmaxregion(1) = xmax(1)
- xminregion(2) = -0.5
- xmaxregion(2) = -0.25
- call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+!--for equal mass particles setup each region separately
+!
+    xminregion(1) = xmin(1)
+    xmaxregion(1) = xmax(1)
+    xminregion(2) = -0.5
+    xmaxregion(2) = -0.25
+    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
 !
 !--determine particle mass from npart in first region
 !
- volume = product(xmaxregion(:)-xminregion(:))
- totmass = denszero*volume
- massp = totmass/float(npart) ! average particle mass
+    volume = product(xmaxregion(:)-xminregion(:))
+    totmass = denszero*volume
+    massp = totmass/float(npart) ! average particle mass
 
- xminregion(2) = 0.25
- xmaxregion(2) = 0.5
- call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+    xminregion(2) = 0.25
+    xmaxregion(2) = 0.5
+    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
 !
 !--setup -0.25 < y < 0.25
 ! 
- xminregion(2) = -0.25
- xmaxregion(2) = 0.25
- psepmedium = psep*(denszero/densmedium)**(1./ndim)
- call set_uniform_cartesian(2,psepmedium,xminregion,xmaxregion,fill=.true.)
- 
+    xminregion(2) = -0.25
+    xmaxregion(2) = 0.25
+    psepmedium = psep*(denszero/densmedium)**(1./ndim)
+    call set_uniform_cartesian(2,psepmedium,xminregion,xmaxregion,fill=.false.)
+ endif
  npart = ntotal
  print*,'npart =',npart
 !
@@ -83,11 +93,12 @@ subroutine setup
     if (abs(x(2,i)).lt.0.25) then
        vel(1,i) = 0.5 
        dens(i) = densmedium
+       if (.not.equalmass) pmass(i) = massp*(densmedium/denszero)
     else
        vel(1,i) = -0.5
        dens(i) = denszero
+       pmass(i) = massp
     endif
-    pmass(i) = massp
     uu(i) = przero/((gamma-1.)*dens(i))
     Bfield(:,i) = 0.
     Bfield(1,i) = 0.5
