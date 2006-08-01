@@ -15,13 +15,15 @@ contains
 
   subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                      gradh,gradhn,gradsoft,npart)
-    use dimen_mhd, only:ndim
+    use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
     use kernels, only:radkern2,interpolate_kernel,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
-    use options, only:ikernav,igravity
+    use options, only:ikernav,igravity,imhd
     !use matrixcorr
+    use part, only:Bfield
+    use rates, only:dBevoldt
 !
 !--define local variables
 !
@@ -39,11 +41,12 @@ contains
 !  (particle properties - local copies)
 !      
     real :: rij,rij2
-    real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2
+    real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2,hi21
     real :: hfacwab,hfacwabi,hfacwabj
     real, dimension(ndim) :: dx
-    real, dimension(ndim) :: veli,dvel
-    real :: dvdotr,pmassi,pmassj
+    real, dimension(ndimV) :: veli,dvel
+    real, dimension(npart) :: rhoin
+    real :: dvdotr,pmassi,pmassj,projBi,projBj
 !
 !  (kernel quantities)
 !
@@ -66,6 +69,7 @@ contains
     dwaltdhj = 0.
 
     do i=1,npart
+       rhoin(i) = rho(i)
        rho(i) = 0.
        drhodt(i) = 0.
        densn(i) = 0.
@@ -73,6 +77,7 @@ contains
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
+       if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
     enddo
 !
@@ -98,9 +103,10 @@ contains
           hi = hh(i)
           hi1 = 1./hi
           hi2 = hi*hi
+          hi21 = hi1*hi1
           hfacwabi = hi1**ndim
           pmassi = pmass(i)
-          veli(1:ndim) = vel(1:ndim,i) 
+          veli(:) = vel(:,i) 
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -113,8 +119,7 @@ contains
              hfacwabj = hj1**ndim
          
              rij2 = dot_product(dx,dx)
-             rij = sqrt(rij2)
-             q2i = rij2/hi2
+             q2i = rij2*hi21
              q2j = rij2/hj2       
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
 !       
@@ -122,13 +127,14 @@ contains
 !  don't calculate interactions between ghost particles
 !
              if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
-                  .AND. .not.(i.GT.npart.AND.j.GT.npart)) then
+                  .AND. (i.LE.npart .OR. j.LE.npart)) then
                 !if (i.eq.1 .or. j.eq.1) then
                 !   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj
                 !endif
 
                 if (i.LE.npart) numneigh(i) = numneigh(i) + 1
                 if (j.LE.npart .and. j.ne.i) numneigh(j) = numneigh(j) + 1
+                rij = sqrt(rij2)
 !
 !--weight self contribution by 1/2
 !
@@ -204,12 +210,18 @@ contains
 !--drhodt, dndt
 !
                 if (i.ne.j) then
-                   dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
-                   dvdotr = dot_product(dvel,dx)/rij
+                   dvel(1:ndimV) = veli(1:ndimV) - vel(1:ndimV,j)
+                   dvdotr = dot_product(dvel(1:ndim),dx)/rij
                    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
                    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
                    dndt(i) = dndt(i) + dvdotr*grkernalti
                    dndt(j) = dndt(j) + dvdotr*grkernaltj
+                   if (imhd.eq.5) then
+                   projBi = dot_product(Bfield(1:ndim,i),dx)/rij
+                   projBj = dot_product(Bfield(1:ndim,j),dx)/rij
+                   dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
+                   dBevoldt(:,j) = dBevoldt(:,j) - pmassi*projBj*dvel(:)*grkernj
+                   endif
                 endif
 
                 if (ikernav.EQ.3) then
@@ -252,7 +264,11 @@ contains
     !print*,'minimum number of neighbours = ', &
     !       MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
     !       rho(MINLOC(numneigh(1:npart)))
-
+    if (imhd.eq.5) then
+    do i=1,npart
+       dBevoldt(:,i) = dBevoldt(:,i)/rhoin(i)**2
+    enddo
+    endif
     return
   end subroutine density
       
@@ -273,14 +289,16 @@ contains
   
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                              gradh,gradhn,gradsoft,npart,nlist,ipartlist)
-    use dimen_mhd, only:ndim
+    use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
  
     use kernels, only:radkern2,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
-    use options, only:igravity
+    use options, only:igravity,imhd
     !use matrixcorr
+    use part, only:Bfield
+    use rates, only:dBevoldt
 !
 !--define local variables
 !
@@ -302,8 +320,10 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hi2
     real :: hfacwabi,hfacgrkerni,pmassj
-    real, dimension(ndim) :: dx,veli,dvel
-    real :: dvdotr
+    real, dimension(ndim) :: dx
+    real, dimension(ndimV) :: veli,dvel
+    real, dimension(nlist) :: rhoin
+    real :: dvdotr,projBi
 !
 !  (kernel quantities)
 !
@@ -321,6 +341,7 @@ contains
 
     do ipart=1,nlist
        i = ipartlist(ipart)
+       rhoin(ipart) = rho(i)
        rho(i) = 0.
        drhodt(i) = 0.
        densn(i) = 0.
@@ -330,6 +351,7 @@ contains
        gradsoft(i) = 0.
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
+       if (imhd.eq.5) dBevoldt(:,i) = 0.
     enddo
     icellprev = 0
 !
@@ -359,7 +381,7 @@ contains
        
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
-       veli(1:ndim) = vel(1:ndim,i) 
+       veli(:) = vel(:,i) 
 !
 !--loop over current particle's neighbours
 !
@@ -406,10 +428,14 @@ contains
 !--drhodt, dndt
 !
              if (i.ne.j) then
-                dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
-                dvdotr = dot_product(dvel,dx)/rij
+                dvel(:) = veli(:) - vel(:,j)
+                dvdotr = dot_product(dvel(1:ndim),dx)/rij
                 drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
                 dndt(i) = dndt(i) + dvdotr*grkernalti
+                if (imhd.eq.5) then
+                projBi = dot_product(Bfield(1:ndim,i),dx)/rij
+                dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
+                endif
              endif
 !
 !--correction term for variable smoothing lengths
@@ -445,6 +471,12 @@ contains
     !   endif
     !enddo
     !print*,'minimum number of neighbours = ',minneigh,minpart,rho(minpart)
+    if (imhd.eq.5) then
+    do i=1,nlist
+       j = ipartlist(i)
+       dBevoldt(:,j) = dBevoldt(:,j)/rhoin(i)**2
+    enddo
+    endif
 
     return
   end subroutine density_partial

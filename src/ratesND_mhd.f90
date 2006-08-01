@@ -150,7 +150,7 @@ subroutine get_rates
        call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
        B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
        stressterm = max(0.5*B2i - pr(i),0.)
-       stressmax = max(stressterm,stressmax)
+       stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
     enddo
     if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
  endif
@@ -410,7 +410,11 @@ subroutine get_rates
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2
        endif
     elseif (imhd.lt.0) then ! vector potential evolution
-       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
+       !
+       !--add the v x Bext term
+       !
+       call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
     else
        dBevoldt(:,i) = 0.
     endif
@@ -1059,6 +1063,12 @@ contains
           fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
           force(:,i) = force(:,i) + pmassj*(fmagi(:))
           force(:,j) = force(:,j) - pmassi*(fmagi(:))
+          
+          if (imagforce.eq.6) then
+          !--subtract B(div B) term from magnetic force
+             force(:,i) = force(:,i) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             force(:,j) = force(:,j) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+          endif
        end select
     endif
     
