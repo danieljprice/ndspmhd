@@ -268,6 +268,7 @@ PROGRAM SUPERSPMHD_ND
  trace = .false.                ! set tracing flow (prints entry into subroutine)
 ! trace = .true.
  idebug = 'none' 
+! idebug = 'fixed'
 ! idebug = 'density'
 ! idebug = 'neighb'
 ! idebug = 'link'
