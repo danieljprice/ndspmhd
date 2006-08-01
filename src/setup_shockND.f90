@@ -45,7 +45,7 @@ subroutine setup
 !--set default values
 !
  dsmooth = 0.   
- equalmass = .true.   ! use equal mass particles??
+ equalmass = .false.   ! use equal mass particles??
  stretchx = .true.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
  gamm1 = gamma - 1.
@@ -138,7 +138,7 @@ subroutine setup
  boxlength = 1.0
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
- nparty = 4
+ nparty = 6
  if (ndim.ge.2) then
     xmin(2:ndim) = 0.0
     xmax(2:ndim) = xmin(2:ndim) + nparty*psep !!!abs(xmin(2:ndim))
@@ -227,18 +227,15 @@ subroutine setup
 !--if using moving boundaries, fix the particles near the boundaries
 !
  nbpts = 0
- print*,'itype = ',itype
  if (ibound(1).eq.1) then
-       print*,xmin(1),xmax(1)
     do i=1,npart
-       if ((x(1,i).lt.(xmin(1) + 4.*psepleft)).or. &
-           (x(1,i).gt.(xmax(1) - 4.*psepright))) then
+       if ((x(1,i).lt.(xmin(1) + 2.*hfact*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - 2.*hfact*psepright))) then
           itype(i) = 1
           nbpts = nbpts + 1
        endif
     enddo
  endif   
- print*,'itype = ',itype
 !
 !--now set particle properties
 !
