@@ -76,7 +76,7 @@ subroutine evolve
 !
 ! --------------------- main loop ----------------------------------------
 !
- timestepping: do while ((time.lt.tmax).and.(nsteps.lt.nmax))
+ timestepping: do while ((time.lt.tmax).and.(nsteps.lt.nmax).and.(time.ge.0.))
 
     time = time + dt
     nsteps = nsteps + 1
@@ -95,14 +95,15 @@ subroutine evolve
 15     format(' t = ',f9.4,' dtcourant = ',1pe10.3)
     endif
     
-    if (dt.lt.1e-8) then
+    if (abs(dt).lt.1e-8) then
        write(iprint,*) 'main loop: timestep too small, dt = ',dt
        call quit
     endif
 !
 !--write to data file if time is right
 ! 
-    if (   (time.ge.tprint)             &
+    if (dt.gt.0.) then
+      if (   (time.ge.tprint)             &
        .or.(time.ge.tmax)            &
        .or.((mod(nsteps,nout).eq.0).and.(nout.gt.0))   &
        .or.(nsteps.ge.nmax)  ) then
@@ -112,6 +113,19 @@ subroutine evolve
        call output(time,nsteps)
        noutput = noutput + 1
        tprint = tzero + noutput*tout
+      endif
+    else
+      if (   (time.le.tprint)             &
+       .or.(time.le.0.)            &
+       .or.((mod(nsteps,nout).eq.0).and.(nout.gt.0))   &
+       .or.(nsteps.ge.nmax)  ) then
+ 
+!--if making movies and need ghosts to look right uncomment the line below, 
+       if (idumpghost.eq.1 .and. any(ibound.ge.2)) call set_ghost_particles
+       call output(time,nsteps)
+       noutput = noutput + 1
+       tprint = tprint - tout
+      endif    
     endif
 !    
 !--calculate total energy etc and write to ev file    
