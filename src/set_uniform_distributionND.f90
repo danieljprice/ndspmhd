@@ -14,7 +14,7 @@ contains
 !!------------------------------------------------------------------------!!
 
 subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
-           fill,adjustbound,offset,perturb,psepx,psepy,psepz,rmin,rmax)
+           fill,adjustbound,offset,perturb,psepx,psepy,psepz,rmin,rmax,mask)
 !
 !--include relevant global variables
 !
@@ -38,8 +38,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  real, intent(in) :: psep
  real, intent(in), optional :: perturb,psepx,psepy,psepz,rmin,rmax
  logical, intent(in), optional :: offset,fill,adjustbound
+ integer, intent(in), optional :: mask
  
- integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
+ integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed,imask
  integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
  integer, dimension(1000) :: listneigh
  real :: xstart,ystart,deltax,deltay,deltaz
@@ -71,6 +72,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     write(iprint,*) 'rmax = ',radmax
  else
     radmax = huge(radmax)
+ endif
+ if (present(mask)) then
+    imask = mask
+ else
+    imask = 0
  endif
 
  npartin = npart    ! this is how many particles have already been set up
@@ -202,6 +208,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
              rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart))) 
              if (rr .lt. radmin .or. &
                  rr .gt. (radmax - 0.01*psep)) ipart = ipart - 1
+             if (imask.ne.0) call applymask(imask,x(:,ipart),ipart)
           enddo
        enddo
     enddo
@@ -312,6 +319,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !--do not use if not within radial cuts
              rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart)))
              if (rr .lt. radmin .or. rr .gt. radmax) ipart = ipart - 1
+             if (imask.ne.0) call applymask(imask,x(:,ipart),ipart)
           enddo
        enddo
     enddo 
@@ -436,6 +444,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !--do not use if not within radial cuts
              rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart)))
              if (rr .lt. radmin .or. rr .gt. radmax) ipart = ipart - 1
+             if (imask.ne.0) call applymask(imask,x(:,ipart),ipart)
          enddo
        enddo
     enddo
@@ -621,5 +630,47 @@ subroutine reset_centre_of_mass(x,pmass)
  enddo
  
 end subroutine reset_centre_of_mass
+
+!
+!--this subroutine applies a variety of masks to the uniform setup
+!  by defining a new mask, it gives a way of setting up density distributions
+!  for equal mass particles
+!
+!  if imask is negative, this should supply the inverse mask
+!
+subroutine applymask(imask,xpart,ipart)
+ implicit none
+ integer, intent(in) :: imask
+ real, dimension(:), intent(in) :: xpart
+ integer, intent(inout) :: ipart
+ real, dimension(size(xpart)) :: dx,xorigin
+ real :: radius1,radius2
+ 
+ select case(imask)
+ case(1,-1)
+    xorigin(:) = 0.0
+    dx(:) = xpart(:) - xorigin(:)
+    radius1 = sqrt(dot_product(dx,dx))
+    xorigin(:) = 1.0
+    dx(:) = xpart(:) - xorigin(:)
+    radius2 = sqrt(dot_product(dx,dx))
+    if (imask.gt.0) then
+!
+!--cut around two radial points
+!
+       if (radius1.gt.0.4 .and. radius2.gt.0.4) then
+          ipart = ipart - 1
+       endif
+!
+!--inverse of above
+!
+    else
+       if (radius1.le.0.4 .or. radius2.le.0.4) then
+          ipart = ipart - 1
+       endif    
+    endif
+ end select
+ 
+end subroutine applymask
 
 end module uniform_distributions
