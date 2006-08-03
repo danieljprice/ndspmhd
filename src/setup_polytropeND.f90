@@ -56,6 +56,7 @@ subroutine setup
 !
 !--set these for all particles
 ! 
+ polyk = 0.4246
  vel(:,:) = 0.
  dens(:) = denszero
  uu(:) = uuzero

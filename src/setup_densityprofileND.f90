@@ -15,6 +15,7 @@ subroutine setup
  use setup_params, only:pi,psep
  use geometry, only:coord_transform
  use timestep, only:iseedMC
+ use mem_allocation, only:alloc
  
  use uniform_distributions
 !

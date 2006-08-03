@@ -19,19 +19,20 @@ SUBROUTINE setup
  USE options
  USE part
  USE setup_params
+ USE rates, only:force
 !
 !--define local variables
 !      
  IMPLICIT NONE
- INTEGER :: i,j,ndimfile,ndimVfile,npartfile,nprintfile,ncolumns
- REAL :: tfile,gammafile,hfactfile
+ INTEGER :: i,ierr
  CHARACTER(LEN=30) :: setupfile
- LOGICAL :: iexist, mhdfile
+ LOGICAL :: iexist
+ REAL :: dummy,frad,rhat(3),omegai,rpart,v2onr
 
 !
 !--set name of setup file
 !
- setupfile = 'tstar2D_static.dat'
+ setupfile = 'start.out'
 
  WRITE(iprint,*) 'Reading setup from file: ',TRIM(setupfile)
  INQUIRE (file=setupfile,exist=iexist)
@@ -46,86 +47,100 @@ SUBROUTINE setup
 !
 !--read header line
 !
- READ(ireadf,*,ERR=667) tfile,npartfile,nprintfile,gammafile,hfactfile, &
-      ndimfile,ndimVfile,ncolumns
- WRITE(iprint,*) 'time = ',tfile,' in setup file '
-!
-!--check for compatibility with current settings
-!
- IF (ndimfile.NE.ndim) STOP 'x dimensions not equal between setup file and code'
- IF (ndimVfile.NE.ndimV) STOP 'v dimensions not equal between setup file and code'
- IF (abs(gammafile-gamma).gt.1.e-3) WRITE(iprint,10) 'gamma',gammafile,gamma
- IF (abs(hfactfile-hfact).gt.1.e-3) WRITE(iprint,10) 'hfact',hfactfile,hfact
-10 FORMAT(/,'WARNING: ',a,' changed from original setup: old = ',f9.6,' new = ',f9.6,/)
- 
- IF ((nprintfile.NE.npartfile).AND.(ALL(ibound.LE.1))) THEN
-    WRITE(iprint,*) 'WARNING: setup file contains ghosts, but none set'
- ENDIF
- IF (ncolumns.EQ.(ndim+6+ndimV)) THEN
-    mhdfile = .false.
-    WRITE(iprint,*) '(non-MHD input file)'
-    IF (imhd.GT.0) WRITE(iprint,*) 'WARNING: reading non-MHD file, but MHD is on'
- ELSEIF (ncolumns.EQ.(ndim+7+3*ndimV)) THEN
-    mhdfile = .true.
-    WRITE(iprint,*) '(MHD input file)'
-    IF (imhd.LE.0) WRITE(iprint,*) 'WARNING: MHD input file, but MHD is off'       
- ELSE
-    STOP 'error: unknown identity of columns in input file'
- ENDIF
-!
-!--allocate memory for the number of particles
-!  do not read any ghost particles
-!
- npart = npartfile
- ntotal = npartfile
+ npart = 15000
+ ntotal = npart
  
  CALL alloc(ntotal)
 !
 !--read one step (only) from file
 !
- DO i=1,npart
-    IF (mhdfile) THEN
-       READ(ireadf,*,ERR=668) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &
-            pmass(i),alpha(:,i),Bfield(:,i),divB(i),curlB(:,i)
-       IF (imhd.EQ.0) THEN
-          Bfield(:,i) = 0.
-          divB(i) = 0.
-          curlB(:,i) = 0.
-       ENDIF
-    ELSE
-       READ(ireadf,*,ERR=668) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
-            pmass(i),alpha(:,i)
-       IF (imhd.NE.0) THEN
-          Bfield(:,i) = 0.    ! could change this
-          divB(i) = 0.
-          curlB(:,i) = 0.
-       ENDIF
-    ENDIF
- ENDDO
+ i = 0
+ ierr = 0
+ do while (i < ntotal .and. ierr .eq. 0)
+    i = i + 1
+    if (ndim.eq.3) then
+       read(ireadf,*,iostat=ierr) x(:,i),dummy,vel(:,i),pmass(i),dens(i),spsound(i)
+    else
+       read(ireadf,*,iostat=ierr) x(1:2,i),dummy,dummy,vel(:,i),pmass(i),dens(i),spsound(i)
+    endif
+!    print*,i,x(:,i),dummy,vel(:,i),pmass(i)
+    if (ierr .eq. 0) then
+       uu(i) = spsound(i)**2/(gamma*(gamma-1.))
+       pr(i) = (gamma-1.)*uu(i)*dens(i)
+       polyk = pr(i)/dens(i)**gamma
+       !!print*,'polyk = ',polyk
+       if (imhd.ne.0) then
+          bfield(:,i) = 0.
+          divb(i) = 0.
+          curlb(:,i) = 0.
+       endif
+    endif
+ enddo
+ npart = i-1
+ ntotal = npart
+ print*,' npart = ',npart
+ if (ierr > 0) then
+    print*,'ERROR reading '//trim(setupfile)
+    stop
+ endif
 !
 !--close the file
 !
- CLOSE(UNIT=ireadf)
- WRITE(iprint,*) 'Finished reading setup file: everything is AOK'
+ close(unit=ireadf)
+ write(iprint,*) 'Finished reading setup file: everything is AOK'
 !
 !--set bounds of setup
-!                   
+!
  xmax = 0.   ! irrelevant
  xmin = 0.
  ibound = 0	! no boundaries 
- iexternal_force = 1	! use toy star force
+ iexternal_force = 2	! use central potential
 !
 !--now change things according to the specific setup required
 !
- vel(:,:) = 0.
- WHERE (rho > 0.)
+ vel = 0.
+ where (rho > 0.)
     hh = hfact*(pmass(i)/rho(:))**dndim
- END WHERE
+ end where
  
- RETURN
+ call primitive2conservative
+ !
+ !--balance pressure forces with centripedal acceleration
+ !
+ 
+ do i=1,npart
+    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+    rhat(1:2) = x(1:2,i)/rpart
+    rhat(3) = 0.
+    frad = abs(dot_product(force(:,i),rhat(:)))
+    omegai = sqrt(frad/rpart)
+    vel(1,i) = -omegai*x(2,i)/sqrt(rpart)
+    vel(2,i) = omegai*x(1,i)/sqrt(rpart)
+    if (ndimV.ge.3) vel(3,i) = 0.
+    !!print*,'forcez = ',force(3,i),force(2,i)
+    !!v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
+    !!print*,'v2onr = ',v2onr*rhat(2),force(2,i)
+ enddo
+ 
+! zz(:) = 0.
+! zz(3) = 1.
+! do i=1,npart
+!    rpart = sqrt(dot_product(x(:,i),x(:,i)))
+!    rhat(:) = x(:,i)/rpart
+!    frad = abs(dot_product(force(:,i),rhat(:)))
+!    omegai = sqrt(frad/rpart)
+!    rxy = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+!    theta = ACOS(rxy/rpart)
+!    !--compute zhat (unit vector perpendicular to spherical r)
+!    zhat(:) = zz(:) - SIN(theta)*rhat(:)
+!    !--vel = omega*zhat cross r
+!    vel(1,i) = omegai*(zhat(2)*x(3,i) - zhat(3)*x(2,i))
+!    vel(2,i) = omegai*(zhat(3)*x(1,i) - zhat(1)*x(3,i))
+!    vel(3,i) = omegai*(zhat(1)*x(2,i) - zhat(2)*x(1,i))
+! enddo
 
-666 STOP 'error opening setup file'
-667 STOP 'error reading header line from setup file'
-668 STOP 'error reading timestep from setup file'
+ return
+
+666 stop 'error opening setup file'
 
 END SUBROUTINE setup

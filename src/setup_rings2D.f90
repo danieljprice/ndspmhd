@@ -15,6 +15,7 @@ subroutine setup
  use options
  use part
  use setup_params
+ use mem_allocation, only:alloc
 !
 !--define local variables
 !            
