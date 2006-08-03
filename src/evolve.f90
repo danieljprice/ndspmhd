@@ -16,7 +16,7 @@ subroutine evolve
 !
  implicit none
  real :: tprint
- integer :: i,noutput,nevwrite
+ integer :: i,noutput,nevwrite,nsort
  real :: t_start,t_end,t_used,tzero
  real :: etot, momtot, etotin, momtotin, detot, dmomtot, epoti
  character(len=10) :: finishdate, finishtime
@@ -47,6 +47,7 @@ subroutine evolve
  t_end = 0.
  nsteps = 0
  nevwrite = 1   ! frequency of writing to .ev file (could be read as parameter)
+ nsort = 1 ! frequency of sorting (again, should be parameter)
  detot = 0.
  dmomtot = 0.
  tzero = time
@@ -80,7 +81,13 @@ subroutine evolve
 
     time = time + dt
     nsteps = nsteps + 1
-
+!    
+!--sort particles at regular intervals  
+!
+!    if (nsort.gt.0 .and. mod(nsteps,nsort).eq.0) then
+!       call sort_particles()
+!    endif
+    
     call step           !  evolve data for one timestep
 !
 !--write log every step in 2D/3D
