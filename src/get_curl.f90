@@ -18,6 +18,8 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  use get_neighbour_lists, only:get_neighbour_list
  use hterms, only:gradh
  use setup_params, only:hfact
+ use part, only:itype,ntotal
+ use bound, only:ireal
 !
 !--define local variables
 !
@@ -34,12 +36,13 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
  real :: rij,rij2
- real :: hi,hi1,hj,hj1,hi2,hj2
+ real :: hi,hi1,hj,hj1,hi21
  real :: hfacwabi,hfacwabj
  real :: pmassi
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr, dB, Bi, curlBi
+ real, dimension(ndimV) :: dr, dB, Bi, curlBi, curlBterm
  real :: q2i,q2j,wabi,wabj,grkerni,grkernj
+ real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
 !      
@@ -51,6 +54,9 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  curlB = 0.
  dr(:) = 0.
  weight = 1./hfact**ndim
+ do i=1,ntotal
+    h1(i) = 1./hh(i)
+ enddo
 !
 !--loop over all the link-list cells
 !
@@ -71,12 +77,13 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 
        !       print*,'doing particle ',i,nneigh,' neighbours',hh(i)
        idone = idone + 1
-       hi = hh(i)
-       hi1 = 1./hi
-       hi2 = hi*hi
+       !!hi = hh(i)
+       hi1 = h1(i) !!1./hi
+       hi21 = hi1*hi1
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
        Bi(:) = Bvec(:,i)
+       curlBi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -85,13 +92,12 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then
              ! don't count particle with itself       
              dx(:) = x(:,i) - x(:,j)
-             hj = hh(j)
-             hj1 = 1./hj
-             hj2 = hj*hj
+             !!hj = hh(j)
+             hj1 = h1(j) !!1./hj
              
              rij2 = dot_product(dx,dx)
-             q2i = rij2/hi2
-             q2j = rij2/hj2     
+             q2i = rij2*hi21
+             q2j = rij2*hj1*hj1    
              !          print*,' neighbour,r/h,dx,hi,hj ',j,sqrt(q2),dx,hi,hj
 !     
 !--do interaction if r/h < compact support size
@@ -118,29 +124,27 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !
 !--calculate curl of Bvec (NB dB is 3-dimensional, dr is also but zero in parts)
 !
+!--form 1 (dB using weights) -- multiply by weight below
                 dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
-!                if (ndim.eq.3) then
-                   call cross_product3D(dB,dr,curlBi)
-!                   curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
-!                   curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
-!                   curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-!                elseif (ndim.eq.2) then  ! just Az in 2D
-!                   curlBi = 0.
-!                   curlBi(1) = -dB(1)*dr(2) ! replace dB(3) by dB(1)
-!                   curlBi(2) = dB(1)*dr(1)
-!                endif
-                !
-                !--compute rho * current density j
-                !
-                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni*hfacwabi
-                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj*hfacwabj
-!                curlB(:,i) = curlB(:,i) + curlBi(:)*grkerni
-!                curlB(:,j) = curlB(:,j) + curlBi(:)*grkernj
-                !!print*,'weight = ',weight,' m/rho h^3 = ',pmass(j)/rho(j)*hfacwabj
-                
+                call cross_product3D(dB,dr,curlBterm)
+!                curlBi(:) = curlBi(:) + curlBterm(:)*grkerni
+!                curlB(:,j) = curlB(:,j) + curlBterm(:)*grkernj                
+
+!--form 2 (dB, m_j/rho_i with gradh) -- divide by rho(i) below
+                curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)*grkerni*hfacwabi
+                curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)*grkernj*hfacwabj
+
+!--form 3 (m_j/rho_j) either with dB (use curl above) or with just B (uncomment curls below)
+!                call cross_product3D(-Bvec(1:ndimV,j),dr,curlBterm)
+!                curlBi(:) = curlBi(:) + pmass(j)/rho(j)*curlBterm(:)*grkernj*hfacwabj
+!                call cross_product3D(Bi(1:ndimV),dr,curlBterm)
+!                curlB(:,j) = curlB(:,j) + pmassi/rho(i)*curlBterm(:)*grkerni*hfacwabi
+
              endif
           endif! j .ne. i   
        enddo loop_over_neighbours
+       
+       curlB(:,i) = curlB(:,i) + curlBi(:)
        
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
@@ -150,8 +154,8 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 
  do i=1,npart
     curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
-!    curlB(:,i) = weight*curlB(:,i)*gradh(i)
-!    print*,i,curlB(:,i)
+!    curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
+!    curlB(:,i) = rho(i)*curlB(:,i) !!*gradh(i)
  enddo
 
  return
