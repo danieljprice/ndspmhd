@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS = -O3 -ffast-math -r8 -Wall -Wextra
+F90FLAGS = -O3 -ffast-math -g -funroll-loops -finline-functions -falign-loops=16 -r8 -Wall -Wuninitialized #-ftrace=full -fbounds-check
 LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
@@ -50,7 +50,7 @@ SETUP1D = setup_shockND.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
-SETUP2D = setup_orszagtang2D_mhd.f90
+#SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
@@ -60,7 +60,7 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-#SETUP2D = setup_shockND.f90
+SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
@@ -73,9 +73,10 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
+SETUP2D = setup_cylblast2D.f90
 
 #SETUP3D = setup_polytropeND.f90
-#SETUP3D = setup_unifdisND.f90 cp_distribute.f
+#SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
@@ -84,7 +85,8 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
-SETUP3D = setup_densityprofileND.f90 
+#SETUP3D = setup_densityprofileND.f90 
+SETUP3D = setup_recontest3D.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -105,9 +107,9 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
-          grutils_gr.f90 \
-         density_sums.f90 exact_densityprofiles.f90 errors.f90 \
-	 eos.f90 evolve_montecarlo.f90 external_forces_gr.f90 \
+         grutils_gr.f90 \
+         density_sums.f90 \
+	 eos.f90 evolve.f90 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
 	 linkND.f90 logun.f90 \
@@ -115,7 +117,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
 	 set_fixedbound.f90 \
-	 sobolsequence.f90 substep_divB.f90 utils.f90 \
+	 sobolsequence.f90 sort_particles.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
 	 get_divB.f90 get_curl.f90 divBcorrect.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
