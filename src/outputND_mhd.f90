@@ -5,6 +5,7 @@ subroutine output(t,nstep)
  use debug
  use loguns
  use part, only:npart,ntotal
+ use options, only:imhd,ibound
  
  use dumpfiles
  implicit none
@@ -19,8 +20,13 @@ subroutine output(t,nstep)
 !--calculate primitive variables from conservatives for output
 !  nstep <0 means do not do this as we are on a quit dump
 !
- if (nstep.ge.0) call conservative2primitive  ! also calls equation of state
-
+ if (nstep.ge.0) then
+    if (imhd.lt.0) then
+       if (any(ibound.ge.2)) call set_ghost_particles
+       call set_linklist
+    endif
+    call conservative2primitive  ! also calls equation of state
+ endif
 !
 !--create new dumpfile if rootname contains numbers
 !
