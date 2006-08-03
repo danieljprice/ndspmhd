@@ -24,6 +24,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  use linklist, only:iamincell
  use bound, only:hhmax
  use get_neighbour_lists, only:get_neighbour_list_partial
+ use mem_allocation, only:alloc
 
  use options
  use part
@@ -505,6 +506,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
  use loguns
  use part
  use setup_params, only:psep
+ use mem_allocation, only:alloc
 !
 !--define local variables
 !            
