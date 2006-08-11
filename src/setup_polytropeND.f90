@@ -56,10 +56,10 @@ subroutine setup
 !
 !--set these for all particles
 ! 
- polyk = 0.4246
+ polyk = 0.42466322
  vel(:,:) = 0.
  dens(:) = denszero
- uu(:) = uuzero
+ uu(:) = polyk*denszero**(gamma-1.0)/(gamma-1.0)
  pmass(:) = massp
  Bfield(:,:) = 0.
  call reset_centre_of_mass(x,pmass)
