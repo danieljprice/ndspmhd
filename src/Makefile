@@ -15,7 +15,7 @@ SHELL = /bin/sh
 doubleprecision= yes
 
 ifeq ($(SYSTEM), ukaff1a)
-    FC= xlf_r -qnosave
+    F90C= xlf_r -qnosave
     F90FLAGS= -O3 -q64 -qextname -qsmp=noauto
     DBLFLAG= -qrealsize=8
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
@@ -24,7 +24,7 @@ ifeq ($(SYSTEM), ukaff1a)
 endif
 
 ifeq ($(SYSTEM), sunf95)
-    FC= sunf95
+    F90C= sunf95
     F90FLAGS= -fast
     DBLFLAG= -xtypemap=real:64,double:64
     DEBUGFLAG= -g -C -ftrap=common
@@ -34,8 +34,8 @@ ifeq ($(SYSTEM), sunf95)
 endif
 
 ifeq ($(SYSTEM), g95)
-    FC= g95
-    F90FLAGS= -O3 -Wall -Wno=112,140 -ffast-math 
+    F90C= g95
+    F90FLAGS= -O3 -Wall -Wno=112,140 -ffast-math -funroll-loops -finline-functions -falign-loops=16
     DBLFLAG= -r8
     DEBUGFLAG= -g -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
@@ -45,7 +45,7 @@ ifeq ($(SYSTEM), g95)
 endif
 
 ifeq ($(SYSTEM), myg95)
-    FC= myg95
+    F90C= myg95
     F90FLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
     DBLFLAG= -r8
     DEBUGFLAG= -ftrace=full -fbounds-check
@@ -55,7 +55,7 @@ ifeq ($(SYSTEM), myg95)
 endif
 
 ifeq ($(SYSTEM), ifort)
-    FC= ifort
+    F90C= ifort
     F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
     DBLFLAG= -r8
     DEBUGFLAG= -C
@@ -83,17 +83,6 @@ endif
 ifeq ($(doubleprecision), yes)
     F90FLAGS += ${DBLFLAG}
 endif
-
-#F90C = ifc
-#F90FLAGS =  -O3 -WB -r8
-#LDFLAGS = -Vaxlib
-F90C = sunf95
-#F90FLAGS = -O3 ##-axP -xW -ipo -r8
-F90FLAGS = -fast -xarch=amd64 -xtypemap=real:64,double:64 ##-Wall -Wextra
-
-#F90C =  g95
-#F90FLAGS = -O3 -ffast-math -g -funroll-loops -finline-functions -falign-loops=16 -r8 -Wall -Wuninitialized #-ftrace=full -fbounds-check
-#LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
