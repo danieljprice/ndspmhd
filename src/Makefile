@@ -9,13 +9,91 @@
 
 # specify editor to use for file editing
 EDITOR = nedit
+KNOWN_SYSTEM=no
+SHELL = /bin/sh
+
+doubleprecision= yes
+
+ifeq ($(SYSTEM), ukaff1a)
+    FC= xlf_r -qnosave
+    F90FLAGS= -O3 -q64 -qextname -qsmp=noauto
+    DBLFLAG= -qrealsize=8
+#    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+    DEBUGFLAG= -C
+    KNOWN_SYSTEM=yes
+endif
+
+ifeq ($(SYSTEM), sunf95)
+    FC= sunf95
+    F90FLAGS= -fast
+    DBLFLAG= -xtypemap=real:64,double:64
+    DEBUGFLAG= -g -C -ftrap=common
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
+    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
+endif
+
+ifeq ($(SYSTEM), g95)
+    FC= g95
+    F90FLAGS= -O3 -Wall -Wno=112,140 -ffast-math 
+    DBLFLAG= -r8
+    DEBUGFLAG= -g -ftrace=full -fbounds-check
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
+endif
+
+ifeq ($(SYSTEM), myg95)
+    FC= myg95
+    F90FLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
+    DBLFLAG= -r8
+    DEBUGFLAG= -ftrace=full -fbounds-check
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+endif
+
+ifeq ($(SYSTEM), ifort)
+    FC= ifort
+    F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
+    DBLFLAG= -r8
+    DEBUGFLAG= -C
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+endif
+
+
+# Set other optional flags depending on settings
+
+ifeq ($(debug), yes)
+    F90FLAGS += ${DEBUGFLAG}
+endif
+
+ifeq ($(ENDIAN), BIG)
+    F90FLAGS += ${ENDIANFLAGBIG}
+endif
+
+ifeq ($(ENDIAN), LITTLE)
+    F90FLAGS += ${ENDIANFLAGLITTLE}
+endif
+
+ifeq ($(doubleprecision), yes)
+    F90FLAGS += ${DBLFLAG}
+endif
 
 #F90C = ifc
-#F90FLAGS =  -O -C -WB -r8
+#F90FLAGS =  -O3 -WB -r8
 #LDFLAGS = -Vaxlib
-F90C =  g95
-F90FLAGS = -O3 -ffast-math -g -funroll-loops -finline-functions -falign-loops=16 -r8 -Wall -Wuninitialized #-ftrace=full -fbounds-check
-LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+F90C = sunf95
+#F90FLAGS = -O3 ##-axP -xW -ipo -r8
+F90FLAGS = -fast -xarch=amd64 -xtypemap=real:64,double:64 ##-Wall -Wextra
+
+#F90C =  g95
+#F90FLAGS = -O3 -ffast-math -g -funroll-loops -finline-functions -falign-loops=16 -r8 -Wall -Wuninitialized #-ftrace=full -fbounds-check
+#LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -75,7 +153,7 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_blobevap2D.f90
 SETUP2D = setup_cylblast2D.f90
 
-#SETUP3D = setup_polytropeND.f90
+SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -86,7 +164,7 @@ SETUP2D = setup_cylblast2D.f90
 #SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
 #SETUP3D = setup_densityprofileND.f90 
-SETUP3D = setup_recontest3D.f90
+#SETUP3D = setup_recontest3D.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -123,7 +201,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 
+SOURCES2 = conservative2primitive.f90 stepND_leapfrog_mhd.f90 evwrite_mhd.f90 
 
 # these files are for the gr version of the code
 SOURCESGR = conservative2primitive_gr.f90 \
@@ -145,22 +223,22 @@ OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
 crap:
 	echo specify number of dimensions, e.g. make 1D
 
-1D: $(OBJECTS1D)
+1D: checksystem $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
 
-2D : $(OBJECTS2D)
+2D : checksystem $(OBJECTS2D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DSPMHD $(OBJECTS2D)
 
-3D : $(OBJECTS3D)
+3D : checksystem $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 
-1DGR : 	$(OBJECTSGR1D)
+1DGR : checksystem $(OBJECTSGR1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
 
-2DGR : 	$(OBJECTSGR2D)
+2DGR : checksystem $(OBJECTSGR2D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
 
-3DGR : 	$(OBJECTSGR3D)
+3DGR : checksystem $(OBJECTSGR3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
 
 ## files from elsewhere
@@ -195,6 +273,34 @@ moddump2D: dimen2D.o $(OBJMODDUMP2D)
 
 moddump3D: dimen3D.o $(OBJMODDUMP3D)
 	$(F90C) $(F90FLAGS) -o ../$@ dimen3D.o $(OBJMODDUMP3D)
+
+checksystem:
+   ifeq ($(KNOWN_SYSTEM), yes)
+	@echo ""
+	@echo "Compiling ndspmhd for $(SYSTEM) system..........."
+	@echo ""
+        ifeq ($(debug), yes)
+	     @echo "Debugging flags are ON"
+        endif
+        ifeq ($(doubleprecision), yes)
+	     @echo "Flags set for DOUBLE PRECISION"
+        else
+	     @echo "Flags set for SINGLE PRECISION"
+        endif
+        ifeq ($(ENDIAN), BIG)
+	     @echo "Flags set for conversion to BIG endian"
+        endif
+        ifeq ($(ENDIAN), LITTLE)
+	     @echo "Flags set for conversion to LITTLE endian"
+        endif
+   else
+	@echo ""
+	@echo "make: WARNING: value of SYSTEM = $(SYSTEM) not recognised..."
+	@echo "=>set the environment variable SYSTEM to one listed "
+	@echo "  in the Makefile and try again"
+	@echo ""
+	quit
+   endif
 
 ## other crap
 
