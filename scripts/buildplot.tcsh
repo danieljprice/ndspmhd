@@ -50,6 +50,7 @@ else
    cd /tmp
    cp $tarfile.gz ~/web/supersphplot/download
    cp $tarfile.gz ~/supersphplot-releases/
+   cp $builddir/INSTALL* ~/web/supersphplot/download
 #--add comment line to version history file (text)
    cd ~/supersphplot-releases
    echo $vernum':' > version-$vernum
