@@ -113,7 +113,7 @@ subroutine iterate_density
      nrhosmall = 0
      nwarn = 0
      
-     if (ihvar.ne.0) then
+     if (ihvar.eq.3) then
         do j=1,ncalcprev
            i = redolistprev(j)
 
@@ -228,6 +228,13 @@ subroutine iterate_density
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
            write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
         endif
+     elseif (ihvar.gt.0) then
+        do i=1,npart
+           dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
+           dhdt(i) = dhdrhoi*drhodt(i)
+        enddo  
+        write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
+                        ' max nneigh = ',maxval(numneigh(1:npart))
      else ! if ihvar = 0
 !
 !--overwrite gradh if not using variable h
