@@ -49,7 +49,7 @@ subroutine densityiterate
  case(3)
     const = 0.3*radkern2
  end select
-! const = 0.
+ const = 0.
  print*,'const = ',const,'hhmax=',hhmax
  icellprev = 0
  minneigh = huge(minneigh)
@@ -120,28 +120,28 @@ subroutine densityiterate
 !--work out sums, see if h is converged
 !
        func = sum1 + const*sum2
-       print*,'sum1, sum2 = ',sum1,const*sum2
+!       print*,'sum1, sum2 = ',sum1,const*sum2
        dfunc = func - func0
        
-       converged = (abs(dfunc/func) < tolh) .or. itsdensity.eq.maxdensits
+       converged = (abs(dfunc/func) < tolh) .or. itsdensity.ge.maxdensits
 !
 !--set h for next iterations if not converged
 !
        if (.not.converged) then
           !--fixed point iteration
-          print*,i,'hold = ',hi,' neigh = ',nneighi,'rho = ',sum1/(hi**ndim)
-          print*,'del2rho =',sum2/(hi**(ndim+2))
-          print*,'fact=',hfact*(pmass(i)/(sum1 + const*sum2))**dndim
+!          print*,i,'hold = ',hi,' neigh = ',nneighi,'rho = ',sum1/(hi**ndim)
+!          print*,'del2rho =',sum2/(hi**(ndim+2))
+!          print*,'fact=',hfact*(pmass(i)/(sum1 + const*sum2))**dndim
           hi = hfact*(pmass(i)/(sum1 + const*sum2))**dndim*hi
-          select case(ndim)
-          case(1)
-          print*,'Neigh 1 =',2.*radkern*sum1/pmass(i)
-          print*,'Neigh 2 =',(2.*radkern*sum1 + radkern**3*2./3.*sum2)/pmass(i)
-          case(3)
-          print*,'Neigh 1 =',4./3.*pi*radkern**3*sum1/pmass(i)
-          print*,'Neigh 2 =',(4./3.*pi*radkern**3*sum1 + 2.*pi/5.*radkern**5*sum2)/pmass(i)
-          end select
-          read*
+!          select case(ndim)
+!          case(1)
+!          print*,'Neigh 1 =',2.*radkern*sum1/pmass(i)
+!          print*,'Neigh 2 =',(2.*radkern*sum1 + radkern**3*2./3.*sum2)/pmass(i)
+!          case(3)
+!          print*,'Neigh 1 =',4./3.*pi*radkern**3*sum1/pmass(i)
+!          print*,'Neigh 2 =',(4./3.*pi*radkern**3*sum1 + 2.*pi/5.*radkern**5*sum2)/pmass(i)
+!          end select
+!          read*
        endif
        if (nneighi.le.1) then
           !print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
