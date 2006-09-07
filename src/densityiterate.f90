@@ -27,7 +27,7 @@ subroutine densityiterate
  implicit none
  real, parameter :: pi = 3.1415926536
  integer :: i,j,n,icell,icellprev,nneigh,nneighi,itsdensity
- integer :: minneigh,maxneigh
+ integer :: minneigh,maxneigh,ncalc,nitsmax
  integer, dimension(ntotal) :: listneigh
  real :: const,sum1,sum2,hi,hi21,hnew
  real :: func0,func,dfunc
@@ -57,6 +57,9 @@ subroutine densityiterate
 !
 !--loop over all particles
 !
+ ncalc = 0
+ nitsmax = 0
+ 
  do i=1,npart
 !
 !--set sums to zero, also set initial values of h, rho etc
@@ -70,6 +73,7 @@ subroutine densityiterate
     converged = .false.
     iterate: do while (.not.converged)    
        itsdensity = itsdensity + 1
+       ncalc = ncalc + 1
 
 !
 !--get neighbour list for current particle
@@ -152,6 +156,7 @@ subroutine densityiterate
 
     enddo iterate
 
+    nitsmax = max(nitsmax,itsdensity)
     if (itsdensity.eq.maxdensits) write(iprint,*) 'ERROR: not converged ',i
 !
 !--having finished iterations, now calculate extra crap
@@ -169,5 +174,6 @@ subroutine densityiterate
 
  enddo
  write(iprint,*) ' min. nneigh = ',minneigh,' max nneigh = ',maxneigh
+ write(iprint,*) ' iterations = ',nitsmax,ncalc
 
 end subroutine densityiterate
