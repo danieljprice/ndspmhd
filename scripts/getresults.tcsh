@@ -6,10 +6,17 @@ if $# != 1 then
 else
    set run=$1
    cd $run
-   set date=`date +'_%a_%b_%e_%H:%M:%S'`
-   if ( -e results ) mv results results$date
+   set date=`date +'_%a_%b_%d_%H:%M:%S'`
+   if ( -e results ) then
+      echo 'renaming old results -> results'$date
+      mv results results$date
+   endif
    echo 'using getav...'
-   ~/ndspmhd/plot/scripts/getav.pl $run?.output $run??.output | cut -d':' -f 3 > results
+   if ( -e crap ) rm crap
+   ~/ndspmhd/plot/scripts/getav.pl $run?.output $run??.output > crap
+   cat crap
+   cat crap | cut -d':' -f 3 > results
+   rm crap
    if ( -e hsoft_$run ) then
       cut -d' ' -f 2 hsoft_$run > hsoftvalues
       if ( -e results_$run.txt ) mv results_$run.txt results_$run$date.txt
