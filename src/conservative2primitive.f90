@@ -165,10 +165,10 @@ subroutine primitive2conservative
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
-     ikernav = 3                ! consistent with h for first density evaluation
+!     ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
 !     call densityiterate
-     ikernav = iktemp  
+!     ikernav = iktemp  
 !!     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
