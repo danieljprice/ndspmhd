@@ -28,6 +28,8 @@ else
    echo '	cd ~/ndspmhd/src; make moddump'$1
    echo 'moddumpc:'
    echo '	cd ~/ndspmhd/src; make clean; make moddump'$1
+   echo 'make:'
+   echo '	cd ~/ndspmhd/src; nedit Makefile &'
    echo 'clean:'
    echo '	cd ~/ndspmhd/; make clean'
 endif
