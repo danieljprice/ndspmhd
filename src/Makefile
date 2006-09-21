@@ -150,8 +150,8 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
-#SETUP2D = setup_blobevap2D.f90
-SETUP2D = setup_cylblast2D.f90
+SETUP2D = setup_blobevap2D.f90
+#SETUP2D = setup_cylblast2D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
@@ -252,6 +252,8 @@ geometry.o:
 
 exact_densityprofiles.o:
 	$(F90C) -c $(F90FLAGS) ../plot/exact_densityprofiles.f90 -o $@
+
+evolve_montecarlo.o: setup_densityprofileND.o
 
 ## modify dump utility
 
