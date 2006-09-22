@@ -57,7 +57,7 @@ foreach $file (@ARGV) {
       $avg2 = 0;   
    }
 
-   print "$file: Average of $nerrors errors: $avg : $avg1 : $avg2 (nerrors = $nerrors1, $nerrors2 )\n";
+   print "$file: Average of $nerrors errors: $avg : $avg1 : $avg2 : (nerrors = $nerrors1, $nerrors2 )\n";
 }
 
 #print "$_\n" for @errors;
