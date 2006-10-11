@@ -16,7 +16,7 @@ subroutine evolve
  use errors, only:calculate_errors
  use rates, only:force,poten
  use kernels, only:radkern
- use plummer_setup, only:npart1,npart2
+ use plummer_setup, only:npart1,npart2,idist
 !
 !--define local variables
 !
@@ -100,23 +100,23 @@ subroutine evolve
        fmag(i) = sqrt(dot_product(force(:,i),force(:,i)))
     enddo
     xmin = 0.
-    xmax = 13.
+    xmax = 200.
     if (maxval(rr(1:npart)).gt.xmax) stop 'error rrmax > xmax'
     dxexact = (xmax - xmin)/real(nexact-1)
     do i=1,nexact
        xexact(i) = xmin + (i-1)*dxexact
     enddo
 
-    msphere(1) = 0.5
-    msphere(2) = 0.5
+    msphere(1) = 1.0
+    msphere(2) = 0.0
     rsoft(1) = 1.0
     rsoft(2) = 0.1
-!    call exact_densityprofiles(3,1,msphere,rsoft,xexact,yexact,ierr)
-!    call calculate_errors(xexact,yexact,rr,fmag,residual, &
-!         errL1,errL2,errLinf)
-    call force_error_densityprofiles(1,npart,x(1:ndim,1:npart),force(1:ndim,1:npart), &
-                                    poten(1:npart),errL2,errL1,ierr)
-    errLinf = 0.
+    call exact_densityprofiles(3,idist,msphere,rsoft,xexact,yexact,ierr)
+    call calculate_errors(xexact,yexact,rr,fmag,residual, &
+         errL1,errL2,errLinf)
+!    call force_error_densityprofiles(1,npart,x(1:ndim,1:npart),force(1:ndim,1:npart), &
+!                                    poten(1:npart),errL2,errL1,ierr)
+!    errLinf = 0.
     if (ierr /= 0) stop 'error in exact solution calculation'
     toterrL2 = toterrL2 + errL2
     toterrLinf = toterrLinf + errLinf
@@ -126,20 +126,22 @@ subroutine evolve
 !
 !--print errors in each component
 !
-    call force_error_densityprofiles(1,npart1,x(1:ndim,1:npart1),force(1:ndim,1:npart1), &
-                                    poten(1:npart1),errL2_1,errL1,ierr)
+    if (npart2.gt.0) then
+       call force_error_densityprofiles(1,npart1,x(1:ndim,1:npart1),force(1:ndim,1:npart1), &
+                                       poten(1:npart1),errL2_1,errL1,ierr)
 !--this is contribution of 1st component to total MASE, *NOT* MASE for 1st component
-    errL2_1 = errL2_1*npart1/real(npart)
-    toterrL2_1 = toterrL2_1 + errL2_2
-    print*,nsteps,' L2 err (1) = ',errL2_1,' mean (1) = ',toterrL2_1/real(nsteps), &
-        ' Linf (1) = ',errLinf
-    call force_error_densityprofiles(1,npart2,x(1:ndim,npart1+1:npart2),force(1:ndim,npart1+1:npart2), &
-                                    poten(npart1+1:npart2),errL2_2,errL1,ierr)
+       errL2_1 = errL2_1*npart1/real(npart)
+       toterrL2_1 = toterrL2_1 + errL2_2
+       print*,nsteps,' L2 err (1) = ',errL2_1,' mean (1) = ',toterrL2_1/real(nsteps), &
+           ' Linf (1) = ',errLinf
+       call force_error_densityprofiles(1,npart2,x(1:ndim,npart1+1:npart2),force(1:ndim,npart1+1:npart2), &
+                                       poten(npart1+1:npart2),errL2_2,errL1,ierr)
 !--same here, but for second component
-    errL2_2 = errL2_2*npart2/real(npart)
-    toterrL2_2 = toterrL2_2 + errL2_2
-    print*,nsteps,' L2 err (2) = ',errL2_2,' mean (2) = ',toterrL2_2/real(nsteps), &
-        ' Linf (2) = ',errLinf
+       errL2_2 = errL2_2*npart2/real(npart)
+       toterrL2_2 = toterrL2_2 + errL2_2
+       print*,nsteps,' L2 err (2) = ',errL2_2,' mean (2) = ',toterrL2_2/real(nsteps), &
+           ' Linf (2) = ',errLinf
+    endif
 !
 !--calculate errors
 !
@@ -170,8 +172,8 @@ subroutine evolve
 !
 !--write final error values to file
 !
- open(unit=99,file='results',status='unknown',action='write', &
-      position='append',form='formatted')
+ open(unit=99,file=trim(rootname)//'.results',status='replace',action='write', &
+     form='formatted')
      print*,' --- final results ---'
      if (igravity.ge.3) then
         write(99,*) hfact,4./3.*pi*(radkern*hfact)**3,toterrL2/real(nsteps),toterrLinf/real(nsteps),nsteps     
