@@ -10,7 +10,7 @@ my $nsteps;
 my $startnum;
 my $zero = 0;
 my $ext = '.dat';
-my $dir = `pwd`;
+my $dir = `pwd -P`;
 my $SPMHD = 'SPMHD';
 my $ndspmhddir = '~/ndspmhd';
 
@@ -40,7 +40,7 @@ for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
 ##    print "copying $rootname\_init.dat $rootname$n\_init.dat \n";
 ##    system "cd $rootname; cp $rootname\_init.dat $rootname$n\_init.dat; ./$ndim$SPMHD $rootname$n\_init.dat > $rootname$n.output";
-    system "cd $rootname; rm $rootname$n.csh; echo '#!'/bin/tcsh > $rootname$n.csh; echo cd \$PWD >> $rootname$n.csh; echo ./$ndim$SPMHD $rootname$n '>&' $rootname$n.output >> $rootname$n.csh; chmod a+x $rootname$n.csh";
+    system "cd $rootname; rm $rootname$n.csh; echo '#!'/bin/tcsh > $rootname$n.csh; echo cd `pwd -P` >> $rootname$n.csh; echo ./$ndim$SPMHD $rootname$n '>&' $rootname$n.output >> $rootname$n.csh; chmod a+x $rootname$n.csh";
     my $jobid = `cd $rootname; xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job submit ./$rootname$n.csh`;
 ##    my $jobid = `cd $rootname; xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -in \$PWD -out \$PWD -se \$PWD/$rootname$n.errors -so \$PWD/$rootname$n.output -job submit ./$ndim$SPMHD $rootname$n`;
     print "$jobid \n";
