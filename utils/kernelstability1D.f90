@@ -67,7 +67,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      ymax = 1.
      labely = 'R'
   else                  ! y axis is h
-     ymin = 1.0*psep
+     ymin = 0.5*psep
      ymax = 5.0*psep
      labely = 'h'
   endif
@@ -264,7 +264,7 @@ end subroutine kernelstability1D
 !           RR       : negative stress parameter (RR=1 gives hydro)
 !
 real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
-  use kernels, only:wij,grwij,grgrwij,grwijaniso,grgrwijaniso, &
+  use kernels, only:wij,grwij,grgrwij,grwijalt,grgrwijalt, &
                     ikern,dq2table,ddq2table
   implicit none
   integer :: i,index,index1, ipart, npart, neps
@@ -342,10 +342,10 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
 !        term = (1.-0.5*eps*(w/wjoe)**neps)
 !        gradWcorr = gradW*term
 !        gradgradWcorr = gradgradW*term - 0.5*eps*neps*W**(neps-1)/wjoe**neps*gradW*gradW
-         dgrwdx = (grwijaniso(index1)-grwijaniso(index))*ddq2table
-         dgrgrwdx = (grgrwijaniso(index1)-grgrwijaniso(index))*ddq2table
-         gradWcorr = (grwijaniso(index) + dgrwdx*dxx)/hh**2
-         gradgradWcorr = (grgrwijaniso(index) + dgrgrwdx*dxx)/hh**3      
+         dgrwdx = (grwijalt(index1)-grwijalt(index))*ddq2table
+         dgrgrwdx = (grgrwijalt(index1)-grgrwijalt(index))*ddq2table
+         gradWcorr = (grwijalt(index) + dgrwdx*dxx)/hh**2
+         gradgradWcorr = (grgrwijalt(index) + dgrgrwdx*dxx)/hh**3      
      else
         gradWcorr = gradW
 	gradgradWcorr = gradgradW
