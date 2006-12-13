@@ -30,12 +30,12 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j,ntot,npartx,nparty,ipart
- real :: denszero,przero,vzero
+ integer :: ipart
+ real :: denszero,przero
  real :: prblast,pri,uui,rblast,radius,enblast,enzero
  real :: totmass,gam1,massp,const
  real, dimension(ndim) :: xblast, dblast
- real, dimension(ndimV) :: bzero
+ real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
 !
@@ -43,8 +43,8 @@ subroutine setup
 !            	    
  ibound = 3	! fixed ghosts
  nbpts = 0
- xmin(1) = -0.5		! same xmin in all dimensions
- xmax(1) = 0.5
+ xmin(:) = -0.5		! same xmin in all dimensions
+ xmax(:) = 0.5
  xmin(2) = -0.75
  xmax(2) = 0.75
  const = 1./sqrt(4.*pi) 
@@ -52,7 +52,7 @@ subroutine setup
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rblast = 0.1     !!!05    !!!*psep		! radius of the initial blast
+ rblast = 0.0     !!!05    !!!*psep		! radius of the initial blast
  rbuffer = rblast	!+10.*psep		! radius of the smoothed front
  bzero(:) = 0.0
  if (imhd.ne.0) then
@@ -61,7 +61,7 @@ subroutine setup
  endif
  przero = 0.1		! initial pressure
  denszero = 1.0
- prblast = 100.0	! initial pressure within rblast
+ prblast = 10.0	! initial pressure within rblast
  enblast = 1.0
  enzero = 0.
  
@@ -70,16 +70,16 @@ subroutine setup
 
  write(iprint,10) ndim
  write(iprint,20) prblast,rblast,denszero,przero
- write(iprint,30) bzero
+ write(iprint,30) Bzero
 10 format(/,1x,i1,'-dimensional adiabatic mhd blast wave problem')
 20 format(/,' central pressure  = ',f10.3,', blast radius = ',f6.3,/, &
             ' density = ',f6.3,', pressure = ',f6.3,/)
-30 format(' initial b   = ',3(f6.3,1x))
+30 format(' initial B   = ',3(f6.3,1x))
 !
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
 !
- call set_uniform_cartesian(1,psep,xmin,xmax,.true.)	! 2 = close packed arrangement
+ call set_uniform_cartesian(1,psep,xmin,xmax,offset=.true.,perturb=0.5)	! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -87,11 +87,13 @@ subroutine setup
 !
  totmass = denszero*product(xmax(:)-xmin(:))	! assumes cartesian boundaries
  massp = totmass/float(ntotal) ! average particle mass
-! enblast = enblast/massp   ! enblast is now the energy to put in a single particle
+ !enblast = enblast/massp   ! enblast is now the energy to put in a single particle
+ !enblast = enblast/(4./3.*pi*rblast**3)
 !
 !--smoothing length for kernel smoothing
 ! 
  hsmooth = hfact*(massp/denszero)**dndim
+ write(iprint,*) 'hsmooth = ',hsmooth
 !
 !--now assign particle properties
 ! 
