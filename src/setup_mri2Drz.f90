@@ -56,18 +56,46 @@ subroutine setup
  xmax(1) = Rcentre+asize
  xmin(2) = -0.5*asize
  xmax(2) = 0.5*asize
- denszero = 1.0
 !
-!--setup uniform density grid of particles (2D) with sinusoidal field/velocity
-!  determines particle number and allocates memory
+!--set up the uniform density grid
+!  NB: uniform density in r-z means r spacing decreases linearly
 !
- call set_uniform_cartesian(2,psep,xmin,xmax)        ! 2 = close packed arrangement
-
+ npartr = int((xmax(1)-xmin(1))/psep)    
+ npartz = int((xmax(2)-xmin(2))/psep)
+ deltarav = (xmax(1)-xmin(1))/npartr
+ deltaz = (xmax(2)-xmin(2))/npartz
+ print*,'deltarav,deltaz = ',deltarav,deltaz
+ print*,'npartr, npartz = ',npartr,npartz
+ npart = npartr*npartz
+ call alloc(npart)
+     
+ ipart = 0
+ do j=1,npartz
+    zpos = xmin(2) + (j-0.5)*deltaz
+    rpos = xmin(1)
+    do i=1,npartr
+       ipart = ipart + 1
+       deltar = deltarav*Rcentre/rpos
+       !print*,'deltar = ',deltar, ' at r = ',rpos
+       rpos = rpos + 0.5*deltar
+       x(1,ipart) = rpos
+       x(2,ipart) = zpos
+       rpos = rpos + 0.5*deltar
+    enddo
+ enddo
+ !--adjust outer r boundary to fall halfway between lattice points
+ xmax(1) = rpos
+ print*,ipart,npart
+! call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass
 !
- totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
+ denszero = 1.0
+!--volume is difference between 2 circles times z height
+!  utterly no idea where the factor of 2 comes from
+ volume = 0.5*(xmax(1)**2 - xmin(1)**2)*(xmax(2)-xmin(2)) 
+ totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
 !
 !--sound speed
@@ -85,7 +113,7 @@ subroutine setup
 !
 !--field strength (beta = pr/(0.5*B^2))
 !
- betamhd = 4000.
+ betamhd = 1000.
  Bzeroz = sqrt(2.*przero/betamhd)
  write(iprint,*) ' beta(MHD) = ',betamhd,' Bz = ',Bzeroz,' P = ',przero
 !
@@ -93,11 +121,17 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    vel(2,i) = -1.5*Omega*x(1,i)
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero ! isothermal
     Bfield(:,i) = 0.
+    !
+    !--set constant z field in region between -a/5 -> a/5
+    !
+    if (x(1,i).gt.(Rcentre-0.2*asize) .and. x(1,i).lt.(Rcentre+0.2*asize)) then
+       Bfield(2,i) = Bzeroz
+    endif
+    vel(3,i) = 1./x(1,i)**1.5 !!Omega
  enddo 
 !
 !--allow for tracing flow
