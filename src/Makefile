@@ -37,7 +37,7 @@ ifeq ($(SYSTEM), g95)
     F90C= g95
     F90FLAGS= -O3 -Wall -Wno=112,140 -ffast-math -funroll-loops -finline-functions -falign-loops=16
     DBLFLAG= -r8
-    DEBUGFLAG= -g -ftrace=full -fbounds-check
+    DEBUGFLAG= -g #-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -fendian='BIG'
     ENDIANFLAGLITTLE= -fendian='LITTLE'
@@ -53,6 +53,18 @@ ifeq ($(SYSTEM), mymac)
     ENDIANFLAGBIG= -fendian='BIG'
     ENDIANFLAGLITTLE= -fendian='LITTLE'
 # or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
+endif
+
+ifeq ($(SYSTEM), gfortran)
+#  gfortran compiler (part of gcc 4.x.x)
+   F90C= gfortran
+   F90FLAGS= -O3 -Wall -L. 
+   SYSTEMFILE= system_unix.f90
+   DEBUGFLAG= -g -frange-check
+   OMPFLAG= -fopenmp
+   ENDIANFLAGBIG= -fconvert=big-endian
+   ENDIANFLAGLITTLE= -fconvert=little-endian
+   KNOWN_SYSTEM=yes
 endif
 
 ifeq ($(SYSTEM), myg95)
@@ -130,7 +142,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
-#SETUP2D = setup_sphericalblastND_mhd.f90
+SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
@@ -138,7 +150,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-SETUP2D = setup_shockND.f90
+#SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
@@ -150,21 +162,24 @@ SETUP2D = setup_shockND.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
-SETUP2D = setup_blobevap2D.f90
+#SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
+#SETUP2D = setup_jadvect2D.f90
+SETUP2D = setup_neutronstarkh.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
-#SETUP3D = setup_sphericalblastND_mhd.f90
+SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
-SETUP3D = setup_densityprofileND.f90 
+#SETUP3D = setup_densityprofileND.f90 
 #SETUP3D = setup_recontest3D.f90
+#SETUP3D = setup_forcefree3D.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -188,7 +203,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          grutils_gr.f90 \
          density_sums.f90 densityiterate.f90 \
 	 eos.f90 exact_densityprofiles.f90 errors.f90 \
-         evolve_montecarlo.f90 external_forces_gr.f90 \
+         evolve.f90 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
 	 linkND.f90 logun.f90 \
