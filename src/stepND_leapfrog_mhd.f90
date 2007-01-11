@@ -97,7 +97,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldtin(:,i)	  
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = MIN(alphain(:,i) + dt*daldtin(:,i),1.0)
        IF (idivBzero.GE.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
     ENDIF
  ENDDO
@@ -129,7 +129,7 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i))
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = MIN(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))	   
     ENDIF 
 	      
@@ -144,6 +144,10 @@ SUBROUTINE step
 !--set new timestep from courant/forces condition
 !
  dt = min(C_force*dtforce,C_cour*dtcourant)
+ if (C_cour*dtav.lt.dt) then
+    print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
+    dt = 0.1*C_cour*dtav
+ endif
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       

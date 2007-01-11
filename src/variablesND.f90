@@ -211,6 +211,7 @@ MODULE timestep
 ! (time step criterion from forces, courant condition)
 !
  REAL :: dtforce, dtcourant, C_force, C_cour, C_rho, dtrho
+ REAL :: dtav
 END MODULE timestep
 
 !-------------------------------------------------------------------
