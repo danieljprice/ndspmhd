@@ -49,7 +49,11 @@ subroutine set_fixedbound
 !  array so that the density can be copied from particles just outside the 
 !  fixed zone
 !    
-     write(iprint,10) ' Fixed particles set: finding nearest real parts' 
+     nbpts = 0
+     do i=1,npart
+        if (itype(i).eq.1) nbpts = nbpts + 1
+     enddo
+     write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
         if (itype(i).eq.1) then
            rmin = 1.e10
