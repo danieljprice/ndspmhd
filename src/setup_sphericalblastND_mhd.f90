@@ -93,8 +93,8 @@ subroutine modify_dump
  use eos, only:gamma
  implicit none
  integer :: ipart
- real :: prblast,pri,uui,rblast,radius,enblast,enzero,const
- real :: rblast,radius,dblast(ndim),przero,gam1,denszero
+ real :: prblast,pri,uui,enblast,enzero,const
+ real :: rblast,radius,przero,gam1,denszero
  real, dimension(ndim) :: xblast, dblast
  real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
