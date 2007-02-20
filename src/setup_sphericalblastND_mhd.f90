@@ -113,8 +113,8 @@ subroutine modify_dump
  bzero(:) = 0.0
  const = 1./sqrt(4.*pi) 
  if (imhd.ne.0) then
-    bzero(1) = sqrt(2.*pi)         !10.0*const	! uniform field in bx direction
-    bzero(2) = sqrt(2.*pi)
+    bzero(1) = 3.0 !!sqrt(2.*pi)         !10.0*const	! uniform field in bx direction
+!    bzero(2) = sqrt(2.*pi)
  endif
  przero = 0.0		! initial pressure
  denszero = 1.0
@@ -161,7 +161,24 @@ subroutine modify_dump
        !uui = enzero
     endif   
     uu(ipart) = pri/(gam1*denszero)
-    bfield(:,ipart) = bzero(:)
+!
+!--euler potentials setup (for use in other codes)
+!    
+    if (imhd.eq.-2 .and. ndim.eq.3) then
+       if (abs(Bzero(1)).gt.tiny(Bzero)) then ! Bx
+          Bevol(1,ipart) = -Bzero(1)*x(3,ipart)
+          Bevol(2,ipart) = x(2,ipart)
+       elseif (abs(Bzero(2)).gt.tiny(Bzero)) then ! By
+          Bevol(1,ipart) = -Bzero(2)*x(1,ipart)
+          Bevol(2,ipart) = x(3,ipart)
+       elseif (abs(Bzero(3)).gt.tiny(Bzero)) then ! Bz
+          Bevol(1,ipart) = -Bzero(3)*x(2,ipart)
+          Bevol(2,ipart) = x(1,ipart)
+       else
+          Bevol(:,ipart) = 0.
+       endif
+    endif
+    Bfield(:,ipart) = bzero(:)
  enddo
  
 !
