@@ -8,6 +8,7 @@ subroutine get_rates
 ! USE dimen_mhd
  use debug, only:trace
  use loguns, only:iprint
+ use bound, only:pext
  use artvi
  use eos
  use hterms
@@ -227,9 +228,9 @@ subroutine get_rates
 !!       rhoi5 = sqrt(rhoi)
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
-       pri = pr(i)
+       pri = max(pr(i) - pext,0.)
        pmassi = pmass(i)
-       Prho2i = pr(i)*rho21i
+       Prho2i = pri*rho21i
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
        alphai = alpha(1,i)
@@ -440,10 +441,10 @@ subroutine get_rates
 !--calculate maximum force/h for the timestep condition
 !  also check for errors in the force
 !
-    if ( any(force(:,i).gt.1.e8)) then
-       write(iprint,*) 'rates: force ridiculous ',force(:,i),' particle ',i
-       call quit
-    endif
+!    if ( any(force(:,i).gt.1.e8)) then
+!       write(iprint,*) 'rates: force ridiculous ',force(:,i),' particle ',i
+!       call quit
+!    endif
     forcemag = sqrt(dot_product(force(:,i),force(:,i)))   
     fonh = forcemag/hh(i)
     if (fonh.gt.fhmax .and. itype(i).ne.1) fhmax = fonh
@@ -656,8 +657,8 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    prj = pr(j)        
-    Prho2j = pr(j)*rho21j
+    prj = max(pr(j) - pext,0.)       
+    Prho2j = prj*rho21j
     spsoundj = spsound(j)
     
     phii_on_phij = phii/phi(j)
