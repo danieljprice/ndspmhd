@@ -236,7 +236,7 @@ subroutine makeghost(jpart,xghost,ireflect)
   ipart = ntotal + 1
   if (ipart.gt.size(rho)) then
      write(iprint,*) 'ghost: ntotal > array size, re-allocating... '
-     call alloc(size(rho)+1)
+     call alloc(max(size(rho)+1,int(0.9*(size(rho)+ntotal-jpart))))
   endif
   ntotal = ipart
 !
