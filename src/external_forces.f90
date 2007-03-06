@@ -4,7 +4,7 @@
 !!
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
-  use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega,Omega2
+  use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega,Omega2,pi
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
@@ -14,6 +14,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
   real, intent(in) :: vphi
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,drcyl(2)
   real, parameter :: Rtorus = 1.0, dfac = 1.1
+  real, parameter :: sink = 0.25*pi, Asin = 100., Bsin = 2.0
 
   select case(iexternal_force)
   case(1)
@@ -85,6 +86,13 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
      if (ndim.eq.3) then
         fext(3) = -xpart(3)/rsph**3
      endif
+     
+  case(7)
+!
+!--sinusoidal potential as in Dobbs, Bonnell etc.
+!
+    fext(1) = -Asin*sink*SIN(sink*(xpart(1) + Bsin))
+
   case default
      
      fext(:) = 0.
@@ -107,6 +115,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim,ndimV,vpart)
  real, dimension(ndim), intent(in) :: xpart
  real, intent(out) :: epot
  real, dimension(ndimV), intent(in) :: vpartc
+ real, parameter :: sink = 0.25*pi, Asin = 100., Bsin = 2.0
  
  select case(iexternal_force)
  case(1) ! toy star force (x^2 potential)
@@ -117,6 +126,8 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim,ndimV,vpart)
     epot = 0.
  case(5)
     epot = 3.*Omega2*xpart(1)*vpart(1)
+ case(7)
+    epot = Asin*COS(sink*(xpart(1) + Bsin))
  case default
     epot = 0.
  end select
