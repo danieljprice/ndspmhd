@@ -130,19 +130,20 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-#SETUP1D = setup_shockND.f90
+SETUP1D = setup_shockND.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
+#SETUP1D = setup_clareshk1D.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
-SETUP2D = setup_sphericalblastND_mhd.f90
+#SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
@@ -161,7 +162,7 @@ SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
-#SETUP2D = setup_kelvinhelmholtz2D.f90
+SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
@@ -173,7 +174,7 @@ SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
-#SETUP3D = setup_shockND.f90
+SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
@@ -181,7 +182,7 @@ SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_densityprofileND.f90 
 #SETUP3D = setup_recontest3D.f90
 #SETUP3D = setup_forcefree3D.f90
-SETUP3D = setup_blastisoND.f90
+#SETUP3D = setup_blastisoND.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -194,7 +195,7 @@ MODDUMPSRC3D = moddump_tstar2D.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
+SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
          get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
@@ -204,7 +205,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          direct_sum_poisson3D_soft.f90 \
          grutils_gr.f90 \
          density_sums.f90 densityiterate.f90 \
-	 eos.f90 exact_densityprofiles.f90 errors.f90 \
+	 exact_densityprofiles.f90 errors.f90 \
          evolve.f90 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
