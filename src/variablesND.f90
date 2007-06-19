@@ -24,7 +24,7 @@ MODULE bound
  IMPLICIT NONE
  INTEGER, DIMENSION(:), ALLOCATABLE :: ireal
  REAL, DIMENSION(ndim) :: xmin, xmax 
- REAL :: hhmax    
+ REAL :: hhmax,pext
 END MODULE bound
 
 !-------------------------------------------------------------------
@@ -46,16 +46,6 @@ MODULE derivB
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: divB
  REAL, DIMENSION(:,:), ALLOCATABLE :: curlB
-END MODULE
-
-!-------------------------------------------------------------------
-!  equation of state related quantities
-!-------------------------------------------------------------------
-
-MODULE eos
- IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: spsound
- REAL :: gamma, polyk
 END MODULE
 
 !-------------------------------------------------------------------
@@ -141,7 +131,7 @@ MODULE part
  INTEGER, DIMENSION(:), ALLOCATABLE :: itype
  REAL, DIMENSION(:), ALLOCATABLE :: pmass,sqrtg
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
- REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,psi
+ REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,psi,spsound
  REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms,alpha
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bevol
  REAL, DIMENSION(ndimB) :: Bconst
@@ -187,7 +177,7 @@ MODULE setup_params
  USE dimen_mhd
  USE options, only:geom
  IMPLICIT NONE
- CHARACTER(LEN=LEN(geom)) :: geomsetup
+ CHARACTER(LEN=12) :: geomsetup
  REAL, PARAMETER :: pi = 3.1415926536
  REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer,Omega,Omega2
 END MODULE setup_params
