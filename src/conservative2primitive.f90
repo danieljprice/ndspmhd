@@ -70,7 +70,7 @@ subroutine conservative2primitive
 !--call equation of state calculation
 !
  call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart),gamma,polyk,npart)
+                        rho(1:npart))
 !
 !--make fixed particles exact replicas of their closest particle
 !
@@ -164,6 +164,7 @@ subroutine primitive2conservative
 !--overwrite this with a direct summation
 !  
   if (icty.eq.0 .or. ndirect.lt.100000) then
+     if (any(hh(1:npart).le.tiny(hh))) stop 'h < 0 in primitive2conservative'
      write(iprint,*) 'Calculating initial density...' 
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call set_linklist
@@ -215,7 +216,7 @@ subroutine primitive2conservative
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)
   call equation_of_state(pr(1:npart),spsound(1:npart), &
-                         uu(1:npart),dens(1:npart),gamma,polyk,npart)  
+                         uu(1:npart),dens(1:npart))  
 !
 !--copy the conservative variables onto the ghost particles
 !  
@@ -227,7 +228,7 @@ subroutine primitive2conservative
         spsound(i) = spsound(j)
         Bevol(:,i) = Bevol(:,j)
         Bfield(:,i) = Bfield(:,j)
-!        call copy_particle(i,j)
+        call copy_particle(i,j)
      enddo
   endif
 !
