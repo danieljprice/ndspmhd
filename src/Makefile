@@ -232,11 +232,11 @@ OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o)  $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)  \
 	    $(SETUP3D:.f90=.o)
-OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
-OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
 
 crap:
