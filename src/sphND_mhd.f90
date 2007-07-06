@@ -52,7 +52,7 @@ PROGRAM SUPERSPMHD_ND
  IMPLICIT NONE
  INTEGER, PARAMETER :: maxruns = 20
  INTEGER :: i,iprev,irun, nruns
- CHARACTER(LEN=len(rootname)), DIMENSION(maxruns) :: runname
+ CHARACTER(LEN=120), DIMENSION(maxruns) :: runname
 !
 !--version number
 !
