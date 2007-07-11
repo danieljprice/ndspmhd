@@ -71,7 +71,7 @@ else
    cd $webdir/; rm splash.tar.gz; ln -s download/$tarfile.gz splash.tar.gz
    cp $tarfile.gz ~/Documents/splash-releases/
    rm $webdir/download/INSTALL*
-   cp $builddir/INSTALL* $webdir/download
+   cp /tmp/$builddir/INSTALL* $webdir/download
 #
 #--check that build compiles correctly
 #
@@ -83,16 +83,18 @@ else
 #  build the docs for the website
 #
    echo 'building documentation...'
-   cd /tmp/$builddir/docs
-   latex splash
+   cd ~/ndspmhd/plot/docs
+   cvs update
+#   cd /tmp/$builddir/docs
+   pdflatex splash
    bibtex splash >> /tmp/latex.output
-   latex splash >> /tmp/latex.output
-   latex splash >> /tmp/latex.output
-   dvips splash -o splash.ps
-   cp splash.ps $webdir/userguide
-   ps2pdf13 splash.ps
-   gzip splash.ps
-   cp splash.ps.gz $webdir/userguide
+   pdflatex splash >> /tmp/latex.output
+   pdflatex splash >> /tmp/latex.output
+#   dvips splash -o splash.ps
+#   cp splash.ps $webdir/userguide
+#   ps2pdf13 splash.ps
+#   gzip splash.ps
+#   cp splash.ps.gz $webdir/userguide
    cp splash.pdf $webdir/userguide
    echo 'building html documentation...'
    nedit $webdir/index.html &
