@@ -180,6 +180,8 @@ subroutine primitive2conservative
      endif
      !--set density same as rho
      dens = rho
+  else
+     dens = rho
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
