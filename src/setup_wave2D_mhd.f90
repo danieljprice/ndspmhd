@@ -134,7 +134,7 @@ subroutine setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- call equation_of_state(przero,spsoundi,uuzero,denszero,gamma,polyk,1)
+ call equation_of_state(przero,spsoundi,uuzero,denszero)
 !
 !--work out mhd wave speeds
 !
