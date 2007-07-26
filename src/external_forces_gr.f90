@@ -88,6 +88,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         !
 !        fext(:) = fext(:) - dr(:)*drr2
 !     enddo
+      stop 'external force not implemented'
   case(6)
 
      fext(:) = 0.
