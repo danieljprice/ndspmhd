@@ -126,7 +126,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim,ndimV,vpart)
  case(3) ! potential from n point masses
     epot = 0.
  case(5)
-    epot = 2.*domegadr*Omega2*xpart(1)*xpart(1)
+    epot = domegadr*Omega2*xpart(1)*xpart(1)
  case(7)
     epot = Asin*COS(sink*(xpart(1) + Bsin))
  case default
