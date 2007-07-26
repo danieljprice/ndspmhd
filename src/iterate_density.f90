@@ -72,6 +72,10 @@ subroutine iterate_density
   drhodt = 0.
   dhdt = 0.
   hhin(1:npart) = hh(1:npart)
+  if (any(hh(1:npart).le.tiny(hh))) then
+     write(iprint,*) 'error: h <= 0 in density call'
+     call quit
+  endif
 
 !!  itest = 416
   
@@ -177,7 +181,7 @@ subroutine iterate_density
                  nwarn = nwarn + 1
                  !write(iprint,*) ' WARNING: particle ',i,' has no neighbours, increasing h'
                  hnew = hh(i) + psep
-                 write(iprint,*) 'NO NEIGHBOURS : rho,h = ',rho(i),hh(i),'setting h = ',hnew
+                 !write(iprint,*) 'NO NEIGHBOURS : rho,h = ',rho(i),hh(i),'setting h = ',hnew
                  redolink = .true.
               endif
 !
@@ -222,7 +226,7 @@ subroutine iterate_density
            endif   ! itype .NE. 1
         enddo
         if (nwarn.gt.0) then
-           write(iprint,*) ' WARNING: h or omega < 0 or no neighbours in iterations ',nwarn,' times'
+           !write(iprint,*) ' WARNING: h or omega < 0 or no neighbours in iterations ',nwarn,' times'
         endif
         if (nrhosmall.gt.0) then
            write(iprint,"(a,i3,a,i8,a)") ' WARNING: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
