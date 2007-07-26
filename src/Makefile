@@ -162,12 +162,13 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
-SETUP2D = setup_kelvinhelmholtz2D.f90
+#SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
 #SETUP2D = setup_neutronstarkh.f90
 #SETUP2D = setup_sunblast2D.f90
+SETUP2D = setup_recontest3D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
@@ -206,7 +207,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          grutils_gr.f90 \
          density_sums.f90 densityiterate.f90 \
 	 exact_densityprofiles.f90 errors.f90 \
-         evolve.f90 external_forces_gr.f90 \
+         evolve.f90 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
 	 linkND.f90 logun.f90 \
