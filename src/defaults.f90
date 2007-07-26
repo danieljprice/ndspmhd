@@ -60,6 +60,8 @@ subroutine set_default_options
    ianticlump = 0
    eps = 0.8
    neps = 4
+   iresist = 0
+   etamhd = 0.0
    ixsph = 0
    xsphfac = 0.0
    igravity = 0

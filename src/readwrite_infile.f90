@@ -18,7 +18,6 @@ subroutine write_infile(infile)
  use setup_params
  use timestep
  use xsph
- use kernels, only:ianticlump,eps,neps
 !
 !--define local variables
 !      
@@ -43,7 +42,7 @@ subroutine write_infile(infile)
   write(iread,110) idumpghost
   write(iread,120) imhd,imagforce
   write(iread,130) idivbzero,psidecayfact
-  write(iread,140) ianticlump,eps,neps
+  write(iread,140) iresist,etamhd
   write(iread,150) ixsph,xsphfac
   write(iread,160) igravity,hsoft
   write(iread,170) damp, dampz, dampr
@@ -65,7 +64,7 @@ subroutine write_infile(infile)
 110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
 120 format(i2,4x,i1,29x,'! magnetic field (0:off 1:on) and force algorithm(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
-140 format(i1,2x,f5.3,2x,i2,24x,'! anticlumping term (0:off 1:on), eps, power')
+140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:on), eta')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
 160 format(i2,1x,1pe9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
@@ -98,7 +97,6 @@ subroutine read_infile(infile)
  use setup_params
  use timestep
  use xsph
- use kernels, only:ianticlump,eps,neps
 !
 !--define local variables
 !      
@@ -125,7 +123,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) idumpghost
   read(iread,*,err=50,end=50) imhd,imagforce
   read(iread,*,err=50,end=50) idivbzero,psidecayfact
-  read(iread,*,err=50,end=50) ianticlump,eps,neps
+  read(iread,*,err=50,end=50) iresist,etamhd
   read(iread,*,err=50,end=50) ixsph,xsphfac
   read(iread,*,err=50,end=50) igravity,hsoft
   if (ndim.eq.3) then
@@ -182,6 +180,14 @@ subroutine read_infile(infile)
  endif
  if (tolh.lt.1.e-12) then
     write(iprint,100) 'tolh really, really tiny (probably zero)!!'
+    stop
+ endif
+ if (iresist.le.0 .or. iresist.gt.1) then
+    write(iprint,100) 'invalid choice of resistivity formulation'
+    stop
+ endif
+ if (etamhd.lt.0.) then
+    write(iprint,100) 'eta < 0 in resistivity'
     stop
  endif
  
