@@ -18,7 +18,7 @@ subroutine copy_particle(i,j)
   integer :: i,j
 
   if (idebug(1:4).eq.'copy') write(iprint,*) 'copying particle ',j,' to particle ',i
-  vel(:,i) = vel(:,j)
+!  vel(:,i) = vel(:,j)
   pmass(i) = pmass(j)
   rho(i) = rho(j)
   hh(i) = hh(j)
