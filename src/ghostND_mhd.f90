@@ -18,7 +18,9 @@ subroutine set_ghost_particles
   use derivB
   ! use linklist
   use options
-  use part, only:x,hh,npart,ntotal,rho,uu,itype
+  use part, only:x,vel,hh,npart,ntotal,rho,uu,itype
+  use setup_params, only:Omega0,domegadr
+  use timestep, only:time
 !
 !--define local variables
 !
@@ -31,8 +33,10 @@ subroutine set_ghost_particles
   integer :: jpart,jtemp
   real, dimension(ndim) :: dxbound,xpart
   real, dimension(ndim,maxbound) :: xnew
-  real :: dx,dxshift,xbound,xperbound
+  real, dimension(ndimV) :: vpart
+  real :: dx,dxshift,xbound,xperbound,xtemp,dy,xmodbound,yi
   logical, dimension(ndim,maxbound) :: imakeghost
+  real, dimension(maxbound) :: yoffset
   logical :: ireflect
 !
 !--allow for tracing flow
@@ -57,10 +61,84 @@ subroutine set_ghost_particles
      write(iprint,*) 'WARNING: ghost: hhmax too large = ',hhmax,maxloc(hh(1:npart))
   endif
 !
+!--shearing box ghosts
+!
+  if (ibound(1).eq.5) then
+     if (ndim.gt.2) stop 'ghosts not implemented for 3D shearing box'
+     do i=1,npart
+        xpart(:) = x(:,i)
+        vpart(:) = vel(:,i)
+        !
+        !--xmin boundary
+        !
+        dx = x(1,i) - xmin(1)
+        if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
+           xpart(1) = xmax(1) + dx
+           xpart(2) = x(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
+           vpart(2) = vel(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+           call makeghost(i,xpart,vpart)
+           yi = xpart(2)
+           !--check ymin and ymax
+           dy = yi - xmin(2)
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmax(2) + dy
+              call makeghost(i,xpart,vpart)
+           endif
+           dy = xmax(2) - yi
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmin(2) - dy
+              call makeghost(i,xpart,vpart)
+           endif
+        endif        
+        !
+        !--xmax boundary
+        !        
+        dx = xmax(1) - x(1,i)
+        if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
+           xpart(1) = xmin(1) - dx
+           xpart(2) = x(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
+           vpart(2) = vel(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+           call makeghost(i,xpart,vpart)
+           yi = xpart(2)
+           !--check ymin and ymax
+           dy = yi - xmin(2)
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmax(2) + dy
+              call makeghost(i,xpart,vpart)
+           endif
+           dy = xmax(2) - yi
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmin(2) - dy
+              call makeghost(i,xpart,vpart)
+           endif
+        endif
+        
+        vpart(:) = vel(:,i)
+        !--ymin boundary (just periodic)
+        dy = x(2,i) - xmin(2)
+        if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+           xpart(1) = x(1,i)
+           xpart(2) = xmax(2) + dy
+           call makeghost(i,xpart,vpart)
+        endif        
+        !--ymax boundary (just periodic)
+        dy = xmax(2) - x(2,i)
+        if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+           xpart(1) = x(1,i)
+           xpart(2) = xmin(2) - dy
+           call makeghost(i,xpart,vpart)
+        endif
+     enddo
+     return
+  endif
+!
 !--loop over all the particles (with link list could supply a list of 
 !  particles within 2h of the boundary to search)
 !
   over_part: do jpart=1,npart
+     yoffset = 0.
 !
 !--if using reflecting ghosts, reflect if dx < 2*hi, as particle sees own ghost
 !  for periodic must use hmax as particle sees different particles as ghosts
@@ -82,6 +160,7 @@ subroutine set_ghost_particles
 !--set ghost position initially equal to particle position
 !
               xpart(:) = x(:,jpart)
+              vpart(:) = vel(:,jpart)
 !
 !--compute distance from boundary (dx)
 !
@@ -108,24 +187,39 @@ subroutine set_ghost_particles
 !
 !--xnew is the shifted position of the ghost particle
 !  save this for each boundary to use for edges/corners
-!      
-                 if (ibound(idimen).eq.3) then ! periodic
+! 
+                 if (ibound(idimen).eq.5) then ! shearing box
+                    if (idimen.ne.1) stop 'error in shearing box'
+                    xnew(1,imaxmin) = xperbound + dxshift
+                    yoffset(imaxmin) = -SIGN(1.0,dxshift)*domegadr*Omega0*(xmax(1)-xmin(1))*time
+                    vpart(2) = vel(2,jpart) - SIGN(1.0,dxshift)*domegadr*Omega0*(xmax(1)-xmin(1))
+                    !print*,'HERE',vel(2,jpart),vpart(2),x(:,jpart),'xnew = ',xnew(:,imaxmin),SIGN(1.0,dxshift)
+                    !read*
+                 elseif (ibound(idimen).eq.3) then ! periodic
                     xnew(idimen,imaxmin) = xperbound + dxshift
                  elseif (ibound(idimen).eq.2 .or. ibound(idimen).eq.4) then ! reflective
-                    ireflect = .true.
                     xnew(idimen,imaxmin) = xbound - dxshift
+                    vpart(idimen) = -vel(idimen,jpart)
                  endif
 !
 !--set ghost position in current dimension equal to shifted position
 !      
                  xpart(idimen) = xnew(idimen,imaxmin)
+                 if (ibound(idimen).eq.5) then
+                    xpart(2) = x(2,jpart) + yoffset(imaxmin)
+                    if (xpart(2).gt.(xmax(2)+dxbound(2))) then
+                       xpart(2) = xpart(2) - (xmax(2)-xmin(2))
+                    elseif (xpart(2).lt.(xmin(2)-dxbound(2))) then
+                       xpart(2) = xpart(2) + (xmax(2)-xmin(2))
+                    endif
+                 endif
                  !if (jpart.eq.jtemp) then
                  !   print*,jpart,' dim=',idimen,'bnd=',imaxmin,' ghost = ',xpart
                  !endif
 !
 !--make the ghost particle at this position
 !
-                 call makeghost(jpart,xpart,ireflect)
+                 call makeghost(jpart,xpart,vpart)
 
 !---------------------------------------------------------------------
 !  make additional ghost(s) if near an edge (up to 4 in 2D, 12 in 3D)     
@@ -144,20 +238,32 @@ subroutine set_ghost_particles
 !--set ghost particle position in previous dimension to shifted position
 !        
                              xpart(idimenprev) = xnew(idimenprev,imaxminprev)
+                             xtemp = xpart(2)
+                             if (ibound(idimenprev).eq.5) then
+                                xpart(2) = xpart(2) + yoffset(imaxminprev)
+                                if (xpart(2).gt.(xmax(2)+dxbound(2))) then
+                                   xpart(2) = xpart(2) - (xmax(2)-xmin(2))
+                                elseif (xpart(2).lt.(xmin(2)-dxbound(2))) then
+                                   xpart(2) = xpart(2) + (xmax(2)-xmin(2))
+                                endif
+                             endif
                              !if (jpart.eq.jtemp) then
                              !   print*,'edge', idimen,idimenprev,'bnd=',imaxmin,imaxminprev,xpart
                              !endif
 !
 !--make the ghost particle at this position
 !
-                             if (ibound(idimenprev).eq.2) ireflect = .true.
-                             call makeghost(jpart,xpart,ireflect)
+                             !ireflect = .false.
+                             if (ibound(idimenprev).eq.2) vpart(:) = vel(:,jpart)
+                             if (ibound(idimenprev).eq.5) &
+                                vpart(2) = vel(2,jpart) - SIGN(1.0,xpart(idimenprev)-x(1,jpart))*domegadr*Omega0*(xmax(1)-xmin(1))
+                             call makeghost(jpart,xpart,vpart)
 
 !----------------------------------------------------------------------
 !  make a corner ghost if ghosts set in both previous dimensions
 !  (could be up to 8 corner reflections of this particle in 3D
 !----------------------------------------------------------------------
-                             if (idimenprev.ge.2) then
+                             if (idimenprev.gt.2) then
                                 idimenprevprev = idimenprev-1 ! in 3D
                                 do imaxminprevprev = 1,nbound(idimenprevprev)
                                    if (imakeghost(idimenprevprev,imaxminprevprev)) then
@@ -171,10 +277,18 @@ subroutine set_ghost_particles
                                       !if (jpart.eq.jtemp) then
                                       !   print*,'corner',idimen,idimenprev,idimenprevprev             
                                       !endif
-                                      if (ibound(idimenprevprev).eq.2) ireflect = .true.
-                                      call makeghost(jpart,xpart,ireflect)
+                                      if (ibound(idimenprevprev).eq.2) vpart(:) = -vel(:,jpart)
+                                      if (ibound(idimenprevprev).eq.5) then
+                                         xpart(2) = xnew(2,imaxminprevprev)
+                                         vpart(2) = vel(2,jpart) &
+                                              - SIGN(1.0,xpart(idimenprevprev)-x(1,jpart))*domegadr*Omega0*(xmax(1)-xmin(1))
+                                      endif
+
+                                      call makeghost(jpart,xpart,vpart)
 !--reset boundary
                                       xpart(idimenprevprev) = x(idimenprevprev,jpart)
+                                      if (ibound(idimenprevprev).eq.5) xpart(2) = xnew(2,imaxminprev)
+
                                    endif ! made ghost in previous dimension
                                 enddo ! over boundaries
                              endif ! if > 2D
@@ -182,6 +296,7 @@ subroutine set_ghost_particles
 !--reset position in idimenprev
 !         
                              xpart(idimenprev) = x(idimenprev,jpart)      
+                             if (ibound(idimenprev).eq.5) xpart(2) = xtemp
 
         
                           endif   ! made ghost in previous dimension
@@ -217,7 +332,7 @@ end subroutine set_ghost_particles
 !
 ! subroutine to make a ghost particle
 !
-subroutine makeghost(jpart,xghost,ireflect)
+subroutine makeghost(jpart,xghost,vghost)
   use dimen_mhd
   use bound
   use loguns
@@ -227,7 +342,8 @@ subroutine makeghost(jpart,xghost,ireflect)
   implicit none
   integer, intent(in) :: jpart ! index of particle to be ghosted
   real, intent(in), dimension(ndim) :: xghost ! position of ghost particle
-  logical, intent(in) :: ireflect
+  real, intent(in), dimension(ndimV) :: vghost ! velocity of ghost particle
+!  logical, intent(in) :: ireflect
   integer :: ipart
   real, parameter :: pi = 3.141592653589 
 !
@@ -251,7 +367,8 @@ subroutine makeghost(jpart,xghost,ireflect)
 !
 !--overwrite velocities if reflecting
 !
-  if (ireflect) vel(:,ipart) = -vel(:,jpart) ! should reflect all vels
+!  if (ireflect) vel(:,ipart) = -vel(:,jpart) ! should reflect all vels
+  vel(:,ipart) = vghost(:)
 !
 !--in cylindrical coords and ibound=4, shift angle by 180 degrees
 !  
@@ -272,4 +389,20 @@ subroutine makeghost(jpart,xghost,ireflect)
   return
 end subroutine makeghost
 
-      
+real function xmodbound(x,xmin,xmax,dxbound)
+ implicit none
+ real, intent(in) :: x,xmin,xmax,dxbound
+ real :: deltax
+ 
+ deltax = xmax - xmin + 2.*dxbound
+ xmodbound = x
+ if (x.lt.(xmin-dxbound)) then
+    xmodbound = x + deltax - int((x - (xmin-dxbound))/deltax)*deltax
+!    print*,'crossed min ',xmodbound,x
+ elseif (x.gt.(xmax+dxbound)) then
+    xmodbound = x - deltax - int((x - (xmax-dxbound))/deltax)*deltax
+!    print*,'crossed max ',xmodbound,x
+ endif
+
+end function xmodbound
+    

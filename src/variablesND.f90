@@ -179,7 +179,14 @@ MODULE setup_params
  IMPLICIT NONE
  CHARACTER(LEN=12) :: geomsetup
  REAL, PARAMETER :: pi = 3.1415926536
- REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer,Omega,Omega2
+!
+!--parameters for 2D-MRI simulations
+!
+ REAL, PARAMETER :: Rcentre = 100.
+ REAL, PARAMETER :: Omega2 = 1./Rcentre**3
+ REAL, PARAMETER :: Omega0 = Rcentre**(-1.5)
+ REAL, PARAMETER :: domegadr = 1.5
+ REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer
 END MODULE setup_params
 
 !-------------------------------------------------------------------

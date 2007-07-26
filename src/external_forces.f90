@@ -4,7 +4,7 @@
 !!
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
-  use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega,Omega2,pi
+  use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega0,Omega2,domegadr,pi
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
@@ -63,8 +63,9 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
 !
 !--this is for the 2D cartesian shearing box
 !
-     fext(1) = 3.*Omega2*xpart(1) + 2.*Omega*vpart(2)
-     fext(2) = -2.*Omega*vpart(1)
+     fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*vpart(2)
+     fext(2) = -2.*Omega0*vpart(1)
+!     fext(3) = -Omega2*xpart(3) ! vertical stratification
   case(6)
      fext(:) = 0.
 !
@@ -125,7 +126,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim,ndimV,vpart)
  case(3) ! potential from n point masses
     epot = 0.
  case(5)
-    epot = 3.*Omega2*xpart(1)*vpart(1)
+    epot = 2.*domegadr*Omega2*xpart(1)*xpart(1)
  case(7)
     epot = Asin*COS(sink*(xpart(1) + Bsin))
  case default
