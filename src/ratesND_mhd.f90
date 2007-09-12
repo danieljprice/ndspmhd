@@ -746,7 +746,8 @@ contains
 
     vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
-    vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
  
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
@@ -1031,8 +1032,8 @@ contains
        !
        !  add to thermal energy equation
        !
-       dudt(i) = dudt(i) + pmassj*(term*(vissv + vissu) + termnonlin*(vissB))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv - vissu) + termnonlin*(vissB))
+       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termnonlin*vissu + termnonlin*(vissB))
+       dudt(j) = dudt(j) + pmassi*(term*(vissv) - termnonlin*vissu + termnonlin*(vissB))
        
        !--entropy dissipation
        if (iener.eq.1) then
