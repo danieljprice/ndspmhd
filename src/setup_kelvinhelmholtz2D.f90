@@ -15,13 +15,14 @@ subroutine setup
  use part
  use setup_params, only:psep,pi
  use eos, only:gamma
+ use mem_allocation, only:alloc
  
  use uniform_distributions
 !
 !--define local variables
 !            
  implicit none
- integer :: i,iseed
+ integer :: i,iseed,ipart
  real :: massp,volume,totmass,ran1
  real :: denszero,densmedium,przero,psepmedium
  real, dimension(ndim) :: xminregion,xmaxregion
@@ -59,7 +60,7 @@ subroutine setup
     xmaxregion(1) = xmax(1)
     xminregion(2) = -0.5
     xmaxregion(2) = -0.25
-    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+    call set_uniform_cartesian(1,psep,xminregion,xmaxregion,fill=.true.)
 !
 !--determine particle mass from npart in first region
 !
@@ -67,16 +68,31 @@ subroutine setup
     totmass = denszero*volume
     massp = totmass/float(npart) ! average particle mass
 
-    xminregion(2) = 0.25
-    xmaxregion(2) = 0.5
-    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+!    xminregion(2) = 0.25
+!    xmaxregion(2) = 0.5
+!    call set_uniform_cartesian(1,psep,xminregion,xmaxregion,fill=.true.)
 !
 !--setup -0.25 < y < 0.25
 ! 
     xminregion(2) = -0.25
-    xmaxregion(2) = 0.25
+    xmaxregion(2) = 0.
     psepmedium = psep*(denszero/densmedium)**(1./ndim)
-    call set_uniform_cartesian(2,psepmedium,xminregion,xmaxregion,fill=.false.)
+    call set_uniform_cartesian(1,psepmedium,xminregion,xmaxregion,fill=.true.)
+!
+!--reallocate memory to new size of list
+!
+    call alloc(2*npart)
+!
+!--reflect particles above and below the y axis
+!
+    ipart = npart
+    do i=1,npart
+       ipart = ipart + 1
+       x(1,ipart) = x(1,i)
+       x(2,ipart) = -x(2,i)
+    enddo
+    npart = ipart
+    ntotal = npart
  endif
  npart = ntotal
  print*,'npart =',npart
@@ -111,7 +127,9 @@ subroutine setup
 !
     !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
     !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
-    if (abs(x(2,i)-0.25).lt.0.025 .or. abs(x(2,i)+0.25).lt.0.025) then
+    if (abs(x(2,i)-0.25).lt.0.025) then
+       vel(2,i) = 0.025*sin(-2.*pi*(x(1,i)+0.5)*6.)
+    elseif (abs(x(2,i)+0.25).lt.0.025) then
        vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
     endif
  enddo
