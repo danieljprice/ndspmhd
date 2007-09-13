@@ -657,6 +657,9 @@ subroutine applymask(imask,xpart,ipart)
  
  select case(imask)
  case(1,-1)
+!
+!   TWO CYLINDRICAL BLAST WAVES
+!
     xorigin(:) = 0.0
     dx(:) = xpart(:) - xorigin(:)
     radius1 = sqrt(dot_product(dx,dx))
@@ -677,6 +680,15 @@ subroutine applymask(imask,xpart,ipart)
        if (radius1.le.0.4 .or. radius2.le.0.4) then
           ipart = ipart - 1
        endif    
+    endif
+ case(2,-2)
+!
+!   DENSE LAYER
+!
+    if (imask.gt.0 .and. abs(xpart(2)).lt.0.25) then
+       ipart = ipart - 1
+    elseif (abs(xpart(2)).gt.0.25) then
+       ipart = ipart - 1
     endif
  end select
  
