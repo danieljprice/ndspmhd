@@ -102,10 +102,10 @@ subroutine evolve
 15     format(' t = ',f9.4,' dtcourant = ',1pe10.3)
     endif
     
-    if (abs(dt).lt.1e-8) then
-       write(iprint,*) 'main loop: timestep too small, dt = ',dt
-       call quit
-    endif
+!    if (abs(dt).lt.1e-8) then
+!       write(iprint,*) 'main loop: timestep too small, dt = ',dt
+!       call quit
+!    endif
 !
 !--write to data file if time is right
 ! 
@@ -145,7 +145,7 @@ subroutine evolve
 !
 !--reach tprint exactly. must take this out for integrator to be symplectic
 !
-!    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
  enddo timestepping
 
