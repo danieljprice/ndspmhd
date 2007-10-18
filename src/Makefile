@@ -26,7 +26,7 @@ endif
 ifeq ($(SYSTEM), sunf95)
     F90C= sunf95
     F90FLAGS= -fast
-    DBLFLAG= -xtypemap=real:64,double:64
+    DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
@@ -162,13 +162,13 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
-#SETUP2D = setup_kelvinhelmholtz2D.f90
+SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
 #SETUP2D = setup_neutronstarkh.f90
 #SETUP2D = setup_sunblast2D.f90
-SETUP2D = setup_recontest3D.f90
+#SETUP2D = setup_recontest3D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
