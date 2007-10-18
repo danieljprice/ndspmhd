@@ -6,11 +6,12 @@ subroutine check_setup
   use debug
   use loguns
   use part
+  use options, only:igravity
   implicit none
   integer :: i,j
   real, parameter :: vbig = 1.e12
   real, dimension(ndim) :: xcentre
-  real :: xsep
+  real :: xsep,dxmean,dxij
   
   write(iprint,5) ' Checking setup... '
 5 format(/,a)
@@ -32,9 +33,9 @@ subroutine check_setup
      if (dens(i).lt.tiny(dens)) then
         write(iprint,20) 'density <= 0 ',dens(i),i
         stop
-     elseif (isnan(dens(i))) then
-        write(iprint,20) 'NaNs in density',dens(i),i
-        stop
+!     elseif (isnan(dens(i))) then
+!        write(iprint,20) 'NaNs in density',dens(i),i
+!        stop
      endif
      if (pmass(i).lt.tiny(pmass)) then
         write(iprint,20) 'pmass <= 0 ',pmass(i),i
@@ -53,13 +54,13 @@ subroutine check_setup
      if (any(abs(vel(1:ndimV,i)).gt.vbig)) then
         write(iprint,10) ' contains huge velocities!! '
         stop
-     else
-        do j=1,ndimV
-           if (isnan(vel(j,i))) then
-              write(iprint,20) 'NaNs in velocities ',vel(j,i),i
-              stop
-           endif
-        enddo
+!     else
+!        do j=1,ndimV
+!           if (isnan(vel(j,i))) then
+!              write(iprint,20) 'NaNs in velocities ',vel(j,i),i
+!              stop
+!           endif
+!        enddo
      endif
      
      xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
@@ -78,6 +79,21 @@ subroutine check_setup
 !        endif
 !     enddo
 !  enddo
+!
+!--find mean particle separation
+! 
+ if (igravity.eq.1 .or. igravity.eq.2) then
+    dxmean = 0.
+    do i=1,ntotal
+       do j=i+1,ntotal
+          dxij = sqrt(dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j)))
+          dxmean = dxmean + dxij
+       enddo
+    enddo
+    dxmean = dxmean/real((ntotal**2 - ntotal)/2)
+    write(iprint,*) 'mean particle spacing = ',dxmean
+    write(iprint,*) 'suggested softening h = ',dxmean/40.,' to ',dxmean/35.
+ endif
 !
 !--warnings only
 ! 
