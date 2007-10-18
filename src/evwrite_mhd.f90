@@ -39,7 +39,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL :: fracdivBok
  REAL, PARAMETER :: omegtol = 1.E-2
  REAL :: fmagabs,rhomax,rhomean,rhomin
- REAL :: angtot
+ REAL :: angtot,ekiny
 !
 !--allow for tracing flow
 !      
@@ -57,6 +57,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  mom(:) = 0.0
  momtot = 0.0
  ang(:) = 0.
+ ekiny = 0.
 ! alphatstarav = 0.
 ! betatstarav = 0.
 !
@@ -99,6 +100,7 @@ SUBROUTINE evwrite(t,etot,momtot)
        ang(3) = ang(3) + pmassi*(x(1,i)*veli(2) - x(2,i)*veli(1))
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
+    if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(2,i)*vel(2,i)
     etherm = etherm + pmassi*uu(i)
 !
 !--potential energy from external forces
@@ -229,7 +231,7 @@ SUBROUTINE evwrite(t,etot,momtot)
     !betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt
+    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
 40  FORMAT(24(1pe18.10,1x))        
 
  ENDIF
