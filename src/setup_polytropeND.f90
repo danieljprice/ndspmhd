@@ -30,11 +30,11 @@ subroutine setup
 !--set bounds of initial setup
 !                   
  rmax = 1.0
- ibound = 0	! no boundaries 
+ ibound = 0 ! no boundaries 
 !
 !--setup a uniform sphere of particles
 ! 
- call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2)	! 4 = random
+ call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2) ! 4 = random
 !
 !--set particle properties
 ! 

@@ -282,7 +282,7 @@ subroutine alloc(newsizein,sortlist)
    allocate(pmomin(ndimv,newsize))
    if (geom(1:4).ne.'cart') then
       allocate(sourceterms(ndimv,newsize))
-   endif   
+   endif
    !allocate(gradmatrix(ndim,ndim,newsize))
  endif
  
