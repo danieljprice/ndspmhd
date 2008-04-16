@@ -3,18 +3,23 @@
 !! Computes external (body) forces on a particle given its co-ordinates
 !!
 !!-----------------------------------------------------------------------
-subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
+subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,spsound)
+  use options, only:ibound
+  use bound, only:xmax,xmin
   use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega0,Omega2,domegadr,pi
   implicit none
   integer, intent(in) :: iexternal_force,ndim,ndimV
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndimV), intent(in) :: vpart
-  real, dimension(ndim), intent(out) :: fext
+  real, intent(in) :: hpart,spsound
+  real, dimension(ndimV), intent(out) :: fext
   real, dimension(ndim) :: dr
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,sink
+  real :: q2i,betai,gradwkernbound
   real, parameter :: Rtorus = 1.0, dfac = 1.1
   real, parameter :: Asin = 100., Bsin = 2.0
 
+  fext(:) = 0.
   select case(iexternal_force)
   case(1)
 !
@@ -62,9 +67,14 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
 !
 !--this is for the 2D cartesian shearing box
 !
-     fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*vpart(2)
-     fext(2) = -2.*Omega0*vpart(1)
+     fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*vpart(3)
+     fext(2) = 0.
+     fext(3) = -2.*Omega0*vpart(1)
 !     fext(3) = -Omega2*xpart(3) ! vertical stratification
+      !print*,'domegadr = ',2.*domegadr*Omega2,3.*Omega2,xpart(1)
+      !print*,'fext = ',fext
+      !print*,'vpart = ',vpart      
+      !stop 'here'
   case(6)
      fext(:) = 0.
 !
@@ -98,7 +108,21 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
 !
 !--gravity
 !
-    if (ndim.ge.2) fext(2) = -1.
+    if (ndim.ge.2) then
+       fext(2) = -0.1
+       if (ibound(2).eq.0) then
+          q2i = abs(xmax(2)-xpart(2))/hpart
+          if (q2i.lt.4.) then
+             betai = 0.02*spsound**2/xpart(2)
+             fext(2) = fext(2) - betai*gradwkernbound(q2i)
+          endif
+          q2i = abs(xpart(2)-xmin(2))/hpart
+          if (q2i.lt.4.) then
+             betai = 0.02*spsound**2/xpart(2)
+             fext(2) = fext(2) + betai*gradwkernbound(q2i)
+          endif
+       endif
+    endif
 
   case default
      
@@ -108,6 +132,24 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
   
   return
 end subroutine external_forces
+
+real function gradwkernbound(q2)
+ implicit none
+ real, intent(in) :: q2
+ real :: q
+ 
+ q = sqrt(q2)
+ if (q.lt.2./3.) then
+    gradwkernbound = 2./3.
+ elseif (q.lt.1.) then
+    gradwkernbound = 2.*q - 1.5*q2
+ elseif (q.lt.2.) then
+    gradwkernbound = 0.5*(2.-q)**2
+ else
+    gradwkernbound = 0.
+ endif
+
+end function gradwkernbound
 
 !!-----------------------------------------------------------------------
 !!
