@@ -49,6 +49,7 @@ subroutine write_infile(infile)
   write(iread,180) ikernel
   write(iread,190) iexternal_force
   write(iread,200) C_cour, C_force
+  write(iread,210) usenumdens
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -60,7 +61,7 @@ subroutine write_infile(infile)
 70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphab(min), beta')
 80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, ab limiter, constant for this(0.1-0.2)')
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
-100 format(i2,1x,f5.3,2x,1pe8.3,18x,'! variable h, initial h factor, h tolerance')
+100 format(i2,1x,f5.3,2x,1pe10.3,16x,'! variable h, initial h factor, h tolerance')
 110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
 120 format(i2,4x,i1,29x,'! magnetic field (0:off 1:on) and force algorithm(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
@@ -71,6 +72,7 @@ subroutine write_infile(infile)
 180 format(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i1,35x,'! external force (1: toy star, 2:1/r^2 )')
 200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
+210 format(l1,35x,'! Use number density formulation of gradh')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -136,6 +138,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) ikernel
   read(iread,*,err=50,end=50) iexternal_force
   read(iread,*,err=50,end=50) C_Cour, C_force
+  read(iread,*,err=50,end=50) usenumdens
  close(unit=iread)
 
  goto 55

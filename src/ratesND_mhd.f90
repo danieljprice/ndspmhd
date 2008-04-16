@@ -42,7 +42,8 @@ subroutine get_rates
  real :: Prho2i,Prho2j,prterm,pri,prj
  real :: hi,hi1,hj,hj1,hi21,hj21
  real :: hfacwabi,hfacgrkerni
- real, dimension(ndim) :: xi, dx, fexternal  !!,dri,drj
+ real, dimension(ndim) :: xi, dx
+ real, dimension(ndimV) :: fexternal  !!,dri,drj
  real, dimension(ntotal) :: h1
 !
 !--gr terms
@@ -402,8 +403,9 @@ subroutine get_rates
 !--add external (body) forces
 !
     if (iexternal_force.ne.0) then
-       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim,ndimV,vel(1:ndimV,i))
-       force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
+       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i))
+       force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
 !--add source terms (derivatives of metric) to momentum equation
@@ -614,6 +616,7 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine rates_core
     use kernels, only:interpolate_kernel,interpolate_kernels
+    use options, only:usenumdens
     implicit none
     real :: prstar, vstar
     real :: dvsigdtc
@@ -658,12 +661,15 @@ contains
       wabalt = 0.5*(wabalti + wabaltj)
       !  (grad h terms)  
       if (ikernav.eq.3) then  ! if using grad h corrections
-         !--use these two lines for usual formulation
-         grkerni = grkerni*gradhi
-         grkernj = grkernj*gradh(j)
+         if (usenumdens) then
          !--use these two lines for number density formulation
-         !grkerni = grkerni*(1. + gradhni*gradhi/pmassj)
-         !grkernj = grkernj*(1. + gradhn(j)*gradh(j)/pmassi)
+            grkerni = grkerni*(1. + gradhni*gradhi/pmassj)
+            grkernj = grkernj*(1. + gradhn(j)*gradh(j)/pmassi)
+         else
+         !--use these two lines for usual formulation
+            grkerni = grkerni*gradhi
+            grkernj = grkernj*gradh(j)
+         endif
          grkern = 0.5*(grkerni + grkernj)
       else  ! if not using grad h correction               
          grkern = 0.5*(grkerni + grkernj)
@@ -756,8 +762,11 @@ contains
     vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
     !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
-    vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    
     vsigu = sqrt(abs(pri-prj)*rhoav1)
+    !vsigu = sqrt(0.5*(psi(i) + psi(j)))
+    vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
  
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
@@ -801,8 +810,8 @@ contains
        !
        !--add pressure terms to force
        !
-       forcei(:) = forcei(:) - pmassj*prterm*dr(:)
-       forcej(:) = forcej(:) + pmassi*prterm*dr(:)
+       forcei(:) = forcei(:) - pmassj*prterm*dr(:) !- pmassj*wab*rij
+       forcej(:) = forcej(:) + pmassi*prterm*dr(:) !+ pmassi*wab*rij
     endif
 
 !    forcei(:) = forcei(:) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
@@ -914,7 +923,15 @@ contains
     else
        dpmomdotr = -dvdotr
     endif
+    !--used for viscosity
     term = vsig*rhoav1*grkern
+
+    !--used for thermal conductivity
+    termu = vsigu*rhoav1*grkern
+    !termu = vsig*rho1i*rho1j*grkern
+    !termu = vsig*rhoav1*grkern
+
+    !--used for resistivity
     termnonlin = vsignonlin*rhoav1*grkern
 !    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)/ &
 !                (vsigi*alphaBi + vsigj*alpha(3,j))*rhoav1*grkern
@@ -922,9 +939,6 @@ contains
 !                (rhoi*vsigi*alphaBi*grkerni + rhoj*vsigj*alpha(3,j)*grkernj)
     !termnonlin = vsignonlin*rhoav1*grkern
 
-    termu = vsigu*rhoav1*grkern
-    !termu = vsig*rho1i*rho1j*grkern
-    !termu = vsig*rhoav1*grkern
     
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
@@ -1053,6 +1067,7 @@ contains
        
        !--entropy dissipation
        if (iener.eq.1) then
+          if (alphau.gt.0.) stop 'entropy dissipation is wrong'
           vissu = alphau*(en(i)-en(j))
           dendt(i) = dendt(i) + pmassj*(termu*(vissu))
           dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
@@ -1105,6 +1120,11 @@ contains
                          - gdiagi(:)*Bi(:)*projBi*sqrtgi)/rhoij
        fmagi(:) = faniso(:) - fiso*dr(:)
        
+    case(0)
+       faniso(:) = 0.
+       fiso = 0.
+       fmagi(:) = 0.
+    
     case default   ! tensor formalism in generalised form
        !
        !--isotropic mag force (pressure gradient)

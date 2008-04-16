@@ -26,7 +26,7 @@ subroutine iterate_density
   use bound
   use hterms
   use linklist, only:numneigh
-  use options, only:ikernav,ihvar,ibound,maxdensits,tolh
+  use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens
   use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho
   use setup_params
   use density_summations
@@ -43,7 +43,6 @@ subroutine iterate_density
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
   real, dimension(size(rho)) :: hhin,densn,dndt
   logical :: converged,redolink
-  logical, parameter :: usenumdens = .false.
   
 !!  integer :: itest
 !
@@ -270,7 +269,7 @@ subroutine iterate_density
                  gradsoft(i) = gradsoft(j)
               else
                  !!rho(i) = rhoin(i)
-                 write(iprint,*) 'Warning: ireal not set for fixed parts'
+                 !write(iprint,*) 'Warning: ireal not set for fixed parts'
               endif
            endif
         enddo
