@@ -39,7 +39,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL :: fracdivBok
  REAL, PARAMETER :: omegtol = 1.E-2
  REAL :: fmagabs,rhomax,rhomean,rhomin
- REAL :: angtot,ekiny
+ REAL :: angtot,ekiny,emagp
 !
 !--allow for tracing flow
 !      
@@ -48,6 +48,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  ekin = 0.0
  etherm = 0.0
  emag = 0.0
+ emagp = 0.
  etot = 0.0
  IF (igravity.NE.0) THEN
     epot = potengrav
@@ -85,7 +86,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--should really recalculate the thermal energy from the total energy here
 !  (otherwise uu is from the half time step and same with Bfield)
 ! 
- CALL conservative2primitive
+! CALL conservative2primitive
       
  DO i=1,npart
 
@@ -100,7 +101,7 @@ SUBROUTINE evwrite(t,etot,momtot)
        ang(3) = ang(3) + pmassi*(x(1,i)*veli(2) - x(2,i)*veli(1))
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
-    if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(2,i)*vel(2,i)
+    if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
     etherm = etherm + pmassi*uu(i)
 !
 !--potential energy from external forces
@@ -130,6 +131,7 @@ SUBROUTINE evwrite(t,etot,momtot)
        divBi = abs(divB(i))
  
        emag = emag + 0.5*pmassi*B2i/rhoi
+       emagp = emagp + 0.5*pmassi*dot_product(Bi(1:2),Bi(1:2))/rhoi
 !
 !--Plasma beta minimum/maximum/average
 !  
@@ -220,7 +222,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt, &
-          fluxtotmag,crosshel,betamhdmin,betamhdav,  &
+          emagp,crosshel,betamhdmin,betamhdav,  &
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
