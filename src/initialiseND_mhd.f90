@@ -243,7 +243,7 @@ subroutine initialise
 !--make sure ghost particle quantities are the same
 !  (copy both conservative and primitive here)
 !
- if (any(ibound.gt.1)) then
+ if (any(ibound.gt.1) .and. .not.any(ibound.eq.6)) then
     do i=npart+1,ntotal   
        j = ireal(i)
        call copy_particle(i,j)
