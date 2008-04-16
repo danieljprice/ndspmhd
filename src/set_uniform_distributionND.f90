@@ -98,10 +98,10 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     if (present(psepy)) deltay = 0.5*sqrt(3.)*psepy
     if (present(psepz)) deltaz = sqrt(6.)/3.*psepz
     
-    npartx = int((xmax(1)-xmin(1))/deltax)
-    nparty = int((xmax(2)-xmin(2))/deltay)
+    npartx = int(0.999*(xmax(1)-xmin(1))/deltax) + 1
+    nparty = int(0.999*(xmax(2)-xmin(2))/deltay) + 1
     if (ndim.ge.3) then
-       npartz = int((xmax(3)-xmin(3))/deltaz)
+       npartz = int(0.999*(xmax(3)-xmin(3))/deltaz) + 1
     else
        npartz = 1
     endif
@@ -376,7 +376,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
      
      do i=1,ntot
         call sobseq(ndim,xran(:))
-	x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
+        x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
 !        print*,i,xran(:),' x = ',x(:,i)
 !	read*
      enddo

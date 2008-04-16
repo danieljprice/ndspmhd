@@ -16,6 +16,7 @@ SUBROUTINE setup
  USE options
  USE part
  USE setup_params
+ USE uniform_distributions, only:set_uniform_cartesian
 !
 !--define local variables
 !            
@@ -31,7 +32,8 @@ SUBROUTINE setup
  REAL :: dxi,dxprev,xmassfrac,func,fderiv
  REAL :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
  REAL :: vfast,vslow,vcrap,vwave,term,dens1
- REAL :: denszero,uuzero,przero, Rzero
+ REAL :: denszero,uuzero,przero,Rzero
+ real, dimension(1) :: prtemp,cstemp
 !
 !--allow for tracing flow
 !
@@ -56,7 +58,7 @@ SUBROUTINE setup
     IF (imhd.ne.0) Bzero(1:3) = 0.5  
     WRITE(iprint,10) 'MHD fast wave'
  ELSE                        ! Sound wave
-    ampl = 0.005
+    ampl = 0.05
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
        uuzero = 1.0/((gamma-1.)*gamma)
@@ -117,7 +119,9 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- CALL equation_of_state(przero,spsoundi,uuzero,denszero)
+ CALL equation_of_state1(przero,spsoundi,uuzero,denszero)
+ print*,' gamma = ',gamma
+ print*,' pr = ',przero,' cs = ',spsoundi,' u = ',uu(1),' dens = ',dens(1)
 !
 !--work out MHD wave speeds
 !
