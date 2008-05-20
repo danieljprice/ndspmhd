@@ -21,11 +21,12 @@ SUBROUTINE step
  USE timestep
  USE setup_params
  USE xsph
+ use particlesplit, only:particle_splitting
 !
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
+ INTEGER :: i,j,jdim,ikernavprev,ierr,nerror,nsplit
  REAL, DIMENSION(ndimV,npart) :: forcein,dBevoldtin
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin
  REAL, DIMENSION(3,npart) :: daldtin
@@ -88,6 +89,7 @@ SUBROUTINE step
     ELSE
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
+       velin(:,i) = velin(:,i) + 0.5*dt*forcein(:,i)
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        IF (ihvar.EQ.1) THEN
@@ -118,7 +120,7 @@ SUBROUTINE step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = velin(:,i) + hdt*(force(:,i)+forcein(:,i))	    
+       vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))	    
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))	  
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*(drhodt(i)+drhodtin(i))
        IF (ihvar.EQ.2) THEN
@@ -140,14 +142,18 @@ SUBROUTINE step
 ! IF (idivBzero.NE.0) CALL divBcorrect
  IF (ANY(ibound.NE.0)) CALL boundary        ! inflow/outflow/periodic boundary conditions
 
+ IF (isplitpart.GT.0) THEN
+    CALL particle_splitting(nsplit)
+    IF (nsplit.gt.0) CALL derivs
+ ENDIF
 !
 !--set new timestep from courant/forces condition
 !
  dt = min(C_force*dtforce,C_cour*dtcourant)
- if (C_cour*dtav.lt.dt) then
-    print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
-    dt = 0.1*C_cour*dtav
- endif
+ !if (C_cour*dtav.lt.dt) then
+ !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
+ !   dt = C_cour*dtav
+ !endif
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
