@@ -20,9 +20,10 @@ contains
     use loguns, only:iprint
     use kernels, only:radkern2,interpolate_kernel,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
-    use options, only:ikernav,igravity,imhd
+    use options, only:ikernav,igravity,imhd,ikernel,ikernelalt
     !use matrixcorr
-    use part, only:Bfield,ntotal
+    use part, only:Bfield,ntotal,uu,psi
+    use setup_params, only:hfact
     use rates, only:dBevoldt
 !
 !--define local variables
@@ -37,6 +38,7 @@ contains
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh
     integer :: idone
+    integer, parameter :: itemp = 121
 !
 !  (particle properties - local copies)
 !      
@@ -46,7 +48,7 @@ contains
     real, dimension(ndim) :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(npart) :: rhoin
-    real, dimension(ntotal) :: h1
+    real, dimension(ntotal) :: h1,unity
     real :: dvdotr,pmassi,pmassj,projBi,projBj
 !
 !  (kernel quantities)
@@ -55,6 +57,7 @@ contains
     real :: wab,wabi,wabj,weight,wabalti,wabaltj
     real :: grkern,grkerni,grkernj,grkernalti,grkernaltj
     real :: dwdhi,dwdhj,dwaltdhi,dwaltdhj,dphidhi,dphidhj ! grad h terms
+    real :: wconst
 !
 !--allow for tracing flow
 !      
@@ -68,6 +71,7 @@ contains
     dwdhj = 0.
     dwaltdhi = 0.
     dwaltdhj = 0.
+    wconst = 1./hfact**ndim
 
     do i=1,npart
        rhoin(i) = rho(i)
@@ -80,6 +84,10 @@ contains
        gradsoft(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
+       if (imhd.eq.0) then
+          psi(i) = 0.
+          unity(i) = 0.
+       endif
     enddo
     do i=1,ntotal
        h1(i) = 1./hh(i)
@@ -118,7 +126,7 @@ contains
              j = listneigh(n)
              dx(:) = xi(:) - x(:,j)
 
-             if (ikernav.eq.1) hj = hh(j)
+             hj = hh(j)
              hj1 = h1(j)
 
              rij2 = dot_product(dx,dx)
@@ -131,8 +139,8 @@ contains
 !
              if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
                   .AND. (i.LE.npart .OR. j.LE.npart)) then
-                !if (i.eq.1 .or. j.eq.1) then
-                !   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj
+                !if (i.eq.itemp .or. j.eq.itemp) then
+                !   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj,rho(itemp)
                 !endif
 
                 if (i.LE.npart) numneigh(i) = numneigh(i) + 1
@@ -171,6 +179,15 @@ contains
                       gradsoft(i) = gradsoft(i) + weight*pmassj*dphidhi*hi21
                       call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
                       gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj*hj1*hj1
+                      if (ikernelalt.ne.ikernel) then
+                         call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
+                         call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)                      
+                      else
+                         wabalti = wabi
+                         grkernalti = grkerni
+                         wabaltj = wabj
+                         grkernaltj = grkernj
+                      endif
                    else
                       call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
                       call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
@@ -216,8 +233,8 @@ contains
                 if (i.ne.j) then
                    dvel(1:ndimV) = veli(1:ndimV) - vel(1:ndimV,j)
                    dvdotr = dot_product(dvel(1:ndim),dx)/rij
-                   drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
-                   drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
+                   drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni !+ pmassj*dvdotr*wabi*hi1
+                   drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj !+ pmassi*dvdotr*wabj*hj1
                    dndt(i) = dndt(i) + dvdotr*grkernalti
                    dndt(j) = dndt(j) + dvdotr*grkernaltj
                    if (imhd.eq.5) then
@@ -226,6 +243,8 @@ contains
                    dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
                    dBevoldt(:,j) = dBevoldt(:,j) - pmassi*projBj*dvel(:)*grkernj
                    endif
+                else
+                   !drhodt(i) = drhodt(i) + pmassj*dvdotr*wabi*hi1
                 endif
 
                 if (ikernav.EQ.3) then
@@ -239,6 +258,15 @@ contains
                    gradh(j) = gradh(j) + weight*pmassi*dwdhj
                    gradhn(i) = gradhn(i) + weight*dwaltdhi
                    gradhn(j) = gradhn(j) + weight*dwaltdhj
+                endif
+                
+                if (imhd.eq.0) then
+                   psi(i) = psi(i) + pmassj*wabi*uu(j)
+                   unity(i) = unity(i) + wconst*wabi/hfacwabi
+                   if (i.ne.j) then
+                      psi(j) = psi(j) + pmassi*wabj*uu(i)
+                      unity(j) = unity(j) + wconst*wabj/hfacwabj
+                   endif
                 endif
                 
                 !if (i.ne.j) then
@@ -263,7 +291,18 @@ contains
             
     enddo loop_over_cells
     
-    !print*,'end of density, rho, gradh = ',rho(1),gradh(1),hh(1),numneigh(1)
+    do i=1,npart
+       !if (imhd.eq.0) then
+       !   psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
+       !   if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
+       !else
+        !  psi(i) = 0.
+       !endif
+!       psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
+    enddo
+    !print*,'uu = ',i,uu(i),psi(i),uu(i)-psi(i)
+    !enddo
+    !print*,'end of density, rho, gradh = ',rho(itemp),gradh(itemp),hh(itemp),numneigh(itemp)
     !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
     !print*,'minimum number of neighbours = ', &
     !       MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
@@ -299,10 +338,11 @@ contains
  
     use kernels, only:radkern2,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
-    use options, only:igravity,imhd
+    use options, only:igravity,imhd,ikernel,ikernelalt
     !use matrixcorr
-    use part, only:Bfield,ntotal
+    use part, only:Bfield,ntotal,uu,psi
     use rates, only:dBevoldt
+    use setup_params, only:hfact
 !
 !--define local variables
 !
@@ -334,6 +374,7 @@ contains
     real :: q2i      
     real :: wabi,wabalti,grkerni,grkernalti 
     real :: dwdhi,dwaltdhi,dphidhi ! grad h terms
+    real :: wconst,unityi
 !
 !--allow for tracing flow
 !      
@@ -342,6 +383,7 @@ contains
 !--initialise quantities
 !
     listneigh = 0
+    wconst = 1./hfact**ndim
 
     do ipart=1,nlist
        i = ipartlist(ipart)
@@ -356,6 +398,7 @@ contains
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
+       if (imhd.eq.0) psi(i) = 0.
     enddo
     icellprev = 0
 !
@@ -383,6 +426,7 @@ contains
        hi2 = hi*hi
        hi1 = 1./hi
        hi21 = hi1*hi1
+       unityi = 0.
        
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
@@ -413,6 +457,12 @@ contains
              if (igravity.ne.0) then
                 call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
                 gradsoft(i) = gradsoft(i) + pmassj*dphidhi/hi2
+                if (ikernel.ne.ikernelalt) then
+                   call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
+                else
+                   wabalti = wabi
+                   grkernalti = grkerni
+                endif
              else
                 call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
              endif
@@ -436,12 +486,14 @@ contains
              if (i.ne.j) then
                 dvel(:) = veli(:) - vel(:,j)
                 dvdotr = dot_product(dvel(1:ndim),dx)/rij
-                drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+                drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni !+ pmassj*dvdotr*wabi*hi1
                 dndt(i) = dndt(i) + dvdotr*grkernalti
                 if (imhd.eq.5) then
                 projBi = dot_product(Bfield(1:ndim,i),dx)/rij
                 dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
                 endif
+             else
+                !drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni + pmassj*dvdotr*wabi*hi1
              endif
 !
 !--correction term for variable smoothing lengths
@@ -450,6 +502,11 @@ contains
 
              gradh(i) = gradh(i) + pmassj*dwdhi
              gradhn(i) = gradhn(i) + dwaltdhi
+
+             if (imhd.eq.0) then
+                psi(i) = psi(i) + pmassj*wabi*uu(j)
+                unityi = unityi + wconst*wabi/hfacwabi
+             endif
           
              !do idim=1,ndim
              !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
@@ -459,6 +516,14 @@ contains
           endif
           
        enddo loop_over_neighbours
+       
+       if (imhd.eq.0) then
+          !psi(i) = abs(uu(i) - psi(i)/unityi)
+          !if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
+       else
+          psi(i) = 0.
+       endif
+       !psi(i) = abs(psi(i) - uu(i)*unityi)
 
     enddo loop_over_particles
 
@@ -483,6 +548,11 @@ contains
        dBevoldt(:,j) = dBevoldt(:,j)/rhoin(i)**2
     enddo
     endif
+    
+    !do i=1,nlist
+    !   j = ipartlist(i)
+    !   psi(j) = abs(uu(j) - psi(j)) !/psi(j)
+    !enddo
 
     return
   end subroutine density_partial
