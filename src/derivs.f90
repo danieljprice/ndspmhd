@@ -4,7 +4,7 @@
 !
 subroutine derivs
  use loguns, only:iprint
- use options, only:ibound,icty,ihvar,imhd
+ use options, only:ibound,icty,ihvar,imhd,isplitpart
  use part, only:hh,x,npart
  use setup_params, only:hfact
  implicit none
