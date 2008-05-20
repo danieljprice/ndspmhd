@@ -648,12 +648,13 @@ end subroutine reset_centre_of_mass
 !  if imask is negative, this should supply the inverse mask
 !
 subroutine applymask(imask,xpart,ipart)
+ use setup_params, only:pi
  implicit none
  integer, intent(in) :: imask
  real, dimension(:), intent(in) :: xpart
  integer, intent(inout) :: ipart
  real, dimension(size(xpart)) :: dx,xorigin
- real :: radius1,radius2
+ real :: radius1,radius2,phi
  
  select case(imask)
  case(1,-1)
@@ -690,6 +691,31 @@ subroutine applymask(imask,xpart,ipart)
     elseif (abs(xpart(2)).gt.0.25) then
        ipart = ipart - 1
     endif
+ case(3,-3)
+!
+!   FUNNY SHAPE BLOB
+!
+    xorigin(:) = 0.0
+    dx(:) = xpart(:) - xorigin(:)
+    radius1 = sqrt(dot_product(dx,dx))
+    phi = atan2(xpart(2),xpart(1))
+
+    if (imask.gt.0) then
+!
+!--cut around funny blob shape
+!
+       if (radius1.gt.0.4*(1.+0.2*sin(0.2*phi/(2.*pi)))) then
+          ipart = ipart - 1
+       endif
+!
+!--inverse of above
+!
+    else
+       if (radius1.le.0.4*(1.+0.2*sin(0.2*phi/(2.*pi)))) then
+          ipart = ipart - 1
+       endif
+    endif
+
  end select
  
 end subroutine applymask
