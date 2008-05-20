@@ -111,12 +111,12 @@ MODULE options
  INTEGER :: iener,icty,iav,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
- INTEGER :: iexternal_force,ixsph
+ INTEGER :: iexternal_force,ixsph,isplitpart
  INTEGER :: igravity,ikernel,ikernelalt,iresist
  INTEGER :: maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
- REAL :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd
+ REAL :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
  CHARACTER(LEN=12) :: geom
  LOGICAL :: usenumdens
 END MODULE
