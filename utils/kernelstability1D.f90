@@ -1,10 +1,12 @@
 subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
+  use pagesetup, only:setpage2
   use kernels, only:kernelname
+  use legends, only:legend
   implicit none
   integer, parameter :: ny = 100, nkx = 100, npart = 40, ncont = 40
   integer, intent(in) :: iplot, nacrossin, ndownin, neps
   real, intent(in) :: eps
-  integer :: i,j,ipart,ikx
+  integer :: i,j,ipart,ikx,ipos
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
@@ -67,8 +69,10 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      ymax = 1.
      labely = 'R'
   else                  ! y axis is h
-     ymin = 0.5*psep
-     ymax = 5.0*psep
+!     ymin = 0.5*psep
+!     ymax = 5.0*psep
+     ymin = 1.0*psep
+     ymax = 2.0*psep
      labely = 'h'
   endif
 !
@@ -123,8 +127,13 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !!  call pgbegin(0,'?',1,1)
      if (nacross*ndown.eq.1) call pgsch(1.2)
      if (mod(iplotpos,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
-     call danpgtile(iplotpos,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
-                 'kx',TRIM(labely),' ',0,0)
+
+     call setpage2(iplotpos,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001,'kx',trim(labely), &
+                   ' ',0,0,&
+                   0.,0.,0.,0.,0.,0.,.false.,.true.)
+
+     !call danpgtile(iplotpos,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
+     !            'kx',TRIM(labely),' ',0,0)
 !
 ! plot eps/neps/other labels on plot
 !
@@ -174,12 +183,16 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
      !!call pgsch(1.2)
      call pgsch(1.0)
-     if (iplotpos.eq.1) call pgpage
+     !!if (iplotpos.eq.1) call pgpage
      datmin = 0.5  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
      datmax = 1.5  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
-     call danpgtile(iplotpos,nacross,ndown, &
-          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
+
+     call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'cs', &
+                   ' ',0,0,&
+                   0.,0.,0.,0.,0.,0.,.false.,.true.)
+!     call danpgtile(iplotpos,nacross,ndown, &
+!          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
 !     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
      call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
@@ -187,20 +200,21 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--plot contributions from first and second derivatives
 !
      !--set legend position
+     ipos = 1
      hpos = 0.1   ! horizontal position as % of viewport
      vpos = 1.5  ! vertical position in character heights from top
      call pgsls(2) !sci(2)
      call pgline(ny,yaxis(1:ny),tterm1(1:ny)-1.0)
-     if (iplotpos.eq.1) call legend(1,'grad^2 W norm',hpos,vpos)
+     if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
      call pgsls(3)
      call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
-     if (iplotpos.eq.1) call legend(2,'grad W norm',hpos,vpos)
+     if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
 !     call pgsls(4)
 !     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
-!     if (iplotpos.eq.1) call legend(3,'aniso dW',hpos,vpos)
+!     if (iplotpos.eq.1) call legend(ipos,'aniso dW',hpos,vpos)
 !     call pgsls(5)
 !     call pgline(ny,yaxis(1:ny),tterm4(1:ny))
-!     if (iplotpos.eq.1) call legend(4,'aniso d\u2\dW',hpos,vpos)
+!     if (iplotpos.eq.1) call legend(ipos,'aniso d\u2\dW',hpos,vpos)
 !     call pgsci(1)
 !     call pgsls(1)
 !
@@ -209,7 +223,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call pgsls(1)
      call pgsci(2)
      call pgline(ny,yaxis(1:ny),rhosum(1:ny))
-     if (iplotpos.eq.1) call legend(3,'density estimate',hpos,vpos)
+     if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
      call pgsci(1)
      read*
 

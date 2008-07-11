@@ -1,5 +1,7 @@
 program kernelplot
  use kernels
+ use pagesetup, only:setpage2
+ use legends, only:legend
  implicit none
  integer :: i,j,ikernel,ndim
  integer :: nkernels,nacross,ndown,nepszero,ipos,i1,i2
@@ -9,7 +11,8 @@ program kernelplot
  logical :: samepage
 !! character(len=50) :: text
 
- data iplotorder /1, 6, 31, 21, 16, 16, 16, 16, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 62, 63, 64, 65, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 61, 67, 68, 31, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 4
  ianticlump = 0
@@ -19,11 +22,15 @@ program kernelplot
  nacross = 4
  ndown = 1
  xmin = 0.0
- xmax = 3.2
+ xmax = 2.2
 !! ymin = 0.01
  ymin = -3.5  !!3.5
 !! ymax = 2.4
- ymax = 2.7
+! ymax = 2.7
+ ymax = 4.1
+ 
+ ymin = -2.2
+ !ymax = 1.4
  ipos = 1
  ndim = 1
 
@@ -43,7 +50,7 @@ program kernelplot
     call pgbegin(0,'?',1,1) 
     !!call pgpap(5.85,2./sqrt(2.))
  endif
- call pgslw(2)
+ call pgslw(4)
 
  eps = epszero
  neps = nepszero
@@ -56,9 +63,10 @@ program kernelplot
 !       if (j.eq.7) eps = 0.2
 !       eps = eps + 0.2
     endif
-    
+    print*,'kernel ',j
     ikernel = iplotorder(j)
     call setkern(ikernel,ndim)
+    print*,trim(kernelname)
 !
 !--setup x axis
 !
@@ -72,7 +80,8 @@ program kernelplot
        hpos = 0.7
        vpos = 3.0
 !       if (j.lt.7) then
-       call danpgtile(1,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
+       call setpage2(1,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1,&
+                      0.,0.,0.,0.,0.,0.,.false.,.true.)
        !
        !--plot legend
        !
@@ -109,8 +118,12 @@ program kernelplot
        if (ikernel.eq.102) ymax = maxval(wij(1:ikern)/dqkern(1:ikern)**2)*1.5
        print*,'max = ',ymax
        if (ikernel.eq.0) kernelname = 'density'
-       call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
-                      'r/h',' ',TRIM(kernelname),0,1)
+       call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ', &
+                     trim(kernelname),0,1,&
+                     0.,0.,0.,0.,0.,0.,.false.,.true.)
+
+!       call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
+!                      'r/h',' ',TRIM(kernelname),0,1)
 !!       call pgwnad(0.0,3.0,-3.5,1.7) ! pgwnad or pgswin
 !!       call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
 !!       call pglabel('r/h',' ',TRIM(kernelname))
@@ -144,8 +157,10 @@ program kernelplot
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
-       call pgline(ikern+1,dqkern(0:ikern),wijaniso(0:ikern))
+       call pgline(ikern+1,dqkern(0:ikern),wijalt(0:ikern))
     endif
+!    call pgsls(5)
+!    call pgline(ikern+1,dqkern(0:ikern),dphidh(0:ikern))
     !!call legend(ipos,trim(kernelname),0.5,3.0)
     if (ikernel.eq.101) then
        call pgsls(2)
@@ -167,25 +182,28 @@ program kernelplot
    !       call pgsls(j+2)
           !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
           !!call legend(ipos,text,0.5,3.0)
-          call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))
-         !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijaniso(0:ikern))    
+          call pgline(ikern+1,dqkern(0:ikern),grwijalt(0:ikern))
+         !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijalt(0:ikern))    
        endif
     endif
 !
-!--second derivative
+!--second derivative and deriv w.r.t. h
 !
     if (ikernel.lt.100) then
        call pgsls(3)
        call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
        if (ianticlump.ne.0) then
-          call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+          call pgline(ikern+1,dqkern(0:ikern),grgrwijalt(0:ikern))    
        endif
+!       call pgsls(4)
+!       call pgline(ikern+1,dqkern(0:ikern),-ndim*wij(0:ikern)-dqkern(0:ikern)*grwij(0:ikern))
        call pgsls(1)
-!    call pgsci(1)
+    call pgsci(1)
     endif
  enddo
  
-!! call pgend
+! call pgend
+! stop
 !
 !--plot stability separately
 !
@@ -205,57 +223,10 @@ program kernelplot
           eps = eps + 0.4
        endif
        call setkern(iplotorder(j),ndim)
+       print*,trim(kernelname)
        call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo
 
  call pgend
 
 end program kernelplot
-!
-!--draw a legend for different line styles
-!  uses current line style and colour
-!
-subroutine legend(icall,text,hpos,vposin)
-  implicit none
-  integer, intent(inout) :: icall
-  character(len=*), intent(in) :: text
-  real, intent(in) :: vposin
-  real, dimension(2) :: xline,yline
-  real :: xch, ych, xmin, xmax, ymin, ymax
-  real :: vspace, hpos, vpos
-
-  call pgstbg(0)           ! opaque text to overwrite previous
-!
-!--set horizontal and vertical position and spacing
-!  in units of the character height
-!
-  vspace = 1.5  ! (in units of character heights)
-!  hpos = 0.4   ! distance from edge, in fraction of viewport
-  vpos = vposin + (icall-1)*vspace  ! distance from top, in units of char height
-
-  call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
-  call pgqcs(4,xch,ych) ! query character height in x and y units 
-
-  yline = ymax - ((vpos - 0.5)*ych)
-  xline(1) = xmin + hpos*(xmax-xmin)
-  xline(2) = xline(1) + 3.*xch
-
-!!--make up line style if > 5 calls (must match actual line drawn)
-!   if (icall.eq.3) then
-!     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
-!     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
-!     !!call pgline(2,xline,yline)            ! draw line segment
-   if (icall.gt.0) then
-     call pgline(2,xline,yline)            ! draw line segment
-   endif
-   icall = icall + 1
-!
-!--write text next to line segment
-!  
-  call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
-
-!!  call pgmtxt('T',vpos,0.1,0.0,trim(text))  ! write text
-
-  call pgstbg(-1) ! reset text background to transparent
-
-end subroutine legend
