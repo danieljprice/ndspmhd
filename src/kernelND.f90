@@ -455,11 +455,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     dq2table = radkern2/real(ikern)
     select case(ndim)
       case(1)
-       cnormk = 3./5. ! normalisation is probably wrong
+       cnormk = 5./8. ! normalisation is probably wrong
       case(2)
-       cnormk = 1/(pi)
+       cnormk = 5./(4.*pi)
       case(3)
-       cnormk = 105/(16.*pi)
+       cnormk = 105/(128.*pi)
       case default
        write(*,666)
        stop
@@ -469,9 +469,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
       q = sqrt(q2)
       if (q.lt.2.0) then
          wkern(i) = (1.+1.5*q)*(1.-0.5*q)**3
-         grwkern(i) = (1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2)
-         !--note second deriv is wrong
-         grgrwkern(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+         grwkern(i) = 1.5*(1.-0.5*q)**3 - 1.5*(1.+1.5*q)*(1.-0.5*q)**2
+         grgrwkern(i) = -4.5*(1.-0.5*q)**2 + 1.5*(1.+1.5*q)*(1.-0.5*q)
       else
          wkern(i) = 0.0
          grwkern(i) = 0.0
@@ -851,11 +850,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     dq2table = radkern2/real(ikern)
     select case(ndim)
       case(1)
-       cnormk = 3003./16777216.
+       cnormk = 3003./4096.
       case(2)
-       cnormk = 7./(16384.*pi)
+       cnormk = 7./(4.*pi)
       case(3)
-       cnormk = 45045./(134217728.*pi)
+       cnormk = 45045./(32768.*pi)
       case default
        write(*,666)
        stop
@@ -864,9 +863,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
       q2 = i*dq2table
       q = sqrt(q2)
       if (q.lt.2.0) then
-         wkern(i) = (4.-q2)**6
-         grwkern(i) = -12.*q*(4.-q2)**5
-         grgrwkern(i) = 120.*q2*(4.-q2)**4 - 12.*(4.-q2)**5
+         term = 1.-0.25*q2
+         wkern(i) = term**6
+         grwkern(i) = -3.*q*term**5
+         grgrwkern(i) = 7.5*q2*term**4 - 3.*term**5
       else
          wkern(i) = 0.0
          grwkern(i) = 0.0
@@ -875,6 +875,76 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     enddo
 
   case(32)
+!
+!--these are the Ferrer's spheres from dehnen (2001)
+!
+    kernellabel = 'Ferrers n=7 sphere'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 6435./8192.
+      case(2)
+       cnormk = 2./pi
+      case(3)
+       cnormk = 109395./(65536.*pi)
+      case default
+       write(*,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.2.0) then
+         term = 1.-0.25*q2
+         wkern(i) = term**7
+         grwkern(i) = -3.5*q*term**6
+         grgrwkern(i) = 0.5*21.*q2*term**5 - 3.5*term**6
+      else
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
+      endif
+    enddo
+
+  case(33)
+!
+!--these are the Ferrer's spheres from dehnen (2001)
+!
+    kernellabel = 'Ferrers n=8 sphere'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 109395./131072.
+      case(2)
+       cnormk = 9./(4.*pi)
+      case(3)
+       cnormk = 2078505./(1048576.*pi)
+      case default
+       write(*,666)
+       stop
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      if (q.lt.2.0) then
+         term = 1.-0.25*q2
+         wkern(i) = term**8
+         grwkern(i) = -4.*q*term**7
+         grgrwkern(i) = 14.*q2*term**6 - 4.*term**7
+      else
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
+      endif
+    enddo
+
+  case(34)
 !
 !--Cauchy kernel
 !
@@ -1013,6 +1083,329 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
           wkern(i) = q*0.75*(2.-q)**2
           grwkern(i) = 0.75*(2.-q)**2 - 0.75*q*2.*(2.-q)
           grgrwkern(i) = -1.5*(2.-q) - 0.75*2.*(2.-q) + 0.75*q*2.
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(61)
+!
+!--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
+!   
+    kernellabel = 'Cubic spline (second derivatives)'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.66666666666
+      case(2)
+        cnormk = 10./(7.*pi)
+      case(3)
+        cnormk = 1./pi
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.1.0) then
+          wkern(i) = 3.*q2 - 0.75*q2*q - 6.*log(2.)*q + 2.
+          grwkern(i) = 6.*q - 9./4.*q2 - 6.*log(2.)
+          grgrwkern(i) = -2.*(-3. + 2.25*q)
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = 0.25*q2*q - 3.*q2 + 6.*q*log(q) + 3.*q - 6.*log(2.)*q + 4.
+          grwkern(i) = 0.75*q2 - 6.*q + 6.*log(q) +9. - 6.*log(2.)
+          grgrwkern(i) = -2.*(-0.75*(2.-q)**2)/q
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(62)
+!
+!--Wendland's radial functions of minimal degree
+!   
+    kernellabel = 'Wendland 3D kernel of degree 2'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.75
+      case(2)
+        cnormk = 7./(4.*pi)
+      case(3)
+        cnormk = 21./(16.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          wkern(i) = (1.-0.5*q)**4*(2.*q + 1.)
+          grwkern(i) = -5.*q + 7.5*q2 - 15./4.*q2*q + 5./8.*q**4
+          grgrwkern(i) = -5. + 15.*q - 45./4.*q2 + 2.5*q2*q
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(63)
+!
+!--Wendland's radial functions of minimal degree
+!   
+    kernellabel = 'Wendland 3D kernel of degree 4'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 9./32.
+      case(2)
+        cnormk = 3./(4.*pi)
+      case(3)
+        cnormk = 165./(256.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          term = 1.-0.5*q
+          wkern(i) = term**6*(35./4.*q2 + 9.*q + 3.)
+          grwkern(i) = -3.*term**5*(35./4.*q2 + 9.*q + 3.) + term**6*(0.5*35.*q + 9.)
+          grgrwkern(i) = 7.5*term**4*(35./4.*q2 + 9.*q + 3.) - 6.*term**5*(0.5*35.*q + 9.) + 0.5*35.*term**6
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(64)
+!
+!--Wendland's radial functions of minimal degree
+!   
+    kernellabel = 'Wendland 1D kernel of degree 2'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 5./8.
+      case(2)
+        cnormk = 5./(4.*pi)
+      case(3)
+        cnormk = 105./(128.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          term = 1.-0.5*q
+          wkern(i) = term**3*(1.5*q + 1.)
+          grwkern(i) = -3.*q + 3.*q2 - 0.75*q2*q
+          grgrwkern(i) = -3. + 6.*q - 9./4.*q2
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(65)
+!
+!--Wendland's radial functions of minimal degree
+!   
+    kernellabel = 'Wendland 1D kernel of degree 4'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.75
+      case(2)
+        cnormk = 9./(5.*pi)
+      case(3)
+        cnormk = 45./(32.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          term = 1.-0.5*q
+          wkern(i) = term**5*(2.*q2 + 2.5*q + 1.)
+          grwkern(i) = -2.5*term**4*(2.*q2 + 2.5*q + 1.) + term**5*(4.*q + 2.5)
+          grgrwkern(i) = 105./4.*q2 -3.5 -35.*q2*q + 525./32.*q4 - 21./8.*q4*q
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(66)
+!
+!--Bessel functions
+!   
+    kernellabel = 'Bessel function kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 1.
+      case(2)
+        cnormk = 9./(5.*pi)
+      case(3)
+        cnormk = 45./(32.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          wkern(i) = 0. !sqrt(q)*(besj0(2.*sqrt(2.*q))  + besj1(2.*sqrt(2.*q)))
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(67)
+!
+!--second derivative using ferrers n=6
+!   
+    kernellabel = 'second derivative kernel (ferrers n=6)'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 45045./8192.
+      case(2)
+        cnormk = 0.
+      case(3)
+        cnormk = 0.
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.2.0) then
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = (1.-0.25*q2)**6
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(68)
+!
+!--second derivative using the cubic spline
+!   
+    kernellabel = 'second derivative kernel (cubic)'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 2.
+      case(2)
+        cnormk = 0.
+      case(3)
+        cnormk = 0.
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.1.0) then
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+       elseif (q.le.2.0) then
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.25*(2.-q)**3
        else
           wkern(i) = 0.0
           grwkern(i) = 0.0
