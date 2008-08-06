@@ -8,18 +8,20 @@ program kernelplot
  integer, dimension(10) :: iplotorder
  real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi
  real, dimension(0:ikern) :: dqkern
- logical :: samepage
+ logical :: samepage,plotstability,plotkernel
 !! character(len=50) :: text
 
  !data iplotorder /0, 62, 63, 64, 65, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
- data iplotorder /0, 61, 67, 68, 31, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /68, 61, 67, 68, 31, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 4
+ nkernels = 1
  ianticlump = 0
  epszero = 0.0
  nepszero = 4
  samepage = .false.
- nacross = 4
+ plotkernel = .true.
+ plotstability = .false.
+ nacross = 1
  ndown = 1
  xmin = 0.0
  xmax = 2.2
@@ -54,6 +56,8 @@ program kernelplot
 
  eps = epszero
  neps = nepszero
+
+ if (plotkernel) then
 
  do j=1,nkernels
     if (ianticlump.ne.0) then !! .and. j.lt.7) then
@@ -152,6 +156,7 @@ program kernelplot
 !--plot kernel
 !
     call pgsls(1)
+!    call pgsci(7) ! for yellow
     if (ikernel.eq.101) wij(0:ikern) = -wij(0:ikern)
     if (ikernel.eq.102) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
@@ -190,6 +195,7 @@ program kernelplot
 !--second derivative and deriv w.r.t. h
 !
     if (ikernel.lt.100) then
+       call pgsci(2)
        call pgsls(3)
        call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
        if (ianticlump.ne.0) then
@@ -202,8 +208,12 @@ program kernelplot
     endif
  enddo
  
-! call pgend
-! stop
+ endif ! plotkernel
+ 
+ if (.not.plotstability) then
+    call pgend
+    stop
+ endif
 !
 !--plot stability separately
 !
