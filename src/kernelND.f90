@@ -1381,7 +1381,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
       case(1)
-        cnormk = 2.
+        cnormk = 4.
       case(2)
         cnormk = 0.
       case(3)
