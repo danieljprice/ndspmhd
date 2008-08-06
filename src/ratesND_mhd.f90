@@ -214,6 +214,8 @@ subroutine get_rates
        phi(1:ntotal) = 1./uu(1:ntotal)
     case(8)
        phi(1:ntotal) = 1./pr(1:ntotal)
+    case(9)
+       phi(1:ntotal) = sqrt(rho(1:ntotal))
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
@@ -435,7 +437,7 @@ subroutine get_rates
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
        dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10) then
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
@@ -881,6 +883,12 @@ contains
        altrhoj = prj/((gamma-1.)*uuj)
        dudt(i) = dudt(i) + pmassj*(gamma-1.)*uuj/altrhoi*dvdotr*grkerni
        dudt(j) = dudt(j) + pmassi*(gamma-1.)*uui/altrhoj*dvdotr*grkernj
+    elseif (iener.eq.11) then
+       !
+       !--usual form, not directly related to drho/dt
+       !
+       dudt(i) = dudt(i) + Prho2i*pmassj*dvdotr*grkerni
+       dudt(j) = dudt(j) + Prho2j*pmassi*dvdotr*grkernj
     endif
 
 !------------------------------------------------------------------------
@@ -1099,6 +1107,7 @@ contains
           dendt(i) = dendt(i) + pmassj*(termu*(vissu))
           dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
        endif
+       
        !if (icty.eq.1) then
        !   vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
        !   drhodt(i) = drhodt(i) + pmassj*(vissrho)
