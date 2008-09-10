@@ -7,6 +7,7 @@ subroutine derivs
  use options, only:ibound,icty,ihvar,imhd,isplitpart
  use part, only:hh,x,npart
  use setup_params, only:hfact
+ use cons2prim, only:conservative2primitive
  implicit none
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5

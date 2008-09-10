@@ -56,7 +56,10 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-3D-v5-3'
+    version = 'NDSPMHD-3D-SR-v5-4'
+!   * special relativity
+!   * a LOT of other changes over the years
+!    version = 'NDSPMHD-3D-v5-3'
 !   * multiple runnames off command line (does them in order)
 !   * dissipation switches for resistivity and conductivity
 !   * anticlumping term implemented as a modified kernel gradient

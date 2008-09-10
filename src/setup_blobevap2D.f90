@@ -20,6 +20,7 @@ subroutine setup
  use setup_params
  
  use uniform_distributions
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !      
@@ -30,7 +31,7 @@ subroutine setup
  real :: totmass,gam1,massp,const,psepdisk,totvol
  real, dimension(ndim) :: xorigin, dx, xmintemp, xmaxtemp
  real, dimension(ndimv) :: Bzero
- logical :: equalmass
+ logical, parameter :: equalmass = .true.
 !
 !--set boundaries
 !                        
@@ -51,7 +52,6 @@ subroutine setup
 !
 !--setup parameters for the problem
 ! 
- equalmass = .true.
  xorigin(:) = 0.0        ! co-ordinates of the centre of the initial blast
  rdisk = 0.1             ! radius of the initial disk
  rbuffer = 0. !!115      ! radius of the smoothed front
@@ -63,6 +63,7 @@ subroutine setup
  densdisk = 10.0           ! density of rotating disk
  
  gam1 = gamma - 1.
+ !pext = przero
 
  write(iprint,*) 'Evaporating blob problem '
  write(iprint,10) densdisk,rdisk,bzero(1),vzero,przero

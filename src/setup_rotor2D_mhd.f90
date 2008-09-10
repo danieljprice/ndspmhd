@@ -25,6 +25,7 @@ subroutine setup
  use setup_params
  
  use uniform_distributions
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !      

@@ -18,6 +18,7 @@ subroutine setup
  use mem_allocation, only:alloc
  
  use uniform_distributions
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !            
