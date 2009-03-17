@@ -27,6 +27,7 @@ subroutine initialise
  use infiles, only:read_infile
  use dumpfiles, only:read_dump
  use convert, only:convert_setup
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !      
@@ -165,7 +166,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- if (ifile.eq.0) call modify_dump
+ !if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
@@ -180,7 +181,7 @@ subroutine initialise
  divB = 0.
  curlB = 0.
  fmag = 0.
- psi = 0.
+ if (iprterm.ne.11) psi = 0.
  sqrtg = 1.
  if (imhd.eq.0) then
     Bfield = 0.  ! zero mag field if turned off
