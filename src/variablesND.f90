@@ -188,6 +188,8 @@ MODULE setup_params
  REAL, PARAMETER :: Omega0 = Rcentre**(-1.5)
  REAL, PARAMETER :: domegadr = 1.5
  REAL :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer
+ real, parameter :: omegafixed = 1.0
+ 
 END MODULE setup_params
 
 !-------------------------------------------------------------------
