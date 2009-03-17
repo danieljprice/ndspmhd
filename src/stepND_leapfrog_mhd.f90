@@ -5,7 +5,7 @@
 !! At the moment there is no XSPH and no direct summation replacements
 !! Note that we cannot use leapfrog for the GR code as force.ne.dvel/dt
 !!--------------------------------------------------------------------
-	 
+         
 SUBROUTINE step
  USE dimen_mhd
  USE debug
@@ -22,6 +22,7 @@ SUBROUTINE step
  USE setup_params
  USE xsph
  use particlesplit, only:particle_splitting
+ use geometry, only:coord_transform,vector_transform
 !
 !--define local variables
 !
@@ -31,6 +32,7 @@ SUBROUTINE step
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin
  REAL, DIMENSION(3,npart) :: daldtin
  REAL :: hdt
+ real, dimension(ndim) :: xcyl,velcyl
 !
 !--allow for tracing flow
 !      
@@ -71,18 +73,23 @@ SUBROUTINE step
 !      
       
  DO i=1,npart
-    IF (itype(i).EQ.1) THEN	! fixed particles
-       if (ireal(i).ne.0) then
+    IF (itype(i).EQ.1 .or. itype(i).EQ.2) then ! fixed particles
+       if (ireal(i).ne.0 .and. itype(i).EQ.1) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)       
+          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
+       elseif (itype(i).eq.2) then  ! velocities are vr, vphi
+          call coord_transform(xin(1:ndim,i),ndim,1,xcyl(:),ndim,2)
+          velcyl(1) = 0.
+          velcyl(2) = xcyl(1)*omegafixed
+          call vector_transform(xcyl(1:ndim),velcyl(:),ndim,2,vel(1:ndim,i),ndim,1)
+          x(:,i) = xin(:,i) + dt*vel(:,i)
        else
           write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
           stop
        endif
-       vel(:,i) = velin(:,i)
-       Bevol(:,i) = Bevolin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)             
        rho(i) = rhoin(i)
-       hh(i) = hhin(i)	    
+       hh(i) = hhin(i)            
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
@@ -93,8 +100,8 @@ SUBROUTINE step
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        IF (ihvar.EQ.1) THEN
-!	   hh(i) = hfact*(pmass(i)/rho(i))**dndim	! my version
-	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim		! Joe's	   
+!           hh(i) = hfact*(pmass(i)/rho(i))**dndim        ! my version
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! Joe's           
        ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
@@ -111,8 +118,8 @@ SUBROUTINE step
 !--Leapfrog Corrector step
 !
  DO i=1,npart
-    IF (itype(i).EQ.1) THEN
-       vel(:,i) = velin(:,i)
+    IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
+       if (itype(i).EQ.1) vel(:,i) = velin(:,i)
        Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
@@ -120,21 +127,21 @@ SUBROUTINE step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))	    
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))	  
+       vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))          
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*(drhodt(i)+drhodtin(i))
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + hdt*(dhdt(i)+dhdtin(i))
-	  IF (hh(i).LE.0.) THEN
-	     WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
-	     CALL quit
-	  ENDIF
+          IF (hh(i).LE.0.) THEN
+             WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
+             CALL quit
+          ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
        IF (ANY(iavlim.NE.0)) alpha(:,i) = MIN(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
-       IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))	   
+       IF (idivBzero.GE.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
     ENDIF 
-	      
+              
  ENDDO
 !
 !--if doing divergence correction then do correction to magnetic field

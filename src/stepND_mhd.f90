@@ -172,7 +172,7 @@ SUBROUTINE step
  ENDIF
    
  DO i=1,npart
-    IF (itype(i).EQ.1) THEN        ! fixed particles
+    IF (itype(i).EQ.1 .OR. itype(i).EQ.2) THEN        ! fixed particles
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)             
@@ -209,9 +209,9 @@ SUBROUTINE step
 
  ENDDO
 
- WHERE (alpha(:,:).GT.0.5)
-    alpha(:,:) = 1.0
- END WHERE
+! WHERE (alpha(:,:).GT.0.5)
+!    alpha(:,:) = 1.0
+! END WHERE
  
 !
 !--calculate all derivatives
@@ -244,12 +244,13 @@ SUBROUTINE step
 !--Mid-point Corrector step
 !
  DO i=1,npart
-    IF (itype(i).EQ.1) THEN
+    IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
-       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
+       if (i.eq.420) print*,i,'type=',itype(i),'r=',sqrt(dot_product(xin(:,i),xin(:,i))),' vel = ',vel(1:ndim,i)
+       x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
        psi(i) = psiin(i)
@@ -300,9 +301,9 @@ SUBROUTINE step
 !--this is just so that alpha looks right in the output
 !  (overwritten in predictor step, but shows where alpha is 1 in rates)
 !
- WHERE (alpha(:,:).GT.0.5)
-    alpha(:,:) = 1.0
- END WHERE
+! WHERE (alpha(:,:).GT.0.5)
+!    alpha(:,:) = 1.0
+! END WHERE
   
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
