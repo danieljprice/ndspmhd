@@ -46,10 +46,10 @@ subroutine setup
  xorigin(:) = 0.0        ! co-ordinates of the centre of the initial blast
  rdisk = 1.0             ! radius of the initial disk
  rmax  = 5.0             ! maximum radius
- omega = 1.0
+ omega = omegafixed
  Bzero(:) = 0.
  massp  = 1.25e-4
- spsoundi = 46. !0.045
+ spsoundi = 0.045
  gam1 = gamma - 1.
  !pext = przero
 
@@ -66,13 +66,18 @@ subroutine setup
  nr = int((rmax - rmin)/psep) + 5
  deltaphi = 2.*asin(psep/2.*rdisk)
  nphi = nint((2.*pi)/deltaphi)
- deltaphi = 2.*pi*rdisk/nphi
+ deltaphi = 2.*pi/nphi
  
  call alloc(nr*nphi)
  
  ipart = 0
  do ir = 1,nr
     ri = rmin + (ir-1)*psep
+    !deltaphi = 2.*asin(psep/2.*ri)
+    !nphi = nint((2.*pi)/deltaphi)
+    !deltaphi = 2.*pi/nphi
+    !print*,'ri = ',ri,'deltaphi = ',deltaphi,' nphi = ',nphi
+
     do iphi = 1,nphi
        phi = (iphi-1)*deltaphi
        ipart = ipart + 1
@@ -98,11 +103,11 @@ subroutine setup
     if (ri.le.rdisk) then
        itype(ipart) = 2
        nbpts = nbpts + 1
-       vphi = 2.*pi*omega*ri
-       vel(1,ipart) = 0.   !-vphi*sin(phi)
-       vel(2,ipart) = vphi !!vphi*cos(phi)
+       vphi = omega*ri
+       vel(1,ipart) = -vphi*sin(phi)
+       vel(2,ipart) = vphi*cos(phi)
     elseif (ri.ge.rmax) then
-       itype(ipart) = 2
+       itype(ipart) = 1
        nbpts = nbpts + 1
        vel(:,ipart) = 0.
     else
