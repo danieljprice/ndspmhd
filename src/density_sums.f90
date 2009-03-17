@@ -20,7 +20,7 @@ contains
     use loguns, only:iprint
     use kernels, only:radkern2,interpolate_kernel,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
-    use options, only:ikernav,igravity,imhd,ikernel,ikernelalt
+    use options, only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
     !use matrixcorr
     use part, only:Bfield,ntotal,uu,psi
     use setup_params, only:hfact
@@ -84,7 +84,7 @@ contains
        gradsoft(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
-       if (imhd.eq.0) then
+       if (imhd.eq.0 .and. iprterm.eq.10) then
           psi(i) = 0.
           unity(i) = 0.
        endif
@@ -260,7 +260,7 @@ contains
                    gradhn(j) = gradhn(j) + weight*dwaltdhj
                 endif
                 
-                if (imhd.eq.0) then
+                if (imhd.eq.0 .and. iprterm.eq.10) then
                    psi(i) = psi(i) + pmassj*wabi*uu(j)
                    unity(i) = unity(i) + wconst*wabi/hfacwabi
                    if (i.ne.j) then
@@ -293,6 +293,8 @@ contains
     
     do i=1,npart
        !if (imhd.eq.0) then
+       !   print*,i,' del^2 rho = ',psi(i)
+       !endif
        !   psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
        !   if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
        !else
@@ -338,7 +340,7 @@ contains
  
     use kernels, only:radkern2,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
-    use options, only:igravity,imhd,ikernel,ikernelalt
+    use options, only:igravity,imhd,ikernel,ikernelalt,iprterm
     !use matrixcorr
     use part, only:Bfield,ntotal,uu,psi
     use rates, only:dBevoldt
@@ -398,7 +400,7 @@ contains
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
-       if (imhd.eq.0) psi(i) = 0.
+       if (imhd.eq.0 .and. iprterm.eq.10) psi(i) = 0.
     enddo
     icellprev = 0
 !
@@ -503,7 +505,7 @@ contains
              gradh(i) = gradh(i) + pmassj*dwdhi
              gradhn(i) = gradhn(i) + dwaltdhi
 
-             if (imhd.eq.0) then
+             if (imhd.eq.0 .and. iprterm.eq.10) then
                 psi(i) = psi(i) + pmassj*wabi*uu(j)
                 unityi = unityi + wconst*wabi/hfacwabi
              endif
