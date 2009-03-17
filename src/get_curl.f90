@@ -8,12 +8,12 @@ module getcurl
  
 contains
 
-subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
+subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  use dimen_mhd, only:ndim,ndimV,idim
  use debug, only:trace
  use loguns, only:iprint
  
- use kernels, only:interpolate_kernel,radkern2
+ use kernels, only:interpolate_kernel_curl,radkern2
  use linklist, only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list
  use hterms, only:gradh
@@ -29,6 +29,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  real, dimension(idim), intent(in) :: pmass,rho,hh
  real, dimension(ndimV,idim), intent(in) :: Bvec
  real, dimension(ndimV,idim), intent(out) :: curlB
+ real, dimension(ndimV,idim), intent(out), optional :: curlBgradh
  real :: weight
 
  integer :: i,j,n
@@ -40,8 +41,9 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  real :: hfacwabi,hfacwabj
  real :: pmassi
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr, dB, Bi, curlBi, curlBterm
- real :: q2i,q2j,wabi,wabj,grkerni,grkernj
+ real, dimension(ndimV) :: dr, dB, Bi, curlBi, curlBterm, curlBgradhi
+ real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
+ real :: dgradwdhi,dgradwdhj
  real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
@@ -114,13 +116,15 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !
                 !       print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
                 !  (using hi)
-                call interpolate_kernel(q2i,wabi,grkerni)
+                call interpolate_kernel_curl(q2i,grkerni,grgrkerni)
 !                wabi = wabi*hfacwabi
                 grkerni = grkerni*hi1 !!*hfacwabi*hi1
+                dgradwdhi = -(ndim+1.)*grkerni*hfacwabi*hi21 - rij*hi21*grgrkerni*hfacwabi
                 !  (using hj)
-                call interpolate_kernel(q2j,wabj,grkernj)
+                call interpolate_kernel_curl(q2j,grkernj,grgrkernj)
 !                wabj = wabj*hfacwabj
                 grkernj = grkernj*hj1 !!*hfacwabj*hj1
+                dgradwdhj = -(ndim+1.)*grkernj*hfacwabj*hj1*hj1 - rij*hj1**2*grgrkernj*hfacwabj
 !
 !--calculate curl of Bvec (NB dB is 3-dimensional, dr is also but zero in parts)
 !
@@ -134,6 +138,11 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
                 curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)*grkerni*hfacwabi
                 curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)*grkernj*hfacwabj
 
+                if (present(curlBgradh)) then
+                curlBgradhi(:) = curlBgradhi(:) + pmass(j)*curlBterm(:)*dgradwdhi
+                curlBgradh(:,j) = curlBgradh(:,j) + pmassi*curlBterm(:)*dgradwdhj
+                endif
+
 !--form 3 (m_j/rho_j) either with dB (use curl above) or with just B (uncomment curls below)
 !                call cross_product3D(-Bvec(1:ndimV,j),dr,curlBterm)
 !                curlBi(:) = curlBi(:) + pmass(j)/rho(j)*curlBterm(:)*grkernj*hfacwabj
@@ -145,6 +154,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
        enddo loop_over_neighbours
        
        curlB(:,i) = curlB(:,i) + curlBi(:)
+       curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
        
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
