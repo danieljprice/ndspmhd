@@ -654,7 +654,9 @@ subroutine applymask(imask,xpart,ipart)
  real, dimension(:), intent(in) :: xpart
  integer, intent(inout) :: ipart
  real, dimension(size(xpart)) :: dx,xorigin
- real :: radius1,radius2,phi
+ real :: radius1,radius2,phi,z,Rfunc
+ 
+ Rfunc(z) = -50. + 10.*cos(2.*pi*z/100.)
  
  select case(imask)
  case(1,-1)
@@ -715,7 +717,20 @@ subroutine applymask(imask,xpart,ipart)
           ipart = ipart - 1
        endif
     endif
-
+ case(4,-4)
+ 
+!
+!--NOVA test
+!
+    if (imask.gt.0) then
+       if (xpart(1).lt.Rfunc(xpart(2))) then
+          ipart = ipart - 1
+       endif
+    else
+       if (xpart(1).gt.Rfunc(xpart(2))) then
+          ipart = ipart - 1
+       endif
+    endif
  end select
  
 end subroutine applymask
