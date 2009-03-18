@@ -29,7 +29,7 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 0	! boundaries
+ ibound = 3	! boundaries
  nbpts = 0	! use ghosts not fixed
  xmin(:) = 0.	! set position of boundaries
  xmax(:) = 1.
@@ -43,7 +43,7 @@ subroutine setup
  rmax = 0.5
 
 !! call cp_distribute(rmin,rmax,psep,ntotal,x(1,1:npart),x(2,1:npart),x(3,1:npart),npart)
- call set_uniform_cartesian(4,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
  npart = ntotal
  print*,'npart =',npart
 !
