@@ -26,6 +26,7 @@ subroutine conservative2primitive
   use part
   use getcurl, only:get_curl
   use smooth, only:smooth_variable
+  use rates, only:gradpsi
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i, pri
@@ -44,9 +45,9 @@ subroutine conservative2primitive
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
-  elseif (imhd.eq.-1) then ! if using vector potential
+  elseif (imhd.lt.0) then ! if using vector potential
      !write(iprint,*) 'getting B field from vector potential...'
-     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
+     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
      enddo
@@ -83,6 +84,9 @@ subroutine conservative2primitive
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
     spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
+ elseif (iprterm.eq.11) then
+    call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
+                        rho(1:npart),psi(1:npart)) 
  else
     call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
                         rho(1:npart)) 
@@ -146,6 +150,7 @@ subroutine primitive2conservative
   use setup_params
   use timestep
   use getcurl
+  use rates, only:gradpsi
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri
@@ -218,9 +223,9 @@ subroutine primitive2conservative
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
-  elseif (imhd.eq.-1) then ! if using vector potential
+  elseif (imhd.lt.0) then ! if using vector potential
      write(iprint,*) 'getting B field from vector potential (init)...'
-     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
+     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
      enddo
@@ -243,8 +248,13 @@ subroutine primitive2conservative
 !
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)
-  call equation_of_state(pr(1:npart),spsound(1:npart), &
-                         uu(1:npart),dens(1:npart))  
+  if (iprterm.eq.11) then
+     call equation_of_state(pr(1:npart),spsound(1:npart), &
+                            uu(1:npart),dens(1:npart),psi(1:npart))
+  else
+     call equation_of_state(pr(1:npart),spsound(1:npart), &
+                            uu(1:npart),dens(1:npart))
+  endif
 !
 !--copy the conservative variables onto the ghost particles
 !  
