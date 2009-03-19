@@ -13,10 +13,10 @@ subroutine boundary
  use bound, only:xmin,xmax
  use options, only:ibound
  use part, only:x,vel,npart
- use part_in, only:velin
+ use part_in, only:velin,xin
  use timestep, only:time
  use setup_params, only:Omega0,domegadr
-! use rates, only:force
+ use rates, only:force
 ! use part_in
 ! use setup_params
 !
@@ -107,20 +107,24 @@ subroutine boundary
              if (x(jdim,i).gt.xmax(jdim)) then
                 !--move particle back inside boundary
                 x(jdim,i) = xmax(jdim) - (x(jdim,i) - xmax(jdim))
+                xin(jdim,i) = x(jdim,i)
                 !--flip normal velocity component
                 vel(jdim,i) = -vel(jdim,i)
-!                force(jdim,i) = -force(jdim,i)
+                velin(jdim,i) = vel(jdim,i)
+                force(jdim,i) = 0. !-force(jdim,i)
                 ncorrect = ncorrect + 1
 !                print*,'xmax',jdim,i,'xnew = ',x(jdim,i),vel(jdim,i)
              elseif(x(jdim,i).lt.xmin(jdim)) then
-!                print*,'xminold',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
+                print*,'xminold',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
                 !--move particle back inside boundary
                 x(jdim,i) = xmin(jdim) + (xmin(jdim) - x(jdim,i))
+                xin(jdim,i) = x(jdim,i)
                 !--flip normal velocity component
                 vel(jdim,i) = -vel(jdim,i)
-!                force(jdim,i) = -force(jdim,i)
+                velin(jdim,i) = vel(jdim,i)
+                force(jdim,i) = 0. !-force(jdim,i)
                 ncorrect = ncorrect + 1
-!                print*,'xminnew',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
+                print*,'xminnew',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
              endif
           endif
        enddo
