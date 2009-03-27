@@ -24,10 +24,13 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,ipart
- real :: massp,volume,totmass,ran1
+ real :: massp,volume,totmass,ran1,massmedium,Rfunc2,z
  real :: denszero,densmedium,przero,psepmedium,pri
  real, dimension(ndim) :: xminregion,xmaxregion
- logical, parameter :: equalmass = .false.
+ logical, parameter :: equalmass = .true.
+ logical, parameter :: perturbinterface = .true.
+
+ Rfunc2(z) = -0.01*cos(6.*pi*z)  ! interface definition
 !
 !--allow for tracing flow
 !
@@ -36,13 +39,20 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound(1) = 3 ! periodic in x
- ibound(2) = 2 ! fixed in y
- nbpts = 0	! use ghosts not fixed
- xmin(1) = -0.25	! set position of boundaries
- xmax(1) = 0.25
- xmin(2) = -0.75 !- 6.*psep	! set position of boundaries
- xmax(2) = 0.75 !+ 6.*psep
+ ibound(1) = 2 ! periodic in x
+ ibound(2) = 1 ! fixed in y
+ nbpts = 0     ! use ghosts not fixed
+ if (perturbinterface) then
+    xmin(1) = 0. ! set position of boundaries
+    xmax(1) = 1./6.
+    xmin(2) = -0.5 !- 6.*psep	! set position of boundaries
+    xmax(2) = 0.5 !+ 6.*psep 
+ else
+    xmin(1) = -0.25 ! set position of boundaries
+    xmax(1) = 0.25
+    xmin(2) = -0.75 !- 6.*psep	! set position of boundaries
+    xmax(2) = 0.75 !+ 6.*psep
+ endif
  if (iexternal_force.ne.8) stop 'need iexternal force = 8 for this problem'
 !
 !--set up the uniform density grid
@@ -50,14 +60,33 @@ subroutine setup
  denszero = 1.0
  densmedium = 2.0
  przero = 2.5
+ psepmedium = psep*(denszero/densmedium)**(1./ndim)
+ massmedium = massp*(densmedium/denszero)
+ volume = product(xmax(:)-xmin(:))
+ totmass = denszero*volume
+
  if (.not.equalmass) then
 !
 !--unequal masses setup whole grid
-! 
+!
     call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)
-    volume = product(xmax(:)-xmin(:))
-    totmass = denszero*volume
     massp = totmass/float(npart)
+
+ elseif (perturbinterface) then
+!
+!--setup whole domain to get particle mass
+!
+    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+    massp = totmass/float(npart)
+    npart = 0
+!
+!--for equal mass particles setup each region separately
+!  (this uses a mask to get a perturbed interface)
+!
+    call set_uniform_cartesian(1,psep,xmin,xmax,fill=.true.,mask=-5)
+    call set_uniform_cartesian(1,psepmedium,xmin,xmax,fill=.true.,mask=5)
+    ntotal = npart
+
  else
 !
 !--for equal mass particles setup each region separately
@@ -82,7 +111,6 @@ subroutine setup
 ! 
     xminregion(2) = 0.
     xmaxregion(2) = xmax(2)
-    psepmedium = psep*(denszero/densmedium)**(1./ndim)
     call set_uniform_cartesian(2,psepmedium,xminregion,xmaxregion,fill=.true.)
 !
 !--reallocate memory to new size of list
@@ -111,22 +139,36 @@ subroutine setup
 !--now assign particle properties
 !
  do i=1,ntotal
-    vel(1,i) = 0.
-    if (abs(x(2,i)).lt.1./3.) then
-       vel(2,i) = 0.01*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
-    else
-       vel(2,i) = 0.
-    endif
-    if (x(2,i).gt.0.) then
-       dens(i) = densmedium
-       if (equalmass) then
-          pmass(i) = massp
+    vel(:,i) = 0.
+    if (perturbinterface) then
+       if (x(2,i) .gt. Rfunc2(x(1,i))) then
+          dens(i) = densmedium
+          if (equalmass) then
+             pmass(i) = massp
+          else
+             pmass(i) = massmedium
+          endif
        else
-          pmass(i) = massp*(densmedium/denszero)
+          dens(i) = denszero
+          pmass(i) = massp
        endif
     else
-       dens(i) = denszero
-       pmass(i) = massp
+       if (abs(x(2,i)).lt.1./3.) then
+          vel(2,i) = 0.01*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
+       else
+          vel(2,i) = 0.
+       endif
+       if (x(2,i).gt.0.) then
+          dens(i) = densmedium
+          if (equalmass) then
+             pmass(i) = massp
+          else
+             pmass(i) = massmedium
+          endif
+       else
+          dens(i) = denszero
+          pmass(i) = massp
+       endif
     endif
     pri = przero - 0.1*dens(i)*x(2,i)
     uu(i) = pri/((gamma-1.)*dens(i))

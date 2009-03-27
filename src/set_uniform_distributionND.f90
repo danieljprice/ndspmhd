@@ -654,9 +654,10 @@ subroutine applymask(imask,xpart,ipart)
  real, dimension(:), intent(in) :: xpart
  integer, intent(inout) :: ipart
  real, dimension(size(xpart)) :: dx,xorigin
- real :: radius1,radius2,phi,z,Rfunc
+ real :: radius1,radius2,phi,z,Rfunc,Rfunc2
  
  Rfunc(z) = -50. + 10.*cos(2.*pi*z/100.)
+ Rfunc2(z) = -0.01*cos(6.*pi*z)
  
  select case(imask)
  case(1,-1)
@@ -731,6 +732,20 @@ subroutine applymask(imask,xpart,ipart)
           ipart = ipart - 1
        endif
     endif
+ case(5,-5)
+!
+!--Rayleigh Taylor interface
+!
+    if (imask.gt.0) then
+       if (xpart(2).le.Rfunc2(xpart(1))) then
+          ipart = ipart - 1
+       endif
+    else
+       if (xpart(2).gt.Rfunc2(xpart(1))) then
+          ipart = ipart - 1
+       endif
+    endif
+
  end select
  
 end subroutine applymask
