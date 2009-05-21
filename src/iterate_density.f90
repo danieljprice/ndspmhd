@@ -40,7 +40,7 @@ subroutine iterate_density
   integer :: ncalc,ncalcprev,ncalctotal,nrhosmall,nwarn
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
-  real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
+  real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
   real, dimension(size(rho)) :: hhin,densn,dndt
   logical :: converged,redolink
   
@@ -68,6 +68,7 @@ subroutine iterate_density
   gradh = 0.
   gradhn = 0.
   gradsoft = 0.
+  gradgradh = 0.
   drhodt = 0.
   dhdt = 0.
   hhin(1:npart) = hh(1:npart)
@@ -102,10 +103,10 @@ subroutine iterate_density
 !  only on a partial list
 !     
      if (ncalc.eq.npart) then
-        call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,npart) ! symmetric for particle pairs
+        call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
 !!        call output(0.0,1)
      else
-        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,npart,ncalc,redolist)
+        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart,ncalc,redolist)
      endif
      
      ncalctotal = ncalctotal + ncalc
@@ -149,6 +150,7 @@ subroutine iterate_density
                  rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
                  dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
 !                 dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
+                 dwdhsumi = gradh(i)
                  omegai =  1. - dhdrhoi*gradh(i)
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
@@ -158,6 +160,9 @@ subroutine iterate_density
                  func = rhoi - rho(i)
                  dfdh = omegai/dhdrhoi
                  gradsoft(i) = gradsoft(i)*dhdrhoi
+                 !--gradgradhi is the "zeta" term in Price (2009)
+                 d2hdrho2i = hh(i)*(ndim+1)/(rho(i)*ndim)**2
+                 gradgradh(i) = rho(i)*(d2hdrho2i*dwdhsumi + dhdrhoi**2*gradgradh(i))
               endif
 !
 !--perform Newton-Raphson iteration to get new h
@@ -254,6 +259,7 @@ subroutine iterate_density
            dhdt(i) = 0.
            gradh(i) = 1.
            gradhn(i) = 0.
+           gradgradh(i) = 0.
         enddo   
      endif
 
