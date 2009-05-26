@@ -8,7 +8,7 @@ module getcurl
  
 contains
 
-subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
+subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  use dimen_mhd, only:ndim,ndimV,idim
  use debug, only:trace
  use loguns, only:iprint
@@ -24,7 +24,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
 !--define local variables
 !
  implicit none
- integer, intent(in) :: npart
+ integer, intent(in) :: npart,icurltype
  real, dimension(ndim,idim), intent(in) :: x
  real, dimension(idim), intent(in) :: pmass,rho,hh
  real, dimension(ndimV,idim), intent(in) :: Bvec
@@ -37,13 +37,13 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
  real :: rij,rij2
- real :: hi,hi1,hj,hj1,hi21
+ real :: hi1,hj1,hi21
  real :: hfacwabi,hfacwabj
  real :: pmassi
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr, dB, Bi, curlBi, curlBterm, curlBgradhi
+ real, dimension(ndimV) :: dr,dB,Bi,curlBi,curlBterm,curlBtermi,curlBtermj,curlBgradhi
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
- real :: dgradwdhi,dgradwdhj
+ real :: dgradwdhi,dgradwdhj,rho21gradhi
  real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
@@ -86,6 +86,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
        Bi(:) = Bvec(:,i)
+       rho21gradhi = gradh(i)/rho(i)**2
        curlBi(:) = 0.
        if (present(curlBgradh)) curlBgradhi(:) = 0.
 !
@@ -119,37 +120,49 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
                 !       print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
                 !  (using hi)
                 call interpolate_kernel_curl(q2i,grkerni,grgrkerni)
-!                wabi = wabi*hfacwabi
-                grkerni = grkerni*hi1 !!*hfacwabi*hi1
-                dgradwdhi = -(ndim+1.)*hi1*(grkerni*hfacwabi) - rij*hi1**3*grgrkerni*hfacwabi
                 !  (using hj)
                 call interpolate_kernel_curl(q2j,grkernj,grgrkernj)
-!                wabj = wabj*hfacwabj
-                grkernj = grkernj*hj1 !!*hfacwabj*hj1
-                dgradwdhj = -(ndim+1.)*hj1*(grkernj*hfacwabj) - rij*hj1**3*grgrkernj*hfacwabj
 !
 !--calculate curl of Bvec (NB dB is 3-dimensional, dr is also but zero in parts)
 !
-!--form 1 (dB using weights) -- multiply by weight below
-                dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
-                call cross_product3D(dB,dr,curlBterm)
-!                curlBi(:) = curlBi(:) + curlBterm(:)*grkerni
-!                curlB(:,j) = curlB(:,j) + curlBterm(:)*grkernj                
+                select case(icurltype)
+                case(2)  ! symmetric curl for vector potential current
+                   grkerni = grkerni*hfacwabi*hi1
+                   grkernj = grkernj*hfacwabj*hj1*gradh(j)
 
-!--form 2 (dB, m_j/rho_i with gradh) -- divide by rho(i) below
-                curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)*grkerni*hfacwabi
-                curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)*grkernj*hfacwabj
+                   call cross_product3D(Bi(:),dr,curlBtermi)
+                   call cross_product3D(Bvec(:,j),dr,curlBtermj)
+                   curlBterm(:) = (curlBtermi(:)*rho21gradhi*grkerni + curlBtermj(:)/rho(j)**2*grkernj)
+                   curlBi(:) = curlBi(:) - pmass(j)*curlBterm(:)
+                   curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)
+                
+                case(3)  ! (dB using weights) -- multiply by weight below
+                   grkerni = grkerni*hi1
+                   grkernj = grkernj*hj1
 
-                if (present(curlBgradh)) then
-                curlBgradhi(:) = curlBgradhi(:) + pmass(j)*curlBterm(:)*dgradwdhi
-                curlBgradh(:,j) = curlBgradh(:,j) + pmassi*curlBterm(:)*dgradwdhj
-                endif
+                   dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
+                   call cross_product3D(dB,dr,curlBterm)
+                   curlBi(:) = curlBi(:) + curlBterm(:)*grkerni
+                   curlB(:,j) = curlB(:,j) + curlBterm(:)*grkernj
 
-!--form 3 (m_j/rho_j) either with dB (use curl above) or with just B (uncomment curls below)
-!                call cross_product3D(-Bvec(1:ndimV,j),dr,curlBterm)
-!                curlBi(:) = curlBi(:) + pmass(j)/rho(j)*curlBterm(:)*grkernj*hfacwabj
-!                call cross_product3D(Bi(1:ndimV),dr,curlBterm)
-!                curlB(:,j) = curlB(:,j) + pmassi/rho(i)*curlBterm(:)*grkerni*hfacwabi
+                case default  ! default curl (dB, m_j/rho_i with gradh) -- divide by rho(i) below
+                   grkerni = grkerni*hfacwabi*hi1
+                   grkernj = grkernj*hfacwabj*hj1
+
+                   dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
+                   call cross_product3D(dB,dr,curlBterm)
+
+                   curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)*grkerni
+                   curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)*grkernj
+
+                   if (present(curlBgradh)) then
+                      dgradwdhi = -(ndim+1.)*hi1*grkerni - rij*hi1**3*grgrkerni*hfacwabi
+                      dgradwdhj = -(ndim+1.)*hj1*grkernj - rij*hj1**3*grgrkernj*hfacwabj
+
+                      curlBgradhi(:) = curlBgradhi(:) + pmass(j)*curlBterm(:)*dgradwdhi
+                      curlBgradh(:,j) = curlBgradh(:,j) + pmassi*curlBterm(:)*dgradwdhj
+                   endif
+                end select
 
              endif
           endif! j .ne. i   
@@ -166,12 +179,17 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  enddo loop_over_cells
 
  do i=1,npart
-    curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
-    if (present(curlBgradh)) then
-       curlBgradh(:,i) = curlBgradh(:,i)*gradh(i)
-    endif
-!    curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
-!    curlB(:,i) = rho(i)*curlB(:,i) !!*gradh(i)
+    select case(icurltype)
+    case(3)
+       curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
+    case(2)
+       curlB(:,i) = -rho(i)*curlB(:,i)    
+    case default
+       curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
+       if (present(curlBgradh)) then
+          curlBgradh(:,i) = curlBgradh(:,i)*gradh(i)
+       endif
+    end select
  enddo
 
  return
