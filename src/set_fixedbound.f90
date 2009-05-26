@@ -58,7 +58,7 @@ subroutine set_fixedbound
         if (itype(i).eq.1) then
            rmin = 1.e10
            do j=1,npart
-              if (j.ne.i .and. itype(j).ne.1) then   ! find closest real particle
+              if (j.ne.i .and. itype(j).eq.0) then   ! find closest real particle
                  dx = x(:,i) - x(:,j)
                  rr = DOT_PRODUCT(dx,dx)
                  if (rr.lt.rmin) then
@@ -68,6 +68,7 @@ subroutine set_fixedbound
               endif
            enddo
            !ireal(i) = 0
+           !idebug = 'fixed'
            if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
