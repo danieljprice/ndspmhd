@@ -32,7 +32,8 @@ SUBROUTINE step
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin
  REAL, DIMENSION(3,npart) :: daldtin
  REAL :: hdt
- real, dimension(ndim) :: xcyl,velcyl
+ real, dimension(ndim)  :: xcyl,velcyl
+ real, dimension(ndimV) :: vcrossB
 !
 !--allow for tracing flow
 !      
@@ -87,7 +88,13 @@ SUBROUTINE step
           write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
           stop
        endif
-       Bevol(:,i) = Bevolin(:,i)             
+       if (imhd.lt.0) then
+          call cross_product3D(velin(:,i),Bconst(:),vcrossB)
+          Bevol(:,i) = Bevolin(:,i) + dt*vcrossB(:)
+          dBevoldtin(:,i) = vcrossB(:)
+       else
+          Bevol(:,i) = Bevolin(:,i)             
+       endif
        rho(i) = rhoin(i)
        hh(i) = hhin(i)            
        en(i) = enin(i)
@@ -120,6 +127,13 @@ SUBROUTINE step
  DO i=1,npart
     IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
        if (itype(i).EQ.1) vel(:,i) = velin(:,i)
+       if (imhd.lt.0) then
+          call cross_product3D(vel(:,i),Bconst(:),vcrossB)
+          Bevol(:,i) = Bevolin(:,i) + hdt*(vcrossB(:) + dBevoldtin(:,i))
+       else
+          Bevol(:,i) = Bevolin(:,i)             
+       endif
+
        Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
