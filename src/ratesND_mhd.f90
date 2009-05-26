@@ -64,7 +64,7 @@ subroutine get_rates
  real, dimension(ndimB) :: curlBi,forcei,forcej,dBevoldti
  real :: fiso,B2i,B2j
  real :: valfven2i,valfven2j
- real :: BidotdB,BjdotdB,Brho2i,Brho2j
+ real :: BidotdB,BjdotdB,Brho2i,Brho2j,BdotBexti
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
 !
 !  (artificial viscosity quantities)
@@ -272,6 +272,7 @@ subroutine get_rates
        if (imhd.ne.0) then
           Bi(:) = Bfield(:,i)
           Brhoi(:) = Bi(:)*rho1i
+          BdotBexti = dot_product(Bi(:),Bconst(:))
 !          if (geom(1:6).ne.'cartes') then
              call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
              B2i = dot_product_gr(Bi,Bi,gdiagi)
@@ -466,19 +467,19 @@ subroutine get_rates
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2
        endif
-    elseif (imhd.eq.-1) then ! vector potential evolution
+    elseif (imhd.eq.-1) then ! vector potential evolution, crap gauge
        !
-       !--add the v x Bext term
+       !--add the v x B term
        !
-       !call cross_product3D(vel(:,i),Bconst(:),curlBi)
        call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
-    elseif (imhd.eq.-2) then ! vector potential evolution
+    elseif (imhd.eq.-2) then ! vector potential evolution, Axel gauge
        !
-       !--add the v x Bext term
+       !--get v x Bext
        !
-       !call cross_product3D(vel(:,i),Bconst(:),curlBi)
-       dBevoldt(:,i) = 0. !dBevoldt(:,i)*rho1i + curlBi(:)
+       call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       !--add v x Bext plus the existing term, which includes dissipation
+       dBevoldt(:,i) = curlBi(:) + dBevoldt(:,i)*rho1i       
     else
        dBevoldt(:,i) = 0.
     endif
@@ -1314,9 +1315,9 @@ contains
     implicit none
     real :: dalphaterm,termi,termj
     real, dimension(ndimV) :: dBdtvisc
-    real :: dwdxdxi,dwdxdyi,dwdydyi
-    real :: dwdxdxj,dwdxdyj,dwdydyj,rij1
-    real :: dgradwdhi,dgradwdhj
+    real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
+    real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
+    real :: dgradwdhi,dgradwdhj,BdotBextj
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1354,6 +1355,10 @@ contains
        
        !--add gradh term
        fiso = fiso + (zeta(i)*rho21i*grkerni + zeta(j)*rho21j*grkernj)
+       
+       !--add B dot Bext term
+       BdotBextj = dot_product(Bj(:),Bconst(:))
+       fiso = fiso + 2.*(BdotBexti*rho21i*grkerni + BdotBextj*rho21j*grkernj)
 
        !--add dgradW/dh contribution to isotropic force term
        !  [grgrkernalti has been multiplied by 1/h^(ndim+2) already]
@@ -1362,22 +1367,71 @@ contains
        fiso = fiso + (psi(i)*dgradwdhi + psi(j)*dgradwdhj)
        
        dwdxdxi = dr(1)*dr(1)*grgrkernalti + (1. - dr(1)*dr(1))*rij1*grkernalti
-       dwdxdyi = dr(1)*dr(2)*grgrkernalti - dr(1)*dr(2)*rij1*grkernalti
-       dwdydyi = dr(2)*dr(2)*grgrkernalti + (1. - dr(2)*dr(2))*rij1*grkernalti
+       if (ndim.ge.2) then
+          dwdxdyi = dr(1)*dr(2)*grgrkernalti - dr(1)*dr(2)*rij1*grkernalti
+          dwdydyi = dr(2)*dr(2)*grgrkernalti + (1. - dr(2)*dr(2))*rij1*grkernalti
+          if (ndim.ge.3) then
+             dwdxdzi = dr(1)*dr(3)*grgrkernalti - dr(1)*dr(3)*rij1*grkernalti
+             dwdydzi = dr(2)*dr(3)*grgrkernalti - dr(2)*dr(3)*rij1*grkernalti
+             dwdzdzi = dr(3)*dr(3)*grgrkernalti + (1. - dr(3)*dr(3))*rij1*grkernalti
+          else
+             dwdxdzi = 0.
+             dwdydzi = 0.
+             dwdzdzi = 0.
+          endif
+       else
+          dwdxdyi = 0.
+          dwdydyi = 0.
+          dwdxdzi = 0.
+          dwdydzi = 0.
+          dwdzdzi = 0.
+       endif
 
        dwdxdxj = dr(1)*dr(1)*grgrkernaltj + (1. - dr(1)*dr(1))*rij1*grkernaltj
-       dwdxdyj = dr(1)*dr(2)*grgrkernaltj - dr(1)*dr(2)*rij1*grkernaltj
-       dwdydyj = dr(2)*dr(2)*grgrkernaltj + (1. - dr(2)*dr(2))*rij1*grkernaltj
+       if (ndim.ge.2) then
+          dwdxdyj = dr(1)*dr(2)*grgrkernaltj - dr(1)*dr(2)*rij1*grkernaltj
+          dwdydyj = dr(2)*dr(2)*grgrkernaltj + (1. - dr(2)*dr(2))*rij1*grkernaltj
+          if (ndim.ge.3) then
+             dwdxdzj = dr(1)*dr(3)*grgrkernaltj - dr(1)*dr(3)*rij1*grkernaltj
+             dwdydzj = dr(2)*dr(3)*grgrkernaltj - dr(2)*dr(3)*rij1*grkernaltj
+             dwdzdzj = dr(3)*dr(3)*grgrkernaltj + (1. - dr(3)*dr(3))*rij1*grkernaltj
+          else
+             dwdxdzj = 0.
+             dwdydzj = 0.
+             dwdzdzj = 0.
+          endif
+       else
+          dwdxdyj = 0.
+          dwdydyj = 0.
+          dwdxdzj = 0.
+          dwdydzj = 0.
+          dwdzdzj = 0.
+       endif
 
        faniso(1) = -dBevol(3)*(Brhoi(2)*dwdxdxi*gradhi*rho1i + Brhoj(2)*dwdxdxj*gradh(j)*rho1j &
-                             -(Brhoi(1)*dwdxdyi*gradhi*rho1i + Brhoj(1)*dwdxdyj*gradh(j)*rho1j))
+                             -(Brhoi(1)*dwdxdyi*gradhi*rho1i + Brhoj(1)*dwdxdyj*gradh(j)*rho1j)) &
+                   -dBevol(2)*(Brhoi(1)*dwdxdzi*gradhi*rho1i + Brhoj(1)*dwdxdzj*gradh(j)*rho1j &
+                             -(Brhoi(3)*dwdxdxi*gradhi*rho1i + Brhoj(3)*dwdxdxj*gradh(j)*rho1j)) &
+                   -dBevol(1)*(Brhoi(3)*dwdxdyi*gradhi*rho1i + Brhoj(3)*dwdxdyj*gradh(j)*rho1j &
+                             - Brhoi(2)*dwdxdzi*gradhi*rho1i + Brhoj(2)*dwdxdzj*gradh(j)*rho1j)
 
        faniso(2) = -dBevol(3)*(Brhoi(2)*dwdxdyi*gradhi*rho1i + Brhoj(2)*dwdxdyj*gradh(j)*rho1j &
-                             -(Brhoi(1)*dwdydyi*gradhi*rho1i + Brhoj(1)*dwdydyj*gradh(j)*rho1j))
+                             -(Brhoi(1)*dwdydyi*gradhi*rho1i + Brhoj(1)*dwdydyj*gradh(j)*rho1j)) &
+                   -dBevol(2)*(Brhoi(1)*dwdydzi*gradhi*rho1i + Brhoj(1)*dwdydzj*gradh(j)*rho1j &
+                             -(Brhoi(3)*dwdxdyi*gradhi*rho1i + Brhoj(3)*dwdxdyj*gradh(j)*rho1j)) &
+                   -dBevol(1)*(Brhoi(3)*dwdydyi*gradhi*rho1i + Brhoj(3)*dwdydyj*gradh(j)*rho1j &
+                             - Brhoi(2)*dwdydzi*gradhi*rho1i + Brhoj(2)*dwdydzj*gradh(j)*rho1j)
+
        faniso(3) = 0.
 
+       !--add B Bext term
+       faniso(:) = faniso(:) + (Bi(:)*rho21i*grkerni + Bj(:)*rho21j*grkernj)*projBconst
+       
+       !--correct stress with constant term
+       !faniso(:) = faniso(:) - (Bconst(:)*rho21i*grkerni + Bconst(:)*rho21j*grkernj)*projBconst
+
        !--correct with anticlumping term       
-       !faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
+       faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
 
        fmagi(:) = faniso(:) - fiso*dr(:)
     
@@ -1499,16 +1553,16 @@ contains
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
-    case(-1) ! vector potential evolution
+    case(-1) ! vector potential evolution - crap gauge
        termi = pmassj*projvi*grkerni
        dBevoldti(:) = dBevoldti(:) - termi*dBevol(:)
        termj = pmassi*projvj*grkernj
        dBevoldt(:,j) = dBevoldt(:,j) - termj*dBevol(:)
-    case(-2) ! vector potential evolution
-       !termi = pmassj*projvi*grkerni
-       dBevoldti(:) = 0. !dBevoldti(:) - termi*dBevol(:)
-       !termj = pmassi*projvj*grkernj
-       !dBevoldt(:,j) = 0. !dBevoldt(:,j) - termj*dBevol(:)
+    case(-2) ! vector potential evolution - Axel gauge
+       termi = pmassj*dot_product(Bevol(:,i),dvel(:))*grkerni
+       dBevoldti(:) = dBevoldti(:) + termi*dr(:)
+       termj = pmassi*dot_product(Bevol(:,j),dvel(:))*grkernj
+       dBevoldt(:,j) = dBevoldt(:,j) + termj*dr(:)
     end select
 
     !--------------------------------------------
