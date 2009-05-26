@@ -13,6 +13,7 @@ subroutine copy_particle(i,j)
   use part
   use rates
   use xsph
+  use options, only:imhd
   !use matrixcorr
   implicit none
   integer :: i,j
@@ -24,7 +25,7 @@ subroutine copy_particle(i,j)
   hh(i) = hh(j)
   uu(i) = uu(j)
   en(i) = en(j)
-  Bevol(:,i) = Bevol(:,j)
+  if (.not.(imhd.lt.0 .and. itype(i).gt.0)) Bevol(:,i) = Bevol(:,j)
   Bfield(:,i) = Bfield(:,j)
   alpha(:,i) = alpha(:,j)
   psi(i) = psi(j)
