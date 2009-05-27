@@ -43,7 +43,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr,dB,Bi,curlBi,curlBterm,curlBtermi,curlBtermj,curlBgradhi
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
- real :: dgradwdhi,dgradwdhj,rho21gradhi
+ real :: dgradwdhi,dgradwdhj,rho21i,rho21gradhi
  real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
@@ -86,7 +86,8 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
        Bi(:) = Bvec(:,i)
-       rho21gradhi = gradh(i)/rho(i)**2
+       rho21i = 1./rho(i)**2
+       rho21gradhi = rho21i*gradh(i)
        curlBi(:) = 0.
        if (present(curlBgradh)) curlBgradhi(:) = 0.
 !
@@ -145,6 +146,16 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
                    curlBi(:) = curlBi(:) + curlBterm(:)*grkerni
                    curlB(:,j) = curlB(:,j) + curlBterm(:)*grkernj
 
+                case(4)  ! (dB, m_j/rho_j**2) -- multiply by rho(i) below
+                   grkerni = grkerni*hfacwabi*hi1
+                   grkernj = grkernj*hfacwabj*hj1
+
+                   dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
+                   call cross_product3D(dB,dr,curlBterm)
+                   
+                   curlBi(:) = curlBi(:) + pmass(j)/rho(j)**2*curlBterm(:)*grkerni
+                   curlB(:,j) = curlB(:,j) + pmassi*rho21i*curlBterm(:)*grkernj
+
                 case default  ! default curl (dB, m_j/rho_i with gradh) -- divide by rho(i) below
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
@@ -180,6 +191,8 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
 
  do i=1,npart
     select case(icurltype)
+    case(4)
+       curlB(:,i) = rho(i)*curlB(:,i)
     case(3)
        curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
     case(2)
