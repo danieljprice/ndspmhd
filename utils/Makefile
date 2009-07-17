@@ -19,6 +19,7 @@ DBLFLAGS = -r8
 
 .SUFFIXES:
 .SUFFIXES:.f .f90 .o
+VPATH = ../src:../plot
 # Fortran flags same as F90
 FC = $(F90C)
 FFLAGS = $(F90FLAGS)
@@ -75,14 +76,9 @@ dimen3D.o :
 variablesND.o :
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/variablesND.f90 -o $@
 
-kernelND.o : ../src/kernelND.f90
-	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
 #setpage.o :
 #	$(F90C) -c $(F90FLAGS) ../plot/setpage.f90 -o $@
-
-interpolate_kernel.o :
-	$(F90C) -c $(F90FLAGS) ../src/interpolate_kernel.f90 -o $@
 
 allocateND.o : variablesND.o
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/allocateND.f90 -o $@
@@ -92,9 +88,6 @@ readwrite_dumps.o : variablesND.o geometry.o
 
 modifydump.o : modifydump.f90
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) modifydump.f90 -o $@
-
-prompting.o :
-	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@
 
 geometry.o :
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../plot/geometry.f90 -o $@
