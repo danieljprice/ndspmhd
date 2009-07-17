@@ -174,7 +174,11 @@ subroutine initialise
 !
 !--setup additional quantities that are not done in setup
 !
- alpha(1,:) = alphamin
+ if (iavlim(1).gt.0) then
+    alpha(1,:) = 1.0
+ else
+    alpha(1,:) = alphamin
+ endif
  alpha(2,:) = alphaumin
  alpha(3,:) = alphaBmin
  gradh = 1.
