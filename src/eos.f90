@@ -39,13 +39,14 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
     do i=1,isize
        if (rho(i).lt.0.) write(iprint,*) i,rho(i),uu(i)
     enddo
-    call quit
+    !call quit
  elseif ((iener.ne.0).and.any(uu.lt.0.)) then
     write(iprint,*) 'eos: u_therm -ve, exiting',isize
     do i=1,isize
        if (uu(i).lt.0.) write(iprint,*) i,rho(i),uu(i)
     enddo    
-    call quit
+    stop
+    !call quit
  endif
 
  if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
@@ -95,10 +96,10 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
 !
  if (rho.lt.0.) then
     write(iprint,*) 'eos1: rho -ve, exiting'
-    call quit
+    !call quit
  elseif ((iener.ne.0).and.uu.lt.0.) then
     write(iprint,*) 'eos1: u_therm -ve, exiting',isize    
-    call quit
+    !call quit
  endif
 
  if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
