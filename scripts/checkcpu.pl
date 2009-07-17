@@ -1,4 +1,4 @@
-#!/bin/env perl
+#!/usr/bin/env perl
 #
 # does multiple runs, but submits each one to the sun grid engine separately
 #

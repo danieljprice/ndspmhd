@@ -37,8 +37,9 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
     print "copying $rootname\_init.dat $rootname$n\_init.dat \n";
-    system "cd $rootname; cp $rootname\_init.dat $rootname$n\_init.dat; ./$ndim$SPMHD $rootname$n\_init.dat > $rootname$n.output";
+    ##system "cd $rootname; cp $rootname\_init.dat $rootname$n\_init.dat; ./$ndim$SPMHD $rootname$n\_init.dat > $rootname$n.output";
     ##system "cd $rootname; ./$ndim$SPMHD $rootname$n\_init.dat > $rootname$n.output";
+    system "cd $rootname; ./$ndim$SPMHD $rootname$n > $rootname$n.output < crap.in";
 }
 
 # call the sametime program to write simultaneous data steps
