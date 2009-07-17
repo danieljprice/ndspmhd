@@ -13,6 +13,7 @@
 module cons2prim
  implicit none
  logical, parameter :: specialrelativity = .false.
+ integer, parameter, private :: Jcurltype = 2
 
 contains
 
@@ -32,7 +33,8 @@ subroutine conservative2primitive
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i, pri, dhdrhoi
-  real, dimension(ndimV) :: Binti
+  real, dimension(ndimV) :: Binti,Bfieldi
+  logical, parameter :: JincludesBext = .true.
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -57,20 +59,45 @@ subroutine conservative2primitive
      call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
         Binti(:) = Bfield(:,i)
-        Bfield(:,i) = Bfield(:,i) + Bconst(:)
-        if (imagforce.eq.7) then
+        Bfieldi(:) = Binti(:) + Bconst(:)
+        if (JincludesBext) Bfield(:,i) = Bfield(:,i) + Bconst(:)
+        if (imagforce.eq.7 .and. ihvar.gt.0) then
            !--construct xi term
            dhdrhoi = -hh(i)/(ndim*(rho(i)))
            gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
-           zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
-           psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
+           zeta(i) = dot_product(Bfieldi(:),gradpsi(:,i)) + dot_product(Bfieldi(:),Binti(:))*gradgradh(i)*gradh(i)
+           psi(i) = dot_product(Bfieldi(:),Binti(:))*gradh(i)/rho(i)*dhdrhoi
            !if (i.lt.10) print*,i,'xi = ',psi(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        else
+           zeta(i) = 0.
+           psi(i) = 0.
         endif
      enddo
-     if (imagforce.eq.7) then
+     !if (imagforce.eq.7) then
+        !--copy Bfield onto ghosts
+        if (any(ibound.eq.1)) then
+           do i=1,npart
+              if (itype(i).eq.1) then
+                 j = ireal(i)
+                 Bfield(:,i) = Bfield(:,j)
+              endif
+           enddo
+        endif
+        if (any(ibound.gt.1)) then
+           do i=npart+1,ntotal
+              j = ireal(i)
+              Bfield(:,i) = Bfield(:,j)
+           enddo
+        endif
         !--get J using symmetric curl operator
-        call get_curl(2,npart,x,pmass,rho,hh,Bfield,curlB)
+        call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
+     !endif
+     if (.not.JincludesBext) then
+        do i=1,npart
+           Bfield(:,i) = Bfield(:,i) + Bconst(:)
+        enddo
      endif
+
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   endif
@@ -136,6 +163,7 @@ subroutine conservative2primitive
   if (any(ibound.gt.1)) then
      do i=npart+1,ntotal
         j = ireal(i)
+        curlB(:,i) = curlB(:,j)
         if (allocated(zeta)) zeta(i) = zeta(j)
         psi(i) = psi(j)
         if (allocated(dens)) dens(i) = dens(j)
@@ -149,6 +177,7 @@ subroutine conservative2primitive
            pr(i) = pr(j)
         endif
         Bfield(:,i) = Bfield(:,j)
+        if (all(ibound.eq.3)) call copy_particle(i,j) ! just to be sure
      enddo
   endif
   
@@ -257,16 +286,37 @@ subroutine primitive2conservative
         Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
         !--construct xi term
-        dhdrhoi = -hh(i)/(ndim*(rho(i)))
-        gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
-        zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
-        psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
-        !print*,i,'xi = ',psi(i),zeta(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        if (imagforce.eq.7 .and. ihvar.gt.0) then
+           dhdrhoi = -hh(i)/(ndim*(rho(i)))
+           gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
+           zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
+           psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
+           !print*,i,'xi = ',psi(i),zeta(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        else
+           zeta(i) = 0.
+           psi(i) = 0.
+        endif
      enddo
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
      write(iprint,*) 'getting J from B (init)...'
-     call get_curl(2,npart,x,pmass,rho,hh,Bfield,curlB)
+     !--copy Bfield onto ghosts
+     if (any(ibound.eq.1)) then
+        do i=1,npart
+           if (itype(i).eq.1) then
+              j = ireal(i)
+              Bfield(:,i) = Bfield(:,j)
+           endif
+        enddo
+     endif
+     if (any(ibound.gt.1)) then
+        do i=npart+1,ntotal
+           j = ireal(i)
+           Bfield(:,i) = Bfield(:,j)
+        enddo
+     endif
+     call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
+     !print*,' curlB(100) = ',curlB(:,100)
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
