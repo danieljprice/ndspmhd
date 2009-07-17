@@ -1,110 +1,89 @@
 !!-----------------------------------------------------------------------
-!! computes multiple infiles where one or several parameters are varied
-!!
-!! this one does toy star oscillations in 2D
+!! writes multiple infiles where one or several parameters are varied
+!! this version changes equation types etc
 !!-----------------------------------------------------------------------
-program multirun
- use dimen_mhd
- use loguns
- use artvi
- use eos
- use options
- use setup_params
- use timestep
- use xsph
- use anticlumping
+PROGRAM multirun
+ USE dimen_mhd
+ USE loguns
+ USE artvi
+ USE options
+ USE setup_params
+ USE timestep
+ USE xsph
  
- use infiles
- implicit none
- integer :: i,j,nruns,jmode,mmode
- integer :: ierr
- character :: filename*115,infile*120,tstarfile*120,filenum*2,charnruns*3
- real :: h,c,a,sigma2,sigma,gamm1,period,omegasq
- real :: alpha,betatstar
+ USE infiles
+ IMPLICIT NONE
+ INTEGER :: i,j,nruns,nres
+ INTEGER :: ierr
+ CHARACTER :: filename*15,infile*20,filenum*2,charnruns*3,res*4
  
  nruns = 0
  iread = 11
- call getarg(1,filename)
- call getarg(2,charnruns)
+ CALL getarg(1,filename)
+ CALL getarg(2,charnruns)
  
  read(charnruns,*,iostat=ierr) nruns
  
- if (filename.eq.'' .or. ierr.ne.0) then
-  print*,'usage: multirun filename nruns'
-  stop
- endif
+ IF (filename.EQ.'' .OR. ierr.NE.0) THEN
+  PRINT*,'Usage: multirun filename nruns'
+  STOP
+ ENDIF
  
- print*,' filename = ',trim(filename),' nruns = ',nruns
+ PRINT*,' filename = ',filename,' nruns = ',nruns 
 !
 !--set default options
 !
- call set_default_options
-
+ CALL set_default_options
+  
 !
 !--read the generic input file
 ! 
- print*,' reading multirun.in... '
- call read_infile('multirun.in')
- print*,' initial psep = ',psep
-  
- jmode = 0
- mmode = 2
- alpha = 1.0
- betatstar = 2.*pi
+ PRINT*,' reading multirun.in... '
+ CALL read_infile('multirun.in')
+ PRINT*,' initial psep = ',psep
  
- do i=1,nruns
-    if (i.ge.10) then
-       filenum = achar(48+i/10)//achar(48+mod(i,10))
-       infile = trim(filename)//filenum//'.in'
-       tstarfile = trim(filename)//filenum//'.tstar2D'
-    else
-       filenum(1:1) = achar(48+mod(i,10))
-       infile = trim(filename)//filenum(1:1)//'.in'
-       tstarfile = trim(filename)//filenum(1:1)//'.tstar2D'
-    endif
-    print*,' writing input file ',trim(infile), ' psep = ',psep
-    
-    h = 1.0
-    c = 1.0
-    a = 0.05/sqrt(2.)
-    
-    jmode = jmode + 2
-    if (jmode.eq.20) then
-       jmode = 2
-       mmode = mmode + 2
-    endif
-!    mmode = mmode + 2
+ iavlim(1) = 2
+ alphamin = 0.
+ alphaumin = 0.
+ psep = 0.04
+ nres = 3
+ DO i=1,nres
+    psep = psep*0.5
+    select case(i)
+    case(1)
+      res = 'lres'
+    case(2)
+      res = 'sres'
+    case(3)
+      res = 'hres'    
+    end select
 
-    gamm1 = gamma - 1.
-    if (gamm1.lt.1.e-5) then
-       stop 'error: gamma - 1 <= 0'
-    endif
-
-    omegasq = 1.0
-    sigma2 = 0.5*omegasq*(gamm1)*((jmode+mmode)*(jmode+mmode + 2./gamm1) - mmode**2)
-    if (sigma2.lt.1.e-5) then
-       print*,'ERROR sigma2 <= 0 in perturbation'
-       sigma = 1.e-1
-    else
-       sigma = sqrt(sigma2)
-    endif
-!
-!--run for 10 periods with output every period
-!
-    period = 2.*pi/sigma
-    tout = 0.25*period
-    tmax = 4.*period
-    print*,'jmode = ',jmode,' smode = ',mmode,' period = ',period
-    
-    print*,'writing ',trim(tstarfile),' with initial left/right states'
-    open(unit=11,file=tstarfile,status='replace',form='formatted')
-       write(11,*) h,c,a
-       write(11,*) alpha,betatstar
-       write(11,*) jmode,mmode
-    close(unit=11)
-    
-    call write_infile(infile)
-
- enddo
+    DO j = 1,4
+       select case(j)
+       case(1)
+         iener = 2
+         iprterm = 0
+         iavlim(2) = 0
+         infile = 'he'//res//'.in' 
+       case(2)
+         iener = 2
+         iprterm = 0
+         iavlim(2) = 1
+         infile = 'hecond'//res//'.in' 
+       case(3)
+         iener = 10
+         iprterm = 10
+         iavlim(2) = 0
+         infile = 'hert'//res//'.in' 
+       case(4)
+         iener = 10
+         iprterm = 10
+         iavlim(2) = 1
+         infile = 'hertcond'//res//'.in' 
+       end select    
+       PRINT*,' writing input file ',infile
+       CALL write_infile(infile)
+    ENDDO
+ ENDDO
  
-end program multirun
+END PROGRAM multirun
