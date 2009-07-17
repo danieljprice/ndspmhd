@@ -75,11 +75,12 @@ subroutine setup
 !
 !--setup parameters
 !
+ przero = 0.1
+
  vperp0 = 0.1
  vparallel = 0.0
  vz0 = 0.1
  denszero = 1.0
- przero = 0.1
  bparallel = 1.0
  bperp0 = 0.1 
  bz0 = 0.1
@@ -92,7 +93,7 @@ subroutine setup
 !--initially set up a uniform density grid (also determines npart)
 !
  print*,' setting up uniform density grid'
- call set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
+ call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)	! 2 = close packed
 !
 !--determine particle mass
 !
