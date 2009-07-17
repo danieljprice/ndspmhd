@@ -205,12 +205,13 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      vpos = 1.5  ! vertical position in character heights from top
      call pgsls(2) !sci(2)
      call pgsci(2)
-     call pgline(ny,yaxis(1:ny),tterm1(1:ny)-1.0)
-     print*,' tterm = ',tterm1(1:10),yaxis(1:10),ny
-     !if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
-     !call pgsls(3)
-     !call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
-     !if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
+!--second derivative normalisation term
+     call pgline(ny,yaxis(1:ny),0.5*tterm1(1:ny))
+     print*,' tterm = ',0.5*tterm1(1:10),ny
+     if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
+     call pgsls(3)
+     call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
+     if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
 !     call pgsls(4)
 !     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
 !     if (iplotpos.eq.1) call legend(ipos,'aniso dW',hpos,vpos)
@@ -223,9 +224,9 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--also plot density estimate
 !
      call pgsls(1)
-     !call pgsci(2)
-     !call pgline(ny,yaxis(1:ny),rhosum(1:ny))
-     !if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
+     call pgsci(2)
+     call pgline(ny,yaxis(1:ny),rhosum(1:ny))
+     if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
      call pgsci(1)
      read*
 
@@ -361,7 +362,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
          dgrwdx = (grwijalt(index1)-grwijalt(index))*ddq2table
          dgrgrwdx = (grgrwijalt(index1)-grgrwijalt(index))*ddq2table
          gradWcorr = (grwijalt(index) + dgrwdx*dxx)/hh**2
-         gradgradWcorr = (grgrwijalt(index) + dgrgrwdx*dxx)/hh**3      
+         gradgradWcorr = (grgrwijalt(index) + dgrgrwdx*dxx)/hh**3
      else
         gradWcorr = gradW
 	gradgradWcorr = gradgradW
