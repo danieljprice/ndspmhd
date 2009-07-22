@@ -417,14 +417,14 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--adjust psep so that particles fill the volume
 !
-    print*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
-    print*,' delta x,y initial  = ',deltax,deltay
+    print*,' npartx,y,z = ',npartx,nparty,npartz !!,deltax,deltay
+    print*,' delta x,y,z initial  = ',deltax,deltay,deltaz
     if (present(fill)) then
        if (fill) then
           deltax = (xmax(1)-xmin(1))/(float(npartx))
           if (ndim.ge.2) deltay = (xmax(2)-xmin(2))/(float(nparty))
           if (ndim.ge.3) deltaz = (xmax(3)-xmin(3))/(float(npartz))
-          print*,' delta x,y adjusted = ',deltax,deltay
+          print*,' delta x,y,z adjusted = ',deltax,deltay,deltaz
        endif
     endif
 !
