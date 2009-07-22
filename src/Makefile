@@ -11,6 +11,9 @@
 EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
+ifndef SPLASH_DIR
+   SPLASH_DIR=${HOME}/splash
+endif
 
 DOUBLEPRECISION= yes
 
@@ -196,6 +199,7 @@ SETUP3D = setup_shockND.f90
 #SETUP3D = setup_forcefree3D.f90
 #SETUP3D = setup_blastisoND.f90
 #SETUP3D = setup_resistND.f90
+SETUP3D = setup_orszagtang2D_mhd.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -279,14 +283,14 @@ crap:
 
 ## files from elsewhere
 
-prompting.o: ../plot/prompting.f90
-	$(F90C) -c ../plot/prompting.f90 -o $@
+prompting.o: $(SPLASH_DIR)/prompting.f90
+	$(F90C) -c $(SPLASH_DIR)/prompting.f90 -o $@
 
-geometry.o: ../plot/geometry.f90
-	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
+geometry.o: $(SPLASH_DIR)/geometry.f90
+	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/geometry.f90 -o $@
 
-exact_densityprofiles.o: ../plot/exact_densityprofiles.f90
-	$(F90C) -c $(F90FLAGS) ../plot/exact_densityprofiles.f90 -o $@
+exact_densityprofiles.o: $(SPLASH_DIR)/exact_densityprofiles.f90
+	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/exact_densityprofiles.f90 -o $@
 
 evolve_montecarlo.o: setup_densityprofileND.o
 
