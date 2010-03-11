@@ -238,7 +238,7 @@ subroutine setup
           nbpts = nbpts + 1
        endif
     enddo
- endif   
+ endif
 !
 !--now set particle properties
 !
