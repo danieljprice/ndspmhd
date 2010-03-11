@@ -129,6 +129,17 @@ subroutine conservative2primitive
 ! call equation_of_state(pr(1:npart),spsound(1:npart),psi(1:npart),  &
 !                        rho(1:npart))
 ! else
+ 
+!
+!--compute unity (stored as psi) for later use in equation of motion
+!  (use pressure temporarily here)
+ if (iprterm.eq.12) then
+    pr(:) = 1.0
+    call smooth_variable(pr,psi,x,pmass,hh,rho)
+    do i=1,npart
+       if (psi(i).lt.0.999 .or. psi(i).gt.1.001) print*,'unity = ',i,x(1,i),psi(i)
+    enddo
+ endif
 
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
