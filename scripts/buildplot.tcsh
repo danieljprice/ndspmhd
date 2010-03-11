@@ -3,10 +3,11 @@
 # @(#) build script for SPLASH releases
 # @(#) -- Daniel Price
 #
+splashdir=~/splash
 if [ $# -ne 2 ]; then
    echo Usage: $0 version description
    echo "(NB: run cvs -q tag 'v1_x_x--`date +%d/%m/%y`' and modify splash.f90 *first* before doing build)"
-   nedit ~/ndspmhd/plot/splash.f90 &
+   nedit $splashdir/splash.f90 &
 else
    date=`date '+%d/%m/%y'`
    vernum=$1
@@ -25,27 +26,29 @@ else
    echo $2 >> version-$vernum
    echo ' ' >> version-$vernum
    cat version-0* version-1.?.* version-1.??.* > version_history
-   cp version_history ~/ndspmhd/plot/docs
+   cp version_history $splashdir/docs
    cp version_history $webdir/download/
 #--add comment to latex version for documentation
    echo $vernum' & '$date' & '$2 '\\' > versiontex-$vernum.tex
    cat versiontex-0*.tex versiontex-1.?.*.tex versiontex-*.??.*.tex > version_history_tex.tex
    tail version_history_tex.tex
 #--commit the new version history files to the cvs repository
-   cp version_history_tex.tex ~/ndspmhd/plot/docs/
-   cp version_history ~/ndspmhd/plot/docs/
+   cp version_history_tex.tex $splashdir/docs/
+   cp version_history $splashdir/docs/
 #--version number to build into the documentation
-   echo $vernum > ~/ndspmhd/plot/docs/version
-   cd ~/ndspmhd/plot/docs; cvs commit -m 'version '$vernum version_history_tex.tex version_history version
+   echo $vernum > $splashdir/docs/version
+   cd $splashdir/docs; git commit -m 'version '$vernum version_history_tex.tex version_history version
+   git stash;
+   git svn dcommit;
+   git stash pop;
 #
 #--get current cvs copy from the repository and rename directory
 #
    cd /tmp
-   rm -rf /tmp/ndspmhd
    rm -rf /tmp/splash
-   cvs export -Dtoday ndspmhd/plot
-   mv ./ndspmhd/plot $builddir
-   rmdir ndspmhd
+   svn export https://svn-vre.its.monash.edu.au/mathsci/splash
+#   mv ./splash $builddir
+#   rmdir ndspmhd
    cd $builddir
 #
 #  add various things to the build directory
@@ -53,8 +56,8 @@ else
 #--version file
    echo splash, version $vernum, built on `date` > VERSION
 #--changelog
-   cd ~/ndspmhd/plot
-   ~/cvsutils/cvs2cl.pl -t
+   cd $splashdir
+   ~/cvsutils/git2cl.pl > ChangeLog
    cp ChangeLog /tmp/$builddir
    cp /tmp/$builddir/ChangeLog $webdir/download
 #--tar file of directory
@@ -84,7 +87,7 @@ else
 #  build the docs for the website
 #
    echo 'building documentation...'
-   cd ~/ndspmhd/plot/docs
+   cd $splashdir/docs
    cvs update
 #   cd /tmp/$builddir/docs
    pdflatex splash
