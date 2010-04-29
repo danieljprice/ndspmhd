@@ -12,7 +12,7 @@ EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
 ifndef SPLASH_DIR
-   SPLASH_DIR=${HOME}/splash
+   SPLASH_DIR=${HOME}/splash/src
 endif
 
 DOUBLEPRECISION= yes
@@ -152,7 +152,7 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-#SETUP2D = setup_unifdisND.f90
+SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
@@ -168,7 +168,7 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
-SETUP2D = setup_kelvinhelmholtz2D.f90
+#SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
@@ -179,10 +179,12 @@ SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_anyrho2Dmin.f90
 #SETUP2D = setup_posfromfile.f90
 #SETUP2D = setup_rayleightaylor2D.f90
+#SETUP2D = setup_rayleightaylor2D_abel.f90
 #SETUP2D = setup_blobweirdshape.f90
 #SETUP2D= setup_taylorcouette2D.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
+SETUP2D = setup_tearingmode2D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
@@ -238,7 +240,7 @@ SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90 
+SOURCES2 = stepND_mhd.f90 evwrite_mhd.f90 
 
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
