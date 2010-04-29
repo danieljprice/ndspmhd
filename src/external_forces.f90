@@ -123,6 +123,11 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,sps
           endif
        endif
     endif
+  case(9)
+!
+!--gravity (2)
+!
+    if (ndim.ge.2) fext(2) = -0.5
 
   case default
      
@@ -159,6 +164,8 @@ real function pequil(iexternal_force,xpart,densi)
  real, intent(in) :: densi
  
  select case(iexternal_force)
+ case(9)
+    pequil = -0.5*densi*(xpart(2)-0.5)
  case(8)
     pequil = -0.1*densi*xpart(2)
  case default
