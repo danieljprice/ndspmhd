@@ -994,6 +994,10 @@ contains
        !
        forcei(:) = forcei(:) - pmassj*prterm*dr(:) !- pmassj*wab*rij
        forcej(:) = forcej(:) + pmassi*prterm*dr(:) !+ pmassi*wab*rij
+    elseif (iprterm.eq.-2) then
+       !--use Pa-Pb pressure force
+       forcei(:) = forcei(:) + pmassj*(pri - prj)*rho21j*dr(:)*grkern
+       forcej(:) = forcej(:) + pmassi*(pri - prj)*rho21i*dr(:)*grkern
     endif
 
 !    forcei(:) = forcei(:) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
@@ -1223,7 +1227,7 @@ contains
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
           endif
           qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
-       else
+       elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
        !
@@ -1406,7 +1410,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
-    real :: dgradwdhi,dgradwdhj,BdotBextj
+    real :: dgradwdhi,dgradwdhj,BdotBextj,term
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1685,6 +1689,16 @@ contains
        !
        dBevoldti(:) = dBevoldti(:) - pmassj*rho1j*dBdtvisc(:)*grkerni
        dBevoldt(:,j) = dBevoldt(:,j) + pmassi*rho1i*dBdtvisc(:)*grkernj
+       !
+       !  add to thermal energy equation
+       !
+       if (iener.eq.3 .or. iener.eq.1) then
+          stop 'unimplemented iener for physical resistivity'
+       elseif (iener.gt.0) then
+          term = -etamhd*rho1i*rho1j*dot_product(dB,dB)*grkern/rij
+          dudt(i) = dudt(i) + pmassj*term
+          dudt(j) = dudt(j) + pmassi*term
+       endif
     endif
 
     if (idivBzero.ge.2) then ! add hyperbolic correction term
