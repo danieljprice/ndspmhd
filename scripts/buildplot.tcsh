@@ -25,13 +25,14 @@ else
    echo $vernum':' > version-$vernum
    echo $2 >> version-$vernum
    echo ' ' >> version-$vernum
-   cat version-0* version-1.?.* version-1.??.* > version_history
+   cat `ls -r version-1.??.*` `ls -r version-1.?.*` `ls -r version-0*` > version_history
    cp version_history $splashdir/docs
    cp version_history $webdir/download/
 #--add comment to latex version for documentation
    echo $vernum' & '$date' & '$2 '\\' > versiontex-$vernum.tex
-   cat versiontex-0*.tex versiontex-1.?.*.tex versiontex-*.??.*.tex > version_history_tex.tex
-   tail version_history_tex.tex
+   cat `ls -r versiontex-1.??.*` `ls -r versiontex-1.?.*` `ls -r versiontex-0*` > version_history_tex.tex
+#   cat versiontex-0*.tex versiontex-1.?.*.tex versiontex-*.??.*.tex > version_history_tex.tex
+   head version_history_tex.tex
 #--commit the new version history files to the cvs repository
    cp version_history_tex.tex $splashdir/docs/
    cp version_history $splashdir/docs/
