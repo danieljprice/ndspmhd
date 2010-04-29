@@ -159,7 +159,9 @@ subroutine initialise
  npart = 0
 
  if (ifile.lt.0) then
+    write(iprint,"(1x,80('-'))")
     call setup          ! setup particles, allocation of memory is called
+    write(iprint,"(1x,80('-'))")
  else
     call read_dump(trim(dumpfile),time)      ! or read from dumpfile
  endif
