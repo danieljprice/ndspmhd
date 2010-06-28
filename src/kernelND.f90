@@ -22,7 +22,7 @@ module kernels
  real, dimension(0:ikern) :: grgrwij,grgrwijalt
  character(len=100) :: kernelname,kernelnamealt
  
- public :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
+ public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
  private :: setkerntable
 
 contains
@@ -31,13 +31,14 @@ contains
 ! This is the interface routine (public) -- calls setkern once only
 !
 !-----------------------------------------------------------------
-subroutine setkern(ikernel,ndim)
+subroutine setkern(ikernel,ndim,ierr)
  implicit none
- integer, intent(in) :: ikernel, ndim
+ integer, intent(in)  :: ikernel, ndim
+ integer, intent(out) :: ierr
 !
 !--setup kernel tables for primary kernel
 !
- call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname)
+ call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname,ierr)
  
 end subroutine setkern
 
@@ -46,17 +47,18 @@ end subroutine setkern
 ! for both usual kernel and alternative kernel
 !
 !-----------------------------------------------------------------
-subroutine setkernels(ikernel,ikernelalt,ndim)
+subroutine setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
  implicit none
- integer, intent(in) :: ikernel,ikernelalt, ndim
+ integer, intent(in)  :: ikernel,ikernelalt, ndim
+ integer, intent(out) :: ierr1,ierr2
 !
 !--setup kernel tables for primary kernel
 !
- call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname)
+ call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname,ierr1)
 !
 !--setup kernel tables for alternative kernel
 ! 
- call setkerntable(ikernelalt,ndim,wijalt,grwijalt,grgrwijalt,kernelnamealt)
+ call setkerntable(ikernelalt,ndim,wijalt,grwijalt,grgrwijalt,kernelnamealt,ierr2)
  
 end subroutine setkernels
 
@@ -68,11 +70,12 @@ end subroutine setkernels
 ! with lots more.
 !
 !-----------------------------------------------------------------
-subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
+subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  implicit none         !  define local variables
  integer, intent(in) :: ikernel, ndim
  real, intent(out), dimension(0:ikern) :: wkern,grwkern,grgrwkern
  character(len=*), intent(out) :: kernellabel
+ integer, intent(out) :: ierr
  integer :: i,j,npower,n
  real :: q,q2,q4,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
@@ -86,6 +89,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
  grgrwkern = 0.
  fsoft = 1.
  potensoft = 0.
+ ierr = 0
 
  select case(ikernel)
 
@@ -214,7 +218,9 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
         print*,'2d cnormk = ',cnormk,' a,b = ',a,b,beta,alpha
       case default
        write(*,666)
-       stop  
+       ierr = 1
+       return
+       !stop  
     end select
   
     do i=0,ikern         
@@ -321,7 +327,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
       case(1)
          cnormk = 0.5*(npower+1)/radkern**(npower+1)
       case(2,3)
-         stop 'normalisation const not defined in kernel'
+         write(*,666)
+         ierr = 1
+         return
+         !stop 'normalisation const not defined in kernel'
     end select  
     do i=0,ikern
        q2 = i*dq2table
@@ -424,7 +433,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 1./16.
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -462,8 +472,9 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 105/(128.*pi)
       case default
        write(*,666)
-       stop
-    end select
+       ierr = 1
+       return
+      end select
     do i=0,ikern
       q2 = i*dq2table
       q = sqrt(q2)
@@ -496,7 +507,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 15./(64.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -530,7 +542,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 30./(31.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -572,7 +585,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = -30.*alpha/(pi*(20.*alpha**3 - 45.*alpha**2 + 4.*alpha - 10.))
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -624,7 +638,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        end select
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
 
     do i=0,ikern
@@ -657,7 +672,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
         cnormk = 1./5.194046
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
 
     do i=0,ikern
@@ -693,7 +709,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
         cnormk = 1./4.35
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
 
     do i=0,ikern
@@ -733,7 +750,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
         cnormk = 1./8.097925
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
 
     do i=0,ikern
@@ -774,7 +792,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
         cnormk = 1./24.02428 !!/113.3185 !!/136.77!!/24.02428
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
 
     npower = 2
@@ -823,7 +842,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 315./(32768.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -857,7 +877,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 45045./(32768.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -892,7 +913,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 109395./(65536.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -927,7 +949,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 2078505./(1048576.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -958,7 +981,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 1./pi
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -988,7 +1012,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 2./(3.*a - 1.)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -1027,7 +1052,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        cnormk = 30./(31.*pi)
       case default
        write(*,666)
-       stop
+       ierr = 1
+       return
     end select
     do i=0,ikern
       q2 = i*dq2table
@@ -1343,11 +1369,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     select case(ndim)
       case(1)
         cnormk = 45045./8192.
-      case(2)
-        cnormk = 0.
-      case(3)
-        cnormk = 0.
-    end select
+      case(2,3)
+       write(*,666)
+       ierr = 1
+       return
+      end select
 !
 !--setup kernel table
 !   
@@ -1382,10 +1408,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     select case(ndim)
       case(1)
         cnormk = 4.
-      case(2)
-        cnormk = 0.
-      case(3)
-        cnormk = 0.
+      case(2,3)
+       write(*,666)
+       ierr = 1
+       return
     end select
 !
 !--setup kernel table
