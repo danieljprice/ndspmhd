@@ -158,7 +158,6 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  use options
  use part
  use setup_params
- use geometry
  use mem_allocation, only:alloc
 !
 !--define local variables
