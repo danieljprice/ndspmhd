@@ -11,10 +11,6 @@
 EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
-ifndef SPLASH_DIR
-   SPLASH_DIR=${HOME}/splash/src
-endif
-
 DOUBLEPRECISION= yes
 
 ifeq ($(SYSTEM), ukaff1a)
@@ -137,15 +133,10 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
-#SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 SETUP1D = setup_shockND.f90
-#SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
-#SETUP1D = setup_clareshk1D.f90
-#SETUP1D = setup_resist1D.f90
-#SETUP1D = setup_anyrho1Dran.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -159,49 +150,35 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
-#SETUP2D = setup_shearflow2D.f90
+£SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
 #SETUP2D = setup_Bxpeak25D_mhd.f90
 #SETUP2D = setup_disc2D_2.f90
-#SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
-#SETUP2D = setup_neutronstarkh.f90
-#SETUP2D = setup_sunblast2D.f90
-#SETUP2D = setup_recontest3D.f90
-#SETUP2D = setup_convection2D.f90
-#SETUP2D = setup_anyrho2Dmin.f90
-#SETUP2D = setup_posfromfile.f90
 #SETUP2D = setup_rayleightaylor2D.f90
-#SETUP2D = setup_rayleightaylor2D_abel.f90
-#SETUP2D = setup_blobweirdshape.f90
-#SETUP2D= setup_taylorcouette2D.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
-SETUP2D = setup_tearingmode2D.f90
 
 #SETUP3D = setup_polytropeND.f90
-#SETUP3D = setup_unifdisND.f90 #cp_distribute.f
+SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
-SETUP3D = setup_shockND.f90
+#SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
 #SETUP3D = setup_densityprofileND.f90 
-#SETUP3D = setup_recontest3D.f90
-#SETUP3D = setup_forcefree3D.f90
 #SETUP3D = setup_blastisoND.f90
-#SETUP3D = setup_resistND.f90
-SETUP3D = setup_orszagtang2D_mhd.f90
+#SETUP3D = setup_orszagtang2D_mhd.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -215,17 +192,15 @@ CONS2PRIM = conservative2primitive.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
+SOURCES= sphND_mhd.f90 eos.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
          get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND.f90 check_setup.f90 get_curl.f90 smooth.f90 ${CONS2PRIM} \
-	 copy_particle.f90 particlesplitting.f90 \
+         boundaryND.f90 check_setup.f90 get_curl.f90 ${CONS2PRIM} \
+	 copy_particle.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
-         grutils_gr.f90 \
          density_sums.f90 densityiterate.f90 \
-	 exact_densityprofiles.f90 errors.f90 \
          evolve.f90 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
@@ -234,32 +209,19 @@ SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
 	 set_fixedbound.f90 \
-	 sort_particles.f90 substep_divB.f90 utils.f90 \
+	 sort_particles.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
 	 get_divB.f90 divBcorrect.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
 SOURCES2 = stepND_mhd.f90 evwrite_mhd.f90 
-
-# these files are for the sr/gr version of the code
-SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
-CONS2PRIMGR = conservative2primitive_sr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
 OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o)  $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)  \
-	    $(SETUP3D:.f90=.o)
-            
-SOURCES1GR = $(SOURCES:${CONS2PRIM}=${CONS2PRIMGR})
-
-OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o)\
-	    $(SETUP1D:.f90=.o)
-OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP2D:.f90=.o)
-OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
 
 crap:
@@ -274,31 +236,9 @@ crap:
 3D : checksystem $(OBJECTS3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 
-1DGR : checksystem $(OBJECTSGR1D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
-
-2DGR : checksystem $(OBJECTSGR2D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
-
-3DGR : checksystem $(OBJECTSGR3D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
-
-## files from elsewhere
-
-prompting.o: $(SPLASH_DIR)/prompting.f90
-	$(F90C) -c $(SPLASH_DIR)/prompting.f90 -o $@
-
-geometry.o: $(SPLASH_DIR)/geometry.f90
-	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/geometry.f90 -o $@
-
-exact_densityprofiles.o: $(SPLASH_DIR)/exact_densityprofiles.f90
-	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/exact_densityprofiles.f90 -o $@
-
-evolve_montecarlo.o: setup_densityprofileND.o
-
 ## modify dump utility
 
-OBJMODDUMP = variablesND.o allocateND.o geometry.o \
+OBJMODDUMP = variablesND.o allocateND.o \
              readwrite_dumps.o prompting.o modifydump.o
 OBJMODDUMP1D = $(OBJMODDUMP) $(MODDUMPSRC1D:.f90=.o)
 OBJMODDUMP2D = $(OBJMODDUMP) $(MODDUMPSRC2D:.f90=.o)
