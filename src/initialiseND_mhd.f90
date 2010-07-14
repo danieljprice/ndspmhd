@@ -26,7 +26,7 @@ subroutine initialise
  
  use infiles, only:read_infile
  use dumpfiles, only:read_dump
- use convert, only:convert_setup
+ !use convert, only:convert_setup
  use cons2prim, only:primitive2conservative
 !
 !--define local variables
@@ -171,7 +171,7 @@ subroutine initialise
 !
  !if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
- if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
+ if (geomsetup.ne.geom) stop 'unknown geometry' !call convert_setup(geomsetup,geom)
  
  call check_setup       ! check for errors in the particle setup
 !
