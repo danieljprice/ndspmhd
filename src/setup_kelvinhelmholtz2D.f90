@@ -24,11 +24,11 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,ipart
- real :: massp,volume,totmass,ran1
+ real :: massp,volume,totmass,ran1,omegakh
  real :: denszero,densmedium,przero,psepmedium,vzero,vmedium
  real, dimension(ndim) :: xminregion,xmaxregion
- logical, parameter :: equalmass = .false.
- logical, parameter :: robertson = .true.
+ logical, parameter :: equalmass = .true.
+ logical, parameter :: robertson = .false.
 !
 !--allow for tracing flow
 !
@@ -151,9 +151,12 @@ subroutine setup
     Bfield(:,i) = 0.
     Bfield(1,i) = 0.5
  enddo
- 
- !!omegakh = sqrt(densmedium/denszero)*1.0/(denszero + densmedium)
- print*,' tau_kh = ',sqrt(densmedium/denszero)*(1./6.)
+
+!
+!--print the growth timescale for the perturbed wavelength (1/6)
+!
+ omegakh = 2.*pi*6.*sqrt(densmedium*denszero)*abs(vmedium-vzero)/(denszero + densmedium)
+ print*,' tau_kh = ',2.*pi/omegakh !sqrt(densmedium/denszero)*(1./6.)
 !
 !--get rho from a sum and then set u to give a
 !  smooth pressure

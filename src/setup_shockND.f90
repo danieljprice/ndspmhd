@@ -140,7 +140,8 @@ subroutine setup
  boxlength = 1.0
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
- nparty = 6
+ nparty = 24
+ print*,'nparty = ',nparty
  if (ndim.ge.2) then
     xmin(2:ndim) = 0.0
     xmax(2:ndim) = xmin(2:ndim) + nparty*psep !!!abs(xmin(2:ndim))
@@ -205,7 +206,7 @@ subroutine setup
        print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
        print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
    !!    massp = (psep**ndim)*densright
-       call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
+       call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
        xmin = xminleft
        volume = PRODUCT(xmaxleft-xminleft)
        total_mass = volume*densleft
@@ -213,7 +214,7 @@ subroutine setup
        masspleft = massp
        masspright = massp
 
-       call set_uniform_cartesian(1,psepright,xminright,xmaxright,fill=.true.) ! set right half
+       call set_uniform_cartesian(2,psepright,xminright,xmaxright,fill=.true.) ! set right half
        xmax = xmaxright
     endif
  else  ! set all of volume if densities are equal
@@ -328,7 +329,7 @@ subroutine setup
 !  smooth pressure jump (no spikes)
 !
 ! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
- if (.true.) then
+ if (.true. .and. ndim.le.1) then
     if (any(ibound.eq.1)) call set_fixedbound()
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative

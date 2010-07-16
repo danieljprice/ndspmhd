@@ -13,6 +13,9 @@ subroutine setup
  use options
  use part
  use setup_params
+ use eos, only:gamma
+ use cons2prim
+ use kernels, only:setkernels,kernelname
  
  use uniform_distributions
 !
@@ -21,7 +24,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero,rmin,rmax
+ real :: denszero,rmin,rmax,spsound2
 !
 !--allow for tracing flow
 !
@@ -29,41 +32,43 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 3	! boundaries
- nbpts = 0	! use ghosts not fixed
- xmin(:) = 0.	! set position of boundaries
+ ibound = 3     ! boundaries
+ nbpts = 0      ! use ghosts not fixed
+ xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
 !
 !--set up the uniform density grid
-!
-! npart = int((xmax(1)-xmin(1))/psep) !!int((1./psep)**3)
-! call alloc(int(1.1*npart))
- 
+! 
  rmin = 0.
  rmax = 0.5
 
-!! call cp_distribute(rmin,rmax,psep,ntotal,x(1,1:npart),x(2,1:npart),x(3,1:npart),npart)
- call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)
  npart = ntotal
  print*,'npart =',npart
 !
 !--determine particle mass
 !
- denszero = 1.0
+ denszero = 5.0
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
+ spsound2 = 1.0
 !
 !--now assign particle properties
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    !!!vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
-    uu(i) = 1.0	! isothermal
-    bfield(:,i) = 0.
- enddo 
+    if (gamma.lt.1.0001) then
+       uu(i) = 1.0    ! isothermal
+    else
+       uu(i) = spsound2/(gamma*(gamma-1.))
+    endif
+    Bfield(:,i) = 0.
+ enddo
+ 
+ print*,'sound speed = ',sqrt(spsound2), ' sound crossing time = ',(xmax(1)-xmin(1))/sqrt(spsound2)
 !
 !--allow for tracing flow
 !

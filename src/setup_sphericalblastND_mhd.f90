@@ -7,8 +7,6 @@
 !!  the thermal energy) is set to some large quantity in a small circle    !!
 !!  around the origin                                                      !!
 !!                                                                         !!
-!!  magnetic field of strength 10g in the x-direction                      !!
-!!                                                                         !!                                                                        !!
 !!-------------------------------------------------------------------------!!
 
 subroutine setup
@@ -41,8 +39,8 @@ subroutine setup
  nbpts = 0
  xmin(:) = -0.5     ! same xmin in all dimensions
  xmax(:) = 0.5
- xmin(2) = -0.75
- xmax(2) = 0.75
+! xmin(2) = -0.75
+! xmax(2) = 0.75
  denszero = 1.0
  przero = 0.1
  
@@ -92,15 +90,16 @@ subroutine modify_dump
  use setup_params, only:pi,psep,hfact
  use eos, only:gamma
  use cons2prim, only:specialrelativity
+ use kernels, only:interpolate_kernel
  implicit none
  integer :: ipart
- real :: prblast,pri,uui,enblast,enzero,const
+ real :: prblast,pri,enblast,enzero,const !,uui
  real :: rblast,radius,przero,gam1,denszero
  real, dimension(ndim) :: xblast, dblast
  real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
- real :: q2, wab, grkern
- logical, parameter :: dosedov = .false.
+ real :: q2, wab, grkern, uui
+ logical, parameter :: dosedov = .true.
  
  write(iprint,*) 'modifying dump by adding blast'
 
@@ -136,12 +135,12 @@ subroutine modify_dump
     przero = 0.1                ! initial pressure
     prblast = 10.0              ! initial pressure within rblast
  endif
- rbuffer = rblast       !+10.*psep      ! radius of the smoothed front
+ rbuffer = rblast  ! +10.*psep      ! radius of the smoothed front
  denszero = 1.0
 !
 !--smoothing length for kernel smoothing
 ! 
- hsmooth = hfact*(pmass(1)/denszero)**dndim
+ hsmooth = 2.*hfact*(pmass(1)/denszero)**dndim
 ! write(iprint,*) 'hsmooth = ',hsmooth
 
  write(iprint,10) ndim
@@ -161,9 +160,9 @@ subroutine modify_dump
 !
 !--smooth energy injection using the sph kernel
 !    
-!    q2 = radius**2/hsmooth**2
-!    call interpolate_kernel(q2,wab,grkern)
-!    uui = enblast*wab/hsmooth**ndim
+    q2 = radius**2/hsmooth**2
+    call interpolate_kernel(q2,wab,grkern)
+    uui = enblast*wab/hsmooth**ndim
     if (radius.le.rblast) then
        pri = prblast
        !uui = enblast
@@ -175,7 +174,8 @@ subroutine modify_dump
        pri = przero
        !uui = enzero
     endif   
-    uu(ipart) = pri/(gam1*denszero)
+    uu(ipart) = uui
+!    uu(ipart) = pri/(gam1*denszero)
 !
 !--euler potentials setup (for use in other codes)
 !    
