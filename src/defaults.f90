@@ -33,7 +33,7 @@ subroutine set_default_options
    nmax = 1000000
    nout = -1
    gamma = 5./3.
-   iener = 3
+   iener = 2
    polyk = 1.0
    icty = 0
    ndirect = nmax
@@ -53,7 +53,7 @@ subroutine set_default_options
    hfact = 1.2
    tolh = 1.e-3
    idumpghost = 1
-   imhd = 1
+   imhd = 0
    imagforce = 2
    idivBzero = 0
    psidecayfact = 0.1
