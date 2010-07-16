@@ -170,8 +170,8 @@ subroutine get_rates
           !stressterm = max(1.5*B2i - pr(i),0.)
           !stressmax = max(stressterm,stressmax)
        else
-          !stressterm = max(0.5*B2i - pr(i),0.)
-          !stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
+          stressterm = max(0.5*B2i - pr(i),0.)
+          stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
        endif
     enddo
     if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
@@ -858,10 +858,6 @@ contains
              prstari = prstar
              prstarj = prstar
           endif
-!             if (prstar.gt.1.00001*max(pri,prj) .or. prstar.lt.0.99999*min(pri,prj)) then
-!                print*,'error, pstar = ',prstar,'i,j = ',pri,prj,projvi,projvj
-!             endif
-             !prstar = 0.5*(pri + prj)
           prterm = prstari*phii_on_phij*rho21i*sqrtgi*grkerni &
                  + prstarj*phij_on_phii*rho21j*sqrtgj*grkernj
        else
@@ -1167,7 +1163,8 @@ contains
        
        !--entropy dissipation
        if (iener.eq.1) then
-          if (alphau.gt.0.) stop 'entropy dissipation is wrong'
+          if (alphau.gt.0.) stop 'thermal conductivity not implemented with entropy evolution'
+          !--THIS IS WRONG
           vissu = alphau*(en(i)-en(j))
           dendt(i) = dendt(i) + pmassj*(termu*(vissu))
           dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
