@@ -288,18 +288,6 @@ contains
                    endif
                 endif
                 
-                !if (i.ne.j) then
-                !do idim=1,ndim
-                !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-                !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
-                !   gradmatrix(:,idim,j) = gradmatrix(:,idim,j) &
-                !               + 2.*pmass(i)*(dx(:))*dx(idim)/rij*grkernj
-                !enddo
-                !endif
-
-!        ELSE
-!           PRINT*,' r/h > 2 '      
-        
              endif
            
           enddo loop_over_neighbours
@@ -310,20 +298,6 @@ contains
             
     enddo loop_over_cells
     
-   ! do i=1,npart
-       !if (psi(i).lt.0.999 .or. psi(i).gt.1.001) print*,'unity = ',i,x(1,i),psi(i)
-       !if (imhd.eq.0) then
-       !   print*,i,' del^2 rho = ',psi(i)
-       !endif
-       !   psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
-       !   if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
-       !else
-        !  psi(i) = 0.
-       !endif
-!       psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
-  !  enddo
-    !print*,'uu = ',i,uu(i),psi(i),uu(i)-psi(i)
-    !enddo
     !print*,'end of density, rho, gradh = ',rho(itemp),gradh(itemp),hh(itemp),numneigh(itemp)
     !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
     !print*,'minimum number of neighbours = ', &
@@ -536,11 +510,6 @@ contains
                 unityi = unityi + wconst*wabi/hfacwabi
              endif
           
-             !do idim=1,ndim
-             !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-             !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
-             !enddo
-       
           endif
           
        enddo loop_over_neighbours
@@ -551,7 +520,6 @@ contains
        else
           psi(i) = 0.
        endif
-       !psi(i) = abs(psi(i) - uu(i)*unityi)
 
     enddo loop_over_particles
 
@@ -576,11 +544,6 @@ contains
        dBevoldt(:,j) = dBevoldt(:,j)/rhoin(i)**2
     enddo
     endif
-    
-    !do i=1,nlist
-    !   j = ipartlist(i)
-    !   psi(j) = abs(uu(j) - psi(j)) !/psi(j)
-    !enddo
 
     return
   end subroutine density_partial

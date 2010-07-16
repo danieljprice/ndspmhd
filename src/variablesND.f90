@@ -69,15 +69,6 @@ MODULE hterms
 END MODULE hterms
 
 !-------------------------------------------------------------------
-!  correction terms to make linear functions exact
-!-------------------------------------------------------------------     
-
-MODULE matrixcorr
- IMPLICIT NONE
- REAL, DIMENSION(:,:,:), ALLOCATABLE :: gradmatrix
-END MODULE matrixcorr
-
-!-------------------------------------------------------------------
 !  quantities used for link-list neighbour finding
 !-------------------------------------------------------------------
 

@@ -326,10 +326,6 @@ subroutine get_rates
                  endif
               endif
               dr(1:ndim) = dx(1:ndim)/rij      ! unit vector           
-              !do idim=1,ndim
-              !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
-              !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
-              !enddo
               call rates_core
            else      ! if outside 2h
 !              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)

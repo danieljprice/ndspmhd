@@ -220,7 +220,6 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmomin)) deallocate(pmomin)
     if (allocated(dens)) deallocate(dens)
     
-    !if (allocated(gradmatrix)) deallocate(gradmatrix)
     endif
 
  endif
@@ -349,11 +348,9 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
     endif    
-    !gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize) 
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
-    !gradmatrix(:,:,:) = 1.
  endif   
        
 !
