@@ -553,10 +553,6 @@ subroutine get_rates
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
-!--add source terms (derivatives of metric) to momentum equation
-!
-    if (allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
-!
 !--make dhdt if density is not being done by summation
 !  (otherwise this is done in iterate_density)
 !
@@ -1410,16 +1406,6 @@ contains
        forcei(:) = forcei(:) + pmassj*(pri - prj)*rho21j*dr(:)*grkern
        forcej(:) = forcej(:) + pmassi*(pri - prj)*rho21i*dr(:)*grkern
     endif
-
-!    forcei(:) = forcei(:) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
-!                            + pr(j)/rho(j)*drj(:)*grkernj)
-!    forcej(:) = forcej(:) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
-!                            + pr(j)/rho(j)*drj(:)*grkernj)
-
-!------------------------------------------------------------------------
-!  Self-gravity term
-!------------------------------------------------------------------------
-     
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms
 !------------------------------------------------------------------------
@@ -1630,16 +1616,16 @@ contains
        if (dvdotr.lt.0 .and. iav.le.3) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
-          qdiff = qdiff + alphaav*0.5*(v2i-v2j)
+          qdiff = qdiff + term*alphaav*0.5*(v2i-v2j)
        elseif (iav.eq.4) then
           v2i = dot_product(veli,veli)      ! total energy
           v2j = dot_product(velj,velj)
-          qdiff = qdiff + alphaav*0.5*(v2i-v2j)
+          qdiff = qdiff + term*alphaav*0.5*(v2i-v2j)
        endif
        !
        !  thermal energy terms - applied everywhere
        !
-       qdiff = qdiff + alphau*(uu(i)-uu(j))
+       qdiff = qdiff + alphau*termu*(uu(i)-uu(j))
        !
        !  magnetic energy terms - applied everywhere
        !
@@ -1651,15 +1637,15 @@ contains
              B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
           endif
-          qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
+          qdiff = qdiff + alphaB*termnonlin*0.5*(B2i-B2j)*rhoav1
        elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
        !
        !  add to total energy equation
        !
-       dendt(i) = dendt(i) + pmassj*term*qdiff
-       dendt(j) = dendt(j) - pmassi*term*qdiff
+       dendt(i) = dendt(i) + pmassj*qdiff
+       dendt(j) = dendt(j) - pmassi*qdiff
 
     !--------------------------------------------------
     !   thermal energy equation
