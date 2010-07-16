@@ -8,7 +8,7 @@
 .KEEP_STATE:
 
 # specify editor to use for file editing
-EDITOR = nedit
+#EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
 DOUBLEPRECISION= yes
@@ -126,6 +126,7 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 ######################################################################
 ########### choose the setup file in each dimension here #############
 
+ifndef SETUP1D
 #SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
@@ -137,7 +138,9 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
 SETUP1D = setup_shockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
+endif
 
+ifndef SETUP2D
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
@@ -150,7 +153,7 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
-£SETUP2D = setup_shearflow2D.f90
+#SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
@@ -165,7 +168,9 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_rayleightaylor2D.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
+endif
 
+ifndef SETUP3D
 #SETUP3D = setup_polytropeND.f90
 SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_unifsphND.f90
@@ -179,6 +184,7 @@ SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_densityprofileND.f90 
 #SETUP3D = setup_blastisoND.f90
 #SETUP3D = setup_orszagtang2D_mhd.f90
+endif
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -194,13 +200,13 @@ CONS2PRIM = conservative2primitive.f90
 
 SOURCES= sphND_mhd.f90 eos.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
-         get_neighbour_lists.f90 \
+         get_neighbour_lists.f90 smooth.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 get_curl.f90 ${CONS2PRIM} \
 	 copy_particle.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
-         density_sums.f90 densityiterate.f90 \
+         density_sums.f90 \
          evolve.f90 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
@@ -291,11 +297,17 @@ targz:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
 	gzip NDSPMHD.tar
 
-edit1D:
+edit1D: checkeditor
 	$(EDITOR) $(SETUP1D) &
-edit2D:
+edit2D: checkeditor
 	$(EDITOR) $(SETUP2D) &
-edit3D:
+edit3D: checkeditor
 	$(EDITOR) $(SETUP3D) &
+
+checkeditor:
+   ifndef EDITOR
+	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'
+   endif
+
 clean:
 	rm *.o *.mod
