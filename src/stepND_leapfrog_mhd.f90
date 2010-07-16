@@ -21,8 +21,7 @@ SUBROUTINE step
  USE timestep
  USE setup_params
  USE xsph
- use particlesplit, only:particle_splitting
- use geometry, only:coord_transform,vector_transform
+ !use geometry, only:coord_transform,vector_transform
 !
 !--define local variables
 !
@@ -66,8 +65,8 @@ SUBROUTINE step
 !--if doing divergence correction then do correction to magnetic field
 ! 
  IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
- IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
- IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
+! IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
+! IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
 
 !
 !--Leapfrog Predictor step
@@ -77,16 +76,10 @@ SUBROUTINE step
     IF (itype(i).EQ.1 .or. itype(i).EQ.2) then ! fixed particles
        if (ireal(i).ne.0 .and. itype(i).EQ.1) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
-       elseif (itype(i).eq.2) then  ! velocities are vr, vphi
-          call coord_transform(xin(1:ndim,i),ndim,1,xcyl(:),ndim,2)
-          velcyl(1) = 0.
-          velcyl(2) = xcyl(1)*omegafixed
-          call vector_transform(xcyl(1:ndim),velcyl(:),ndim,2,vel(1:ndim,i),ndim,1)
-          x(:,i) = xin(:,i) + dt*vel(:,i)
-       else
-          write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
-          stop
+          x(:,i) = xin(:,i) !+ dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
+       !else
+       !   write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
+       !   stop
        endif
        if (imhd.lt.0) then
           call cross_product3D(velin(:,i),Bconst(:),vcrossB)
@@ -126,7 +119,10 @@ SUBROUTINE step
 !
  DO i=1,npart
     IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
-       if (itype(i).EQ.1) vel(:,i) = velin(:,i)
+       if (itype(i).EQ.1) then
+          vel(:,i) = velin(:,i)
+          force(:,i) = 0.
+       endif
        if (imhd.lt.0) then
           call cross_product3D(vel(:,i),Bconst(:),vcrossB)
           Bevol(:,i) = Bevolin(:,i) + hdt*(vcrossB(:) + dBevoldtin(:,i))
@@ -161,10 +157,10 @@ SUBROUTINE step
 ! IF (idivBzero.NE.0) CALL divBcorrect
  IF (ANY(ibound.NE.0)) CALL boundary        ! inflow/outflow/periodic boundary conditions
 
- IF (isplitpart.GT.0) THEN
-    CALL particle_splitting(nsplit)
-    IF (nsplit.gt.0) CALL derivs
- ENDIF
+! IF (isplitpart.GT.0) THEN
+!    CALL particle_splitting(nsplit)
+!    IF (nsplit.gt.0) CALL derivs
+! ENDIF
 !
 !--set new timestep from courant/forces condition
 !
