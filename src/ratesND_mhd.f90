@@ -23,8 +23,6 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
- use grutils, only:metric_diag,dot_product_gr
- !!use matrixcorr
 !
 !--define local variables
 !
@@ -167,8 +165,8 @@ subroutine get_rates
  stressmax = 0.
  if (imhd.ne.0 .and. (imagforce.eq.2 .or. imagforce.eq.7)) then
     do i=1,ntotal
-       call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
-       B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
+       !call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
+       B2i = dot_product(Bfield(:,i),Bfield(:,i)) !,gdiagi(:))
        if (imagforce.eq.7) then ! vec potential force
           !stressterm = max(1.5*B2i - pr(i),0.)
           !stressmax = max(stressterm,stressmax)
@@ -280,10 +278,10 @@ subroutine get_rates
           Brhoi(:) = Bi(:)*rho1i
           BdotBexti = dot_product(Bi(:),Bconst(:))
 !          if (geom(1:6).ne.'cartes') then
-             call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
-             B2i = dot_product_gr(Bi,Bi,gdiagi)
+!             call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
+!             B2i = dot_product_gr(Bi,Bi,gdiagi)
 !          else
-!             B2i = dot_product(Bi,Bi)
+             B2i = dot_product(Bi,Bi)
 !          endif
           Brho2i = B2i*rho21i
           valfven2i = B2i*rho1i
@@ -469,10 +467,10 @@ subroutine get_rates
     valfven2i = 0.
     if (imhd.ne.0) then
 !       if (geom(1:6).ne.'cartes') then
-          call metric_diag(x(:,i),gdiagi,sqrtgi,ndim,ndimv,geom)
-          valfven2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi)/dens(i)
+!          call metric_diag(x(:,i),gdiagi,sqrtgi,ndim,ndimv,geom)
+!          valfven2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi)/dens(i)
 !       else
-!          valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/dens(i)       
+          valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/dens(i)       
 !       endif
     endif
     vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
@@ -787,14 +785,14 @@ contains
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
        
-       if (trim(geom).ne.'cartes') then
-          call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
-          B2j = dot_product_gr(Bj,Bj,gdiagj)
-          valfven2j = B2j/dens(j)
-       else
+       !if (trim(geom).ne.'cartes') then
+       !   call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
+       !   B2j = dot_product_gr(Bj,Bj,gdiagj)
+       !   valfven2j = B2j/dens(j)
+       !else
           B2j = dot_product(Bj,Bj)
           valfven2j = B2j*rho1j
-       endif
+       !endif
        Brho2j = B2j*rho21j
        projBconst = dot_product(Bconst,dr)
        if (imhd.lt.0) then
@@ -813,111 +811,45 @@ contains
 !  calculate signal velocity (this is used for timestep control
 !  and also in the artificial viscosity)
 !----------------------------------------------------------------------------
-    if (specialrelativity) then
-       !
-       ! special relativistic signal velocities
-       !
-       select case(iav)
-       case(5)
-          enthalpi = 1. + uui + pri/dens(i)
-          enthalpj = 1. + uuj + prj/dens(j)
-          spsoundi = sqrt(gamma*pri/dens(i)/enthalpi)
-          spsoundj = sqrt(gamma*prj/dens(j)/enthalpj)
-          vsigi = max((veli(1) + spsoundi)/(1. + veli(1)*spsoundi), &
-                      (veli(1) - spsoundi)/(1. - veli(1)*spsoundi))
-          vsigj = max((velj(1) + spsoundj)/(1. + velj(1)*spsoundj), &
-                      (velj(1) - spsoundj)/(1. - velj(1)*spsoundj))
-          vsig = max(vsigi,vsigj,0.)
-       case(4)
-          !
-          ! just using the speed of light...
-          !
-          vsig = 1.
-       case(3)
-          !
-          ! vsig derived by Joe (2001), identical to Font et al.
-          !
-          
-          vperp2 = v2i - projvi**2
-          vsigi = (projvi*(1.-spsoundi**2) &
-                  - spsoundi*sqrt((1.-v2i)*(1.-projvi**2 - spsoundi**2*vperp2))) &
-                  /(1. + v2i*spsoundi**2)
-          vperp2 = v2j - projvj**2
-          vsigj = (projvj*(1.-spsoundj**2) &
-                  - spsoundj*sqrt((1.-v2j)*(1.-projvj**2 - spsoundj**2*vperp2))) &
-                  /(1. + v2j*spsoundj**2)
+    !
+    !--max signal velocity (Joe's)
+    !
+!    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i - 2.*spsoundi*projBi/rhoi5) &
+!                +sqrt(spsoundi**2 + valfven2i + 2.*spsoundi*projBi/rhoi5))
+!    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j - 2.*spsoundj*projBj/rhoj5) &
+!                +sqrt(spsoundj**2 + valfven2j + 2.*spsoundj*projBj/rhoj5))    
 
-          !vsigi = (spsoundi + projvi)/(1. + projvi*spsoundi)
-          !vsigj = (spsoundj + projvj)/(1. + projvj*spsoundj)
-          vsig = min(0.5*(vsigi + vsigj),1.)
-       case(2)
-          !
-          ! vsig(2) from Chow & Monaghan '97 (equation 5.9)
-          !
-          vstar= abs((projvi-projvj)/(1.0-(projvi*projvj))) ! (equation 4.20)
-          gammastar=1.0/(sqrt(1.0-vstar**2))
-
-          !vsig=1
-          vsigi=sqrt(((spsoundi**2)+beta*(gammastar-1.0))/(1+((spsoundi**2)+((beta*(gammastar-1))/(gamma-1)))))
-          vsigj=sqrt(((spsoundj**2)+beta*(gammastar-1.0))/(1+((spsoundj**2)+((beta*(gammastar-1))/(gamma-1)))))
-          vsig=abs(((vsigi+projvi)/(1.+vsigi*projvi))-((vsigj-projvj)/(1.-vsigj*projvj)))
-
-       case default
-          !
-          ! this is vsig(1) from Chow & Monaghan '97 (equation 5.7)
-          !
-          vstar= abs((projvi-projvj)/(1.0-(projvi*projvj))) ! (equation 4.20)
-          vsigi=(spsoundi+vstar)/(1.0+(spsoundi*vstar))
-          vsigj=(spsoundj+vstar)/(1.0+(spsoundj*vstar))
-          !pmomstar
-          vsig=min(vsigi+vsigj+vstar,1.)
-
-       end select
-       vsigu = vsig
-       vsigdtc = vsig
-
-    else
-       !
-       !--max signal velocity (Joe's)
-       !
-   !    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i - 2.*spsoundi*projBi/rhoi5) &
-   !                +sqrt(spsoundi**2 + valfven2i + 2.*spsoundi*projBi/rhoi5))
-   !    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j - 2.*spsoundj*projBj/rhoj5) &
-   !                +sqrt(spsoundj**2 + valfven2j + 2.*spsoundj*projBj/rhoj5))    
-
-       !
-       !--max signal velocity (my version)
-       !
-       vsig2i = spsoundi**2 + valfven2i
-       vsig2j = spsoundj**2 + valfven2j                                    
-       vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
-       vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
-       if (vsigproji.lt.0.) then
-          write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
-          call quit 
-       elseif (vsigprojj.lt.0.) then
-          write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
-          print*,j,'rho,dens = ',rho(j),dens(j)
-          call quit  
-       endif
-       vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-       vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
-
-       vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
-       !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
-       !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
-       !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
-
-       vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
-       !vsigu = sqrt(0.5*(psi(i) + psi(j)))
-       !vsigu = abs(dvdotr)
-
-       vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
-
-       ! vsigdtc is the signal velocity used in the timestep control
-       vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
-    
+    !
+    !--max signal velocity (my version)
+    !
+    vsig2i = spsoundi**2 + valfven2i
+    vsig2j = spsoundj**2 + valfven2j                                    
+    vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
+    vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
+    if (vsigproji.lt.0.) then
+       write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
+       call quit 
+    elseif (vsigprojj.lt.0.) then
+       write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+       print*,j,'rho,dens = ',rho(j),dens(j)
+       call quit  
     endif
+    vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
+    vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
+
+    vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
+    !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
+    !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+
+    vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
+    !vsigu = sqrt(0.5*(psi(i) + psi(j)))
+    !vsigu = abs(dvdotr)
+
+    vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+
+    ! vsigdtc is the signal velocity used in the timestep control
+    vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
 
     dvsigdtc = 1./vsigdtc
     vsigmax = max(vsigmax,vsigdtc)
@@ -930,13 +862,7 @@ contains
 !  artificial dissipation terms
 !----------------------------------------------------------------------------
 
-    if (iav.gt.0) then
-       if (specialrelativity) then
-          call artificial_dissipation_sr
-       else
-          call artificial_dissipation    
-       endif
-    endif
+    if (iav.gt.0) call artificial_dissipation
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
 
 !----------------------------------------------------------------------------
@@ -1297,108 +1223,6 @@ contains
     
     return
   end subroutine artificial_dissipation
-
-!--------------------------------------------------------------------------------------
-! These are the artificial viscosity, thermal conduction terms
-! Change this to change the artificial viscosity algorithm
-! Inherits the values of local variables from rates
-!
-! This version corresponds to special relativity.
-!--------------------------------------------------------------------------------------
-  subroutine artificial_dissipation_sr
-    implicit none
-    real :: visc,alphaav,alphau
-    !real :: v2i,v2j
-    real :: qdiffi,qdiffj,qdiff
-    real :: term,dpmomdotr,dens1j
-    real :: termnonlin,lorentzfactorstari,lorentzfactorstarj,estari,estarj
-    real :: lorentzi,lorentzj
-    real,dimension(ndimV) :: pmomstari,pmomstarj
-    !
-    !--definitions
-    !       
-    alphaav = 0.5*(alphai + alpha(1,j))
-    alphau = 0.5*(alphaui + alpha(2,j))
-    vsigav = max(alphaav,alphau)*vsig
-    !!rhoav1 = 2./(rhoi + rhoj)
-!    if (geom(1:4).ne.'cart') then
-!    dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
-!    else
-!       dpmomdotr = -dvdotr
-!    endif
-    term = vsig*rhoav1*grkern
-    termnonlin = vsignonlin*rhoav1*grkern
-
-    !----------------------------------------------------------------
-    !  artificial viscosity in force equation
-    ! (applied only for approaching particles)
-    !----------------------------------------------------------------
-    
-    lorentzfactorstari=1.0/(sqrt(1.0-(projvi**2)))
-    lorentzfactorstarj=1.0/(sqrt(1.0-(projvj**2)))
-    
-    dens1j = 1./dens(j)
-    estari=lorentzfactorstari*(1.0+alphau*(uu(i)+(pri*dens1i)))-(pri*rho1i)*alphau
-    estarj=lorentzfactorstarj*(1.0+alphau*(uu(j)+(prj*dens1j)))-(prj*rho1j)*alphau
-    
-    pmomstari=veli*(estari+alphau*(pri*rho1i))
-    pmomstarj=velj*(estarj+alphau*(prj*rho1j))
-
-    dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))
-    
-    if (dvdotr.lt.0) then            
-       visc = alphaav*term*dpmomdotr
-       forcei(:) = (forcei(:) - pmassj*visc*dr(:))
-       forcej(:) = (forcej(:) + pmassi*visc*dr(:))
-    endif
-
-    !--------------------------------------------------
-    !  dissipation terms in energy equation
-    !  (viscosity + resistivity + thermal conduction)
-    !
-    !   total energy equation
-    !--------------------------------------------------
-    if (iener.eq.3) then
-       
-       qdiff = 0.
-       !
-       !  kinetic energy terms - applied only when particles approaching
-       !
-       if (dvdotr.lt.0) then
-          qdiff = qdiff + alphaav*(estari-estarj)
-       endif
-       !
-       !  add to total energy equation
-       !
-       dendt(i) = (dendt(i) + pmassj*term*qdiff)
-       dendt(j) = (dendt(j) - pmassi*term*qdiff)
-
-    !--------------------------------------------------
-    !   thermal energy equation
-    !--------------------------------------------------       
-    elseif (iener.eq.1) then
-       qdiff = 0
-       qdiffi = 0
-       qdiffj = 0    
-       if (dvdotr.lt.0) then       
-          qdiffi=(estari-estarj)+(projvi*dpmomdotr)
-          qdiffj=(estarj-estari)-(projvj*dpmomdotr)
-       endif
-       
-       if (v2i.le.1.0) lorentzi=1.0/(sqrt(1.0-(v2i)))
-       if (v2j.le.1.0) lorentzj=1.0/(sqrt(1.0-(v2j)))
-       !
-       !  add to entropy equation
-       !
-       dudt(i) = (dudt(i) + alphaav*lorentzi*pmassj*term*qdiffi)
-       dudt(j) = (dudt(j) + alphaav*lorentzj*pmassi*term*qdiffj)
-
-    else 
-       stop 'wrong iener in special relativity'
-    endif
-    
-    return
-  end subroutine artificial_dissipation_sr
 
 !----------------------------------------------------------------
 ! Magnetic field terms - ie force and magnetic field evolution
