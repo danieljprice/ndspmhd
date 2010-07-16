@@ -56,7 +56,8 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-3D-SR-v5-4'
+    version = 'NDSPMHD-basic-Torun2010-v1.0'
+!    version = 'NDSPMHD-3D-SR-v5-4'
 !   * special relativity
 !   * a LOT of other changes over the years
 !    version = 'NDSPMHD-3D-v5-3'
