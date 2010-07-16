@@ -165,8 +165,7 @@ subroutine get_rates
  stressmax = 0.
  if (imhd.ne.0 .and. (imagforce.eq.2 .or. imagforce.eq.7)) then
     do i=1,ntotal
-       !call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
-       B2i = dot_product(Bfield(:,i),Bfield(:,i)) !,gdiagi(:))
+       B2i = dot_product(Bfield(:,i),Bfield(:,i))
        if (imagforce.eq.7) then ! vec potential force
           !stressterm = max(1.5*B2i - pr(i),0.)
           !stressmax = max(stressterm,stressmax)
@@ -272,17 +271,13 @@ subroutine get_rates
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
+       gdiagi(:) = 1.
        ! mhd definitions
        if (imhd.ne.0) then
           Bi(:) = Bfield(:,i)
           Brhoi(:) = Bi(:)*rho1i
           BdotBexti = dot_product(Bi(:),Bconst(:))
-!          if (geom(1:6).ne.'cartes') then
-!             call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
-!             B2i = dot_product_gr(Bi,Bi,gdiagi)
-!          else
-             B2i = dot_product(Bi,Bi)
-!          endif
+          B2i = dot_product(Bi,Bi)
           Brho2i = B2i*rho21i
           valfven2i = B2i*rho1i
           alphaBi = alpha(3,i)
@@ -465,18 +460,9 @@ subroutine get_rates
 !  in the dissipation switches
 !
     valfven2i = 0.
-    if (imhd.ne.0) then
-!       if (geom(1:6).ne.'cartes') then
-!          call metric_diag(x(:,i),gdiagi,sqrtgi,ndim,ndimv,geom)
-!          valfven2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi)/dens(i)
-!       else
-          valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/dens(i)       
-!       endif
-    endif
+    if (imhd.ne.0) valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/dens(i)       
     vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
     vsig = SQRT(vsig2)
-    !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
-
 !
 !--if evolving B instead of B/rho, add the extra term from the continuity eqn
 !  (note that the dBevoldt term should be divided by rho)
@@ -569,7 +555,6 @@ subroutine get_rates
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        case(3)
           graddivvmag = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
-          !!print*,'graddivvmag = ',graddivvmag,max(drhodt(i)*rho1i,0.0)
           source = hh(i)*graddivvmag*(2.0-alpha(1,i))
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        end select
@@ -685,15 +670,14 @@ contains
   subroutine rates_core
     use kernels, only:interpolate_kernel,interpolate_kernels
     use options, only:usenumdens
-    use cons2prim, only:specialrelativity
     implicit none
     real :: prstar,prstari,prstarj,vstar
     real :: dvsigdtc
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
-    real :: vidotdS,vjdotdS,altrhoi,altrhoj,gammastar,vperp2
-    real :: enthalpi,enthalpj,term
+    real :: vidotdS,vjdotdS,altrhoi,altrhoj
+    real :: term
 
    pmassj = pmass(j)
 !
@@ -773,7 +757,8 @@ contains
     
     phii_on_phij = phii/phi(j)
     phij_on_phii = phi(j)*phii1       
-    sqrtgj = sqrtg(j)      
+    sqrtgj = sqrtg(j)
+    gdiagj(:) = 1.
     !-- mhd definitions --
     if (imhd.ne.0) then
        Bj(:) = Bfield(:,j)
@@ -783,16 +768,9 @@ contains
        projBj = dot_product(Bj,dr)
        projdB = dot_product(dB,dr)
        projBrhoi = dot_product(Brhoi,dr)
-       projBrhoj = dot_product(Brhoj,dr)
-       
-       !if (trim(geom).ne.'cartes') then
-       !   call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
-       !   B2j = dot_product_gr(Bj,Bj,gdiagj)
-       !   valfven2j = B2j/dens(j)
-       !else
-          B2j = dot_product(Bj,Bj)
-          valfven2j = B2j*rho1j
-       !endif
+       projBrhoj = dot_product(Brhoj,dr)       
+       B2j = dot_product(Bj,Bj)
+       valfven2j = B2j*rho1j
        Brho2j = B2j*rho21j
        projBconst = dot_product(Bconst,dr)
        if (imhd.lt.0) then
@@ -801,10 +779,6 @@ contains
     endif
     forcej(:) = 0.
         
-    !--maximum velocity for timestep control
-    !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
-    !            vsigdtc = vmag + spsoundi + spsoundj        &
-    !                         + sqrt(valfven2i) + sqrt(valfven2j)
     vsig = 0.
     vsigav = 0.
 !----------------------------------------------------------------------------
@@ -926,11 +900,6 @@ contains
        forcej(:) = forcej(:) + pmassi*(pri - prj)*rho21i*dr(:)*grkern
     endif
 
-!    forcei(:) = forcei(:) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
-!                            + pr(j)/rho(j)*drj(:)*grkernj)
-!    forcej(:) = forcej(:) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
-!                            + pr(j)/rho(j)*drj(:)*grkernj)
-
 !------------------------------------------------------------------------
 !  Self-gravity term
 !------------------------------------------------------------------------
@@ -1011,8 +980,6 @@ contains
     if (ixsph.eq.1) then
        xsphterm(:,i) = xsphterm(:,i) - pmassj*dvel(:)*rhoav1*wabalt
        xsphterm(:,j) = xsphterm(:,j) + pmassi*dvel(:)*rhoav1*wabalt
-!       dudt(i) = dudt(i) - 0.2*pmassj*(uu(i)-uu(j))*rhoav1*grkernalti
-!       dudt(j) = dudt(j) + 0.2*pmassi*(uu(i)-uu(j))*rhoav1*grkernaltj
     endif
 !
 !  Continuity equation if density not done by summation
@@ -1050,11 +1017,7 @@ contains
     alphaB = 0.5*(alphaBi + alpha(3,j))
     vsigav = max(alphaav,alphau,alphaB)*vsig
     !!rhoav1 = 2./(rhoi + rhoj)
-    if (geom(1:4).ne.'cart') then
-       dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
-    else
-       dpmomdotr = -dvdotr
-    endif
+    dpmomdotr = -dvdotr
     !--used for viscosity
     term = vsig*rhoav1*grkern
 
@@ -1214,11 +1177,6 @@ contains
           dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
        endif
        
-       !if (icty.eq.1) then
-       !   vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
-       !   drhodt(i) = drhodt(i) + pmassj*(vissrho)
-       !   drhodt(j) = drhodt(j) + pmassi*(-vissrho)
-       !endif
     endif
     
     return
