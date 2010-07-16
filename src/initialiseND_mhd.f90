@@ -104,8 +104,8 @@ subroutine initialise
 !
 !--set some global parameters based on ndim
 !
- if (ndim.gt.3 .or. ndim.lt.0 .or. ndimv.gt.3 .or. ndimv.lt.0) then
-    stop 'ERROR ndim <0 or >3: We leave string theory for later'
+ if (ndim.gt.3 .or. ndim.le.0 .or. ndimv.gt.3 .or. ndimv.le.0) then
+    stop 'ERROR ndim <=0 or >3: We leave string theory for later'
  else
     dndim = 1./real(ndim)
  endif
@@ -125,7 +125,6 @@ subroutine initialise
 !
 !--Open data/ev files
 !
-!! OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='unformatted')
  if (ifile.gt.0) then
     inquire(file=evfile,exist=iexist)
     if (iexist) then
