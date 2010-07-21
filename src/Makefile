@@ -8,9 +8,8 @@
 .KEEP_STATE:
 
 # specify editor to use for file editing
-#EDITOR = nedit
-KNOWN_SYSTEM=no
-SHELL = /bin/sh
+#KNOWN_SYSTEM=no
+SHELL = /bin/bash
 DOUBLEPRECISION= yes
 
 ifeq ($(SYSTEM), ukaff1a)
@@ -288,7 +287,10 @@ edit3D: checkeditor
 
 checkeditor:
    ifndef EDITOR
+	@echo
 	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'
+	@echo
+	@quit
    endif
 
 clean:
