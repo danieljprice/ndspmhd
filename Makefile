@@ -5,7 +5,7 @@
 ##-------------------------------------------------------------------##
 
 SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
-EDITOR = nedit
+#EDITOR = nedit
 
 intro:
 	echo "specify number of dimensions, e.g. 'make 1D' or try 'make install'"
@@ -78,16 +78,16 @@ edit2DGR:
 edit3DGR:
 	cd src; make edit3D
 
-editev:
+editev: checkeditor
 	cd evplot; $(EDITOR) evsupersph.f &
 
 scripts:	## makes symbolic links to scripts
 	ln -s run2D ./scripts/run2D.tcsh
 	ln -s run3D ./scripts/run3D.tcsh
-make:
+make: checkeditor
 	cd src; $(EDITOR) Makefile &
 	
-makes:
+makes: checkeditor
 	$(EDITOR) ./src/Makefile ./evplot/Makefile ./plot/Makefile \
 	./utils/Makefile ./multi/Makefile &
 
@@ -104,10 +104,12 @@ save:
 	mkdir $(SAVEDIR)/multi
 	cp ./multi/*.f90 $(SAVEDIR)/multi
 	cp ./multi/Makefile $(SAVEDIR)/multi
-	cd plot; make targz
-	mkdir $(SAVEDIR)/plot
-	mv ./plot/*.tar.gz $(SAVEDIR)/plot
 	mkdir $(SAVEDIR)/utils
 	cp ./utils/*.f90 $(SAVEDIR)/utils
 	cp -r evplot $(SAVEDIR)
 	cp unpackall $(SAVEDIR)
+
+checkeditor:
+   ifndef EDITOR
+	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'
+   endif
