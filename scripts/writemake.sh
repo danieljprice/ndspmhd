@@ -20,11 +20,11 @@ else
    echo default':'$1
    echo ''
    echo '3D: checkdir'
-   echo '	cd ${NDSPMHD_DIR}; make 3D; cd -; cp ~/ndspmhd/3DSPMHD .'
+   echo '	cd ${NDSPMHD_DIR}; make 3D; cd -; cp ${NDSPMHD_DIR}/3DSPMHD .'
    echo '2D: checkdir'
-   echo '	cd ${NDSPMHD_DIR}; make 2D; cd -; cp ~/ndspmhd/2DSPMHD .'
+   echo '	cd ${NDSPMHD_DIR}; make 2D; cd -; cp ${NDSPMHD_DIR}/2DSPMHD .'
    echo '1D: checkdir'
-   echo '	cd ${NDSPMHD_DIR}; make 1D; cd -; cp ~/ndspmhd/1DSPMHD .'
+   echo '	cd ${NDSPMHD_DIR}; make 1D; cd -; cp ${NDSPMHD_DIR}/1DSPMHD .'
    echo 'edit: checkdir checkeditor'
    echo '	cd ${NDSPMHD_DIR}; make edit'$1
    echo 'moddump: checkdir'
