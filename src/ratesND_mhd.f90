@@ -591,7 +591,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)         
+          dpsidt(i) = dpsidt(i) - vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)         
        case DEFAULT
           dpsidt(i) = 0.
     end select
@@ -1051,6 +1051,12 @@ contains
           !
           dBevoldti(:) = dBevoldti(:) + rhoi*pmassj*dBdtvisc(:)               
           dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
+
+          if (idivBzero.ge.2 .and. idivBzero.lt.10) then
+             dpsidt(i) = dpsidt(i) + pmassj*term*(psi(i) - psi(j))
+             dpsidt(j) = dpsidt(j) - pmassi*term*(psi(i) - psi(j))
+             !if (dpsidt(i)/psi(i).gt.1.e-6) print*,dpsidt(i)/psi(i)
+          endif
 
        elseif (iav.eq.1) then !--wrong vector potential resistivity
           dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
