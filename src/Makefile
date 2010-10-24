@@ -266,8 +266,22 @@ checksystem:
 	@echo "=>set the environment variable SYSTEM to one listed "
 	@echo "  in the Makefile and try again"
 	@echo ""
-	quit
+	@${MAKE} compilers
+	@$(MAKE) err;
    endif
+
+compilers:
+	@echo "I suggest one of the following, based on detected Fortran compilers..."; echo;
+	@if type -p ifort > /dev/null; then echo "make SYSTEM=ifort"; fi;
+	@if type -p pathf90 > /dev/null; then echo "make SYSTEM=pathf90"; fi;
+	@if type -p pgf90 > /dev/null; then echo "make SYSTEM=pgf90"; fi;
+	@if type -p xlf90_r > /dev/null; then echo "make SYSTEM=ukaff1a [uses xlf90_r]"; fi;
+	@if type -p gfortran > /dev/null; then echo "make SYSTEM=gfortran"; fi;
+	@if type -p g95 > /dev/null; then echo "make SYSTEM=g95"; fi;
+	@echo "(end of possible selections)"; echo;
+
+err:
+	$(error aborting);
 
 ## other crap
 
@@ -290,7 +304,7 @@ checkeditor:
 	@echo
 	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'
 	@echo
-	@quit
+	@$(MAKE) err;
    endif
 
 clean:
