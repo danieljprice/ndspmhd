@@ -1,19 +1,21 @@
 -------------------------------------------------------------------------------
+ NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
+ fluid dynamics simulations in 1, 2 and 3 spatial dimensions.
 
-  THIS CODE IS DISTRIBUTED SOLELY FOR THE ASTROSIM2010 SUMMER SCHOOL IN TORUN
+ (c) 2002-2010 Daniel Price
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+  THIS CODE IS DISTRIBUTED UNDER THE TERMS OF THE GNU GENERAL PUBLIC LICENCE 
+  (see LICENSE file for details)
   
-  AT THIS STAGE PLEASE DO NOT REDISTRIBUTE THE CODE OR PUBLISH RESULTS
-  BASED ON IT WITHOUT FIRST OBTAINING MY PERMISSION
-
   Please note that I am also unable to provide any kind of long-term
   support for this code.
   
-  daniel.price@monash.edu, July 2010
+  daniel.price@monash.edu, October 2010
 
 -------------------------------------------------------------------------------
-NDSPMHD is an Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
-fluid dynamics simulations in 1, 2 and 3 spatial dimensions.
--------------------------------------------------------------------------------
+
 The code is written in Fortran 90/95 
 by Daniel Price, daniel.price@monash.edu
 
@@ -21,6 +23,6 @@ The source code is organised into the following directories:
 
 src     -- source code for NDSPMHD
 docs    -- contains documentation for NDSPMHD
-scripts -- various scripts for manipulating data/ running multiple jobs
+scripts -- various scripts for manipulating data/running multiple jobs
 	   
 see the INSTALL file for installation instructions
