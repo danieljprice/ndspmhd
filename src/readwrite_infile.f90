@@ -50,7 +50,6 @@ subroutine write_infile(infile)
   write(iread,190) iexternal_force
   write(iread,200) C_cour, C_force
   write(iread,210) usenumdens
-  write(iread,220) isplitpart,rhocrit
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -74,7 +73,6 @@ subroutine write_infile(infile)
 190 format(i2,34x,'! external force (1: toy star, 2:1/r^2 )')
 200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
 210 format(l1,35x,'! Use number density formulation of gradh')
-220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -141,7 +139,6 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) iexternal_force
   read(iread,*,err=50,end=50) C_Cour, C_force
   read(iread,*,err=50,end=50) usenumdens
-  read(iread,*,err=50,end=50) isplitpart,rhocrit
  close(unit=iread)
 
  goto 55
@@ -195,10 +192,6 @@ subroutine read_infile(infile)
  if (etamhd.lt.0.) then
     write(iprint,100) 'eta < 0 in resistivity'
     stop
- endif
- if (isplitpart.lt.0) stop 'invalid choice for isplitpart'
- if (isplitpart.ge.0 .and. rhocrit.le.0.) then
-    write(iprint,100) 'critical density <= 0 in particle splitting'
  endif
 100   format(/' read_infile: warning: ',a)
  return

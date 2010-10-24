@@ -73,7 +73,5 @@ subroutine set_default_options
    geom = geomsetup
    idim = 0
    usenumdens = .false.
-   isplitpart = 0
-   rhocrit = 1.e4
    
  end subroutine set_default_options

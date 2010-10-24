@@ -4,7 +4,7 @@
 !
 subroutine derivs
  use loguns, only:iprint
- use options, only:ibound,icty,ihvar,imhd,isplitpart
+ use options, only:ibound,icty,ihvar,imhd
  use part, only:hh,x,npart
  use setup_params, only:hfact
  use cons2prim, only:conservative2primitive
@@ -31,7 +31,7 @@ subroutine derivs
        hh(i) = hh(npart-inext+1)
     enddo
  endif
- if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
+ if (ANY(ibound.NE.0)) call boundary ! inflow/outflow/periodic boundary conditions
 !
 !--set ghost particles if ghost boundaries are used
 !         
