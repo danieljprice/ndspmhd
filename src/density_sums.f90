@@ -349,7 +349,7 @@ contains
 !!------------------------------------------------------------------------
   
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
-                             gradh,gradhn,gradsoft,gradgradh,npart,nlist,ipartlist)
+                             gradh,gradhn,gradsoft,gradgradh,nlist,ipartlist)
     use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
@@ -365,11 +365,10 @@ contains
 !--define local variables
 !
     implicit none
-    integer, intent(in) :: npart
+    integer, intent(in) :: nlist
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
-    integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
     integer :: i,j,n
