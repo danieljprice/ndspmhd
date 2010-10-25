@@ -51,7 +51,7 @@ subroutine set_default_options
    dtforce = 0.
    dtcourant = 0.
    tmax = 1.0
-   tout = 0.01
+   tout = 0.1
    nmax = 1000000
    nout = -1
    gamma = 5./3.
