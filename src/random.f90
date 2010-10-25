@@ -1,3 +1,25 @@
+!------------------------------------------------------------------------------!
+! NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical) !
+! fluid dynamics simulations in 1, 2 and 3 spatial dimensions.                 !
+!                                                                              !
+! (c) 2002-2010 Daniel Price                                                   !
+!                                                                              !
+! http://users.monash.edu.au/~dprice/ndspmhd                                   !
+! daniel.price@monash.edu -or- dprice@cantab.net (forwards to current address) !
+!                                                                              !
+!  NDSPMHD comes with ABSOLUTELY NO WARRANTY.                                  !
+!  This is free software; and you are welcome to redistribute                  !
+!  it under the terms of the GNU General Public License                        !
+!  (see LICENSE file for details) and the provision that                       !
+!  this notice remains intact. If you modify this file, please                 !
+!  note section 2a) of the GPLv2 states that:                                  !
+!                                                                              !
+!  a) You must cause the modified files to carry prominent notices             !
+!     stating that you changed the files and the date of any change.           !
+!                                                                              !
+!  ChangeLog:                                                                  !
+!------------------------------------------------------------------------------!
+
 !!------------------------------------------------------------------------!!
 !!
 !! Random number generator using the minimal standard generator of 
@@ -160,7 +182,7 @@ SUBROUTINE sobseq(n,x)
       if(iand(im,1).eq.0)goto 1
       im=im/2
    enddo
-   print*,'ERROR: MAXBIT too small in sobseq'
+   print*,'MAXBIT too small in sobseq'
 1  im=(j-1)*MAXDIM
    do k=1,min(n,MAXDIM)
       ix(k)=ieor(ix(k),iv(im+k))
