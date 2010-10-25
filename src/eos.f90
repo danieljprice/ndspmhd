@@ -105,7 +105,6 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
 !--define local variables
 !
  implicit none
- integer :: isize
  real, intent(in) :: rho
  real, intent(out) :: pr
  real, intent(inout) :: uu,vsound
@@ -120,7 +119,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
     write(iprint,*) 'eos1: rho -ve, exiting'
     !call quit
  elseif ((iener.ne.0).and.uu.lt.0.) then
-    write(iprint,*) 'eos1: u_therm -ve, exiting',isize    
+    write(iprint,*) 'eos1: u_therm -ve, exiting 1'
     !call quit
  endif
 
