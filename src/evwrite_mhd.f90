@@ -43,10 +43,8 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL, INTENT(IN) :: t
  REAL, INTENT(OUT) :: etot,momtot
  REAL :: ekin,etherm,emag,epot
- REAL :: pmassi,rhoi,epoti,rr
- REAL, DIMENSION(ndim) :: rhat
+ REAL :: pmassi,rhoi,epoti
  REAL, DIMENSION(ndimV) :: veli,mom,ang,angi
- REAL :: alphai,betai,alphatstarav,betatstarav
 !
 !--mhd
 !

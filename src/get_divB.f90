@@ -59,7 +59,7 @@ subroutine get_divB(divBonrho,ntot)
  real :: rij,rij2
  real :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
  real :: hfacwab,hfacwabi,hfacwabj
- real :: rho21i, rho21j, term, projdb
+ real :: rho21i, rho21j, projdb
  real, dimension(ndim) :: dx
  real, dimension(ndimv) :: dr
 !

@@ -33,7 +33,7 @@ subroutine check_setup
   integer :: i,j
   real, parameter :: vbig = 1.e12
   real, dimension(ndim) :: xcentre
-  real :: xsep,dxmean,dxij
+  real :: dxmean,dxij
   
   write(iprint,5) ' Checking setup... '
 5 format(/,a)
