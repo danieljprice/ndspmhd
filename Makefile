@@ -27,6 +27,9 @@ install:
 clean:
 	cd src; rm *.o *.mod
 
+cleanall: clean
+	rm ?DSPMHD
+
 edit1D:
 	cd src; make edit1D
 
