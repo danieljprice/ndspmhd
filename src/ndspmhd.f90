@@ -17,7 +17,7 @@
 !  a) You must cause the modified files to carry prominent notices             !
 !     stating that you changed the files and the date of any change.           !
 !                                                                              !
-!  ChangeLog:                                                                  !
+!  ChangeLog: see below                                                        !
 !------------------------------------------------------------------------------!
 
 !!---------------------------------------------------------------------!!
