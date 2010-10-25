@@ -8,10 +8,10 @@ SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 #EDITOR = nedit
 
 intro:
-	echo "specify number of dimensions, e.g. 'make 1D' or try 'make install'"
+	@echo "specify number of dimensions, e.g. 'make 1D' or try 'make install'"
 
 install: 
-	echo 'Compiling 1D code'
+	@echo 'Compiling 1D code'
 	cd src;  make 1D
 	#cd src; make clean; make 2D
 	#cd src; make clean; make 25D
