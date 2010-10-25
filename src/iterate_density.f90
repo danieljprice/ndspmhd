@@ -93,6 +93,8 @@ subroutine iterate_density
   gradgradh = 0.
   drhodt = 0.
   dhdt = 0.
+  dhdrhoi = 0.
+  dhdni   = 0.
   hhin(1:npart) = hh(1:npart)
   if (any(hh(1:npart).le.tiny(hh))) then
      write(iprint,*) 'error: h <= 0 in density call'
