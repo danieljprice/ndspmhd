@@ -12,23 +12,16 @@
 SHELL = /bin/bash
 DOUBLEPRECISION= yes
 
-ifeq ($(SYSTEM), ukaff1a)
-    F90C= xlf_r -qnosave
-    F90FLAGS= -O3 -q64 -qextname -qsmp=noauto
-    DBLFLAG= -qrealsize=8
-#    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-    DEBUGFLAG= -C
-    KNOWN_SYSTEM=yes
-endif
-
-ifeq ($(SYSTEM), sunf95)
-    F90C= sunf95
-    F90FLAGS= -fast
-    DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
-    DEBUGFLAG= -g -C -ftrap=common
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
-    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
+ifeq ($(SYSTEM), gfortran)
+#  gfortran compiler (part of gcc 4.x.x)
+   F90C= gfortran
+   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   DBLFLAG= -fdefault-real-8
+   SYSTEMFILE= system_unix.f90
+   DEBUGFLAG= -g -frange-check -fcheck=all
+   ENDIANFLAGBIG= -fconvert=big-endian
+   ENDIANFLAGLITTLE= -fconvert=little-endian
+   KNOWN_SYSTEM=yes
 endif
 
 ifeq ($(SYSTEM), g95)
@@ -42,40 +35,6 @@ ifeq ($(SYSTEM), g95)
 # or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
 endif
 
-ifeq ($(SYSTEM), mymac)
-    F90C= g95
-    F90FLAGS= -O3 -g -Wall -Wno=112,140 -ffast-math -funroll-loops -finline-functions -falign-loops=16
-    DBLFLAG= -r8
-    DEBUGFLAG= -g -ftrace=full -fbounds-check
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -fendian='BIG'
-    ENDIANFLAGLITTLE= -fendian='LITTLE'
-# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
-endif
-
-ifeq ($(SYSTEM), gfortran)
-#  gfortran compiler (part of gcc 4.x.x)
-   F90C= gfortran
-   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
-   DBLFLAG= -fdefault-real-8
-   SYSTEMFILE= system_unix.f90
-   DEBUGFLAG= -g -frange-check
-   OMPFLAG= -fopenmp
-   ENDIANFLAGBIG= -fconvert=big-endian
-   ENDIANFLAGLITTLE= -fconvert=little-endian
-   KNOWN_SYSTEM=yes
-endif
-
-ifeq ($(SYSTEM), myg95)
-    F90C= myg95
-    F90FLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
-    DBLFLAG= -r8
-    DEBUGFLAG= -ftrace=full -fbounds-check
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -fendian='BIG'
-    ENDIANFLAGLITTLE= -fendian='LITTLE'
-endif
-
 ifeq ($(SYSTEM), ifort)
     F90C= ifort
     F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
@@ -87,6 +46,45 @@ ifeq ($(SYSTEM), ifort)
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
 endif
 
+ifeq ($(SYSTEM), sunf95)
+    F90C= sunf95
+    F90FLAGS= -fast
+    DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
+    DEBUGFLAG= -g -C -ftrap=common
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
+    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
+endif
+
+ifeq ($(SYSTEM), pgf90)
+#  this is for the Portland Group Fortran 90 compiler (tested with version 7.2-5)
+   F90C= pgf90
+   F90FLAGS= -fast -mcmodel=medium -Mbackslash -Ktrap=none
+   DEBUGFLAG= -C -g -gopt -Mbounds -Mchkfpstk -Mchkptr -Mchkstk -Mcoff \
+              -Mdwarf1 -Mdwarf2 -Melf -Mpgicoff -traceback
+   ENDIANFLAGBIG= -Mbyteswapio  # only works on a little-endian machine
+   ENDIANFLAGLITTLE=
+   KNOWN_SYSTEM=yes
+endif
+
+ifeq ($(SYSTEM), pathf95)
+#  this is for the Pathscale f95 compiler
+   F90C= pathf95
+   F90FLAGS= -Ofast -mcmodel=medium
+   DEBUGFLAG= -C -g
+   ENDIANFLAGBIG= -convert big_endian
+   ENDIANFLAGLITTLE= -convert little_endian
+   KNOWN_SYSTEM=yes
+endif
+
+ifeq ($(SYSTEM), ukaff1a)
+    F90C= xlf90_r -qnosave
+    F90FLAGS= -O3 -q64 -qextname -qsmp=noauto
+    DBLFLAG= -qrealsize=8
+#    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+    DEBUGFLAG= -C
+    KNOWN_SYSTEM=yes
+endif
 
 # Set other optional flags depending on settings
 
@@ -273,7 +271,7 @@ checksystem:
 compilers:
 	@echo "I suggest one of the following, based on detected Fortran compilers..."; echo;
 	@if type -p ifort > /dev/null; then echo "make SYSTEM=ifort"; fi;
-	@if type -p pathf90 > /dev/null; then echo "make SYSTEM=pathf90"; fi;
+	@if type -p pathf95 > /dev/null; then echo "make SYSTEM=pathf95"; fi;
 	@if type -p pgf90 > /dev/null; then echo "make SYSTEM=pgf90"; fi;
 	@if type -p xlf90_r > /dev/null; then echo "make SYSTEM=ukaff1a [uses xlf90_r]"; fi;
 	@if type -p gfortran > /dev/null; then echo "make SYSTEM=gfortran"; fi;
