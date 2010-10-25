@@ -75,22 +75,29 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--Write parameters to screen/logfile
 !     
-    WRITE (iprint,10) version
-    IF (iprint.NE.6) WRITE (*,10) version
+    WRITE (iprint,10) trim(version)
+    IF (iprint.NE.6) WRITE (*,10) trim(version)
      
-10 FORMAT(                                                                &
-      "                                                  _         _ ",/,  &
-      "    ___ _   _ _ __   ___ _ __ ___ _ __  _ __ ___ | |__   __| |",/,  &
-      "   / __| | | | '_ \ / _ \ '__/ __| '_ \| '_ ` _ \| '_ \ / _` |",/,  &
-      "   \__ \ |_| | |_) |  __/ |  \__ \ |_) | | | | | | | | | (_| |",/,  &
-      "   |___/\__,_| .__/ \___|_|  |___/ .__/|_| |_| |_|_| |_|\__,_|",/,  &
-      "             |_|                 |_|                          ",/,  &
-      '      _   _     _   _   _   _   _   _     _   _   _   _   _   ',/,  &
-      '     / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \  ',/,  &
-      '    ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e ) ',/,  &
-      '     \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/  ',/,  &
-      '                                                                     ',/,  &
-      /,' Version: ',a30,/)
+10 FORMAT( &
+      "                _                     _         _ ",/, &
+      "      _ __   __| |___ _ __  _ __ ___ | |__   __| |",/, &
+      "     | '_ \ / _` / __| '_ \| '_ ` _ \| '_ \ / _` |",/, &
+      "     | | | | (_| \__ \ |_) | | | | | | | | | (_| |",/, &
+      "     |_| |_|\__,_|___/ .__/|_| |_| |_|_| |_|\__,_|",/, &
+      "                     |_|                          ",/, &
+      '   _   _     _   _   _   _   _   _     _   _   _   _   _   ',/,  &
+      '  / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \  ',/,  &
+      ' ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e ) ',/,  &
+      '  \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/  ',/,/,&
+      ' ( Version: ',a,' Copyright (c) 2003-2010 )',/,/, &
+      ' * NDSPMHD comes with ABSOLUTELY NO WARRANTY.',/, &
+      '   This is free software; and you are welcome to redistribute it ',/, &
+      '   under certain conditions (see LICENSE file for details). *',/,/, &
+      ' Bug reports to: daniel.price@monash.edu or dprice@cantab.net ',/, &
+      ' Check for updates at: http://users.monash.edu.au/~dprice/ndspmhd ',/, &
+      ' Please cite Price (2010), J. Comp. Phys. (arXiv:1010.xxxx) if you ',/, &
+      ' use NDSPMHD for scientific work and please send me a copy of any  ',/, &
+      ' such publications upon submission to the journal/proceedings.',/)
       
     CALL date_and_time(startdate,starttime)
     startdate = startdate(7:8)//'/'//startdate(5:6)//'/'//startdate(1:4)
@@ -199,11 +206,11 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     case('sphrpt')
        coord(1) = 'r'
        coord(2) = 'phi'
-       coord(3) = 'theta'    
+       coord(3) = 'theta'
     case('sphlog')
        coord(1) = 'log r'
        coord(2) = 'phi'
-       coord(3) = 'theta'    
+       coord(3) = 'theta'
     case default
        coord(1) = 'x'
        coord(2) = 'y'
@@ -215,8 +222,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
        IF (ibound(i).EQ.0) boundtype = 'None'
        IF (ibound(i).EQ.1) boundtype = 'Fixed particles'
        IF (ibound(i).EQ.2) boundtype = 'Reflective ghosts'
-       IF (ibound(i).EQ.3) boundtype = 'Periodic (ghosts)'     
-       IF (ibound(i).EQ.5) boundtype = 'Shearing box (ghosts)'
+       IF (ibound(i).EQ.3) boundtype = 'Periodic (ghosts)'
        WRITE (iprint, 210) coord(i),TRIM(boundtype)             
        IF (ibound(i).NE.0) WRITE (iprint, 220) coord(i),xmin(i),coord(i),xmax(i)
     ENDDO

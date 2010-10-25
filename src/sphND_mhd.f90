@@ -80,7 +80,7 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-    version = 'NDSPMHD-v1.0'
+    version = 'v1.0 [25th Oct 2010]'
 !   * first public version
 !    version = 'NDSPMHD-basic-Torun2010-v1.0'
 !   * basic version released for ASTROSIM summer school in Torun, Poland
