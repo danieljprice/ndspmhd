@@ -21,24 +21,27 @@
 !------------------------------------------------------------------------------!
 
 !!---------------------------------------------------------------------!!
-!!                                                    _         _      !!
-!!      ___ _   _ _ __   ___ _ __ ___ _ __  _ __ ___ | |__   __| |     !!
-!!     / __| | | | '_ \ / _ \ '__/ __| '_ \| '_ ` _ \| '_ \ / _` |     !!
-!!     \__ \ |_| | |_) |  __/ |  \__ \ |_) | | | | | | | | | (_| |     !!
-!!     |___/\__,_| .__/ \___|_|  |___/ .__/|_| |_| |_|_| |_|\__,_|     !!
-!!               |_|                 |_|                               !!
-!!                                                                     !!
-!!       _   _     _   _   _   _   _   _     _   _   _   _   _         !!
-!!      / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \        !!
-!!     ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e )       !!
-!!     \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/         !!
+!!                     _                     _         _               !!
+!!           _ __   __| |___ _ __  _ __ ___ | |__   __| |              !!
+!!          | '_ \ / _` / __| '_ \| '_ ` _ \| '_ \ / _` |              !!
+!!          | | | | (_| \__ \ |_) | | | | | | | | | (_| |              !!
+!!          |_| |_|\__,_|___/ .__/|_| |_| |_|_| |_|\__,_|              !!
+!!                          |_|                                        !!
+!!        _   _     _   _   _   _   _   _     _   _   _   _   _        !!
+!!       / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \       !!
+!!      ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e )      !!
+!!       \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/       !!
 !!                                                                     !!
 !!---------------------------------------------------------------------!!
 !! An N-D SPH code to handle compressible gas dynamics with MHD        !!
 !!                                                                     !!
 !! Written in Fortran 90                                               !!
+!!                                                                     !!
 !! By Daniel Price, Institute of Astronomy, Cambridge, UK, 2002-2004   !!
-!! Email: dprice@ast.cam.ac.uk                                         !!
+!!                  University of Exeter, UK 2004-2008                 !!
+!!                  Monash University, Melbourne, Australia 2008-      !!
+!!                                                                     !!
+!! Email: daniel.price@monash.edu                                      !!
 !!                                                                     !!
 !! This version is designed to be as modular (and thus as adaptable)   !!
 !! as possible, as a testbed for SPH algorithms                        !!
@@ -67,7 +70,7 @@
 !!                                                                     !!
 !!---------------------------------------------------------------------!!
 
-PROGRAM SUPERSPMHD_ND
+PROGRAM ndspmhd
  USE debug
  USE loguns
  USE versn
@@ -357,7 +360,7 @@ PROGRAM SUPERSPMHD_ND
 
  STOP 
  
-END PROGRAM
+END PROGRAM ndspmhd
 
 !!---------------------------------------------------------------------
 !! This subroutine performs a graceful exit if the program has crashed
