@@ -81,7 +81,9 @@ PROGRAM ndspmhd
 !
 !--version number
 !
-    version = 'v1.0 [25th Oct 2010]'
+    version = 'v1.0.1 [21st Dec 2010]'
+!    * minor bug fix with build
+!    version = 'v1.0 [25th Oct 2010]'
 !   * first public version
 !    version = 'NDSPMHD-basic-Torun2010-v1.0'
 !   * basic version released for ASTROSIM summer school in Torun, Poland
