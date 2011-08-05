@@ -45,8 +45,8 @@ subroutine setup
 !--set default values
 !
  dsmooth = 0.   
- equalmass = .false.   ! use equal mass particles??
- stretchx = .true.    ! stretch in x-direction only to give density contrast?
+ equalmass = .true.   ! use equal mass particles??
+ stretchx = .false.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
  gamm1 = gamma - 1.
  
