@@ -28,6 +28,7 @@ subroutine conservative2primitive
   use smooth, only:smooth_variable
   use rates, only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
+  use setup_params, only:Byleft,Byright,Bzleft,Bzright
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i, pri, dhdrhoi
@@ -115,12 +116,11 @@ subroutine conservative2primitive
         if (itype(i).eq.1) then
            j = ireal(i)
            call copy_particle(i,j)
-           vel(:,i) = vel(:,j)
+           !vel(:,i) = vel(:,j)
            !where (ibound.eq.1) vel(:,i) = -vel(:,j)
 !!           uu(i) = uu(j)
 !           pr(i) = pr(j)
 !           spsound(i) = spsound(j)
-!          Bfield(:,i) = Bfield(:,j)
         endif
      enddo
   endif
@@ -254,7 +254,7 @@ subroutine primitive2conservative
         gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
         zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
         psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
-        print*,i,'xi = ',psi(i),zeta(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        !print*,i,'xi = ',psi(i),zeta(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
      enddo
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
@@ -302,10 +302,25 @@ subroutine primitive2conservative
            pr(i) = pr(j)
            spsound(i) = spsound(j)
         endif
-        Bevol(:,i) = Bevol(:,j)
-        Bfield(:,i) = Bfield(:,j)
      enddo
   endif
+!
+!--make fixed particles exact replicas of their closest particle
+!
+  if (any(ibound.eq.1) .and. imhd.lt.0) then
+     do i=1,npart
+        if (itype(i).eq.1) then
+           j = ireal(i)
+           call copy_particle(i,j)
+           vel(:,i) = vel(:,j)
+           !where (ibound.eq.1) vel(:,i) = -vel(:,j)
+!!           uu(i) = uu(j)
+!           pr(i) = pr(j)
+!           spsound(i) = spsound(j)
+        endif
+     enddo
+  endif
+
 !
 !--call rates to get initial timesteps, div B etc
 !
