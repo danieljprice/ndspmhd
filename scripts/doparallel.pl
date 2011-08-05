@@ -10,19 +10,20 @@ my $nsteps;
 my $startnum;
 my $zero = 0;
 my $ext = '.dat';
+my $SPMHD = 'SPMHD';
 
-if ($#ARGV !=1) {
-   die "Usage: $0 rootname nruns \n";
+if ($#ARGV !=2) {
+   die "Usage: $0 nD rootname nruns \n";
 }
 
-my ($rootname,$nruns) = @ARGV;
+my ($ndim,$rootname,$nruns) = @ARGV;
 
 # make a new directory for the run
-print "making new directory $rootname";
+print "making new directory $rootname \n";
 system "mkdir $rootname";
 # copy files to this directory
 system "cp multirun.in ./$rootname";
-system "cp 1DSPMHD ./$rootname";
+system "cp $ndim$SPMHD ./$rootname";
 system "cp defaults ./$rootname";
 system "ln -s ./plot/supersphplot ./$rootname/supersphplot";
 system "ln -s ./evsupersph ./$rootname/evsupersph";
@@ -32,8 +33,8 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 
 # write appropriate runnames to 'runname' and execute program
 for ($n = 1;$n<=$nruns;$n++) {
-    print "doing run $rootname$n \n";
-    system "cd $rootname; ../scripts/write_sgescript1D.bash $rootname$n > ./$rootname$n\.sge";
+   print "doing run $rootname$n \n";
+   system "cd $rootname; ../scripts/write_sgescript.bash $ndim $rootname$n > ./$rootname$n\.sge";
     system "cd $rootname; qsub $rootname$n\.sge";
 }
 
