@@ -61,6 +61,7 @@ SUBROUTINE step
  REAL :: dtrhoi
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
+ real, dimension(ndimV) :: vcrossB
 !
 !--allow for tracing flow
 !      
@@ -175,7 +176,12 @@ SUBROUTINE step
     IF (itype(i).EQ.1 .OR. itype(i).EQ.2) THEN        ! fixed particles
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
-       Bevol(:,i) = Bevolin(:,i)             
+       if (imhd.lt.0) then
+          call cross_product3D(vel(:,i),Bconst(:),vcrossB)
+          Bevol(:,i) = Bevolin(:,i) + hdt*vcrossB(:)
+       else
+          Bevol(:,i) = Bevolin(:,i)             
+       endif
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)            
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
@@ -247,9 +253,13 @@ SUBROUTINE step
     IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
-       Bevol(:,i) = Bevolin(:,i)
+       if (imhd.lt.0) then
+          call cross_product3D(vel(:,i),Bconst(:),vcrossB)
+          Bevol(:,i) = Bevolin(:,i) + dt*vcrossB(:)
+       else
+          Bevol(:,i) = Bevolin(:,i)
+       endif
        IF (iener.NE.0) en(i) = enin(i)
-       if (i.eq.420) print*,i,'type=',itype(i),'r=',sqrt(dot_product(xin(:,i),xin(:,i))),' vel = ',vel(1:ndim,i)
        x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
