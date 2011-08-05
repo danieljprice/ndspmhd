@@ -42,14 +42,14 @@ subroutine set_default_options
    iav = 2
    alphamin = 0.1
    alphaumin = 0.0
-   alphaBmin = 0.0
+   alphaBmin = 1.0
    beta = 2.0
    iavlim(1) = 2
-   iavlim(2) = 0
+   iavlim(2) = 1
    iavlim(3) = 0
    avdecayconst = 0.1
    ikernav = 3
-   ihvar = 3
+   ihvar = 2
    hfact = 1.2
    tolh = 1.e-3
    idumpghost = 1
