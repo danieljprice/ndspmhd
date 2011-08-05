@@ -69,7 +69,7 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj !!,vsignonlin
 !! real :: vsigii,vsigjj
 !
 !  (av switch)
@@ -458,11 +458,11 @@ subroutine get_rates
                 sourceu = 0.
              endif          
              !!if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
-             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
+             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
           case(2)
              !--this is using h*/sqrt(u)*(del^2 u) as the source
              sourceu = hh(i)*abs(gradu(1,i))/sqrt(uu(i))
-             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
+             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
           end select
        endif
        !
@@ -471,7 +471,7 @@ subroutine get_rates
        if (iavlim(3).ne.0 .and. imhd.gt.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
-          sourcedivB = abs(divB(i))*SQRT(rho1i)
+          sourcedivB = 10.*abs(divB(i))*SQRT(rho1i)
           sourceB = MAX(sourceJ,sourcedivB)
           if (iavlim(3).eq.2) sourceB = sourceB*(2.0-alpha(3,i))
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
@@ -711,7 +711,7 @@ contains
     vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
     vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
-    vsignonlin = beta*abs(dvdotr)
+    !!vsignonlin = vsigi + vsigj !!!beta*abs(dvdotr)
     
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
