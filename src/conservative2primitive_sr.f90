@@ -47,6 +47,14 @@ subroutine conservative2primitive
      else
         stop 'energy equation not implemented for special relativity'
      endif
+     if (ierr > 0) then
+        print*,'conservative2primitive: could not solve rootfinding for particle ',i
+        print*,' position = ',x(:,i)
+        print*,' pmom=',pmom(:,i)
+        print*,' rho*=',rho(i)
+        if (iener.gt.0) print*,' en=',en(i)
+        !stop
+     endif
      itsmax = max(abs(ierr),itsmax)
      !
      !--call equation of state to get pressure (needed for source terms)
@@ -98,6 +106,15 @@ subroutine getv_from_pmom(xi,pmomi,veli,eni,pri,rhoi,densi,uui)
  case default
     stop 'invalid iener for special relativity'
  end select
+ if (ierr > 0) then
+   print*,'getv_from_pmom: could not solve root finding '
+   print*,' position = ',xi(:)
+   print*,' pmom=',pmomi(:)
+   print*,' rho*=',rhoi
+   if (iener.gt.0) print*,' en=',eni
+   !stop
+endif
+
 
 end subroutine getv_from_pmom
 
@@ -317,7 +334,8 @@ subroutine solve_conservative2primitivei(pmomi,eni,rhoi,gamma,veli,uui,densi,pri
 !     enddo
      print*,'en,pmom,etc =',eni,pmomi(1),rhoi,gamma,h
      print*,'error: root not bracketed for bisection: no solution'
-     stop
+     ierr = 1
+     return
   endif
   
   iterate: do while (.not.converged .and. its < itsmax)
