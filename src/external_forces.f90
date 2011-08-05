@@ -3,13 +3,14 @@
 !! Computes external (body) forces on a particle given its co-ordinates
 !!
 !!-----------------------------------------------------------------------
-subroutine external_forces(iexternal_force,xpart,fext,ndim)
-  use setup_params, only:xlayer,dwidthlayer,Alayercs
+subroutine external_forces(iexternal_force,xpart,fext,ndim,vphi)
+  use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega,Omega2
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
+  real, intent(in) :: vphi
   real :: rr,rr2,drr2
 
   select case(iexternal_force)
@@ -55,6 +56,24 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
      fext(:) = 0.
      fext(1) = Alayercs*dwidthlayer*1./(COSH((xpart(1)-xlayer)*dwidthlayer))**2
 
+  case(5)
+!
+!--external forces for the 2D MRI problem (ie. central point mass, centrifugal forces)
+!
+!
+!--1/r^2 force from central point mass (r is relative to grid centre)
+!
+!     rr = Rcentre + xpart(1)
+!     fext(1) = -1./rr**2
+!
+!--add centrifugal force (assume keplerian rotation)
+!
+!     fext(1) = 1./Rcentre**2
+!
+!--coriolis force (vphi should be set such that the forces balance initially)
+!
+     fext(1) = 3.*Omega2*xpart(1) + 2.*Omega*vphi
+     fext(:) = 0.
   case default
      
      fext(:) = 0.
