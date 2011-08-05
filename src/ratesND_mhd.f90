@@ -95,7 +95,7 @@ SUBROUTINE get_rates
 !  (artificial viscosity quantities)
 !      
  REAL :: vsig,vsigi,vsigj,viss,eni,enj,ediff,ediffB,qdiff
- REAL :: spsoundi,spsoundj,visc,envisc,uvisc
+ REAL :: spsoundi,spsoundj,visc,envisc,uvisc,muab
  REAL :: alphai,alphaav,source,tdecay1,sourcedivB,sourceJ
 !
 !  (time step criteria)
@@ -149,7 +149,7 @@ SUBROUTINE get_rates
 !
 !--skip the whole neighbour thing if it is doing nothing
 !
- IF (ialtform.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.eq.0 &
+ IF (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.eq.0 &
       .and. ihvar.lt.2 .and. icty.eq.0) THEN
     WRITE(iprint,*) 'skipping rates'
     GOTO 666
@@ -158,7 +158,7 @@ SUBROUTINE get_rates
 !  set alternative forms for the SPH equations here
 !  phi can be any scalar variable  
 !
- SELECT CASE(ialtform)
+ SELECT CASE(iprterm)
     CASE(1)		! this gives the (P_a + P_b) / (rho_a rho_b) form
        phi(1:ntotal) = rho(1:ntotal)
     CASE(2)		! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
@@ -406,8 +406,8 @@ SUBROUTINE get_rates
 		               - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
-		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
-		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   dBdtvisc(:) = avtermB*alphaBmin*Bvisc(:)
+		   vissB = -0.5*alphaBmin*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
@@ -422,8 +422,8 @@ SUBROUTINE get_rates
 		               - DOT_PRODUCT(velj,dr))**2		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = (dB(:))*rhoav1
-		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
-		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
+		   dBdtvisc(:) = avtermB*alphaBmin*Bvisc(:)
+		   vissB = -0.5*alphaBmin*(DOT_PRODUCT(dB,dB))*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
@@ -437,14 +437,14 @@ SUBROUTINE get_rates
 	           vissv = -0.5*DOT_PRODUCT(dvel,dvel)		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = (dB(:))*rhoav1
-		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
-		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
+		   dBdtvisc(:) = avtermB*alphaBmin*Bvisc(:)
+		   vissB = -0.5*alphaBmin*(DOT_PRODUCT(dB,dB))*rhoav1
 !--vissu is the dissipation energy from thermal conductivity
 		   vissu = udiss_frac*(uu(i) - uu(j))
 !--envisc is the total contribution to the thermal energy equation
 		   envisc = (avterm*vissv+avtermB*vissB)*grkern!*abs(rx)
 	           uvisc = avterm*vissu*grkern			   
-		   ELSEIF (iav.GT.3) THEN
+		   ELSEIF (iav.EQ.3) THEN
 		   STOP 'crap av choice'
 !--viscosity (kinetic energy term)
 		   vsigii = vsigi + 0.5*beta*viss
@@ -462,18 +462,26 @@ SUBROUTINE get_rates
 !--envisc is the total contribution to the thermal energy equation
 		   envisc = 0.5*alphaav*vsig*(vissv+vissB) !*abs(rx)
 	           uvisc = 0.5*alphaav*vsig*vissu		   
-		   
+		   ELSEIF (iav.EQ.4) THEN
+		      if (iener.gt.0) stop 'this av not implemented for total en'
+!
+!--Monaghan '92 (for comparison only - no mhd and do not use total en eqn)
+!
+		   muab = hav*viss/rij
+		   avterm = (alphaav*0.5*(spsoundi + spsoundj) + beta*muab)
+                   visc = avterm*muab*grkern*rhoav1
+		   envisc = 0.  ! only works for isothermal   		   
 		   ENDIF
 		ELSE   !IF (iav.NE.0) THEN
 		   visc = 0.0
 		   !!avterm = 0.5*alphaav*vsig*rhoav1		    
 !--ohmic dissipation (magnetic energy term)
 		   Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1
-		   dBdtvisc(:) = avtermB*Bdiss_frac*Bvisc(:)
-		   vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+		   dBdtvisc(:) = avtermB*alphaBmin*Bvisc(:)
+		   vissB = -0.5*alphaBmin*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
 		   !Bvisc(:) = dB(:)*rhoav1
-		   !dBdtvisc(:) = avterm*Bdiss_frac*Bvisc(:)
-		   !vissB = -0.5*Bdiss_frac*(DOT_PRODUCT(dB,dB))*rhoav1
+		   !dBdtvisc(:) = avterm*alphaBmin*Bvisc(:)
+		   !vissB = -0.5*alphaBmin*(DOT_PRODUCT(dB,dB))*rhoav1
 		   envisc = avtermB*vissB*grkern
 		   !dBdtvisc(:) = 0.
 		   !envisc = 0.
@@ -486,7 +494,7 @@ SUBROUTINE get_rates
 !
 !--pressure term (generalised form)
 !
-       	        IF (ialtform.GE.0) THEN
+       	        IF (iprterm.GE.0) THEN
                    prterm = phii_on_phij*Prho2i*sqrtgi*grkerni 		&
      		          + phij_on_phii*Prho2j*sqrtgj*grkernj
 		ELSE
@@ -706,9 +714,9 @@ SUBROUTINE get_rates
 		   v2i = DOT_PRODUCT(veli,dr)**2 ! energy along line
 		   v2j = DOT_PRODUCT(velj,dr)**2 ! of sight	
    		   ENDIF
-		   enj = udiss_frac*uu(j) + 0.5*v2j !+ Bdiss_frac*0.5*B2j*rhoav1
-		   eni = udiss_frac*uu(i) + 0.5*v2i !+ Bdiss_frac*0.5*B2i*rhoav1
-		   ediffB = Bdiss_frac*0.5*rhoav1*(B2i-B2j)
+		   enj = udiss_frac*uu(j) + 0.5*v2j !+ alphaBmin*0.5*B2j*rhoav1
+		   eni = udiss_frac*uu(i) + 0.5*v2i !+ alphaBmin*0.5*B2i*rhoav1
+		   ediffB = alphaBmin*0.5*rhoav1*(B2i-B2j)
 		   ediff = eni - enj 
 		   qdiff = 0.
 		   SELECT CASE(iav)
@@ -827,39 +835,30 @@ SUBROUTINE get_rates
     forcemag = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))   
     fonh = forcemag/hh(i)
     IF (fonh.GT.fhmax .and. itype(i).ne.1) fhmax = fonh
+
 !
-!--calculate simpler estimate of dtcourant
+!--calculate simpler estimate of vsig for divergence cleaning and 
+!  in the dissipation switches
 !
     valfven2i = 0.
     IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
-    vsig = SQRT(spsound(i)**2. + valfven2i) + SQRT(DOT_PRODUCT(vel(:,i),vel(:,i))) 	! approximate vsig only
-    dtcourant2 = min(dtcourant2,hh(i)/vsig)
-
+    vsig = SQRT(spsound(i)**2. + valfven2i)	! approximate vsig only
+    !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
 !--calculate time derivative of alpha (artificial dissipation coefficient)
 !  see Morris and Monaghan (1997)
 !     
     IF (iavlim.NE.0) THEN
        IF (iavlim.EQ.2) THEN
-          IF (idivBzero.EQ.1) THEN
-             source = MAX(drhodt(i)*rho1i*(2.0-alpha(i)),abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v	 
-	  ELSE	  
-	     source = MAX(drhodt(i)*rho1i*(2.0-alpha(i)),0.0)    ! source term is div v
-          ENDIF
+	  source = MAX(drhodt(i)*rho1i*(2.0-alpha(i)),0.0)    ! source term is div v
        ELSE
-          IF (idivBzero.EQ.1) THEN
-             source = MAX(drhodt(i)*rho1i,abs(divB(i))*SQRT(rho1i),0.0)    ! source term is div v	 
-	  ELSE          
-	     source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
-             !sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i**3)
-	     !sourcedivB = abs(divB(i))*SQRT(rho1i)
-	     !source = MAX(sourceJ,sourcedivB)
+          source = MAX(drhodt(i)*rho1i,0.0)    ! source term is div v
+          !sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i**3)
+	  !sourcedivB = abs(divB(i))*SQRT(rho1i)
+	  !source = MAX(sourceJ,sourcedivB)
 	  ENDIF
        ENDIF
-       valfven2i = 0.
-       IF (imhd.NE.0) valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
-       vsig = SQRT(spsound(i)**2. + valfven2i) 	! approximate vsig only
-       tdecay1 = (avconst*vsig)/hh(i)	! 1/decay time (use vsig)
+       tdecay1 = (avdecayconst*vsig)/hh(i)	! 1/decay time (use vsig)
        daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
 !!       dalBdt(i) = (alphamin - alpha(i))*tdecay1 + sourceB
     ELSE
@@ -870,9 +869,7 @@ SUBROUTINE get_rates
 !      
     SELECT CASE(idivBzero)
        CASE(2:7)
-          valfven2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho1i
-          vsig = 0.8*min(spsound(i)**2,valfven2i) 	! approximate vsig only
-          dpsidt(i) = -vsig*divB(i) - psidecayfact*psi(i)*SQRT(vsig)/hh(i)          
+          dpsidt(i) = -0.8*vsig*divB(i) - psidecayfact*psi(i)*SQRT(vsig)/hh(i)          
        CASE DEFAULT
           dpsidt(i) = 0.
     END SELECT

@@ -31,8 +31,7 @@
 !! mainly related to the derivatives which depend on velocity (for which the
 !! other two methods are not reversible/symplectic).
 !!
-!! However, results for disks can be quite poor without reducing the timestep
-!! factor
+!! However, results for disks and orbits are slightly better with leapfrog
 !!
 !!---------------------------------------------------------------------------
 	 
@@ -75,7 +74,7 @@ SUBROUTINE step
 !    alphain(i) = alpha(i)
 !    psiin(i) = psi(i)
 ! ENDDO         
- 
+
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
@@ -141,6 +140,10 @@ SUBROUTINE step
 !--calculate forces/rates of change using predicted quantities
 !	 
  CALL get_rates
+! print*,'----------------------------'
+! do i=17,25
+!    print*,i,'force = ',force(:,i)
+! enddo
 !
 !--Mid-point Corrector step
 !

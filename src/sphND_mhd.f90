@@ -54,13 +54,14 @@ PROGRAM SUPERSPMHD_ND
 !--version number
 !
     version = 'NDSPMHD-3D-v5-2'
+!    *** this version used to obtain sound wave
+!    and hydro shock results for thesis 10/5/04 ***
 !   * 1D turbulence setup revised/set_powerspec
 !   * fixed particle boundaries work in >1D, initialise cleaned up
 !   * hyperbolic/parabolic divergence cleaning
 !   * div B = 0 by projection method in 2D - poisson eq. by direct sum in 2D,3D
 !   * accretion disc setups
-!   * step (predictor-corrector) fixed for disks, but now screws up shocks
-!     (ie use leapfrog at all times!!)
+!   * step (predictor-corrector) could be bad for disks - look out!
 !   * lots of crap to do with MHD AV/switches in rates
 !   * lots of things for GR code (grutils, conservative2primitive_gr etc)
 !   * tested on shear flows

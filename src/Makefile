@@ -72,6 +72,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
+#SETUP1D = setup_shockND.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -83,10 +84,10 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-SETUP2D = setup_shockND.f90
+#SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
-#SETUP2D = setup_rings2D.f90
+SETUP2D = setup_rings2D.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
 #SETUP25D = setup_alfvenwaveND_x.f90
@@ -96,9 +97,9 @@ SETUP25D = setup_shockND.f90
 #SETUP25D = setup_shearflow2D.f90
 
 #SETUP3D = setup_unifdisND.f90
-#SETUP3D = setup_sphericalblastND_mhd.f90
+SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_shockND.f90
-SETUP3D = setup_alfvenwaveND_x.f90
+#SETUP3D = setup_alfvenwaveND_x.f90
 ######################################################################
 
 # these files are common to all dimensions and coordinate systems
@@ -126,7 +127,7 @@ SOURCES = sphND_mhd.f90   \
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 
 # these are the ordinary cartesian versions
-SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_leapfrog_mhd.f90
+SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_mhd.f90
 
 # these files are for the gr version of the code
 SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outputND_mhd_gr.f90 \

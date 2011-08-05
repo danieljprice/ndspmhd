@@ -27,25 +27,31 @@ SUBROUTINE read_infile(infile)
  IF (trace) WRITE(iprint,*) ' Entering subroutine read_infile'
               
  OPEN(UNIT=iread,ERR=999,FILE=infile,STATUS='old',FORM='formatted')
-  READ(iread,*) psep
-  READ(iread,*) tmax,tout,nmax,nout
-  READ(iread,*) gamma
-  READ(iread,*) iener,udiss_frac,Bdiss_frac,polyk
-  READ(iread,*) icty,ndirect
-  READ(iread,*) ialtform
-  READ(iread,*) iav,alphamin,beta
-  READ(iread,*) iavlim,avconst
-  READ(iread,*) ikernav
-  READ(iread,*) ihvar,hfact
-  READ(iread,*) idumpghost
-  READ(iread,*) imhd,imagforce
-  READ(iread,*) idivBzero,psidecayfact
-  READ(iread,*) ianticlump,eps,neps
-  READ(iread,*) ixsph,xsphfac
-  READ(iread,*) igravity
-  READ(iread,*) damp
-  READ(iread,*) ikernel
+  READ(iread,*,ERR=50) psep
+  READ(iread,*,ERR=50) tmax,tout,nmax,nout
+  READ(iread,*,ERR=50) gamma
+  READ(iread,*,ERR=50) iener,polyk
+  READ(iread,*,ERR=50) icty,ndirect
+  READ(iread,*,ERR=50) iprterm
+  READ(iread,*,ERR=50) iav,alphamin,udiss_frac,alphaBmin,beta
+  READ(iread,*,ERR=50) iavlim,avdecayconst
+  READ(iread,*,ERR=50) ikernav
+  READ(iread,*,ERR=50) ihvar,hfact
+  READ(iread,*,ERR=50) idumpghost
+  READ(iread,*,ERR=50) imhd,imagforce
+  READ(iread,*,ERR=50) idivBzero,psidecayfact
+  READ(iread,*,ERR=50) ianticlump,eps,neps
+  READ(iread,*,ERR=50) ixsph,xsphfac
+  READ(iread,*,ERR=50) igravity
+  READ(iread,*,ERR=50) damp
+  READ(iread,*,ERR=50) ikernel
  CLOSE(UNIT=iread)
+
+ GOTO 55
+50 WRITE(iprint,*) 'Error reading infile: re-writing with current options'
+   ians = 'y'
+   GOTO 1001
+55 CONTINUE
 !
 !--check options for possible errors
 !      
@@ -55,8 +61,8 @@ SUBROUTINE read_infile(infile)
  IF (nout.EQ.0) STOP 'error in input: nout = 0'
  IF (gamma.LT.1.) WRITE(iprint,100) 'gamma < 1.0 '
  IF (abs(gamma-1.).lt.1.e-3 .AND. iener.NE.0) STOP 'must use iener = 0 for isothermal eos'
- IF ((iener.EQ.3).AND.(udiss_frac.LT.0.).OR.(Bdiss_frac.LT.0.)) THEN
-    WRITE(iprint,100) 'udiss_frac or Bdiss_frac < 0.'
+ IF ((iener.EQ.3).AND.(udiss_frac.LT.0.).OR.(alphaBmin.LT.0.)) THEN
+    WRITE(iprint,100) 'udiss_frac or alphaBmin < 0.'
  ELSEIF ((iener.EQ.0).AND.(polyk.LT.0.)) THEN
     WRITE(iprint,100) 'polyk < 0.'      
  ENDIF
@@ -66,7 +72,7 @@ SUBROUTINE read_infile(infile)
  IF ((iavlim.GT.0).AND.(alphamin.GE.1.)) THEN
     WRITE(iprint,100) 'using AV limiter, but alphamin set > 1.0'
  ENDIF
- IF ((iavlim.GT.0).AND.((avconst.LE.0.01).OR.(avconst.GT.0.5))) THEN
+ IF ((iavlim.GT.0).AND.((avdecayconst.LE.0.01).OR.(avdecayconst.GT.0.5))) THEN
     WRITE(iprint,100) 'AV decay constant not in range 0.01-0.5'
  ENDIF     
  IF ((ikernav.LE.0).OR.(ikernav.GT.3)) THEN
@@ -86,6 +92,8 @@ SUBROUTINE read_infile(infile)
 1000  FORMAT (' Input file ',a20,' not found')
       WRITE(*,*) ' Would you like to create one with default options?'
       READ*,ians
+
+1001  CONTINUE
       IF (ians.EQ.'y'.OR.ians.EQ.'Y') CALL write_infile(infile)
 
       STOP 'exiting...'
