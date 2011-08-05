@@ -25,15 +25,14 @@ subroutine setup
  integer, parameter :: itsmax = 100
 ! real, parameter :: pi = 3.1415926536
  real, parameter :: tol = 1.e-8
- integer :: imax,its,iwave
+ integer :: its,iwave
  real, dimension(ndimV) :: Bzero
- real :: xcentre,massp
+ real :: massp
  real :: ampl,wk,xlambda,dxmax,denom
  real :: dxi,dxprev,xmassfrac,func,fderiv
- real :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
+ real :: spsoundi,valfven2i,vamplx,vamply,vamplz
  real :: vfast,vslow,vcrap,vwave,term,dens1
  real :: denszero,uuzero,przero,Rzero
- real, dimension(1) :: prtemp,cstemp
 !
 !--allow for tracing flow
 !
