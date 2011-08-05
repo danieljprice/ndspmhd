@@ -34,7 +34,7 @@ subroutine boundary
 !  inflow/outflow when fixed particles are used.
 !---------------------------------------------------------------------------     
  if (any(ibound.eq.1)) then
-    if (ndim.gt.1) write(iprint,*) ' inflow/outflow not implemented in nd'
+    !if (ndim.gt.1) write(iprint,*) ' inflow/outflow not implemented in nd'
  endif
 !----------------------------------------------------------------------
 ! periodic boundary conditions - allow particles to cross the domain
@@ -53,11 +53,12 @@ subroutine boundary
              endif	  
 	  endif
        enddo    
-    enddo   
- elseif (any(ibound.gt.1)) then
+    enddo
+ endif
 !-------------------------------------------------------------------------
 ! other ghost boundaries - correct particles which have crossed boundary
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------- 
+ if (any(ibound.gt.1)) then
     ncorrect = 0
     do i=1,npart
        do jdim=1,ndim
