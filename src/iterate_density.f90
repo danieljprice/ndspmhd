@@ -155,6 +155,7 @@ subroutine iterate_density
      elseif (any(ibound.eq.1)) then		! update fixed particles
         where (itype(:).eq.1)
            rho(:) = rhoin(:)
+	   hh(:) = hhin(:)
         end where
      endif
      
