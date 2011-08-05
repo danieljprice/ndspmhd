@@ -48,7 +48,7 @@ SUBROUTINE set_linklist
  IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
  dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
  IF (dxcell.LE.0) THEN
-    WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax     
+    WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax,MAXLOC(hh(1:npart))    
     CALL quit
  ENDIF
 !
