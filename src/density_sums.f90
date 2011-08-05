@@ -29,9 +29,9 @@ contains
 !
     implicit none
     integer, intent(in) :: npart
-    real, dimension(ndim,*), intent(in) :: x
-    real, dimension(*), intent(in) :: pmass, hh
-    real, dimension(*), intent(out) :: rho, gradh
+    real, dimension(:,:), intent(in) :: x
+    real, dimension(:), intent(in) :: pmass, hh
+    real, dimension(:), intent(out) :: rho, gradh
  
     integer :: i,j,n,idim
     integer :: icell,iprev,nneigh
@@ -247,9 +247,9 @@ contains
 !
     implicit none
     integer, intent(in) :: npart
-    real, dimension(ndim,*), intent(in) :: x
-    real, dimension(*), intent(in) :: pmass, hh
-    real, dimension(*), intent(out) :: rho, gradh
+    real, dimension(:,:), intent(in) :: x
+    real, dimension(:), intent(in) :: pmass, hh
+    real, dimension(:), intent(out) :: rho, gradh
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -307,7 +307,7 @@ contains
        endif
        icellprev = icell
 
-!   PRINT*,'Doing particle ',i,nneigh,' neighbours',pmass(i)
+   !!!PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i)
        hi = hh(i)
        hi2 = hi*hi
        hi1 = 1./hi
@@ -330,7 +330,7 @@ contains
 !--do interaction if r/h < compact support size
 !
           if (q2i.LT.radkern2) then
-             !if (i.eq.1) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
+             !!!if (i.eq.416) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
 !      
 !--interpolate from kernel table (using hi)
