@@ -10,7 +10,8 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
-  real :: rr2,drr,drr2
+  real :: rr2,drr,drr2,rcyl2,rcyl,rsph,v2onr
+  real, parameter :: Rtorus = 1.0, dfac = 1.1
 
   fext(:) = 0.
   
@@ -65,7 +66,8 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         stop 'error: external force not implemented'
      end select
 
-  case(3)
+  case(3:5,7:)
+     stop 'external force not implemented'
 !
 !--compute force on gas particle from n point masses
 !
@@ -84,6 +86,49 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         !
 !        fext(:) = fext(:) - dr(:)*drr2
 !     enddo
+  case(6)
+
+     fext(:) = 0.
+!
+!--effective potential for equilibrium torus (Stone, Pringle, Begelman)
+!  centripedal force balances pressure gradient and gravity of central point mass 
+!
+     select case(geom(1:6))
+     case('cylrpz')
+        rcyl = xpart(1)
+        rcyl2 = rcyl*rcyl
+        if (ndim.eq.3) then
+           rsph = sqrt(rcyl2 + xpart(3)*xpart(3))
+        else
+           rsph = rcyl
+        endif
+        v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl))
+        fext(1) = v2onr
+        !
+        !--for 3D need to add vertical component of gravity
+        !
+        if (ndim.eq.3) then
+           fext(3) = -xpart(3)/rsph**3
+        endif     
+     case('cartes')
+        rcyl2 = DOT_PRODUCT(xpart(1:2),xpart(1:2))
+        rcyl = SQRT(rcyl2)
+        if (ndim.eq.3) then
+           rsph = sqrt(rcyl2 + xpart(3)*xpart(3))
+        else
+           rsph = rcyl
+        endif
+        v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl))
+        fext(1:2) = v2onr*xpart(1:2)/rcyl
+        !
+        !--for 3D need to add vertical component of gravity
+        !
+        if (ndim.eq.3) then
+           fext(3) = -xpart(3)/rsph**3
+        endif
+     case default
+        stop 'external force not implemented'
+     end select
   case default
      
      fext(:) = 0.
