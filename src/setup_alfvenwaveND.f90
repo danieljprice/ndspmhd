@@ -32,6 +32,7 @@ subroutine setup
  real :: vparallel,vperp,vz,vperp0,vz0
  real :: bparallel,bperp,bz,bperp0,bz0
  real :: perturb_sin, perturb_cos
+ real :: Aperp,Az
 !
 !--allow for tracing flow
 !
@@ -120,10 +121,17 @@ subroutine setup
 !
     uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)	! if not polytropic
 
-    if (imhd.ge.1) then 
-       bfield(1,i) = bparallel*runit(1) - bperp*runit(2)
-       bfield(2,i) = bparallel*runit(2) + bperp*runit(1)
-       bfield(3,i) = bz
+    if (imhd.ne.0) then
+       Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)
+       Bfield(2,i) = Bparallel*runit(2) + Bperp*runit(1)
+       Bfield(3,i) = Bz
+       if (imhd.lt.0) then
+          Aperp = bz0*perturb_sin/(2.*pi)
+          Az = bperp0*perturb_cos/(2.*pi)
+          Bevol(1,i) = -Aperp*runit(2)
+          Bevol(2,i) = Aperp*runit(1)
+          Bevol(3,i) = Az
+       endif
     endif 
  enddo
 !
