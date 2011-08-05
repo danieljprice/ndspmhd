@@ -177,6 +177,9 @@ SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_posfromfile.f90
 #SETUP2D = setup_rayleightaylor2D.f90
 #SETUP2D = setup_blobweirdshape.f90
+#SETUP2D= setup_taylorcouette2D.f90
+#SETUP2D= setup_nova2D.f90
+#SETUP2D= setup_highex2D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
@@ -231,7 +234,7 @@ SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = stepND_mhd.f90 evwrite_mhd.f90 
+SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90 
 
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
