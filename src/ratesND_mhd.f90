@@ -528,7 +528,9 @@ subroutine get_rates
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i
        endif
-    case(1:10) ! evolving B/rho
+    case(10) ! remapped B/rho
+       dBevoldt(:,i) = 0.
+    case(1:9) ! evolving B/rho
        if (iuse_exact_derivs.gt.0) then
           dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
           !--add the B/rho dot grad v bit
