@@ -195,7 +195,8 @@ SUBROUTINE evwrite(t,etot,momtot)
 
  ENDDO
  
- etot = etherm + ekin + emag + epot
+ etot = ekin + emag + epot
+ IF (iprterm.GE.0) etot = etot + etherm
  momtot = SQRT(DOT_PRODUCT(mom,mom))
 !
 !--write line to .ev file
