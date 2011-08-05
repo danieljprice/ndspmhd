@@ -71,6 +71,11 @@ SUBROUTINE get_rates
  REAL :: vsig2i,vsig2j,vsigproji,vsigprojj
  REAL :: vissv,vissB,vissu
 !
+!  (alternative forms)
+!
+ REAL, DIMENSION(:), ALLOCATABLE :: phi
+ REAL :: phii,phii1,phii_on_phij,phij_on_phii
+!
 ! (my av switch)
 !
  REAL :: qab,vdotri,vdotrj
@@ -106,13 +111,17 @@ SUBROUTINE get_rates
 !      
  IF (trace) WRITE(iprint,*) ' Entering subroutine get_rates'
 !
-!--initialise quantities
-!      
- dtcourant = 1.e6  
-
+!--allocate memory for local arrays
+!
  nlistdim = ntotal
  ALLOCATE ( listneigh(nlistdim),STAT=ierr )
  IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
+ ALLOCATE ( phi(ntotal), STAT=ierr )
+ IF (ierr.NE.0) WRITE(iprint,*) ' Error allocating phi, ierr = ',ierr 
+!
+!--initialise quantities
+!      
+ dtcourant = 1.e6  
 
  DO i=1,ntotal	! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -125,6 +134,18 @@ SUBROUTINE get_rates
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
  ENDDO
+!
+!  set alternative forms for the SPH equations here
+!  phi can be any scalar variable  
+!
+ SELECT CASE(ialtform)
+    CASE(1)		! this gives the (P_a + P_b) / (rho_a rho_b) form
+       phi(:) = rho(:)
+    CASE(2)		! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
+       phi(1:ntotal) = SQRT(pr(1:ntotal))/rho(1:ntotal)    
+    CASE DEFAULT	! this gives the usual continuity, momentum and induction eqns
+       phi(:) = 1.0 
+ END SELECT
 !
 !--calculate kernel for Joe's correction term
 !
@@ -167,6 +188,8 @@ SUBROUTINE get_rates
        vrho2i(:) = veli(:)*rho21i
        pmassi = pmass(i)
        alphai = alpha(i)
+       phii = phi(i)
+       phii1 = 1./phii
        IF (imhd.GE.11) THEN	! if mag field variable is B
           Bi(:) = Bfield(:,i)
           Brhoi(:) = Bi(:)*rho1i
@@ -286,7 +309,9 @@ SUBROUTINE get_rates
 		spsoundj = spsound(j)
 		vrho2j(:) = velj(:)*rho21j
 	        pmassj = pmass(j)
-		alphaav = 0.5*(alphai + alpha(j))		
+		alphaav = 0.5*(alphai + alpha(j))
+		phii_on_phij = phii/phi(j)
+		phij_on_phii = phi(j)*phii1 		
 !  (mhd definitions)
   	        IF (imhd.GE.11) THEN	! if B is mag field variable
 		 Bj(:) = Bfield(:,j)
@@ -402,29 +427,19 @@ SUBROUTINE get_rates
 !
 	        dtcourant = min(dtcourant,0.8*hav/vsigdtc)
 !
-!--time derivative of density (continuity equation)
-!	        
-		IF (icty.EQ.2) THEN	! good for rho discontinuous
-		   drhodti = rhoi*pmassj*dvdotr*grkern*rho1j
-		   drhodtj = rhoj*pmassi*dvdotr*grkern*rho1i				   
-		ELSE ! compute this even if direct sum - gives divv for art vis.
-		   drhodti = pmassj*dvdotr*grkerni	! gradhi = 1 if not set
-		   drhodtj = pmassi*dvdotr*grkernj
-		ENDIF
+!--time derivative of density (continuity equation) in generalised form
+!  compute this even if direct sum - gives divv for art vis.
+!
+	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni	! gradhi = 1 if not set
+		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
 				
 		drhodt(i) = drhodt(i) + drhodti
 		drhodt(j) = drhodt(j) + drhodtj
 !
-!--pressure term (choice of several)
+!--pressure term (generalised form)
 !
-	        IF (iprterm.EQ.1) THEN	! standard alternative form
-		   prterm = (pri*grkerni + prj*grkernj)/rhoij + visc*grkern       		   	      
-		ELSEIF (iprterm.EQ.2) THEN	! Hernquist/Katz
-		   prterm = (2.*SQRT(pri*prj)/rhoij + visc)*grkern		   
-		ELSE		! default
-		   prterm = Prho2i*grkerni 		&
-     		          + Prho2j*grkernj		   	   
-		ENDIF
+       	        prterm = phij_on_phii*Prho2i*grkerni 		&
+     		       + phii_on_phij*Prho2j*grkernj		   	   
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
@@ -457,16 +472,17 @@ SUBROUTINE get_rates
 		  fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))		  
 		  fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
 		  		  			
-		  ELSEIF (imagforce.EQ.2) THEN	! tensor formalism
+		  ELSEIF (imagforce.EQ.2) THEN	! tensor formalism in generalised form
 !
 !--isotropic mag force (pressure gradient)
 !		  
-	          fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+	          fiso = 0.5*(Brho2i*phij_on_phii*grkerni &
+		            + Brho2j*phii_on_phij*grkernj)
 !
 !--anisotropic force (including variable smoothing length terms)
 !
-		  faniso(:) = Brhoi(:)*projBrhoi*grkerni  &
-		            + Brhoj(:)*projBrhoj*grkernj		   
+		  faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
+		            + Brhoj(:)*projBrhoj*phii_on_phij*grkernj		   
 !
 !--Joe's correction term (preserves momentum conservation)
 !  *** in 1D only do this in the x-direction?
@@ -480,19 +496,6 @@ SUBROUTINE get_rates
 !
 !--add contributions to magnetic force
 !	  
-	          fmagi(:) = faniso(:) - fiso*dr(:)
-		  
-		  ELSEIF (imagforce.EQ.3) THEN	! D.Price version
-
-		  fiso = grkern*0.5*(Brho2i + Brho2j)
-		  faniso(:) = grkern*(Brhoi(:)*projBrhoj + Brhoj(:)*projBrhoi)     
-	          fmagi(:) = faniso(:) - fiso*dr(:)
-		  		  
-		  ELSEIF (imagforce.EQ.4) THEN ! form that goes with alt. time deriv
-
-		  rhoij = rhoi*rhoj
-		  fiso = grkern*0.5*(Brho2i + Brho2j)
-		  faniso(:) = grkern*(Bi(:)*projBi + Bj(:)*projBj)/rhoij
 	          fmagi(:) = faniso(:) - fiso*dr(:)
 		  	  
 		  ELSEIF (imagforce.EQ.5) THEN	! Morris' Hybrid form
@@ -514,15 +517,6 @@ SUBROUTINE get_rates
 		  curlB(:,i) = curlB(:,i) - pmassj*curlBi(:)*grkern
 		  curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkern
 !
-!--stabilising correction term from Borve et al. (2001)
-!
-                  IF (idivBzero.EQ.3) THEN	          
-		     divBvec(:) = Brhoi(:)*rho1i + Brhoj(:)*rho1j
-		     divBonrho = grkern*(DOT_PRODUCT(divBvec,dr))
-		     fcorr(:) = Bi(:)*divBonrho
-		     fmagi(:) = fmagi(:) - fcorr(:)
-		  ENDIF		   
-!
 !--add Lorentz force to total force
 !        	
 		  IF (imagforce.EQ.1) THEN
@@ -542,14 +536,14 @@ SUBROUTINE get_rates
 		     force(:,j) = force(:,j) - pmassi*fmagi(:) 
 		  ENDIF
 !
-!--time derivative of magnetic field (divide by rho later)
+!--time derivative of magnetic field (divide by rho later) - in generalised form
 !
 !  (evolving B/rho)
 	          IF (imhd.EQ.1) THEN
 		     dBfielddt(:,i) = dBfielddt(:,i)		&
-                   - pmassj*(dvel(:)*projBrhoi)*grkerni 
+                   - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
 		     dBfielddt(:,j) = dBfielddt(:,j) 		&
-     		   - pmassi*(dvel(:)*projBrhoj)*grkernj
+     		   - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
 
 		     IF (iav.EQ.2) THEN		! add dissipative term ***check
 	                dBfielddt(:,i) = dBfielddt(:,i)		&
@@ -557,19 +551,6 @@ SUBROUTINE get_rates
 		        dBfielddt(:,j) = dBfielddt(:,j)		&
                          - rhoj*pmassi*dBdtvisc(:)*grkern
 	             ENDIF
-
-                  ELSEIF (imhd.EQ.2) THEN	! good for rho discts
-		     dBfielddt(:,i) = dBfielddt(:,i)		&
-                      - pmassj*(dvel(:)*projBrhoi*rho1j)*grkern		   
-		     dBfielddt(:,j) = dBfielddt(:,j) 		&
-     		      - pmassi*(dvel(:)*projBrhoj*rho1i)*grkern
-		  ELSEIF (imhd.EQ.3) THEN	! add v*div B term
-		     dBfielddt(:,i) = dBfielddt(:,i)		&
-                     - pmassj*(dvel(:)*projBrhoi		&
-                              +veli(:)*DOT_PRODUCT(dB,dr))*grkern		   
-		     dBfielddt(:,j) = dBfielddt(:,j) 		&
-      		      - pmassi*(dvel(:)*projBrhoj		&
-                                +velj(:)*DOT_PRODUCT(dB,dr))*grkern
 !   (evolving B)
 		  ELSEIF (imhd.EQ.11) THEN	! note divided by rho later		  
 		     dBfielddt(:,i) = dBfielddt(:,i)		&
@@ -596,20 +577,17 @@ SUBROUTINE get_rates
 		ENDIF
 
 !
-!--energy equation (choice of several)
+!--energy equation (total or thermal)
 !               
-	        IF (iener.EQ.2) THEN	! 1st law of thermodynamics
-                    dudt(i) = dudt(i) + Prho2i*drhodti + pmassj*(envisc + uvisc)
-     		    dudt(j) = dudt(j) + Prho2j*drhodtj + pmassi*(envisc - uvisc)
-		ELSEIF (iener.GE.3) THEN	! total energy/particle
+		IF (iener.GE.3) THEN	! total energy/particle (generalised form)
 		   Bidotvj = DOT_PRODUCT(Brhoi,velj)
 		   Bjdotvi = DOT_PRODUCT(Brhoj,veli)
 ! (isotropic stress)
-		   prvterm(:) = (Prho2i+0.5*Brho2i)*velj(:)*grkerni &
-                              + (Prho2j+0.5*Brho2j)*veli(:)*grkernj
+		   prvterm(:) = (Prho2i+0.5*Brho2i)*phij_on_phii*velj(:)*grkerni &
+                              + (Prho2j+0.5*Brho2j)*phii_on_phij*veli(:)*grkernj
 ! (anisotropic stress)
-		   prvaniso =  - Bidotvj*projBrhoi*grkerni	& 
-		               - Bjdotvi*projBrhoj*grkernj
+		   prvaniso =  - Bidotvj*projBrhoi*phij_on_phii*grkerni	& 
+		               - Bjdotvi*projBrhoj*phii_on_phij*grkernj
 		   projprv = DOT_PRODUCT(prvterm,dr)		   
 ! (Joe's anticlumping term)		   
 		   IF (ianticlump.EQ.1 .AND. imagforce.EQ.2) THEN
@@ -621,10 +599,10 @@ SUBROUTINE get_rates
                       Bidotvj = DOT_PRODUCT(Brhoi(1:ndim),velj(1:ndim))
 		      Bjdotvj = DOT_PRODUCT(Brhoj(1:ndim),velj(1:ndim))
 		      
- 		      prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*grkerni &
-		                         -Bjdotvi*projBrhoj*grkernj)
-		      prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*grkerni &
-		     			 -Bjdotvj*projBrhoj*grkernj)
+ 		      prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phij_on_phii*grkerni &
+		                         -Bjdotvi*projBrhoj*phii_on_phij*grkernj)
+		      prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phij_on_phii*grkerni &
+		     			 -Bjdotvj*projBrhoj*phii_on_phij*grkernj)
 		   ENDIF	   
 ! (dissipation term)
 		   IF (ndimV.GT.ndim) THEN
@@ -647,9 +625,9 @@ SUBROUTINE get_rates
 
 		   dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi+qdiff)
 		   dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj+qdiff)     		
-		ELSE	! default is 'symmetric' form in Monaghan (1992)
-	           dudt(i) = dudt(i) + 0.5*pmassj*prterm*dvdotr
-	           dudt(j) = dudt(j) + 0.5*pmassi*prterm*dvdotr 
+		ELSE	!  1st law of thermodynamics
+                   dudt(i) = dudt(i) + Prho2i*drhodti + pmassj*(envisc + uvisc)
+     		   dudt(j) = dudt(j) + Prho2j*drhodtj + pmassi*(envisc - uvisc)
 		ENDIF
 !
 !--calculate XSPH term for moving the particles
@@ -682,7 +660,12 @@ SUBROUTINE get_rates
 !
 !--subtract external forces
 !
-    IF (itoystar.EQ.1) force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
+    SELECT CASE(itoystar)	! change this variable to more general external force
+       CASE(1)		! toy star (linear in co-ordinates)
+          force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
+    END SELECT
+!    IF (itoystar.EQ.1) force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
+
 !
 !--add gravitational force
 !
@@ -698,9 +681,7 @@ SUBROUTINE get_rates
     rho1i = 1./rho(i)
     IF (imhd.NE.0) THEN
        divB(i) = divB(i)*rho1i		!*rhoi
-       IF ((imhd.EQ.1).OR.(imhd.EQ.3).OR.(imhd.EQ.11)) THEN
-          dBfielddt(:,i) = dBfielddt(:,i)*rho1i
-       ENDIF
+       dBfielddt(:,i) = dBfielddt(:,i)*rho1i
     ENDIF    
 !
 !--calculate time derivative of the smoothing length
@@ -731,6 +712,7 @@ SUBROUTINE get_rates
  ENDDO
      
  IF (ALLOCATED(listneigh)) DEALLOCATE(listneigh)
+ IF (ALLOCATED(phi)) DEALLOCATE(phi)
  IF (trace) WRITE(iprint,*) ' Exiting subroutine get_rates'
       
  RETURN
