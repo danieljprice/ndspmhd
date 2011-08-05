@@ -33,7 +33,7 @@ program plotmeagraph
   character(len=2) :: ioption
   logical :: icycle, igetfreq, isameXaxis, isameYaxis, ishowopts
 
-  print*,' Welcome to Dan''s supersphplotev 2004... '
+  print*,' Welcome to Dan''s supersphplotev 2005... '
 
   mysteps=maxstep
   ncol = maxcol
@@ -149,25 +149,26 @@ program plotmeagraph
   label(2) = 'E_kinetic      '
   label(3) = 'E_internal     '
   label(4) = 'E_magnetic     '
-  label(5) = 'E_total        '
-  label(6) = 'Linear momentum'
+  label(5) = 'E_pot          '
+  label(6) = 'E_total        '
+  label(7) = 'Linear momentum'
 
-  if (ncol.gt.6) then
-     label(7) = 'Total flux     '
-     label(8) = 'Cross helicity '
-     label(9) = 'Plasma beta (min)'
-     label(10) = 'Plasma beta (ave)'
-     label(11) = 'Plasma beta (max)'
-     label(12) = 'div B (average)  '
-     label(13) = 'div B (maximum)  '
-     label(14) = 'int (div B) dV   '
-     label(15) = 'Fmag dot B/|Fmag| (av)'
-     label(16) = 'Fmag dot B/|Fmag| (max)'
-     label(17) = 'Fmag dot B/|force| (av)'
-     label(18) = 'Fmag dot B/|force| (max)'            
-     label(19) = 'omega_mhd (average)'
-     label(20) = 'omega_mhd (max) '
-     label(21) = '% particles with omega < 0.01 '
+  if (ncol.gt.7) then
+     label(8) = 'Total flux     '
+     label(9) = 'Cross helicity '
+     label(10) = 'Plasma beta (min)'
+     label(11) = 'Plasma beta (ave)'
+     label(12) = 'Plasma beta (max)'
+     label(13) = 'div B (average)  '
+     label(14) = 'div B (maximum)  '
+     label(15) = 'int (div B) dV   '
+     label(16) = 'Fmag dot B/|Fmag| (av)'
+     label(17) = 'Fmag dot B/|Fmag| (max)'
+     label(18) = 'Fmag dot B/|force| (av)'
+     label(19) = 'Fmag dot B/|force| (max)'            
+     label(20) = 'omega_mhd (average)'
+     label(21) = 'omega_mhd (max) '
+     label(22) = '% particles with omega < 0.01 '
   endif
   label(ncol) = 'nstep          '
 
