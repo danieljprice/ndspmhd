@@ -10,19 +10,18 @@
 PROGRAM combinedat
  IMPLICIT NONE
  INTEGER :: i,j,k
- INTEGER, PARAMETER :: ncolmax=25
- INTEGER, PARAMETER :: nfilesmax=200
- INTEGER, PARAMETER :: npartmax = 2000
+ INTEGER :: ncolmax,ncolmax_old
+ INTEGER :: npartmax,npartmax_old
  INTEGER :: ifile,nfiles,infile,ioutfile
- INTEGER :: nsteps
+ INTEGER :: ierr,nsteps
  INTEGER :: int_from_string
- CHARACTER(len=24), DIMENSION(nfilesmax) :: filename
+ CHARACTER(len=24), DIMENSION(:), ALLOCATABLE :: filename
  CHARACTER(len=20) :: rootname
  CHARACTER(len=2) :: fnum
  CHARACTER(len=6) :: charnsteps,charnfiles
- REAL, DIMENSION(nfilesmax) :: time,gamma,hfact
- INTEGER, DIMENSION(nfilesmax) :: npart,nprint,ndim,ndimV,ndata
- REAL, DIMENSION(ncolmax,npartmax,nfilesmax) :: dat
+ REAL, DIMENSION(:), ALLOCATABLE :: time,gamma,hfact
+ INTEGER, DIMENSION(:), ALLOCATABLE :: npart,nprint,ndim,ndimV,ndata
+ REAL, DIMENSION(:,:,:), ALLOCATABLE :: dat,dattemp
  
  nfiles = 0
  CALL getarg(1,rootname)	! get rootname off command line
@@ -36,20 +35,25 @@ PROGRAM combinedat
  PRINT*,' nfiles = ',nfiles
  PRINT*,' nsteps = ',nsteps
   
- IF ((nfiles.LE.0).OR.(nfiles.GT.nfilesmax)) THEN
+ IF ((nfiles.LE.0).OR.(nfiles.GT.1000)) THEN
     PRINT*,'Enter number of files to read:'
     READ*,nfiles
- ENDIF
- 
- IF (nfiles.GT.nfilesmax) THEN
-    nfiles = nfilesmax
-    PRINT*,'nfiles > nfilesmax, nfiles = ',nfiles
  ENDIF
  
  IF ((nsteps.LE.0).OR.(nsteps.GT.1000)) THEN
     PRINT*,'Enter number of steps to read:'
     READ*,nsteps
- ENDIF   
+ ENDIF 
+ 
+!
+!--allocate memory now we know number of files
+! 
+ ALLOCATE(time(nfiles),gamma(nfiles),hfact(nfiles),STAT=ierr)
+ IF (ierr.NE.0) STOP 'allocation error 1'
+ ALLOCATE(npart(nfiles),nprint(nfiles),ndim(nfiles),STAT=ierr)
+ IF (ierr.NE.0) STOP 'allocation error 2'
+ ALLOCATE(ndimV(nfiles),ndata(nfiles),filename(nfiles),STAT=ierr)
+ IF (ierr.NE.0) STOP 'allocation error 3'
 !
 !--open all data files
 ! 
@@ -92,7 +96,29 @@ PROGRAM combinedat
        READ(infile,*,END=221) time(ifile),npart(ifile),nprint(ifile), &
                               gamma(ifile),hfact(ifile),ndim(ifile),  &
                               ndimV(ifile),ndata(ifile)
-       IF (ndata(ifile).GT.ncolmax) STOP 'n columns > array limits: no output'			      			      
+       IF (.NOT.ALLOCATED(dat)) THEN
+          ncolmax = INT(1.1*ndata(ifile))
+	  npartmax = INT(1.1*nprint(ifile))
+	  PRINT*,'allocating columns = ',ncolmax,' particles = ',npartmax,' files = ',nfiles
+          ALLOCATE(dat(ncolmax,npartmax,nfiles),STAT=ierr)
+	  IF (ierr.NE.0) PRINT*,'dat allocation error'
+       ELSEIF (ndata(ifile).GT.ncolmax .OR. npart(ifile).GT.npartmax) THEN
+          PRINT*,'reallocating'
+          ncolmax_old = ncolmax
+	  npartmax_old = npartmax
+	  ALLOCATE(dattemp(ncolmax,npartmax,nfiles),STAT=ierr)
+	  IF (ierr.NE.0) PRINT*,'dattemp allocation error'	  
+	  dattemp = dat
+	  
+	  ncolmax = MAX(INT(1.1*ndata(ifile)),ncolmax)
+	  npartmax = MAX(INT(1.1*nprint(ifile)),npartmax)
+          ALLOCATE(dat(ncolmax,npartmax,nfiles))
+	  IF (ierr.NE.0) PRINT*,'dat reallocation error'	  
+	  dat(1:ncolmax_old,1:npartmax_old,1:nfiles) = dattemp
+	  ncolmax = ndata(ifile)
+	  npartmax = nprint(ifile)
+       ENDIF
+       
        READ(infile,*,END=222) (dat(1:ndata(ifile),k,ifile), k=1,nprint(ifile))
        PRINT*,' t = ',time(ifile)
 
