@@ -67,6 +67,7 @@ subroutine get_rates
  real :: BidotdB,BjdotdB,Brho2i,Brho2j,BdotBexti
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
  real, dimension(:,:), allocatable :: curlBsym
+ real, dimension(:), allocatable :: divBsym
 !
 !  (artificial viscosity quantities)
 !      
@@ -125,6 +126,8 @@ subroutine get_rates
  if (imhd.lt.0) then
     allocate( curlBsym(ndimV,ntotal), STAT=ierr )
     if (ierr.ne.0) write(iprint,*) ' Error allocating curlBsym, ierr = ',ierr
+    allocate( divBsym(ntotal), STAT=ierr )
+    if (ierr.ne.0) write(iprint,*) ' Error allocating divBsym, ierr = ',ierr
  endif
  listneigh = 0
 !
@@ -149,6 +152,7 @@ subroutine get_rates
   divB(i) = 0.0
   if (imhd.gt.0) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
+  if (allocated(divBsym)) divBsym(i) = 0.
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -422,6 +426,9 @@ subroutine get_rates
           curlB(:,i) = curlB(:,i)*rho1i
        endif
        divB(i) = divB(i)*rho1i
+       divBsym(i) = divBsym(i)*rhoi
+       
+       divB(i) = divBsym(i)
     endif
 !
 !--add external (body) forces
@@ -1406,7 +1413,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
-    real :: dgradwdhi,dgradwdhj,BdotBextj,term
+    real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1570,6 +1577,11 @@ contains
     !
     !--compute rho * divergence of B
     !
+    if(allocated(divBsym)) then
+       divBterm = (projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+       divBsym(i) = divBsym(i) + pmassj*divBterm
+       divBsym(j) = divBsym(j) - pmassi*divBterm
+    endif
     divB(i) = divB(i) - pmassj*projdB*grkern
     divB(j) = divB(j) - pmassi*projdB*grkern
     !
