@@ -18,6 +18,7 @@ subroutine setup
  use convert, only:convert_setup
  
  use uniform_distributions
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !            
@@ -309,6 +310,7 @@ subroutine modify_dump
  use timestep, only:time
  use setup_params, only:geomsetup
  use convert, only:convert_setup
+ use cons2prim, only:primitive2conservative
  implicit none
  integer :: i
  real :: omegai,rcyl2,rcyl,rsph,v2onr

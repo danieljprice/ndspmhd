@@ -10,6 +10,12 @@
 ! These subroutines would be used in the GR case, for all the 
 ! variables. The evaluation would be far more complicated, however.
 !---------------------------------------------------------------------
+module cons2prim
+ implicit none
+ logical, parameter :: specialrelativity = .false.
+
+contains
+
 subroutine conservative2primitive
   use dimen_mhd
   use debug
@@ -89,7 +95,9 @@ subroutine conservative2primitive
      do i=1,npart
         if (itype(i).eq.1) then
            j = ireal(i)
-           where (ibound.eq.1) vel(:,i) = -vel(:,j)
+           call copy_particle(i,j)
+           vel(:,i) = vel(:,j)
+           !where (ibound.eq.1) vel(:,i) = -vel(:,j)
 !!           uu(i) = uu(j)
 !           pr(i) = pr(j)
 !           spsound(i) = spsound(j)
@@ -266,3 +274,5 @@ subroutine primitive2conservative
 
   return  
 end subroutine primitive2conservative
+
+end module cons2prim

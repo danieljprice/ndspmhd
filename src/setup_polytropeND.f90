@@ -34,7 +34,8 @@ subroutine setup
 !
 !--setup a uniform sphere of particles
 ! 
- call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2) ! 4 = random
+! call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2) ! 4 = random
+ call set_uniform_spherical(2,rmax,centred=.true.) ! 4 = random
 !
 !--set particle properties
 ! 
@@ -50,18 +51,23 @@ subroutine setup
  totmass = 1.0
  denszero = totmass/totvol
  massp = totmass/real(npart)
- uuzero = 0.1
+ uuzero = 0.01
  write(iprint,10) denszero,uuzero
 10 format(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
 !
 !--set these for all particles
 ! 
- polyk = 0.42466322
+! polyk = 0.001
  vel(:,:) = 0.
  dens(:) = denszero
- uu(:) = polyk*denszero**(gamma-1.0)/(gamma-1.0)
+ if (gamma.lt.1.00001) then
+    uu(:) = polyk
+ else
+    uu(:) = polyk*denszero**(gamma-1.0)/(gamma-1.0)
+ endif
  pmass(:) = massp
  Bfield(:,:) = 0.
+ print*,' free fall time = ',sqrt(3.*pi/(32.*denszero))
  call reset_centre_of_mass(x,pmass)
  
  return
@@ -78,7 +84,7 @@ subroutine modify_dump
 !--reset time
 !
  time = 0.
- ampl = 0.2
+ ampl = 0.1
 !
 !--apply radial velocity perturbation
 !

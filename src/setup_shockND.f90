@@ -23,6 +23,7 @@ subroutine setup
  use timestep, only:tmax
  
  use uniform_distributions
+ use cons2prim, only:primitive2conservative
  implicit none
  integer :: i,npartold,nparty
  real :: densleft,densright,prleft,prright

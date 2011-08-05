@@ -17,6 +17,12 @@
 ! This subroutine is more complicated in the relativistic case since the 
 ! Lorentz factor is involved everywhere.
 !---------------------------------------------------------------------
+module cons2prim
+ implicit none
+ logical, parameter :: specialrelativity = .false.
+
+contains
+
 subroutine conservative2primitive
   use dimen_mhd
   use debug
@@ -250,3 +256,5 @@ subroutine primitive2conservative
 
   return  
 end subroutine primitive2conservative
+
+end module cons2prim

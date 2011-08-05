@@ -8,6 +8,7 @@ subroutine output(t,nstep)
  use options, only:imhd,ibound
  
  use dumpfiles
+ use cons2prim, only:conservative2primitive
  implicit none
  integer, intent(in) :: nstep
  real, intent(in) :: t

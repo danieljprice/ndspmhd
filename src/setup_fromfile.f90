@@ -20,6 +20,7 @@ SUBROUTINE setup
  USE part
  USE setup_params
  USE rates, only:force
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !      

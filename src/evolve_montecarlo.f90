@@ -17,6 +17,7 @@ subroutine evolve
  use rates, only:force,poten
  use kernels, only:radkern
  use plummer_setup, only:npart1,npart2,idist
+ use cons2prim, only:primitive2conservative
 !
 !--define local variables
 !
