@@ -39,7 +39,7 @@ SUBROUTINE step
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
-    alphain(i) = alpha(i)
+    alphain(:,i) = alpha(:,i)
  ENDDO   
 !
 !--Mid-point Predictor step
@@ -52,7 +52,7 @@ SUBROUTINE step
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
     ELSE
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        pmom(:,i) = pmomin(:,i) + hdt*force(:,i)
@@ -65,7 +65,7 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*daldt(i)	   
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
     ENDIF
 !
 !--for periodic boundaries, allow particles to cross the domain
@@ -117,7 +117,7 @@ SUBROUTINE step
        Bcons(:,i) = Bconsin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
-       alpha(i) = alphain(i)
+       alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
     ELSE
        x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
@@ -137,7 +137,7 @@ SUBROUTINE step
           ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
-       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldt(i)	   
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdt(:,i)	  
     ENDIF
  ENDDO	 	

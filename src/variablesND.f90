@@ -146,8 +146,8 @@ MODULE part
  INTEGER, DIMENSION(:), ALLOCATABLE :: itype
  REAL, DIMENSION(:), ALLOCATABLE :: pmass,sqrtg
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
- REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,alpha,psi
- REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms
+ REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,psi
+ REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms,alpha
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bcons
 END MODULE part 
 
@@ -157,8 +157,8 @@ END MODULE part
 
 MODULE part_in
  IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,alphain,psiin
- REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin
+ REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,psiin
+ REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin,alphain
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bconsin
 END MODULE
 
@@ -177,8 +177,8 @@ END MODULE
 
 MODULE rates
  IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,daldt,dhdt,dpsidt
- REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBconsdt
+ REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt
+ REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBconsdt,daldt
 END MODULE rates
 
 !-------------------------------------------------------------------
@@ -251,49 +251,3 @@ MODULE anticlumping
  INTEGER :: neps
  REAL :: eps
 END MODULE anticlumping
-
-!-------------------------------------------------------------------
-! variables shared only between rates and its subroutines
-!-------------------------------------------------------------------
-
-MODULE rates_local
- USE dimen_mhd
- IMPLICIT NONE
- REAL :: vsig,viss
-!
-!--kernel quantities
-!
- REAL :: wab,hfacwab
- REAL :: grkern,grkerni,grkernj
-!
-!  (particle properties)
-!
- REAL :: rij,rij2
- REAL :: rhoi,rho2i,rhoj,rho2j,rhoav,rhoij
- REAL :: alphai,pmassi,pmassj
- REAL :: pri,prj,Prho2i,Prho2j,prterm
- REAL :: gradhi,gradhj
- REAL :: drhodti,drhodtj 
-!
-!  (velocity)
-!      
- REAL, DIMENSION(ndimV) :: veli,velj,dvel
- REAL, DIMENSION(ndimV) :: dr,vunit
- REAL :: dvdotr
- 
-END MODULE rates_local
-
-MODULE rates_mhdlocal
- USE dimen_mhd
- IMPLICIT NONE
-
- REAL, DIMENSION(ndimB) :: Bi,Bj,Brhoi,Brhoj,dB
- REAL :: projBi,projBj,projBrhoi,projBrhoj,projdB
- REAL :: Brho2i,Brho2j
-!
-!--anticlumping term
-! 
- REAL :: Rjoe,wabjoei
-
-END MODULE rates_mhdlocal
-

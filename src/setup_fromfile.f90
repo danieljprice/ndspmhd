@@ -86,7 +86,7 @@ SUBROUTINE setup
  DO i=1,npart
     IF (mhdfile) THEN
        READ(ireadf,*,ERR=668) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &
-            pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
+            pmass(i),alpha(:,i),Bfield(:,i),divB(i),curlB(:,i)
        IF (imhd.EQ.0) THEN
           Bfield(:,i) = 0.
           divB(i) = 0.
@@ -94,7 +94,7 @@ SUBROUTINE setup
        ENDIF
     ELSE
        READ(ireadf,*,ERR=668) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
-            pmass(i),alpha(i)
+            pmass(i),alpha(:,i)
        IF (imhd.NE.0) THEN
           Bfield(:,i) = 0.    ! could change this
           divB(i) = 0.

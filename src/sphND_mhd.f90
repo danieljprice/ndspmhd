@@ -70,6 +70,7 @@ PROGRAM SUPERSPMHD_ND
 !     -> link renamed so doesn't conflict with internal function
 !   * kernel plotting utility, more kernels added
 !   * quite a few changes to supersphplot
+!   * major revamp of rates - split into separate subroutines (faster)
 !    version = 'NDSPMHD-3D-v5-1'
 !   * smoothing length iteration on single particles works 
 !   * conservative2primitive and primitive2conservative
@@ -146,7 +147,7 @@ PROGRAM SUPERSPMHD_ND
 !   * log plots in supersphplot
 !   version = 'SPMHD-ND-v3.2-25-06-03'
 !   * rendering for supersphplot
-!   * rates cleaned up and split into separate subroutines
+!   * rates cleaned up and tried to split into separate subroutines
 !   * bug fix in MHD dissipation terms, also in boundaryND for periodic bc's
 !   * initialise can read rootname off command line or from file
 !   * optimization of density/rates - divisions done only once

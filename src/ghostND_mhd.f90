@@ -206,7 +206,7 @@ subroutine set_ghost_particles
      pmass(i) = pmass(j)
      rho(i) = rho(j)
      hh(i) = hh(j)
-     alpha(i) = alpha(j)
+     alpha(:,i) = alpha(:,j)
      psi(i) = psi(j)
      
      en(i) = en(j)

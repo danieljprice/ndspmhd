@@ -70,12 +70,12 @@ SUBROUTINE output(t,nstep)
     IF (imhd.NE.0) THEN	! MHD
 
        WRITE(idatfile,30) xout(:),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
-        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
+        pmass(i),alpha(:,i),Bfield(:,i),divB(i),curlB(:,i)
 
     ELSE   ! non-MHD
 
        WRITE(idatfile,30) xout(:),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &                        
-        pmass(i),alpha(i)
+        pmass(i),alpha(:,i)
 
     ENDIF
 
