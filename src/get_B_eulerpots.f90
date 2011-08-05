@@ -26,7 +26,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  use part,         only:itype,ntotal
  use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
  use bound,        only:ireal
- use options,      only:iuse_exact_derivs
+ use options,      only:iuse_exact_derivs,ibound
 !
 !--define local variables
 !
@@ -72,7 +72,6 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  do i=1,ntotal
     h1(i) = 1./hh(i)
  enddo
- Bfield = 0.
  dxdx(:,:) = 0.
 !
 !--loop over all the link-list cells
@@ -204,11 +203,23 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
        endif
 
-       if (iderivtype.eq.2) then
+       if (iderivtype.eq.3) then
+          !--remapping of B/rho
+          !  (alphapot is B/rho_0, send out B/rho new as Bfield)
+          alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
+          do k=1,ndimV
+             Bfield(k,i) = dot_product(alphapoti(:),gradbeta(:,k,i))
+          enddo
+          if (remap) then
+             alphapot(:,i) = Bfield(:,i)
+             betapot(1:ndim,i) = x(1:ndim,i)
+          endif
+       elseif (iderivtype.eq.2) then
           !--compute B = curl alpha (i.e., eps_ijk grad^j alpha^k)
           call curl3D_epsijk(gradalpha(:,:,i),Bfield(:,i))
           !print*,i,'Bfield from curl A= ',Bk(:)
        else
+          Bfield(:,i) = 0.
           !--compute B = grad alpha x grad beta
           do k=1,ndimV
              call cross_product3D(gradalpha(:,k,i),gradbeta(:,k,i),Bk)
@@ -231,6 +242,26 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        endif
     end select
  enddo
+ 
+ if (remap .and. iderivtype.ne.2) then
+    !--remap x0 for all particles
+    betapot(1:ndim,:) = x(1:ndim,:)
+    !--copy remapped Bevol onto boundary/ghost particles 
+    if (any(ibound.eq.1)) then
+       do i=1,npart
+          if (itype(i).eq.1) then ! fixed particles
+             j = ireal(i)
+             alphapot(:,i) = alphapot(:,j)
+          endif
+       enddo
+    endif
+    if (any(ibound.gt.1)) then  ! ghost particles
+       do i=npart+1,ntotal
+          j = ireal(i)
+          alphapot(:,i) = alphapot(:,j)
+       enddo
+    endif
+ endif
 
  return
 end subroutine get_B_eulerpots
