@@ -32,7 +32,7 @@ SUBROUTINE iterate_density
  INTEGER :: ncalc,ncalcprev,isize
  INTEGER, DIMENSION(:), ALLOCATABLE :: redolist
  REAL :: tol,hnew
- REAL, DIMENSION(:), ALLOCATABLE :: rho_old,hh_old,gradh_old
+ REAL, DIMENSION(:), ALLOCATABLE :: rho_old,gradh_old
  LOGICAL :: converged,redolink
 !
 !--allow for tracing flow
@@ -42,7 +42,7 @@ SUBROUTINE iterate_density
 !--allocate memory for local array copies
 !
  isize = SIZE(rho)
- ALLOCATE( rho_old(isize), hh_old(isize), gradh_old(isize) )
+ ALLOCATE( rho_old(isize), gradh_old(isize) )
  ALLOCATE( redolist(ntotal) )
 !
 !--set maximum number of iterations to perform
@@ -66,10 +66,15 @@ SUBROUTINE iterate_density
 
     itsdensity = itsdensity + 1
     ncalcprev = ncalc
+    IF (isize.NE.SIZE(rho)) THEN
+       DEALLOCATE(rho_old,gradh_old)
+       isize = SIZE(rho)
+       ALLOCATE(rho_old(isize),gradh_old(isize))
+    ENDIF
     rho_old = rho
     gradh_old = gradh
     IF (redolink) THEN
-       IF (ibound.GT.1) CALL set_ghost_particles
+       IF (ANY(ibound.GT.1)) CALL set_ghost_particles
        IF (idebug(1:3).EQ.'den') WRITE(iprint,*) 'relinking...'
        CALL link
     ENDIF
@@ -156,14 +161,14 @@ SUBROUTINE iterate_density
 
     ENDIF
 
-    IF (ibound.GT.1) THEN
+    IF (ANY(ibound.GT.1)) THEN
        DO i=npart+1,ntotal		! update ghosts
           j = ireal(i)
           rho(i) = rho(j)
           hh(i) = hh(j)
           gradh(i) = gradh(j)       
        ENDDO
-    ELSEIF (ibound.EQ.1) THEN		! update fixed particles
+    ELSEIF (ANY(ibound.EQ.1)) THEN		! update fixed particles
        WHERE (itype(:).EQ.1)
           rho(:) = rhoin(:)
        END WHERE
