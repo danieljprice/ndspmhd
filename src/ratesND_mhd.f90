@@ -173,8 +173,7 @@ subroutine get_rates
 !
 !--skip the whole neighbour thing if it is doing nothing
 !
- if (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.eq.0 &
-      .and. ihvar.lt.2 .and. icty.eq.0) then
+ if (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.lt.3) then
     write(iprint,*) 'skipping rates'
     goto 666
  endif
@@ -301,10 +300,14 @@ subroutine get_rates
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
 
+ force = 0.
+! phi = 1.0
  if (igravity.ne.0) call direct_sum_poisson_soft( &
-    x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),potengrav,force(1:ndim,1:npart),npart)
+                    x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),poten(1:npart), &
+                    force(1:ndim,1:npart),psi(1:npart),npart)
+! phi = 0.
 ! if (igravity.ne.0) call direct_sum_poisson( &
-!    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),npart)
+!    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),1.0,npart)
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -361,7 +364,7 @@ subroutine get_rates
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
-    if (iener.ne.0 .and. iav.ge.0) then
+    if (iener.gt.0 .and. iav.ge.0) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
     endif
     if (iener.eq.3) then
@@ -370,7 +373,7 @@ subroutine get_rates
        !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
-    elseif (iener.ne.0) then
+    elseif (iener.gt.0) then
        dendt(i) = dudt(i)
     endif
 !

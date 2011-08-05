@@ -20,7 +20,7 @@
 !!   fgrav(ndim,ntot) : gravitational force
 !!----------------------------------------------------------------------------
 
-subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
+subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,psi,ntot)
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint
@@ -31,15 +31,17 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
  integer, intent(in) :: ntot
  real, dimension(ndim,ntot), intent(in) :: x
  real, dimension(ntot), intent(in) :: pmass,hh
- real, dimension(ntot) :: phi
+ real, dimension(ntot), intent(out) :: phi,psi
  real, dimension(ndim,ntot), intent(inout) :: fgrav
- real, intent(out) :: phitot
+ real, dimension(ndim,ntot) :: fsoft
+ real :: phitot
  integer :: i,j
  real, dimension(ndim) :: dx,dr
  real :: rij,rij1,rij2,rij21,pmassi,pmassj
  real :: gradhi,gradhni,gradsofti,grkerni,grkernj,dsofti,dsoftj
  real :: phii,phij,phiterm,fm,fmi,fmj
  real :: hi1,hj1,hi21,hj21,q2i,q2j
+ real :: fratio,fratioav,fratiomax,fgravmag,fsoftmag
 !
 !--allow for tracing flow
 !      
@@ -48,6 +50,8 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
 !--reset potential (but not force) initially
 !
  phi = 0.
+ fsoft = 0.
+ psi = 0.
 !
 !--calculate gravitational force by direct summation on all particles
 !
@@ -80,6 +84,8 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
           dsofti = 0.5*grkerni*gradsofti
           fgrav(:,i) = fgrav(:,i) - pmassj*dsofti*dr(:)
           fgrav(:,j) = fgrav(:,j) + pmassi*dsofti*dr(:)
+          fsoft(:,i) = fsoft(:,i) - pmassj*dsofti*dr(:)
+          fsoft(:,j) = fsoft(:,j) + pmassi*dsofti*dr(:)
        else
           phii = -rij1
           fmi = rij21
@@ -92,6 +98,8 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
           dsoftj = 0.5*grkernj*gradsoft(j)
           fgrav(:,i) = fgrav(:,i) - pmassj*dsoftj*dr(:)
           fgrav(:,j) = fgrav(:,j) + pmassi*dsoftj*dr(:)
+          fsoft(:,i) = fsoft(:,i) - pmassj*dsoftj*dr(:)
+          fsoft(:,j) = fsoft(:,j) + pmassi*dsoftj*dr(:)
        else
           phij = -rij1
           fmj = rij21
@@ -112,9 +120,24 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phitot,fgrav,ntot)
  enddo
 
  phitot = 0.
+ fratioav = 0.
+ fratiomax = 0.
  do i=1,ntot
     phitot = phitot + 0.5*pmass(i)*phi(i)
+    fgravmag = dot_product(fgrav(1:ndim,i),fgrav(1:ndim,i))
+    fsoftmag = dot_product(fsoft(1:ndim,i),fsoft(1:ndim,i))
+    fratio = sqrt(fsoftmag/fgravmag)
+    psi(i) = fratio
+    print*,i,'fratio = ',fratio,sqrt(dot_product(x(1:ndim,i),x(1:ndim,i)))
+    fratioav = fratioav + fratio
+    if (fratio.gt.fratiomax) then
+       fratiomax = fratio
+       print*,'max',fratio,i
+    endif
+!!    fratiomax = max(fratiomax,fratio)
  enddo
+ fratioav = fratioav/real(ntot)
+ print*,'fratio av = ',fratioav,' max = ',fratiomax
 
  return
 end subroutine direct_sum_poisson_soft

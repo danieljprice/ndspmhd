@@ -163,7 +163,7 @@ END MODULE
 
 MODULE rates
  IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt
+ REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt,poten
  REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBevoldt,daldt,gradpsi
  REAL :: potengrav
 END MODULE rates

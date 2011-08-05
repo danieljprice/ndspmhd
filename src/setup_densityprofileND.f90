@@ -10,10 +10,9 @@ subroutine setup
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint
- use bound, only:xmin,xmax
  use options, only:ibound
  use part
- use setup_params
+ use setup_params, only:pi,psep
  use geometry, only:coord_transform
  
  use uniform_distributions
@@ -22,8 +21,8 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,idist
- real :: massp,volume,totmass,ran1
- real :: denszero,rr,rmass,rsoft
+ real :: massp,totmass,ran1
+ real :: rr,rmass,rsoft
  real, dimension(ndim) :: xpos
 !
 !--allow for tracing flow
@@ -32,10 +31,8 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 0	! boundaries
- nbpts = 0	! use ghosts not fixed
- xmin(:) = -0.5	! set position of boundaries
- xmax(:) = 0.5
+ ibound = 0
+ nbpts = 0
 
  write(iprint,*) ' Radial density profile'
 !
@@ -51,28 +48,34 @@ subroutine setup
 !
 !--determine particle mass
 !
- denszero = 1.0
- volume = product(xmax(:)-xmin(:))
- totmass = denszero*volume
- massp = totmass/float(ntotal) ! average particle mass
+ totmass = 1.0
+ massp = totmass/float(npart) ! average particle mass
 !
 !--now assign particle properties
 ! 
 !--initialise random number generator
- iseed = -2658
- idist = 1 ! choice of distribution
+ iseed = -26588
+ idist = 2 ! choice of distribution
+ select case(idist)
+ case(1)
+    write(iprint,*) ' Plummer profile'
+ case(2)
+    write(iprint,*) ' Hernquist model'
+ end select
  rsoft = 1.0
+ write(iprint,*) ' Total mass = ',totmass,' rsoft = ',rsoft
  
  do i=1,ntotal
 !
-!--choose random number for mass fraction (0->1)
+!--choose random number for mass fraction (0->0.99)
 !
-    rmass = ran1(iseed)
+    rmass = 0.99*ran1(iseed)
 !
 !--convert mass fraction to radial position for chosen distribution
 !
     call getr_from_m(idist,rmass,rsoft,rr)
     xpos(1) = rr
+    if (rr.lt.0.) print*,i,'m = ',rmass,' r = ',rr
 !
 !--choose random number for (spherical) angle phi (-pi -> pi)
 !
@@ -128,7 +131,7 @@ subroutine getr_from_m(ioption,rmass,rsoft,r)
 !
 !--Hernquist model
 !
-   rr = 0.
+   rr = rsoft*(rmass + sqrt(rmass))/(1.-rmass)
   case default
    rr = 0.
    print*,'ERROR in setup, wrong distribution'
@@ -149,13 +152,13 @@ real function densprofile(ioption,r,rsoft)
 !
 !--Plummer sphere
 !
-   densprofile = 3./(4.*pi*(r**2 + rsoft**2)**2.5)
+   densprofile = 3.*rsoft**2/(4.*pi*(r**2 + rsoft**2)**2.5)
 
   case(2)
 !
 !--Hernquist model
 !
-   densprofile = 0.
+   densprofile = rsoft/(2.*pi*r*(rsoft + r)**3)
    
   case default
    densprofile = 0.

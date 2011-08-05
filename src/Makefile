@@ -15,7 +15,7 @@ EDITOR = nedit
 #LDFLAGS = -Vaxlib
 F90C =  g95
 F90FLAGS = -O3 -ffast-math -r8 -Wall
-LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -50,7 +50,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
-#SETUP2D = setup_orszagtang2D_mhd.f90
+SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
@@ -59,7 +59,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-SETUP2D = setup_toystarND_static.f90 set_dipole.f90
+#SETUP2D = setup_toystarND_static.f90 set_dipole.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -110,7 +110,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 set_fixedbound.f90 \
 	 sobolsequence.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
-	 get_divB.f90 divBcorrect.f90 get_curl.f90 get_divBgradpsi.f90 \
+	 get_divB.f90 get_curl.f90 divBcorrect.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
