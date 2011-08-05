@@ -33,7 +33,6 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  INTEGER :: icell,iprev,nneigh
  INTEGER, DIMENSION(ntot) :: listneigh ! neighbour list
  INTEGER :: idone
- INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -68,7 +67,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    CALL get_neighbour_list(icell,neighcell,listneigh,nneigh)
+    CALL get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !

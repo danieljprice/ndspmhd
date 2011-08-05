@@ -33,7 +33,6 @@ subroutine get_rates
  integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
  integer :: idone
- integer, dimension(3**ndim) :: neighcell
 !
 !  (particle properties - local copies and composites)
 !
@@ -195,7 +194,7 @@ subroutine get_rates
     !--get the list of neighbours for this cell 
     !  (common to all particles in the cell)
     !
-    call get_neighbour_list(icell,neighcell,listneigh,nneigh)
+    call get_neighbour_list(icell,listneigh,nneigh)
        
     i = ifirstincell(icell)      ! start with first particle in cell
     idone = -1

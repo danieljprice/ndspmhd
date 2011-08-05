@@ -28,7 +28,6 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
  INTEGER :: i,j,n
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
  INTEGER :: idone,iprev,nsize,nneigh,icell
- INTEGER, DIMENSION(3*2**(ndim-1) - 1) :: neighcell
  REAL, DIMENSION(nsize), INTENT(IN) :: xinput
  REAL, DIMENSION(nsize), INTENT(OUT) :: xsmooth
  REAL, DIMENSION(ndim) :: dx
@@ -61,7 +60,7 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    CALL get_neighbour_list(icell,neighcell,listneigh,nneigh)
+    CALL get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !

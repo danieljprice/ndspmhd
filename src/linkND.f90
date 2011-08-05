@@ -46,73 +46,46 @@ SUBROUTINE set_linklist
 ! (this is already calculated in set_ghosts if using ghost particles)
  
  IF (ALL(ibound.LE.1)) hhmax = MAXVAL(hh(1:npart))
- print*,'radkern = ',radkern,ibound,ALL(ibound.LE.1),hh(1)
  dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
  IF (dxcell.LE.0) THEN
     WRITE(iprint,*) 'Error: link: max h <=0 :',hhmax     
     CALL quit
  ENDIF
 !
-!--find max/min of particle distribution or use boundaries already set
-!  
- xminpart(:) = xmin(:)
- xmaxpart(:) = xmax(:)
-
- IF (ANY(ibound.LE.1)) THEN      ! could do this for each boundary individually
-!
 !--find max/min of particle distribution, including ghost particles
 !  (add/subtract 0.00001 to make sure all particles are within these limits)
-
-    DO j=1,ndim
-       xminpart(j) = MINVAL(x(j,1:ntotal)) - 0.00001
-       xmaxpart(j) = MAXVAL(x(j,1:ntotal)) + 0.00001
-    ENDDO
- ELSE
-    xminpart(:) = xminpart(:) - dxcell - 0.00001    ! change boundaries to include ghosts
-    xmaxpart(:) = xmaxpart(:) + dxcell + 0.00001
- ENDIF
-
+!
+ DO j=1,ndim
+    xminpart(j) = MINVAL(x(j,1:ntotal)) - 0.00001
+    xmaxpart(j) = MAXVAL(x(j,1:ntotal)) + 0.00001
+ ENDDO
+!
+!--add one (empty) cell to each end in each dimension
+!
+ xminpart(:) = xminpart(:) - dxcell - 0.00001
+ xmaxpart(:) = xmaxpart(:) + dxcell + 0.00001
+!
+!--now work out total number of cells
+!
  ncellsx(:) = int((xmaxpart(:)-xminpart(:))/dxcell) + 1
  IF (ANY(ncellsx .EQ. 0)) THEN
     WRITE(iprint,*) 'Error: link: number of cells=0:'
     WRITE(iprint,*) 'xmin, xmax, dxcell, hhmax = ',xmin,xmax,dxcell,hhmax
     WRITE(iprint,*) 'Max h particle ',MAXLOC(hh)
     CALL quit
- ENDIF 
-! IF (ibound.GE.1) THEN      ! if there are any boundaries
-!    dxcell = (xmaxpart(1)-xminpart(1))/ncellsx(1)      ! adjust so that xmax-xmin is exact division of 2h
-! ELSE
-!    ncellsx(:) = ncellsx(:) + 1
-! ENDIF
+ ENDIF
  
  ncells = PRODUCT(ncellsx)
 
-! WRITE(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
+ !WRITE(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
 
-!
-!--when doing calculation, in 1/2/3D 
-!  don't do last cell/row of cells/face of cells as these are purely ghosts
-!  (NOTE THIS IS ONLY TRUE IF dxcell divides xmax-xmin EXACTLY) 
-!  really should make a list of cells to do in 3D as should skip the top row
-!  of every block. At the moment this is just slightly inefficient.
-!
- IF (ANY(ibound.LE.1)) THEN      ! BUG FIXED HERE (should be ibound.LE.1)
-    ncellsloop = ncells
- ELSE
-    IF (ndim.EQ.1) ncellsloop = ncells - 1
-    IF (ndim.EQ.2) ncellsloop = ncells-ncellsx(1)
-    IF (ndim.EQ.3) ncellsloop = ncells      !-ncellsx(1)*ncellsx(2) ! inefficient in 3D
- ENDIF
-! print*,' ncellsloop = ',ncellsloop
-! read*
-
+ ncellsloop = ncells
 !
 ! allocate array memory now we know the number of cells
 ! 
- DEALLOCATE( ifirstincell )
+ IF (ALLOCATED(ifirstincell)) DEALLOCATE( ifirstincell )
  ALLOCATE ( ifirstincell(ncells) )
  
-! IF (ncells.GT.maxcells) PRINT*,'Error: link: ncells>array limits'
  DO i=1,ncells
     ifirstincell(i) = -1             ! set all head of chains to -1
  ENDDO
@@ -141,8 +114,7 @@ SUBROUTINE set_linklist
     ll(i) = ifirstincell(icell)            ! link to previous start of chain
     ifirstincell(icell) = i            ! set head of chain to current particle       
     iamincell(i) = icell             ! save which cell particle is in 
-!    PRINT*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
-!    read*
+    !if (i.eq.1) PRINT*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
  ENDDO
 !
 !--debugging
