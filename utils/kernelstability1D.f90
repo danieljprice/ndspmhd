@@ -10,7 +10,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
-  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4,rhosum
+  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4,rhosum,Wnorm,grWnorm,grgrWnorm
   real, dimension(nkx) :: kxarray
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
@@ -19,10 +19,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
   real :: charheight, hpos, vpos, term1,term2,term3,term4,rhosumi
-  character(len=5) :: string,labely
+  real :: termWnorm,termgradWnorm,termgrgrWnorm
+  character(len=20) :: string,labely
   character(len=50) :: text,title
-  logical :: negstress, contours
-  common /terms/ term1,term2,term3,term4,rhosumi
+  logical :: negstress, contours,normplot
+  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm
   
   cs2 = 1.0
   rhozero = 1.0
@@ -35,6 +36,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !  
   contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
+  normplot = .true.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
   ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
@@ -71,9 +73,9 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   else                  ! y axis is h
 !     ymin = 0.5*psep
 !     ymax = 5.0*psep
-     ymin = 0.1*psep
-     ymax = 10.0*psep
-     labely = 'h'
+     ymin = 1.0*psep
+     ymax = 3.3*psep
+     labely = 'h / \Deltap'
   endif
 !
 !--set up y axis
@@ -102,7 +104,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !  
   do j=1,ny
      if (negstress) then  ! y axis is R
-	R = yaxis(j)
+        R = yaxis(j)
      else                 ! y axis is h
         h = yaxis(j)
      endif
@@ -112,12 +114,15 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
         dat(i,j) = omegasq/(kx**2*cs2)
 !!       print*,i,j,' kx = ',kx,' h = ',h,' R = ',R,' dat = ',dat(i,j)
         if (i.eq.ikx) then
-	   tterm1(j) = term1/(kx**2*cs2)
-	   tterm2(j) = term2/(kx**2*cs2)
-	   tterm3(j) = term3/(kx**2*cs2)
-	   tterm4(j) = term4/(kx**2*cs2)
+           tterm1(j) = term1/(kx**2*cs2)
+           tterm2(j) = term2/(kx**2*cs2)
+           tterm3(j) = term3/(kx**2*cs2)
+           tterm4(j) = term4/(kx**2*cs2)
            rhosum(j) = rhosumi
-	endif
+           Wnorm(j) = termWnorm
+           grWnorm(j) = termgradWnorm
+           grgrWnorm(j) = termgrgrWnorm
+        endif
      enddo
   enddo
 !
@@ -176,6 +181,46 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
         call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,14)
         call pgsch(charheight) ! restore character height
      enddo
+  
+  elseif (normplot) then
+     !call pgsch(1.0)
+     datmin = 0.785
+     datmax = 1.105
+     ymin = 1.001
+     ymax = 1.99
+     call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'norm', &
+                   ' ',0,0,&
+                   0.,0.,0.,0.,0.,0.,.false.,.true.)
+
+     call pgmtxt('t',-2.0,0.93,1.0,trim(kernelname))
+     if (nplots.gt.1) call pgsls(iplotpos)
+!
+!--plot kernel normalisation conditions on W, grad W and del^2 W
+!
+     !--set legend position
+     ipos = 10
+     hpos = 0.15   ! horizontal position as % of viewport
+     vpos = 2.0  ! vertical position in character heights from top
+!--kernel normalisation
+     call pgsls(1)
+     call pgsci(1)
+    ! call pgline(ny,yaxis(1:ny),Wnorm(1:ny))
+    ! if (iplotpos.eq.3) call legend(ipos,'W',hpos,vpos)
+!--first derivative normalisation term
+     call pgsls(2) !sci(2)
+     call pgsci(2)
+   !  call pgline(ny,yaxis(1:ny),grWnorm(1:ny))
+    ! if (iplotpos.eq.3) call legend(ipos,'dW/dx',hpos,vpos)
+     print*,' gradWnorm = ',grWnorm(1:10),ny
+!--second derivative normalisation term
+     call pgsls(3)
+     call pgsci(3)
+     call pgline(ny,yaxis(1:ny),grgrWnorm(1:ny))
+     print*,' grgrWnorm = ',grgrWnorm(1:10),ny
+     if (iplotpos.eq.1) call legend(ipos,'d^2W/dx^2',hpos,vpos)
+
+     call pgsci(1)
+     call pgsls(1)
   
   else
 !
@@ -291,8 +336,9 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   real :: sum1, sum2, sum3, sum4, sum5, sum6, sum7, sum8
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
-  real :: dx, dr, q2, eps, term, term1,term2,term3,term4,rhosumi
-  common /terms/ term1,term2,term3,term4,rhosumi
+  real :: dx, dr, q2, eps, term1,term2,term3,term4,rhosumi
+  real :: termWnorm,termgradWnorm,termgrgrWnorm
+  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm
 
   sum1 = 0.
   sum2 = 0.
@@ -303,6 +349,10 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   sum7 = 0.
   sum8 = 0.
   rhosumi = 0.
+  
+  termWnorm = 0.
+  termgradWnorm = 0.
+  termgrgrWnorm = 0.
 !
 !--calculate pressure from cs2 and gamma
 !  
@@ -365,7 +415,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
          gradgradWcorr = (grgrwijalt(index) + dgrgrwdx*dxx)/hh**3
      else
         gradWcorr = gradW
-	gradgradWcorr = gradgradW
+        gradgradWcorr = gradgradW
      endif 
      sum1 = sum1 + (1. - COS(kx*dx))*gradgradW
      sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
@@ -376,7 +426,15 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      sum7 = sum7 + 0.5*dx**2*gradgradW
 !     sum8 = sum8 + 0.5*dx**2*gradgradWcorr
      rhosumi = rhosumi + W
+     
+     termWnorm = termWnorm + W
+     termgradWnorm = termgradWnorm - dx*gradW*dr
+     termgrgrWnorm = termgrgrWnorm + 0.5*dx**2*gradgradW
   enddo
+  
+  termWnorm = pmass/rhozero*termWnorm
+  termgradWnorm = pmass/rhozero*termgradWnorm
+  termgrgrWnorm = pmass/rhozero*termgrgrWnorm
 ! 
 !!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum7
 !  sum1 = kx**2

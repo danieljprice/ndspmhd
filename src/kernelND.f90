@@ -1077,7 +1077,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       endif
     enddo
     
-  case(60)
+  case(59)
 !
 !--particle splitting kernel (cubic spline gradient  * q)
 !   
@@ -1116,11 +1116,56 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+  case(60)
+!
+!--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
+!
+    kernellabel = 'Y'''' (M_6 quintic)'  
+    radkern = 3.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1) 
+       cnormk = 1./120.
+      case(2)
+       cnormk = 7./(478*pi)
+      case(3)
+       cnormk = 1./(120.*pi)
+    end select
+    do i=0,ikern         
+       q2 = i*dq2table
+       q4 = q2*q2
+       q = sqrt(q2)
+       term1 = -5.*(3.-q)**4
+       if (q.lt.1.0) then
+          wkern(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
+          grwkern(i) = term1 + 30.*(2.-q)**4 - 75.*(1.-q)**4
+          if (q.lt.epsilon(q)) then
+             grgrwkern(i) = 240.
+          else
+             grgrwkern(i) = -2*grwkern(i)/q
+          endif
+       elseif ((q.ge.1.0).and.(q.lt.2.0)) then
+          wkern(i) = (3.-q)**5. - 6.*(2.-q)**5.
+          grwkern(i) = term1 + 30*(2.-q)**4.
+          grgrwkern(i) = -2.*grwkern(i)/q
+       elseif ((q.ge.2.0).and.(q.le.3.0)) then
+          wkern(i) = (3.-q)**5.
+          grwkern(i) = term1
+          grgrwkern(i) = -2.*grwkern(i)/q
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+
   case(61)
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernellabel = 'Cubic spline (second derivatives)'    
+    kernellabel = 'Y'''' (M_4 cubic)'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern

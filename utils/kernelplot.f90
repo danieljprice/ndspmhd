@@ -11,16 +11,16 @@ program kernelplot
  logical :: samepage,plotstability,plotkernel
 !! character(len=50) :: text
 
- data iplotorder /0, 2, 3, 10, 64, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
- !data iplotorder /0, 61, 14, 15, 34, 11, 13, 16, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 2, 3, 10, 64, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /61, 60, 15, 34, 11, 13, 16, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 4
+ nkernels = 2
  ianticlump = 0
  epszero = 0.0
  nepszero = 0
  samepage = .false.
  plotkernel = .true.
- plotstability = .false.
+ plotstability = .true.
  nacross = 4
  ndown = 1
  xmin = 0.0
@@ -28,10 +28,10 @@ program kernelplot
 !! ymin = 0.01
  ymin = -3.5  !!3.5
 !! ymax = 2.4
-! ymax = 2.7
- ymax = 1.5
+ ymax = 3.99
+! ymax = 1.5
  
- ymin = -2.2
+ ymin = -0.9 !2.2
  !ymax = 1.4
  ipos = 1
  ndim = 1
@@ -123,7 +123,7 @@ program kernelplot
        if (ikernel.eq.102) ymax = maxval(wij(1:ikern)/dqkern(1:ikern)**2)*1.5
        print*,'max = ',ymax
        !if (ikernel.eq.0) kernelname = 'density'
-       call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','f(q)', &
+       call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','d^2f/dq^2', &
                      trim(kernelname),0,1,&
                      0.,0.,0.,0.,0.,0.,.false.,.true.)
        call pgmtxt('t',-2.0,0.93,1.0,trim(kernelname))
@@ -161,7 +161,7 @@ program kernelplot
 !    call pgsci(7) ! for yellow
     if (ikernel.eq.101) wij(0:ikern) = -wij(0:ikern)
     if (ikernel.eq.102) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
-    call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
+!    call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
        call pgline(ikern+1,dqkern(0:ikern),wijalt(0:ikern))
@@ -183,7 +183,8 @@ program kernelplot
 !    
     if (ikernel.lt.100) then
        call pgsls(2)
-       call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+       call pgsci(2)
+!       call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
        !!call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
        if (ianticlump.ne.0) then
    !       call pgsls(j+2)
@@ -197,7 +198,7 @@ program kernelplot
 !--second derivative and deriv w.r.t. h
 !
     if (ikernel.lt.100) then
-       call pgsci(2)
+       call pgsci(3)
        call pgsls(3)
        call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
        if (ianticlump.ne.0) then
