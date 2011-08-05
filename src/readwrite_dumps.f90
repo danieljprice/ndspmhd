@@ -25,7 +25,7 @@ subroutine write_dump(t,dumpfile)
  implicit none
  real, intent(in) :: t
  character(len=*), intent(in) :: dumpfile
- integer :: nprint,ndata,i
+ integer :: i,nprint,ncolumns
  integer :: ierr,iformat
 
  if (idumpghost.eq.1) then
@@ -44,19 +44,21 @@ subroutine write_dump(t,dumpfile)
 !
 !--write timestep header to data file
 !
+ ncolumns = ndim + ndimV + 4
  if (imhd.ne.0) then
-    ndata = ndim + 11 + 3*ndimV ! number of columns apart from co-ords
+    ncolumns = ncolumns + 8 + 2*ndimV ! number of columns
     iformat = 2
  else
-    ndata = ndim + 11 + ndimV
+    ncolumns = ncolumns + 5
     iformat = 1
-    if (igeom.gt.1) then
-       ndata = ndata + 2 + ndimV
-       iformat = 3
-    endif
  endif
+ if (geom(1:4).ne.'cart') then
+    ncolumns = ncolumns + 2 + ndimV
+    iformat = 3
+ endif
+ 
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
-      ndata,igeom,iformat,ibound,xmin(1:ndim),xmax(1:ndim)
+      ncolumns,iformat,ibound,xmin(1:ndim),xmax(1:ndim),len(geom),geom
  if (ierr /= 0) then
     write(iprint,*) '*** error writing timestep header to dumpfile ',trim(dumpfile)
  endif
@@ -70,48 +72,49 @@ subroutine write_dump(t,dumpfile)
 ! MHD variables are written after the hydro ones in 
 ! each case
 !
+  !--essential variables
+  do i=1,ndim
+     write(idatfile) x(i,1:nprint)
+  enddo
+  do i=1,ndimV
+     write(idatfile) vel(i,1:nprint)
+  enddo
+  write(idatfile) hh(1:nprint)
+  write(idatfile) dens(1:nprint)
+  write(idatfile) uu(1:nprint)
+  write(idatfile) pmass(1:nprint)
+  
   if (imhd.ne.0) then
-     !--essential variables
-     write(idatfile) x(:,1:nprint)
-     write(idatfile) vel(:,1:nprint)
-     write(idatfile) hh(1:nprint)
-     write(idatfile) dens(1:nprint)
-     write(idatfile) uu(1:nprint)
-     write(idatfile) pmass(1:nprint)
-     write(idatfile) alpha(1:3,1:nprint)
-     write(idatfile) Bfield(:,1:nprint)
-     write(idatfile) psi(1:nprint)
-     !--info only
-     write(idatfile) pr(1:nprint)
-     write(idatfile) gradh(1:nprint) !!!-drhodt(1:nprint)/rho(1:nprint)
-     write(idatfile) divB(1:nprint)
-     write(idatfile) Bevol(:,1:nprint)
-  else
-     !--essential variables
-     write(idatfile) x(:,1:nprint)
-     write(idatfile) vel(:,1:nprint)
-     write(idatfile) hh(1:nprint)
-     write(idatfile) dens(1:nprint)
-     write(idatfile) uu(1:nprint)
-     write(idatfile) pmass(1:nprint)
-     write(idatfile) alpha(1:2,1:nprint)
-     !--info only
-     write(idatfile) pr(1:nprint)
-     write(idatfile) gradh(1:nprint)  !!-drhodt(1:nprint)/rho(1:nprint)
-     write(idatfile) gradsoft(1:nprint)
-     write(idatfile) poten(1:nprint)
-     do i=1,nprint
-        psi(i) = sqrt(dot_product(force(1:ndim,i),force(1:ndim,i)))
+     do i=1,3
+        write(idatfile) alpha(i,1:nprint)
+     enddo
+     do i=1,ndimV
+        write(idatfile) Bfield(i,1:nprint)
      enddo
      write(idatfile) psi(1:nprint)
-     psi = 0.
-     if (igeom.gt.1) then
-        write(idatfile) rho(1:nprint)
-        write(idatfile) sqrtg(1:nprint)
-        do i=1,ndimV
-           write(idatfile) pmom(i,1:nprint)
-        enddo
-     endif
+     !--info only
+     write(idatfile) pr(1:nprint)
+     write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
+     write(idatfile) divB(1:nprint)
+     do i=1,ndimV
+        write(idatfile) curlB(i,1:nprint)
+     enddo
+     write(idatfile) gradh(1:nprint)
+  else
+     do i=1,2
+        write(idatfile) alpha(i,1:nprint)
+     enddo
+     !--info only
+     write(idatfile) pr(1:nprint)
+     write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
+     write(idatfile) gradh(1:nprint)
+  endif
+  if (geom(1:4).ne.'cart') then
+     write(idatfile) rho(1:nprint)
+     write(idatfile) sqrtg(1:nprint)
+     do i=1,ndimV
+        write(idatfile) pmom(i,1:nprint)
+     enddo
   endif
 
  close(unit=idatfile)
@@ -149,11 +152,12 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  real, intent(out) :: tfile
  logical, optional, intent(in) :: copysetup
  integer :: i,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
- integer :: ierr, iformat,igeomfile
+ integer :: ierr, iformat,lengeom
+ character(len=len(geom)) :: geomfile
  real :: gammafile,hfactfile
  logical :: iexist
 
- igeomfile = 0
+ geomfile = 'cartes'
 !
 !--set name of setup file
 !
@@ -177,8 +181,9 @@ subroutine read_dump(dumpfile,tfile,copysetup)
 ! read(ireadf,iostat=ierr) tfile,npartfile,nprintfile,gammafile,hfactfile, &
 !      ndimfile,ndimvfile,ncolumns,igeomfile,iformat
  read(ireadf,iostat=ierr) tfile,npartfile,nprintfile,gammafile,hfactfile, &
-                          ndimfile,ndimvfile,ncolumns,igeomfile,iformat, &
-                          ibound(1:ndimfile),xmin(1:ndimfile),xmax(1:ndimfile)
+                          ndimfile,ndimvfile,ncolumns,iformat, &
+                          ibound(1:ndimfile),xmin(1:ndimfile),xmax(1:ndimfile),lengeom,geomfile(1:lengeom)
+
  if (ierr /= 0) then
     write(iprint,*) 'error reading header from dump file: ',trim(dumpfile)
     stop 
@@ -192,7 +197,6 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     if (copysetup) then
        gamma = gammafile
        hfact = hfactfile
-       igeom = igeomfile
     endif
  endif
 !
@@ -231,12 +235,16 @@ subroutine read_dump(dumpfile,tfile,copysetup)
 !
 !--read data from file (only bits needed to restart the run - do not read ghosts)
 !
- read(ireadf,iostat=ierr) (x(1:ndim,i),i=1,npart)
+ do i=1,ndim
+    read(ireadf,iostat=ierr) x(i,1:npart)
+ enddo
  if (ierr /= 0) then
     write(iprint,*) '*** error reading data from dumpfile ***'
     stop
  endif
- read(ireadf,iostat=ierr) vel(1:ndimV,1:npart)
+ do i=1,ndimV
+    read(ireadf,iostat=ierr) vel(i,1:npart)
+ enddo
  if (ierr /= 0) stop 'error reading dumpfile'
  read(ireadf,iostat=ierr) hh(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
@@ -247,24 +255,32 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  read(ireadf,iostat=ierr) pmass(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
  if (iformat.eq.2 .and. imhd.ne.0) then
-    read(ireadf,iostat=ierr) alpha(1:3,1:npart)
+    do i=1,3
+       read(ireadf,iostat=ierr) alpha(i,1:npart)
+    enddo
     if (ierr /= 0) then
        write(iprint,*) '*** error in dumpfile : non-MHD file ***'
     endif
-    read(ireadf,iostat=ierr) Bfield(1:ndimV,1:npart)
+    do i=1,ndimV
+       read(ireadf,iostat=ierr) Bfield(i,1:npart)
+    enddo
     read(ireadf,iostat=ierr) psi(1:npart)
  elseif (iformat.eq.2) then
     !--read alpha in MHD format
-    read(ireadf,iostat=ierr) alpha(1:3,1:npart)    
+    do i=1,3
+       read(ireadf,iostat=ierr) alpha(i,1:npart)    
+    enddo
  else
-    read(ireadf,iostat=ierr) alpha(1:2,1:npart)
+    do i=1,2
+       read(ireadf,iostat=ierr) alpha(i,1:npart)
+    enddo
  endif
 !
 !--close the file
 !
  close(unit=ireadf)
  
- igeomsetup = igeomfile
+ geomsetup = geomfile
  
  write(iprint,*) 'finished reading setup file: everything is aok'
 
