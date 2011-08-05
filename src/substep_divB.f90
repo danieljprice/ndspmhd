@@ -6,12 +6,23 @@
 !! The predictor-corrector scheme is cut into 2*n+1 steps
 !! such that the centred rates call is common to both the main (hydro)
 !! stepping and the substepping
-!! ie. for n=1 during main predictor we do:
-!!      predictor->corrector->predictor->
-!!     during main corrector step we do:
-!!      ->corrector->predictor->corrector
 !!
-!! NB: AT THE MOMENT, ONLY WORKS IF Bevol is B on input
+!! ie. n=0 does the following
+!!     icall=1 : predictor->
+!!     (return to main step to get total rates, including divB, grad psi)
+!!     icall=2 : ->corrector
+!!
+!! n=1 does:
+!!     icall=1 : predictor->(div B/grad psi)->corrector->predictor->
+!!     (return to main step to get total rates)
+!!     icall=2 : ->corrector->predictor->(div B/grad psi)->corrector
+!!
+!! n=2 does:
+!!     icall=1 : pred->(divB/gradpsi)->corr->pred->(divBgradpsi)->corr->pred->
+!!     (main rates)
+!!     icall=2 : ->corr->pred->(divB/gradpsi)->corr->pred->(divBgradpsi)->corr
+!!
+!! and so on.
 !!
 !!---------------------------------------------------------------------------
 
@@ -34,11 +45,12 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  REAL, DIMENSION(ntot), INTENT(INOUT) :: psi,divB
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
  REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass
- REAL, DIMENSION(ntot) :: psiin, rho, dpsidt
- REAL, DIMENSION(ndimV,ntot) :: Bevolin
- INTEGER :: i,j,istep,indexmax,nsubsteps
+ REAL, DIMENSION(ntot) :: psiin, rho
+ REAL, DIMENSION(ndimV,ntot) :: Bevolin, Bfield
+ REAL :: dpsidti
+ INTEGER :: i,j,istep,indexmax,nsubsteps,nloops
  REAL :: dtsub,hdt,vsig2substep,vsigsubstep
- LOGICAL :: nopredictor, docorrector
+ LOGICAL :: dopredictor, docorrector
 !
 !--allow for tracing flow
 !      
@@ -54,38 +66,40 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  vsigsubstep = nsubsteps*sqrt(vsig2max)
  vsig2substep = vsigsubstep**2
  
- print*,'Substepping: dtfull = ',dtfull,' dtsub = ',dtsub
+ print*,'Substepping: dtfull = ',dtfull,' dtsub = ',dtsub,' n = ',nsubstepsin
  print*,' nsubsteps = ',nsubsteps, ' vsigmax = ',vsigsubstep,sqrt(vsig2max)
  print*,' maxdivB = ',maxval(divB(1:npart)), 'npart = ',npart,ntot
  
  psiin = psi
  Bevolin = Bevol 
 
- DO i=1,npart
-    dpsidt(i) = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
- ENDDO
+ nloops = nsubstepsin + 1
 
- substeploop: DO istep = 1,nsubsteps
+ substeploop: DO istep = 1,nloops
 
  hdt = 0.5*dtsub
  !
  !--work out whether or not to do predictor and corrector steps
  !
- nopredictor = (icall.eq.1) .or. (istep.ne.nsubsteps)
- docorrector = (icall.eq.2) .or. (istep.ne.nsubsteps)
+ dopredictor = .true.
+ docorrector = .true.
+ 
+ if ((icall.eq.2) .and. (istep.eq.1)) dopredictor = .false.
+ if ((icall.eq.1) .and. (istep.eq.nloops)) docorrector = .false.
 
- if (.not.nopredictor) then
+ if (dopredictor) then
     write(iprint,*) ' substep: predictor'
     !
     !--Mid-point Predictor step
     !
     DO i=1,npart
+       dpsidti = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
        IF (itype(i).EQ.1) THEN    ! fixed particles
           Bevol(:,i) = Bevolin(:,i)     
           psi(i) = psiin(i)
        ELSE
           Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
-          psi(i) = psiin(i) + hdt*dpsidt(i)  
+          psi(i) = psiin(i) + hdt*dpsidti  
        ENDIF
     ENDDO 
     !
@@ -100,36 +114,43 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
     ENDIF
  endif
  
- if (icall.eq.1 .and. istep.eq.nsubsteps) then
+ if (.not.docorrector) then
     !
-    !--return after predictor step
+    !--return after predictor step, with predicted values of Bevol and psi
     !
     return
- elseif (.not.(icall.eq.2 .and.istep.eq.1)) then
+ elseif (dopredictor) then
     !
     !--or else calculate grad psi and div B for corrector step
     !
-    CALL get_divBgradpsi(divB,gradpsi,Bevol,psi,x,hh,pmass,rho,npart,ntot)
+    DO i=1,ntot
+       IF (imhd.ge.11) THEN
+          Bfield(:,i) = Bevol(:,i) 
+       ELSE
+          Bfield(:,i) = Bevol(:,i)*rho(i)
+       ENDIF
+    ENDDO
+    CALL get_divBgradpsi(divB,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
     print*,' max divB = ',maxval(divB(1:npart)), &
             rho(maxloc(divB(1:npart))),maxloc(divB(1:npart))
 
-    DO i=1,npart
-       dpsidt(i) = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
-    ENDDO
  endif
  
- if (.not.(icall.eq.1 .and. istep.eq.1)) then
+ if (docorrector) then
     write(iprint,*) 'substep: corrector'
     !
     !--Mid-point Corrector step
     !
+
+
     DO i=1,npart
+       dpsidti = -vsig2substep*divB(i) - psidecayfact*psi(i)*vsigsubstep/hh(i)
        IF (itype(i).EQ.1) THEN
           Bevol(:,i) = Bevolin(:,i)
           psi(i) = psiin(i)
        ELSE
           Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
-          psi(i) = psiin(i) + hdt*dpsidt(i)          
+          psi(i) = psiin(i) + hdt*dpsidti
        ENDIF      
     ENDDO        
            
@@ -142,12 +163,8 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  endif
 
  ENDDO substeploop
+
  print*,'finished substeps'
- read*
-!
-!--return appropriate quantity (B or B/rho)
-!
- 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine substep_divB'
       
  RETURN
