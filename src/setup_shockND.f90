@@ -7,6 +7,9 @@
 !!  that the density will be *wrong* unless                               !!
 !!  psepright = (densleft/densright)**(1./ndim)                           !!
 !!  is an exact division of the box width                                 !!
+!!                                                                        !!
+!!  NOTE: If this setup is used in 1D must use boundaryND.f90             !!
+!!        NOT boundaryND_1D.f90 (ie. no inflow/outflow)                   !!
 !!------------------------------------------------------------------------!!
 subroutine setup
  use dimen_mhd
@@ -133,10 +136,10 @@ subroutine setup
 !--extend boundaries if inflow
 !
  if (vxleft.gt.0.) then
-    xmin(1) = xmin(1) - vxleft*tmax
+    xmin(1) = xmin(1) - vxleft*tmax !!- 6.*psep
  endif
  if (vxright.lt.0.) then
-    xmax(1) = xmax(1) - vxright*tmax
+    xmax(1) = xmax(1) - vxright*tmax !!+ 6.*psep
  endif
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
