@@ -1,5 +1,5 @@
 \documentclass[a4paper,12pt]{article}
-\usepackage{natbib,epsfig,rotating}
+\usepackage{natbib,epsfig,rotating,longtable,url,amsmath}
 
 \title{Visualisation of SPH data using SUPERSPHPLOT - v1.0}
 \author{Daniel Price}
@@ -75,19 +75,19 @@ difference between a raw particle plot and a rendered image can be substantial).
 \section{Getting started}
  First of all, make sure that PGPLOT is installed on your system. The PGPLOT
 graphics subroutine library is freely downloadable from
-\begin{verbatim}
-http://www.astro.caltech.edu/~tjp/pgplot/
-\end{verbatim}
-or by ftp from 
-\begin{verbatim} 
-ftp://ftp.astro.caltech.edu/pub/pgplot/pgplot5.2.tar.gz
-\end{verbatim}
+\begin{quote}
+\url{http://www.astro.caltech.edu/~tjp/pgplot/}
+\end{quote}
+or by ftp from
+\begin{quote}
+\url{ftp://ftp.astro.caltech.edu/pub/pgplot/pgplot5.2.tar.gz}
+\end{quote}
 however check to see if it is already installed on your system (if so, the libraries are
 usually located in /usr/local/pgplot). For details of the actual plotting subroutines
 used by SUPERSPHPLOT, we refer the reader to the PGPLOT userguide:
-\begin{verbatim}
-http://www.astro.caltech.edu/~tjp/pgplot/contents.html
-\end{verbatim}
+\begin{quote}
+\url{http://www.astro.caltech.edu/~tjp/pgplot/contents.html}
+\end{quote}
 
 \subsection{Compiling the code: Makefile options} 
  In the Makefile, you will need to set the FORTRAN compiler and flags to your local version, e.g..
@@ -136,7 +136,8 @@ them in your .tcshrc or bash/sh equivalent file). For other environment
 variables which can be set, refer to the PGPLOT user guide.
 
 \subsection{System dependent routines}
-The only system dependent subroutine is the call to $getarg$ in supersphplot.f90 which
+The only system dependent subroutine is the call to \verb+getarg+ in
+\verb+supersphplot.f90+ which
 reads the run name(s) from the command line. A standardised format for performing this
 task is included in the standards for the next release of Fortran (Fortran 2003),
 however in the meantime this call may require some adjustment depending on the
@@ -162,14 +163,12 @@ supersphplot myrun*
 files will be read consecutively in the order that they are given.
 
 \subsection{Writing your own subroutine}
-The first $ndim$ columns in the main data array \emph{must} contain the particle co-ordinates.
-Also it is preferable (but not essential) for the next $ndimV$ columns to contain the
-particle velocities (note that the co-ordinates and velocities can in general have different
-numbers of dimensions since this can occur, for example, in MHD simulations). After
-these columns the ordering of data is not important, although vector quantities should
+The first \verb+ndim+ columns in the main data array \emph{must} contain the particle co-ordinates.
+After these columns the ordering of data is not important, although vector quantities should
 always be listed with components in the correct order (e.g. $(\nabla\times {\bf v})_x$,
-followed by the $y-$ and $z-$ components) for both vector plotting and the co-ordinate
-transformation of the vector quantities. 
+followed by the $y-$ and $z-$ components) for both vector plotting and for the
+correct co-ordinate transformation of the vector quantities. Note that the co-ordinates and velocities can have different
+numbers of dimensions (specified by \verb+ndim+ and \verb+ndimV+) since this can occur, for example, in MHD simulations.
 
 Most important is that, for the rendering routines to work, the density, particle
 masses and smoothing lengths for \emph{all} of the (gas) particles \emph{must} be read in from
@@ -201,7 +200,13 @@ options
 
 \subsection{Subroutines}
 The program consists of the following subroutines (in alphabetical order):
-\begin{tabular}{lcp{0.7\textwidth}}
+\begin{longtable}{|lcp{0.7\textwidth}|}
+\hline
+Subroutine &  & Description \\
+\hline \endhead
+\multicolumn{3}{|r|}{\emph{continued on next page}} \\
+\hline \endfoot
+\hline \endlastfoot
 allocate           & : & allocates memory for main arrays \\
 calc\_quantities    & : & calculates additional quantities from particle data\\
 colour\_demo        & : & demonstration of colour schemes for rendering\\
@@ -259,7 +264,7 @@ supersphplot	 & : & main program, drives menu loop\\
 titles\_read        & : & reads a list of titles to be used to label each timestep\\
 transform	 	 & : & applies various transformations to data (log10, 1/x, etc)\\
 vectorplot         & : & produces a vector plot from particle data
-\end{tabular}
+\end{longtable}
 
 \subsection{Variables}
 \label{sec:variables}
@@ -576,17 +581,40 @@ a straight cross section as described above.
 
 
 
-\section{FAQS: How do I...?}
+\section{FAQS: How do I...}
 
-\subsection{Read/process my data into images without having to answer prompts}
+\subsection{Read/process my data into images without having to answer prompts?}
 
-\subsection{Calculate additional quantities}
+\subsection{Calculate additional quantities?}
 
-\subsection{Title the plots}
+\subsection{Title the plots?}
 
-\subsection{Customise the legend}
+\subsection{Use special characters in the plot labels?}
+ Several of the examples shown in this manual use special characters (such as
+the $\int$ character) in the plot labels. The PGPLOT user guide explains how to do
+this, but the basic idea is that PGPLOT uses escape sequences to plot special
+characters. For example to plot the greek letter $\rho$ we would use
+\begin{verbatim}
+label = 'this would print the greek letter \gr'
+\end{verbatim}
+where \verb+\gr+ is the PGPLOT escape sequence for $\rho$. For other
+characters the escape sequence is given by a number. For example for the integral 
+\begin{equation}
+\int v_x \mathrm{dx}
+\end{equation}
+we would use
+\begin{verbatim}
+label = '\(2268) v\d x \u dx'
+\end{verbatim}
+where \verb+\(2268)+ is the escape sequence for the integral sign. The
+\verb+\d+ indicates that what follows should be printed as subscript and
+\verb+\u+ correspondingly indicates a return to normal script (or from normal script to
+superscript). All of the escape sequences for special characters are listed in
+the appendix to the PGPLOT user guide.
 
-\subsection{Make movies}
+\subsection{Customise the legend?}
+
+\subsection{Make movies?}
  Although the 
 
 \section{User contributions / Wishlist for future improvements}
@@ -600,17 +628,24 @@ build a library of user-contributed exact solutions.
 algorithms for finding binary stars etc) which could be incorporated.
 \item New visualisation techniques (e.g. an isosurfacing routine for SPH, better
 vortex line tracing).
-\item Better colour schemes!!! (see colour\_set.f90 for how to do this)
+\item More colour schemes (see \verb+colour_set.f90+ for how to do this)
+\item Pretty pictures! If you happen to plot some of your data and spend the
+next several minutes marvelling at how astoundingly beautiful it all looks, please send
+me a copy (either ps, gif or a movie) to add to the gallery and a few lines
+describing the simulation.
 \end{itemize}
+
 
 If you wish to send me subroutines or snippets of (Fortran only!) code for doing any of the above or
 more, please also send me a \LaTeX file
 documenting the subroutine similar to the documentation given in this user guide.
 Also, please, please comment your code clearly so that others can figure out
 what it does and try to catch as many errors as possible so that the whole
-program is robust.  One thing I have avoided doing is to use any specific SPH routines, so that I
-don't have to use any treecodes or the like to find neighbours. An example of a
-routine which would use this is to find the div/curl of a vector quantity using
+program is robust.  One thing I have avoided doing is to use any SPH
+routines which explicitly require finding neighbours, to avoid introducing treecodes and
+the like and to keep the program independent of any particular implementation of
+SPH. An example of a
+routine would be to find the div/curl of a vector quantity using
 the SPH summation.
 
 Contributions, comments and inevitable bug fixes
