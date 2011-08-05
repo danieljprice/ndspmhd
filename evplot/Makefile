@@ -7,12 +7,13 @@
 
 .KEEP_STATE:
 
-FORTRAN = f90
-F90C = f90
+F90C =  ifc
+F90FLAGS =  -O -C
+LDFLAGS =  -lpgplot -L/usr/X11R6/lib -lX11 -lg2c -lpng -Vaxlib
 
-FFLAGS = 
-F90FLAGS = -O
-LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
+# Fortran flags same as F90
+FC = $(F90C)
+FFLAGS = $(F90FLAGS)
 
 # define the implicit rule to make a .o file from a .f90 file
 

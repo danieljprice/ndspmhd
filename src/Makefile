@@ -10,42 +10,13 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-
-##.SUFFIXES:
-##.SUFFIXES:.f90 .o
-
-## ------------------------------------------------------------------ ##
-## Compiler options (uncomment ONE set)
-## ------------------------------------------------------------------ ##
-# IoA compiler (Sun fortran)
-#
-# -C gives array out-of-bounds checking
-# -u forces implicit none
-# -g for debugging with dbx etc
-# -pg for profiling
-# -xtypemap=real:64,double:64,integer:32 for double precision
-# -ftrap = %all traps floating point exceptions
-#
-FC = f90
-F90C = f90
-F90FLAGS = -fast -xtypemap=real:64,double:64,integer:32
+F90C =  ifc
+F90FLAGS =  -O -C
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
-## ------------------------------------------------------------------ ##
-# Monash compiler (Lahey-Fujitsu f95)
-#FC = lf95
-#F90C = lf95
-#FFLAGS = -O ##--chk aesux --chkglobal  --warn
-#F90FLAGS = -O ##--chk aesux --chkglobal --warn
-#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
-## ------------------------------------------------------------------ ##
-# Intel fortran
-#FC = ifc
-#F90C = ifc
-#FFLAGS = -O ##-CB -std90 -check all
-#F90FLAGS = -O -WB ##-CB -std90 -check all
-##LDFLAGS =  -lg2c -L/usr/local/pgplot -lpgplot -L/usr/X11R6/lib -lX11 -Vaxlib
-#LDFLAGS = -Vaxlib
-## ------------------------------------------------------------------ ##
+
+# Fortran flags same as F90
+FC = $(F90C)
+FFLAGS = $(F90FLAGS)
 
 # define the implicit rule to make a .o file from a .f90 file
 
