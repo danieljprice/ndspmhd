@@ -24,6 +24,7 @@ contains
     use part,         only:Bfield,ntotal,uu,psi
     use setup_params, only:hfact
     use rates,        only:dBevoldt
+    use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
 !
 !--define local variables
 !
@@ -33,7 +34,7 @@ contains
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
  
-    integer :: i,j,n
+    integer :: i,j,k,n
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh
     integer :: idone
@@ -49,6 +50,8 @@ contains
     real, dimension(npart) :: rhoin
     real, dimension(ntotal) :: h1,unity
     real :: dvdotr,pmassi,pmassj,projBi,projBj
+    real, dimension(ndxdx) :: dxdxi
+    real, dimension(ndimV) :: dr
 !
 !  (kernel quantities)
 !
@@ -73,6 +76,7 @@ contains
     dwdhdhi = 0.
     dwdhdhj = 0.
     wconst = 1./hfact**ndim
+    dr(:) = 0.
 
     do i=1,npart
        rhoin(i) = rho(i)
@@ -89,6 +93,7 @@ contains
           psi(i) = 0.
           unity(i) = 0.
        endif
+       dxdx(:,i) = 0.
     enddo
     do i=1,ntotal
        h1(i) = 1./hh(i)
@@ -120,6 +125,7 @@ contains
           hi1 = h1(i)
           hfacwabi = hi1**ndim
           hi21 = hi1*hi1
+          dxdxi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -147,6 +153,7 @@ contains
                 if (i.LE.npart) numneigh(i) = numneigh(i) + 1
                 if (j.LE.npart .and. j.ne.i) numneigh(j) = numneigh(j) + 1
                 rij = sqrt(rij2)
+                dr(1:ndim) = dx(1:ndim)/(rij + epsilon(rij))
                 hfacwabj = hj1**ndim         
 !
 !--weight self contribution by 1/2
@@ -240,14 +247,14 @@ contains
 !
                 if (i.ne.j) then
                    dvel(1:ndimV) = veli(1:ndimV) - vel(1:ndimV,j)
-                   dvdotr = dot_product(dvel(1:ndim),dx)/rij
+                   dvdotr = dot_product(dvel,dr)
                    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni !+ pmassj*dvdotr*wabi*hi1
                    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj !+ pmassi*dvdotr*wabj*hj1
                    dndt(i) = dndt(i) + dvdotr*grkernalti
                    dndt(j) = dndt(j) + dvdotr*grkernaltj
                    if (imhd.eq.5) then
-                   projBi = dot_product(Bfield(1:ndim,i),dx)/rij
-                   projBj = dot_product(Bfield(1:ndim,j),dx)/rij
+                   projBi = dot_product(Bfield(:,i),dr)
+                   projBj = dot_product(Bfield(:,j),dr)
                    dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
                    dBevoldt(:,j) = dBevoldt(:,j) - pmassi*projBj*dvel(:)*grkernj
                    endif
@@ -285,6 +292,12 @@ contains
                       endif                   
                    endif
                 endif
+                if (i.ne.j) then
+                   do k=1,ndxdx
+                      dxdxi(k) = dxdxi(k) - pmass(j)*(dx(idxdx(k)))*dr(jdxdx(k))*grkerni
+                      dxdx(k,j) = dxdx(k,j) - pmass(i)*(dx(idxdx(k)))*dr(jdxdx(k))*grkernj
+                   enddo
+                endif
 !        ELSE
 !           PRINT*,' r/h > 2 '      
         
@@ -292,6 +305,7 @@ contains
            
           enddo loop_over_neighbours
 
+          dxdx(:,i) = dxdx(:,i) + dxdxi(:)
           iprev = i
           if (iprev.NE.-1) i = ll(i)  ! possibly should be only IF (iprev.NE.-1)
        enddo loop_over_cell_particles
@@ -352,6 +366,7 @@ contains
     use part,         only:Bfield,uu,psi
     use rates,        only:dBevoldt
     use setup_params, only:hfact
+    use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
 !
 !--define local variables
 !
@@ -363,7 +378,7 @@ contains
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
-    integer :: i,j,n
+    integer :: i,j,k,n
     integer :: icell,ipart,nneigh !!,minneigh,minpart
     integer, dimension(ntotal) :: listneigh
     integer :: icellprev
@@ -377,6 +392,8 @@ contains
     real, dimension(ndimV) :: veli,dvel
     real, dimension(nlist) :: rhoin
     real :: dvdotr,projBi
+    real, dimension(ndxdx) :: dxdxi
+    real, dimension(ndimV) :: dr
 !
 !  (kernel quantities)
 !
@@ -393,6 +410,7 @@ contains
 !
     listneigh = 0
     wconst = 1./hfact**ndim
+    dr(:) = 0.
 
     do ipart=1,nlist
        i = ipartlist(ipart)
@@ -408,6 +426,7 @@ contains
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        if (imhd.eq.0 .and. iprterm.eq.10) psi(i) = 0.
+       dxdx(:,i) = 0.
     enddo
     icellprev = 0
 !
@@ -441,6 +460,7 @@ contains
        hfacgrkerni = hfacwabi*hi1
        xi = x(:,i)
        veli(:) = vel(:,i) 
+       dxdxi(:) = 0.
 !
 !--loop over current particle's neighbours
 !
@@ -457,6 +477,7 @@ contains
 !
           if (q2i.LT.radkern2) then
              rij = sqrt(rij2)
+             dr(1:ndim) = dx(1:ndim)/(rij + epsilon(rij))
              !!!if (i.eq.416) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
              pmassj = pmass(j)
@@ -498,11 +519,11 @@ contains
 !
              if (i.ne.j) then
                 dvel(:) = veli(:) - vel(:,j)
-                dvdotr = dot_product(dvel(1:ndim),dx)/rij
+                dvdotr = dot_product(dvel,dr)
                 drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni !+ pmassj*dvdotr*wabi*hi1
                 dndt(i) = dndt(i) + dvdotr*grkernalti
                 if (imhd.eq.5) then
-                projBi = dot_product(Bfield(1:ndim,i),dx)/rij
+                projBi = dot_product(Bfield(:,i),dr)
                 dBevoldt(:,i) = dBevoldt(:,i) - pmassj*projBi*dvel(:)*grkerni
                 endif
              else
@@ -521,10 +542,18 @@ contains
                 psi(i) = psi(i) + pmassj*wabi*uu(j)
                 unityi = unityi + wconst*wabi/hfacwabi
              endif
+
+             if (i.ne.j) then
+                do k=1,ndxdx
+                   dxdxi(k) = dxdxi(k) - pmass(j)*(dx(idxdx(k)))*dr(jdxdx(k))*grkerni
+                enddo
+             endif
           endif
           
        enddo loop_over_neighbours
-       
+
+       dxdx(:,i) = dxdx(:,i) + dxdxi(:)
+
        if (imhd.eq.0) then
           !psi(i) = abs(uu(i) - psi(i)/unityi)
           !if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
