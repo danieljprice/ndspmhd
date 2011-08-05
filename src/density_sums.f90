@@ -17,7 +17,7 @@ contains
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
-    use kernel, only:radkern2
+    use kernels, only:radkern2,interpolate_kernel
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
     use options, only:ikernav
     !use matrixcorr
@@ -257,7 +257,7 @@ contains
     use debug, only:trace
     use loguns, only:iprint
  
-    use kernel, only:radkern2
+    use kernels, only:radkern2,interpolate_kernel
     use linklist, only:iamincell,numneigh
     !use matrixcorr
 !
