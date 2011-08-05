@@ -74,9 +74,9 @@ subroutine set_ghost_particles
         dx = x(1,i) - xmin(1)
         if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
            xpart(1) = xmax(1) + dx
-           xpart(2) = x(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = x(2,i) !- domegadr*Omega0*(xmax(1)-xmin(1))*time
            xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
-           vpart(2) = vel(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+           vpart(3) = vel(3,i) - domegadr*Omega0*(xmax(1)-xmin(1))
            call makeghost(i,xpart,vpart)
            yi = xpart(2)
            !--check ymin and ymax
@@ -97,9 +97,9 @@ subroutine set_ghost_particles
         dx = xmax(1) - x(1,i)
         if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
            xpart(1) = xmin(1) - dx
-           xpart(2) = x(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = x(2,i) !+ domegadr*Omega0*(xmax(1)-xmin(1))*time
            xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
-           vpart(2) = vel(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+           vpart(3) = vel(3,i) + domegadr*Omega0*(xmax(1)-xmin(1))
            call makeghost(i,xpart,vpart)
            yi = xpart(2)
            !--check ymin and ymax
@@ -144,7 +144,7 @@ subroutine set_ghost_particles
 !  for periodic must use hmax as particle sees different particles as ghosts
 !  (for efficiency in this case should use max h of all particles near boundary)
 !
-     where (ibound.eq.2 .or. ibound.eq.4) dxbound(:) = radkern*hh(jpart)
+     where (ibound.eq.2 .or. ibound.eq.4 .or. ibound.eq.6) dxbound(:) = radkern*hh(jpart)
 !    IF (jpart.EQ.jtemp) PRINT*,jpart,' x = ',x(:,jpart)
     
      over_dimen: do idimen = 1, ndim  ! over spatial dimensions
@@ -197,7 +197,7 @@ subroutine set_ghost_particles
                     !read*
                  elseif (ibound(idimen).eq.3) then ! periodic
                     xnew(idimen,imaxmin) = xperbound + dxshift
-                 elseif (ibound(idimen).eq.2 .or. ibound(idimen).eq.4) then ! reflective
+                 elseif (ibound(idimen).eq.2 .or. ibound(idimen).eq.4 .or. ibound(idimen).eq.6) then ! reflective
                     xnew(idimen,imaxmin) = xbound - dxshift
                     vpart(idimen) = -vel(idimen,jpart)
                  endif
@@ -254,7 +254,8 @@ subroutine set_ghost_particles
 !--make the ghost particle at this position
 !
                              !ireflect = .false.
-                             if (ibound(idimenprev).eq.2) vpart(:) = vel(:,jpart)
+                             if (ibound(idimenprev).eq.2 .or. ibound(idimenprev).eq.4 .or. ibound(idimenprev).eq.6) &
+                                vpart(:) = vel(:,jpart)
                              if (ibound(idimenprev).eq.5) &
                                 vpart(2) = vel(2,jpart) - SIGN(1.0,xpart(idimenprev)-x(1,jpart))*domegadr*Omega0*(xmax(1)-xmin(1))
                              call makeghost(jpart,xpart,vpart)
@@ -277,7 +278,9 @@ subroutine set_ghost_particles
                                       !if (jpart.eq.jtemp) then
                                       !   print*,'corner',idimen,idimenprev,idimenprevprev             
                                       !endif
-                                      if (ibound(idimenprevprev).eq.2) vpart(:) = -vel(:,jpart)
+                                      if (ibound(idimenprevprev).eq.2 .or. ibound(idimenprevprev).eq.4 &
+                                          .or. ibound(idimenprevprev).eq.6) &
+                                         vpart(:) = -vel(:,jpart)
                                       if (ibound(idimenprevprev).eq.5) then
                                          xpart(2) = xnew(2,imaxminprevprev)
                                          vpart(2) = vel(2,jpart) &
@@ -337,6 +340,7 @@ subroutine makeghost(jpart,xghost,vghost)
   use bound
   use loguns
   use part
+  use eos, only:gamma
   use options, only:geom,ibound
   use mem_allocation, only:alloc
   implicit none
@@ -346,6 +350,7 @@ subroutine makeghost(jpart,xghost,vghost)
 !  logical, intent(in) :: ireflect
   integer :: ipart
   real, parameter :: pi = 3.141592653589 
+  real :: pri
 !
 !--create new particle and reallocate memory if needed
 ! 
@@ -364,6 +369,11 @@ subroutine makeghost(jpart,xghost,vghost)
 !--copy particle properties
 !
   call copy_particle(ipart,jpart)
+  if (any(ibound.eq.6)) then
+     pri = 2.5 - 0.1*dens(ipart)*x(2,ipart)
+     uu(ipart) = pri/((gamma-1.)*dens(ipart))
+     en(ipart) = uu(ipart)
+  endif
 !
 !--overwrite velocities if reflecting
 !
