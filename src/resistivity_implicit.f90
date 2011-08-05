@@ -35,7 +35,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 
  integer, parameter :: maxsweeps = 1000
  integer :: i,j,n,nsweeps
- integer :: icell,iprev,nneigh,nneighi
+ integer :: icell,iprev,nneigh,nneighi,istep,nsubsteps
  integer, dimension(npart) :: listneigh ! neighbour list
  real :: rij,rij2
  real :: hi1,hi21,etaij,etai,etaj
@@ -66,14 +66,18 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 !  fac = 1 gives fully implicit (backwards Euler)
 !  fac = 1/2 gives mix (Crank-Nicolson)
  
- fac = 0.5
+ fac = 1.
+ nsubsteps = 1
+ 
  if (abs(dt) > 0.) then
-    dti = dt
+    dti = dt/real(nsubsteps)
  else
     !--if dt=0, return explicit derivative
     dti = 1.
     fac = 0.
  endif
+ 
+ substeps: do istep=1,nsubsteps
  
  sweeps: do while (.not.converged .and. nsweeps.lt.maxsweeps)
  
@@ -231,6 +235,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  endif
  !read*
 
+ enddo substeps
 !
 !--what we actually return from this routine is an extra contribution to
 !  dBevoldt, as if it had been computed with the B^(n+1) in it.
@@ -258,7 +263,8 @@ real function etafunc(x,eta)
 ! else
 !    etafunc = 0.01*eta
 ! endif
- etafunc = eta*cos(2.*pi*x)**2
+ etafunc = eta
+! etafunc = eta*cos(2.*pi*x)**2
  
 end function etafunc
 
