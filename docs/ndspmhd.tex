@@ -336,37 +336,14 @@ kernel (top right), at the cost of increased compact support.}
 
 \section{Common errors}
 
-\section{Visualisation using supersphplot}
+\section{Visualisation}
 
-\subsection{Exact solutions}
-\subsubsection{Polytrope}
- This subroutines computes the exact solution for a static polytrope with
-arbitrary $\gamma$.
+\subsection{Supersphplot}
+ Supersphplot (located in the subdirectory plot) is a utility for visualising
+the output contained in the .dat file created by ndspmhd which contains the main
+dumps of particle data from the code. A separate user guide is provided.
 
-\subsubsection{Linear wave}
- This subroutine simply plots a sine function on a given graph.
-
-\subsubsection{Sedov blast wave}
- This subroutine computes the self-similar Sedov solution for a blast wave.
-
-\subsubsection{Toy stars}
- See \citet{mp04}.
-
-\subsubsection{MHD shock tubes}
- These are some tabulated solutions for specific MHD shock tube problems at a
-given time taken from the tables given in \citet{dw94} and \citet{rj95}.
-
-\subsubsection{h vs $\rho$}
- The subroutine exact\_hrho simply plots the relation between smoothing length
-and density, ie.
-\begin{equation}
-h = h_{fact} \left(\frac{m}{\rho}\right)^{1/\nu}
-\end{equation}
-where $\nu$ is the number of spatial dimensions. The parameter $h_{fact}$ is
-output by the code into the header of each timestep. For particles of different
-masses, a different curve is plotted for each different mass value.
-
-\section{Visualisation using evsupersph}
+\subsection{Evsupersph}
  Evsupersph (located in the subdirectory evplot) is a simple visualisation tool for the data contained in the
 .ev file created by ndspmhd (this monitors the conservation and time evolution
 of various quantities). For pure hydrodynamics, the .ev file monitors the
@@ -397,6 +374,12 @@ echo second run >> legend
 echo third run >> legend
 \end{verbatim}
 *** give an example of use of evsupersph on a run
+
+\subsection{Kernel plotting}
+ A utility for plotting the kernel used by the main code is provided in the
+utils directory (kernelplot.f90). This can be useful to investigate alternative
+kernels. This also calls a routine to plot the stability properties of a given
+kernel for one-dimensional, isothermal SPH. 
 
 \section{Wishlist for future improvements}
 
