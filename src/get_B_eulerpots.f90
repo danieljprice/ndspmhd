@@ -179,13 +179,13 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
     select case(iderivtype)
     case default
        if (use_exact_linear) then
-          call compute_rmatrix3D(dxdx(:,i),rmatrix,denom)
+          call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
           !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
           if (abs(denom).gt.epsilon(denom)) then
              ddenom = 1./denom
              do k=1,ndimV
-                call exactlinear3D(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
-                call exactlinear3D(gradbeta(:,k,i),gradbeta(:,k,i),rmatrix,ddenom)
+                call exactlinear(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
+                call exactlinear(gradbeta(:,k,i),gradbeta(:,k,i),rmatrix,ddenom)
              enddo
              !print*,i,' exact derivs, gradalpha^z = ',gradalpha(:,3,i)
           else
@@ -227,19 +227,34 @@ end subroutine get_B_eulerpots
 !  Computes matrix terms needed for exact linear derivatives
 !+
 !----------------------------------------------------------------
-subroutine compute_rmatrix3D(dxdxi,rmatrix,denom)
+subroutine compute_rmatrix(dxdxi,rmatrix,denom,ndim)
+ !use matrixcorr, only:ndxdx
  implicit none
  real, dimension(:), intent(in) :: dxdxi
  real, dimension(6), intent(out) :: rmatrix
  real, intent(out) :: denom
+ integer, intent(in) :: ndim
  real :: rxxi,rxyi,rxzi,ryyi,ryzi,rzzi
 
+ !print*,'ndim = ',ndim,'got dxdx = ',dxdxi,' ndxdx=',ndxdx
+ 
  rxxi = dxdxi(1)
- rxyi = dxdxi(2)
- ryyi = dxdxi(3)
- rxzi = dxdxi(4)
- ryzi = dxdxi(5)
- rzzi = dxdxi(6)
+ if (ndim.ge.2) then
+    rxyi = dxdxi(2)
+    ryyi = dxdxi(3)
+ else
+    rxyi = 0.
+    ryyi = 1.
+ endif
+ if (ndim.ge.3) then
+    rxzi = dxdxi(4)
+    ryzi = dxdxi(5)
+    rzzi = dxdxi(6)
+ else
+    rxzi = 0.
+    ryzi = 0.
+    rzzi = 1.
+ endif
  
  !print*,' got dxdx = ',dxdxi(:)
 
@@ -254,8 +269,9 @@ subroutine compute_rmatrix3D(dxdxi,rmatrix,denom)
  rmatrix(4) = rzzi*rxxi - rxzi*rxzi    ! yy
  rmatrix(5) = rxyi*rxzi - rxxi*ryzi    ! yz
  rmatrix(6) = rxxi*ryyi - rxyi*rxyi    ! zz
-
-end subroutine compute_rmatrix3D
+ !print*,' rmatrix = ',rmatrix(:), 'denom =',denom
+ !read*
+end subroutine compute_rmatrix
 
 !----------------------------------------------------------------
 !+
@@ -263,10 +279,10 @@ end subroutine compute_rmatrix3D
 !  exact linear derivative
 !+
 !----------------------------------------------------------------
-pure subroutine exactlinear3D(gradA,dAin,rmatrix,ddenom)
+pure subroutine exactlinear(gradA,dAin,rmatrix,ddenom)
  implicit none
- real, dimension(:), intent(out) :: gradA
- real, dimension(:), intent(in)  :: dAin
+ real, dimension(3), intent(out) :: gradA
+ real, dimension(3), intent(in)  :: dAin
  real, intent(in), dimension(6) :: rmatrix
  real, intent(in)  :: ddenom
  real, dimension(size(dAin)) :: dA
@@ -285,6 +301,6 @@ pure subroutine exactlinear3D(gradA,dAin,rmatrix,ddenom)
  !gradAz =(dAx*termxz + dAy*termyz + dAz*termzz)*ddenom
 
  return
-end subroutine exactlinear3D
+end subroutine exactlinear
 
 end module getBeulerpots

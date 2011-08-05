@@ -24,12 +24,13 @@ subroutine get_rates
  use derivB
  use get_neighbour_lists
  use grutils, only:metric_diag,dot_product_gr
- !!use matrixcorr
+ use getBeulerpots, only:compute_rmatrix,exactlinear
+ use matrixcorr, only:dxdx,idxdx,jdxdx,ndxdx
 !
 !--define local variables
 !
  implicit none
- integer :: i,j,n
+ integer :: i,j,n,k
  integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
  integer :: idone,nclumped
@@ -68,6 +69,9 @@ subroutine get_rates
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
  real, dimension(:,:), allocatable :: curlBsym
  real, dimension(:), allocatable :: divBsym
+ real, dimension(:,:,:), allocatable :: dveldx
+ real, dimension(6) :: rmatrix
+ real :: denom,ddenom
 !
 !  (artificial viscosity quantities)
 !      
@@ -129,6 +133,10 @@ subroutine get_rates
     allocate( divBsym(ntotal), STAT=ierr )
     if (ierr.ne.0) write(iprint,*) ' Error allocating divBsym, ierr = ',ierr
  endif
+ if (imhd.ne.0) then
+    allocate( dveldx(ndim,ndimV,ntotal), STAT=ierr )
+    if (ierr.ne.0) write(iprint,*) ' Error allocating dveldx, ierr = ',ierr
+ endif
  listneigh = 0
 !
 !--initialise quantities
@@ -153,6 +161,10 @@ subroutine get_rates
   if (imhd.gt.0) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
   if (allocated(divBsym)) divBsym(i) = 0.
+  if (allocated(dveldx)) then
+     dveldx(:,:,i) = 0.
+     dxdx(:,i) = 0.
+  endif
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -488,6 +500,24 @@ subroutine get_rates
     vsig = SQRT(vsig2)
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 
+    if (iuse_exact_derivs.gt.0) then
+       call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
+      ! print*,i,' dxdx=  ',dxdx(:,i)
+      ! print*,i,' rmatrix = ',rmatrix*rho1i*rho1i,'denom= ',denom*rho1i*rho1i*rho1i
+      ! print*,i,' normal derivs, dvxdy = ',dveldx(2,1,i)*rho1i
+       if (abs(denom).gt.epsilon(denom)) then
+          ddenom = 1./denom
+          do k=1,ndimV
+             call exactlinear(dveldx(:,k,i),dveldx(:,k,i),rmatrix,ddenom)
+          enddo
+       !   print*,i,' exact derivs, dvxdy = ',dveldx(2,1,i)
+       else
+          print*,'WARNING: denominator collapsed in exact linear deriv = ',denom
+          dveldx(:,:,i) = dveldx(:,:,i)*rho1i
+       endif
+       !read*
+    endif
+
 !
 !--if evolving B instead of B/rho, add the extra term from the continuity eqn
 !  (note that the dBevoldt term should be divided by rho)
@@ -499,9 +529,20 @@ subroutine get_rates
           gradpsi(:,i) = gradpsi(:,i)*rho1i
        endif
     case(1:10) ! evolving B/rho
-       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
-       if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i**2
+       if (iuse_exact_derivs.gt.0) then
+          dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
+          !--add the B/rho dot grad v bit
+          !print*,i,'dBevol/dt = ',sqrtg(i)*dBevoldt(:,i)*rho1i
+          do k=1,ndimV
+             dBevoldt(k,i) = dBevoldt(k,i) + dot_product(Bevol(1:ndim,i),dveldx(1:ndim,k,i))
+          enddo
+          !print*,i,'dBevol/dt (exact) = ',dBevoldt(:,i)
+          !read*
+       else
+          dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
+          if (idivBzero.ge.2) then
+             gradpsi(:,i) = gradpsi(:,i)*rho1i**2
+          endif
        endif
     case(-1) ! vector potential evolution, crap gauge
        !
@@ -523,7 +564,7 @@ subroutine get_rates
           curlBi(:) = curlB(:,i)
           !curlBi(:) = curlBsym(:,i)*rhoi
           !curlB(:,i) = curlBi(:)
- 
+
           !curr2 = abs(dot_product(curlBsym(:,i)*rhoi,curlBsym(:,i)*rhoi))
           !curr2 = abs(dot_product(curlBi,curlBsym(:,i)*rhoi))
           curr2 = dot_product(curlBi,curlBi)
@@ -533,7 +574,7 @@ subroutine get_rates
           !etai = alpha(3,i)*sqrt(dot_product(graddivv(:,i),graddivv(:,i)))*hh(i)**2
           !etai = alpha(3,i)*(sqrt(valfven2i)*hh(i) + 2.*sqrt(curr2/rho(i))*hh(i)**2)
           !divB(i) = etai
-          
+
           dBevoldt(:,i) = dBevoldt(:,i) - etai*curlBi(:)
           !if (curlBi(1).ne.0.) print*,i,curlB(1,i),curlBi(1)
           !print*,i,'diss = ',-etai,curlB(:,i)
@@ -1100,6 +1141,20 @@ contains
        drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
        drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
     endif
+
+!----------------------------------------------------------------------------
+!  grad v
+!----------------------------------------------------------------------------
+    if (allocated(dveldx)) then
+       do k=1,ndimV
+          dveldx(:,k,i) = dveldx(:,k,i) - pmassj*dvel(k)*dr(:)*grkerni
+          dveldx(:,k,j) = dveldx(:,k,j) - pmassi*dvel(k)*dr(:)*grkernj
+       enddo
+       do k=1,ndxdx
+          dxdx(k,i) = dxdx(k,i) - pmass(j)*(dx(idxdx(k)))*dr(jdxdx(k))*grkerni
+          dxdx(k,j) = dxdx(k,j) - pmass(i)*(dx(idxdx(k)))*dr(jdxdx(k))*grkernj
+       enddo
+    endif
        
     return
   end subroutine rates_core
@@ -1652,26 +1707,28 @@ contains
     !  if evolving dB/dt the other term comes from the cty equation and
     !  is added later
     !---------------------------------------------------------------------------------
+    exactderivs: if (iuse_exact_derivs.eq.0) then
+
     select case(imhd)
     case(4,14)   ! conservative form (explicitly symmetric)
        dBevoldti(:) = dBevoldti(:)            &
           + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
     case(3,13)   ! goes with imagforce = 3
        dBevoldti(:) = dBevoldti(:)         &
           - pmassj*projBrhoj*dvel(:)*grkerni
-       dBevoldt(:,j) = dBevoldt(:,j)         &
+       dBevoldt(:,j) = dBevoldt(:,j)       &
           - pmassi*projBrhoi*dvel(:)*grkernj
     case(2,12)   ! conservative form (no change for 1D)
        dBevoldti(:) = dBevoldti(:)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
     case(1,11) ! surface flux-conservative (usual) form
        dBevoldti(:) = dBevoldti(:)            &
-          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
     case(-1) ! vector potential evolution - crap gauge
        termi = pmassj*projvi*grkerni
@@ -1684,6 +1741,8 @@ contains
        termj = pmassi*dot_product(Bevol(:,j),dvel(:))*grkernj
        dBevoldt(:,j) = dBevoldt(:,j) + termj*dr(:)
     end select
+
+    endif exactderivs
 
     !--------------------------------------------
     !  real resistivity in induction equation
