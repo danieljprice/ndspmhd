@@ -160,7 +160,7 @@ SUBROUTINE sobseq(n,x)
       if(iand(im,1).eq.0)goto 1
       im=im/2
    enddo
-   pause 'MAXBIT too small in sobseq'
+   print*,'ERROR: MAXBIT too small in sobseq'
 1  im=(j-1)*MAXDIM
    do k=1,min(n,MAXDIM)
       ix(k)=ieor(ix(k),iv(im+k))
