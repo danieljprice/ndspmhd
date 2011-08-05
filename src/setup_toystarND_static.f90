@@ -29,7 +29,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: rmax,totmass,totvol,gamm1,rr2
- real :: denszero,uuzero,massp,denscentre,volpart
+ real :: denszero,uuzero,massp,denscentre,volpart !!,aa,Jmag
  real, dimension(ndim) :: xnew
  logical :: iuserings,iequalmass
 
@@ -119,6 +119,14 @@ subroutine setup
 !
  if (iequalmass) call reset_centre_of_mass(x(:,1:npart),pmass(1:npart))
  
+! if (imhd.ne.0) then
+!    xnew(:) = 0.
+!    xnew(2) = 1. 
+!    aa = 0.5
+!    Jmag = 1.0
+!    call set_dipole(aa,Jmag,xnew,x(:,1:npart),Bfield(1:ndim,1:npart),ndim,npart)
+! endif
+ 
  return
 end subroutine setup
 
@@ -142,10 +150,11 @@ subroutine modify_dump
  integer :: i,ierr,jmode,smode
  real :: Ctstar,Atstar,scalefac,sigma2,sigma,rstar,denscentre,gamm1
  real :: omegasq,cs2centre,ekin,ekin_norm,amplitude,alpha,betatstar
+ real :: ctstar1,ctstar2
  real, dimension(ndim) :: xcyl,velcyl,dvel
  character(len=len(rootname)+6) :: tstarfile
  character(len=30) :: dummy
- logical :: oscills
+ logical :: oscills,symmetric
 
  time = 0.
  amplitude = 0.05
@@ -163,7 +172,7 @@ subroutine modify_dump
  tstarfile = rootname(1:len_trim(rootname))//'.tstar2D'
  open(unit=ireadf,err=11,file=tstarfile,status='old',form='formatted')
     read(ireadf,*,err=12) dummy
-    read(ireadf,*,err=12) alpha, betatstar
+    read(ireadf,*,err=12) alpha, betatstar, ctstar1,ctstar2
     read(ireadf,*,err=12) jmode,smode
  close(unit=ireadf)
  oscills = .true.
@@ -174,12 +183,15 @@ subroutine modify_dump
 12 continue
    write(iprint,*) ' error reading ',tstarfile
 13 continue   
+   symmetric = .true.
    if (jmode.lt.0) oscills = .false.
+   if (smode.lt.0) symmetric = .false.
 
  if (oscills) then
     write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
  else
     write(iprint,*) 'NONLINEAR MODES: alpha = ',alpha,' beta = ',betatstar
+    write(iprint,*) '               : c = ',ctstar1,' d = ',ctstar2   
  endif
  
  gamm1 = gamma - 1.
@@ -244,18 +256,25 @@ subroutine modify_dump
     Atstar = scalefac*sqrt(ekin_norm/ekin)
     write(iprint,*) ' v = ',Atstar,'*detadr(r)'
  else
-    do i=1,npart
-       !--get r, theta
-       call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
-       !--set v_r
-       velcyl(1) = alpha*xcyl(1)
-       !--set theta_dot
-       velcyl(2) = betatstar
-       !--now transform back to get vx, vy
-       call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
-       !--now perturb v with appropriate amplitude
-       vel(1:ndim,i) = dvel(1:ndim)
-    enddo
+    if (symmetric) then
+       do i=1,npart
+          !--get r, theta
+          call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
+          !--set v_r
+          velcyl(1) = alpha*xcyl(1)
+          !--set theta_dot
+          velcyl(2) = betatstar
+          !--now transform back to get vx, vy
+          call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
+          !--now perturb v with appropriate amplitude
+          vel(1:ndim,i) = dvel(1:ndim)
+       enddo
+    else
+       do i=1,npart
+          vel(1,i) = alpha*x(1,i) + ctstar1*x(2,i)
+          vel(2,i) = ctstar2*x(1,i) + betatstar*x(2,i)
+       enddo
+    endif
  endif
  
 !
@@ -266,7 +285,7 @@ subroutine modify_dump
  open(unit=ireadf,iostat=ierr,file=tstarfile,status='replace',form='formatted')
  if (ierr.eq.0) then
     write(ireadf,*,iostat=ierr) denscentre,Ctstar,Atstar
-    write(ireadf,*,iostat=ierr) alpha,betatstar
+    write(ireadf,*,iostat=ierr) alpha,betatstar,ctstar1,ctstar2
     write(ireadf,*,iostat=ierr) jmode,smode
     if (ierr /= 0) write(iprint,*) 'ERROR WRITING TO ',trim(tstarfile)
     close(unit=ireadf)
