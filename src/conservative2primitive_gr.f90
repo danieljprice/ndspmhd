@@ -124,6 +124,7 @@ subroutine primitive2conservative
   use debug
   use loguns
   
+  use bound, only:ireal
   use eos
   use options
   use part
@@ -183,6 +184,27 @@ subroutine primitive2conservative
         call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
 	     gamma,polyk,1) 	
      enddo
+     
+!
+!--copy the conservative variables onto the ghost particles
+!  
+     if (any(ibound.gt.1)) then
+        if (any(ibound.eq.2)) print*,'WARNING: reflective ghosts should be checked (pmom copying...)'
+        do i=npart+1,ntotal
+           j = ireal(i)
+           rho(i) = rho(j)
+           pmom(:,i) = pmom(:,j)
+           en(i) = en(j)
+           pr(i) = pr(j)
+           spsound(i) = spsound(j)
+           Bevol(:,i) = Bevol(:,j)
+        enddo
+     endif
+!
+!--call rates to get initial timesteps, div B etc
+!
+     call get_rates     
+
   else
      write(iprint,*) 'invalid igeom in conservative2primitive: igeom = ',igeom
      stop

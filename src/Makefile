@@ -10,12 +10,12 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-#F90C = ifc
-#F90FLAGS =  -O -C -WB -r8
-#LDFLAGS = -Vaxlib
-F90C =  g95
-F90FLAGS = -O -r8 ##-fbounds-check -Wall
-LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+F90C = ifc
+F90FLAGS =  -O3 -WB -r8
+LDFLAGS = -Vaxlib
+#F90C =  g95
+#F90FLAGS = -O -r8 ##-fbounds-check -Wall
+#LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
