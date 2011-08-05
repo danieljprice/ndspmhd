@@ -27,7 +27,6 @@ SUBROUTINE setkern
  IMPLICIT NONE			!  define local variables
  INTEGER :: i,j,iteration,iC
  REAL :: q,q2,q4,cnormk
- REAL, DIMENSION(0:ikern) :: dqkern,grwijplot,grgrwij 	! only to plot kernel
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
  REAL :: ddterm1,ddterm2,ddterm3,ddterm4
@@ -41,73 +40,69 @@ SUBROUTINE setkern
 !--set choice of kernel (this could be read in as a parameter)
 !
  iplot = .false. 	! plot kernel using PGPLOT
+ cnormk = 0.0
 
  SELECT CASE(ikernel)
+
   CASE(2)
 !
-!--this is the usual spline based kernel modified for r/h < 2/3 to
-!   prevent particles from clumping (see Thomas & Couchman '92)
-!      
-    kernelname = 'Thomas & Couchman anti-clumping'
-    radkern = 2.0		! interaction radius of kernel
+!--Quartic spline
+!  
+    kernelname = 'Quartic spline'    
+
+    radkern = 2.5
     radkern2 = radkern*radkern
-    dq2table = radkern*radkern/REAL(ikern)
+    dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-        cnormk = 0.66666666666	! normalisation constant
+         cnormk = 1./24.
       CASE(2)
-        cnormk = 10./(7.*pi)
+         cnormk = 96./(1199*pi)
       CASE(3)
-        cnormk = 1./pi
-    END SELECT
-!
-!--setup kernel table
-!   
+         cnormk = 1./(20*pi)
+    END SELECT  
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
-       dqkern(i) = q		! to plot kernel
-       IF (q.LT.1.0) THEN
-          wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
-          IF (q.LT.2./3.) THEN
-             grwij(i) = -cnormk
-	     grgrwij(i) = 0.
-	  ELSE
-	     grwij(i) = cnormk*(-3.*q+ 2.25*q2)
-             grgrwij(i) = cnormk*(-3. + 4.5*q)
-	  ENDIF
-       ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-          wij(i) = cnormk*(0.25*(2.-q)**3.)
-          grwij(i) = cnormk*(-0.75*(2.-q)**2.)
-          grgrwij(i) = cnormk*(1.5*(2.-q))
+       IF (q.LT.0.5) THEN
+          wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4)
+	  grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
+	  grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
+       ELSEIF (q.LT.1.5) THEN
+          wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4)
+	  grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3)
+	  grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2)       
+       ELSEIF (q.LT.2.5) THEN
+          wij(i) = cnormk*((2.5-q)**4)
+	  grwij(i) = -cnormk*4.*((2.5-q)**3)
+	  grgrwij(i) = cnormk*12.*((2.5-q)**2)
        ELSE
-          wij(i) = 0.0
-          grwij(i) = 0.0
-          grgrwij(i) = 0.
+          wij(i) = 0.
+	  grwij(i) = 0.
+	  grgrwij(i) = 0.
        ENDIF
-    ENDDO
+    ENDDO 
 
   CASE(3)
 !
 !--this is the M_6 quintic spline (see e.g. Morris 1996, PhD thesis)
 !
-    kernelname = 'quintic spline'  
+    kernelname = 'Quintic spline'  
     radkern = 3.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1) 
-       cnormk = 0.5/60.
+       cnormk = 1./120.
       CASE(2)
        cnormk = 7./(478*pi)
-      CASE DEFAULT
-       STOP ' normalisation constant not defined in kernel '
+      CASE(3)
+       cnormk = 1./(120.*pi)
     END SELECT
     DO i=0,ikern         
        q2 = i*dq2table
        q4 = q2*q2
        q = SQRT(q2)
-       dqkern(i) = q		! to plot kernel
        term1 = -5.*(3.-q)**4.
        IF (q.LT.1.0) THEN
           wij(i) = cnormk*(66.-60.*q2 + 30.*q4 - 10.*q4*q)
@@ -133,7 +128,7 @@ SUBROUTINE setkern
 !
 !--this is my squashed quintic spline (quintic rescaled to radius 2)
 !
-    kernelname = 'Dan''s squashed quintic'  
+    kernelname = 'Rescaled quintic'  
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
@@ -141,13 +136,12 @@ SUBROUTINE setkern
       CASE(1)
        cnormk = 0.5/1280.
       CASE DEFAULT
-       STOP ' normalisation constant not defined in kernel '
+       write(iprint,666)
     END SELECT
     DO i=0,ikern         
        q2 = i*dq2table
        q4 = q2*q2
        q = SQRT(q2)
-       dqkern(i) = q		! to plot kernel
        term1 = -15.*(6.-3.*q)**4.
        IF (q.LT.2./3.) THEN
           wij(i) = cnormk*((6.-3.*q)**5. - 6.*(4.-3.*q)**5. + 15.*(2.-3.*q)**5.)
@@ -169,71 +163,57 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
 
-  CASE(5)
-!
-!--this is the squashed quintic spline from Bonet & Kulesegaram
-!
-    kernelname = 'BK squashed quintic spline'    
-   
-    radkern = 2.0
-    radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
-       cnormk = 1./16.
-      CASE DEFAULT
-       STOP ' normalisation constant not defined in kernel '
-    END SELECT
-    DO i=0,ikern
-      q2 = i*dq2table
-      q = SQRT(q2)
-      dqkern(i) = q		! to plot kernel
-      IF (q.LT.1.0) THEN
-         wij(i) = cnormk*((2.-q)**5 - 16.*(1.-q)**5)
-         grwij(i) = cnormk*(-5.*(2.-q)**4 + 80.*(1.-q)**4.)
-         grgrwij(i) = cnormk*(20.*(2.-q)**3 - 320.*(1.-q)**3.)
-      ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-         wij(i) = cnormk*(2.-q)**5
-         grwij(i) = cnormk*(-5.*(2.-q)**4)
-         grgrwij(i) = cnormk*(20.*(2.-q)**3)
-      ELSE
-         wij(i) = 0.0
-         grwij(i) = 0.0
-         grgrwij(i) = 0.
-      ENDIF
-    ENDDO  
-
-  CASE(6)
+  CASE(5,6,7)
 !
 !--this is the Do-It-Yourself quintic kernel (general class of quintic splines)
 !
-    kernelname = 'Using the Do-It-Yourself quintic kernel'    
-
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
+
     gamma = 0.
-    beta = 0.8		!2./3.
-    alpha = 1.95	!4./3.
+    IF (ikernel.EQ.5) THEN
+       beta = 0.5		!2./3.
+       alpha = 1.4	!4./3.
+       kernelname = 'New quintic (1)'    
+    ELSEIF (ikernel.EQ.6) THEN
+       beta = 0.1
+       alpha = 0.4
+       kernelname = 'Steep quintic'    
+    ELSE
+    !--match to cubic spline, ie W''(0) = -2
+      kernelname = 'Cubic-like quintic' 
+      beta = 0.85
+      !print*,' enter beta'
+      !read*,beta
+      print*,'beta = ',beta, ' calculating alpha'
+      term1 = (beta+2.)*(beta**3 - 2.*beta**2 - 4.*beta + 128)
+      alpha = -0.5*(4.*beta + beta**2 + 4. - sqrt(term1))/(beta + 2.)
+   
+      term2 = (beta-2.)*(beta+2.)*(beta-alpha)*(beta+alpha)
+      dterm2 = (alpha+2)*(-alpha**2 + beta**2 - 4.)
+      q = 2.*alpha*(-alpha**2 - 2.*alpha + beta**2 - 4. + sqrt(term2))/dterm2
+      print*,' 3rd derivative zero at q = ',q    
+    ENDIF
     C =0.
-!   A = -6.
-!   B = 25.
-!   C = 1.    
     A =  (-radkern**4 + (radkern**2 + C*gamma**2)*beta**2)		&
         /(alpha**2*(alpha**2-beta**2))      
     B = -(radkern**4 + A*alpha**4 + C*gamma**4)/(beta**4)
-    cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + 64.)	! for radkern = 2 and 1D
-    print*,'cnormk = ',cnormk,' A,B = ',A,B
+    print*,'matching points = ',beta,alpha
+    SELECT CASE(ndim)
+      CASE(1)
+        cnormk = 3./(A*alpha**6 + B*beta**6 + C*gamma**6 + radkern**6)	! for radkern = 2 and 1D
+        print*,'1D cnormk = ',cnormk,' A,B = ',A,B
+      CASE(2)
+        cnormk = 42./(2.*pi*(A*alpha**7 + B*beta**7 + C*gamma**7 + radkern**7))
+        print*,'2D cnormk = ',cnormk,' A,B = ',A,B,beta,alpha
       CASE DEFAULT
-       STOP ' normalisation constant not defined in kernel '      
+       write(iprint,666)     
     END SELECT
   
     DO i=0,ikern         
       q2 = i*dq2table
       q = SQRT(q2)
-      dqkern(i) = q		! to plot kernel
       term1 = (radkern-q)**5
       term2 = (alpha-q)**5
       term3 = (beta-q)**5
@@ -268,42 +248,149 @@ SUBROUTINE setkern
          grgrwij(i) = 0.
       ENDIF
     ENDDO
-    
-  CASE (7)
+
+  CASE (8)
 !
-!--(1-r^2)^2
+!--(1-r^2)^3
 !    
-    kernelname = '(1-r^2)^2'    
+    kernelname = '(1-r^2)^6'    
 
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-         cnormk = 112./15.
+         cnormk = 3003./16777216.
       CASE(2)
-         cnormk = 32.*pi/3.
+         cnormk = 3./(64.*pi)
       CASE(3)
-         cnormk = 0.
+         cnormk = 105./(4096.*pi)
     END SELECT  
     DO i=0,ikern
-       q = i*dq2table
-       dqkern(i) = q
+       q2 = i*dq2table
+       q = SQRT(q2)
        IF (q.LT.radkern) THEN
-          wij(i) = cnormk*(radkern-q**2)**2
-	  grwij(i) = -cnormk*4.*(radkern-q**2)*q
-	  grgrwij(i) = cnormk*(8.*q**2*(radkern-q**2)-4.*(radkern-q**2))
+          wij(i) = cnormk*(radkern**2-q2)**6
+	  grwij(i) = -cnormk*2.*6.*q*(radkern**2-q2)**5
+	  grgrwij(i) = cnormk*(4.*6.*5.*q2*(radkern**2-q2)**4 - 2.*6.*(radkern**2-q2)**5)
        ELSE
           wij(i) = 0.
 	  grwij(i) = 0.
 	  grgrwij(i) = 0.
        ENDIF
     ENDDO
+    
+    
+  CASE(9)
+!
+!--Gaussian
+!  
+    kernelname = 'Gaussian'    
+
+    radkern = 5.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+         cnormk = 1./sqrt(pi)
+      CASE(2)
+         cnormk = 1./pi
+      CASE(3)
+         cnormk = 1./(pi*sqrt(pi))
+    END SELECT  
+    DO i=0,ikern
+       q2 = i*dq2table
+       q = SQRT(q2)
+       IF (q.LT.radkern) THEN
+          wij(i) = cnormk*exp(-q2)
+	  grwij(i) = -2.*q*wij(i)
+	  grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
+       ELSE
+          wij(i) = 0.
+	  grwij(i) = 0.
+	  grgrwij(i) = 0.
+       ENDIF
+    ENDDO
+
+  CASE(10)
+!
+!--this is the usual spline based kernel modified for r/h < 2/3 to
+!   prevent particles from clumping (see Thomas & Couchman '92)
+!      
+    kernelname = 'Thomas & Couchman anti-clumping'
+    radkern = 2.0		! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+        cnormk = 0.66666666666	! normalisation constant
+      CASE(2)
+        cnormk = 10./(7.*pi)
+      CASE(3)
+        cnormk = 1./pi
+    END SELECT
+   
+    DO i=0,ikern
+       q2 = i*dq2table
+       q = SQRT(q2)
+       IF (q.LT.1.0) THEN
+          wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
+          IF (q.LT.2./3.) THEN
+             grwij(i) = -cnormk
+	     grgrwij(i) = 0.
+	  ELSE
+	     grwij(i) = cnormk*(-3.*q+ 2.25*q2)
+             grgrwij(i) = cnormk*(-3. + 4.5*q)
+	  ENDIF
+       ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
+          wij(i) = cnormk*(0.25*(2.-q)**3.)
+          grwij(i) = cnormk*(-0.75*(2.-q)**2.)
+          grgrwij(i) = cnormk*(1.5*(2.-q))
+       ELSE
+          wij(i) = 0.0
+          grwij(i) = 0.0
+          grgrwij(i) = 0.
+       ENDIF
+    ENDDO
+  
+  CASE(11)
+!
+!--this is the squashed quintic spline from Bonet & Kulesegaram
+!
+    kernelname = 'BK squashed quintic spline'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+       cnormk = 1./16.
+      CASE DEFAULT
+       write(iprint,666)
+    END SELECT
+    DO i=0,ikern
+      q2 = i*dq2table
+      q = SQRT(q2)
+      IF (q.LT.1.0) THEN
+         wij(i) = cnormk*((2.-q)**5 - 16.*(1.-q)**5)
+         grwij(i) = cnormk*(-5.*(2.-q)**4 + 80.*(1.-q)**4.)
+         grgrwij(i) = cnormk*(20.*(2.-q)**3 - 320.*(1.-q)**3.)
+      ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
+         wij(i) = cnormk*(2.-q)**5
+         grwij(i) = cnormk*(-5.*(2.-q)**4)
+         grgrwij(i) = cnormk*(20.*(2.-q)**3)
+      ELSE
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      ENDIF
+    ENDDO  
+      
   CASE DEFAULT  
 !
 !--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
 !   
-    kernelname = 'cubic spline'    
+    kernelname = 'Cubic spline'    
   
     radkern = 2.0		! interaction radius of kernel
     radkern2 = radkern*radkern
@@ -322,7 +409,6 @@ SUBROUTINE setkern
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
-       dqkern(i) = q		! to plot kernel
        IF (q.LT.1.0) THEN
           wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
           grwij(i) = cnormk*(-3.*q+ 2.25*q2)
@@ -348,16 +434,18 @@ SUBROUTINE setkern
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
-!       dqkern(i) = q		! to plot kernel
        IF (i.EQ.j) WRITE(iprint,*) ' j = ',j,q,q2,wij(j)
        grwij(i) = grwij(i) + eps*(wij(i)/wij(j))**neps
     ENDDO
     kernelname=TRIM(kernelname)//' ...with anti-clumping term' 
  ENDIF	
+
+666 FORMAT(/,'ERROR!!! Normalisation constant not defined in kernel',/)
 !
 !--write kernel name to log file
 !
- WRITE(iprint,*) '(smoothing kernel = ',TRIM(kernelname),')'
+ WRITE(iprint,10) TRIM(kernelname)
+10 FORMAT(/,' Smoothing kernel = ',a,/)
 !
 !--the variable ddq2table is used in interpolate_kernel
 ! 
