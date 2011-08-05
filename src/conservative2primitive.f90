@@ -38,7 +38,7 @@ subroutine conservative2primitive
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
   elseif (imhd.lt.0) then ! if using vector potential
-     write(iprint,*) 'getting B field from vector potential...'
+     !write(iprint,*) 'getting B field from vector potential...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
      do i=1,npart
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
@@ -167,6 +167,7 @@ subroutine primitive2conservative
      iktemp = ikernav
 !     ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
+!     call densityiterate
      ikernav = iktemp  
 !!     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
