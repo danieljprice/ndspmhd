@@ -83,10 +83,10 @@ SUBROUTINE output(t,nstep)
 !
 !--flush the buffer so that whole timestep is printed even if program crashes
 ! 
- ierr(1) = flush(idatfile)
- ierr(2) = flush(ievfile)
- ierr(3) = flush(iprint)
- IF ( ANY(ierr.NE.0) ) WRITE(*,*) 'Error flushing files, see Makefile ',ierr 
+! ierr(1) = flush(idatfile)
+! ierr(2) = flush(ievfile)
+! ierr(3) = flush(iprint)
+! IF ( ANY(ierr.NE.0) ) WRITE(*,*) 'Error flushing files, see Makefile ',ierr 
                             
 30    FORMAT (25(1pe21.14,1x),:)        ! make sure the format statement has >/=        
                                 ! max number of columns in the write statement
