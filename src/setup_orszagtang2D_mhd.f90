@@ -34,7 +34,7 @@ subroutine setup
 !
 !--check number of dimensions is right
 !
- if (ndim.ne.2) stop ' ndim must be = 2 for Orszag-Tang vortex'
+ if (ndim.lt.2) stop ' ndim must be >= 2 for Orszag-Tang vortex'
 !
 !--set boundaries
 !                        
@@ -45,11 +45,19 @@ subroutine setup
     xmax(1) = -xmin(1)
     xmin(2) = -0.5  ! y
     xmax(2) = -xmin(2)
+    if (ndim.ge.3) then
+       xmin(3) = -0.0625
+       xmax(3) = -xmin(3)
+    endif
  else
     xmin(1) = 0.  ! x
     xmax(1) = 1.0
     xmin(2) = 0.0  ! y
     xmax(2) = 1.0
+    if (ndim.ge.3) then
+       xmin(3) = 0.
+       xmax(3) = 0.125
+    endif
  endif
 !
 !--setup parameters
@@ -66,14 +74,15 @@ subroutine setup
  uuzero = przero/(gam1*denszero)
 
  write(iprint,*) 'Two dimensional Orszag-Tang vortex problem '
+ if (ndim.ge.3) write(iprint,*) ' (in 3D...)'
  write(iprint,10) betazero,machzero,bzero,denszero,przero
 10 format(/,' beta        = ',f6.3,', mach number = ',f6.3,/, &
             ' initial B   = ',f6.3,', density = ',f6.3,', pressure = ',f6.3,/)
 
  if (symmetric) then
-    xminregion(1) = xmin(1)
+    xminregion(:) = xmin(:)
+    xmaxregion(:) = xmax(:)
     xmaxregion(1) = 0.5*(xmax(1)+xmin(1))
-    xminregion(2) = xmin(2)
     xmaxregion(2) = 0.5*(xmax(2)+xmin(2))
     call set_uniform_cartesian(1,psep,xminregion,xmaxregion,fill=.true.)
 
@@ -97,6 +106,7 @@ subroutine setup
        ipart = ipart + 1
        x(1,ipart) = -x(1,i)
        x(2,ipart) = x(2,i)
+       if (ndim.eq.3) x(3,ipart) = x(3,i)
        vel(1,ipart) = vel(1,i)
        vel(2,ipart) = -vel(2,i)
        if (imhd.lt.0) then
@@ -113,6 +123,7 @@ subroutine setup
        ipart = ipart + 1
        x(1,ipart) = x(1,i)
        x(2,ipart) = -x(2,i)
+       if (ndim.eq.3) x(3,ipart) = x(3,i)
        vel(1,ipart) = -vel(1,i)
        vel(2,ipart) = vel(2,i)
        if (imhd.lt.0) then
@@ -135,7 +146,7 @@ subroutine setup
 !
 !--determine particle mass
 !
- totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
+ totmass = denszero*product(xmax-xmin)
  massp = totmass/float(ntotal) ! average particle mass
 !
 !--now assign particle properties
