@@ -105,7 +105,7 @@ SUBROUTINE evolve
 !
 !--reach tprint exactly. Must take this out for integrator to be symplectic
 !
-!    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
+    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
 	 	 
  ENDDO timestepping
 
