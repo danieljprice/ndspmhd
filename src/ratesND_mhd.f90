@@ -42,7 +42,6 @@ subroutine get_rates
  real :: Prho2i,Prho2j,prterm
  real :: hi,hi1,hj,hj1,hi21,hj21    
  real :: hav,hav1,h21
- real :: drhodti,drhodtj
  real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
  real, dimension(ndim) :: dx
 !
@@ -53,9 +52,8 @@ subroutine get_rates
 !  (velocity)
 !      
  real, dimension(ndimV) :: veli,velj,dvel
- real, dimension(ndimV) :: prvterm
  real, dimension(ndimV) :: dr
- real :: dvdotr,projprv
+ real :: dvdotr
 !
 !  (mhd)
 !     
@@ -66,8 +64,6 @@ subroutine get_rates
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB
- real :: prvaniso  
- real :: Bidotvj,Bjdotvi
 !
 !  (artificial viscosity quantities)
 !      
@@ -96,7 +92,7 @@ subroutine get_rates
 !  (joe's mhd fix)
 !
  real :: wabjoe,wabjoei,grkernjoe
- real :: Rjoe,q2joe,prvanisoi,prvanisoj,Bidotvi,Bjdotvj
+ real :: Rjoe,q2joe
 !
 !  (time step criteria)
 !      
@@ -146,6 +142,24 @@ subroutine get_rates
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
  enddo
+!
+!--set MHD quantities to zero if mhd not set
+!
+ if (imhd.le.0) then  ! these quantities are still used if mhd off
+    Bi(:) = 0.
+    Bj(:) = 0.
+    Brhoi(:) = 0.
+    Brhoj(:) = 0.
+    Brho2i = 0.
+    Brho2j = 0.
+    valfven2i = 0.
+    valfven2j = 0.
+    projBi = 0.
+    projBj = 0.
+    projBrhoi = 0.
+    projBrhoj = 0.
+ endif
+
 !
 !--skip the whole neighbour thing if it is doing nothing
 !
@@ -216,10 +230,11 @@ subroutine get_rates
           Bi(:) = Bfield(:,i)
        endif
        ! mhd definitions
-       Brho2i = dot_product(Brhoi,Brhoi)
-       valfven2i = Brho2i*rhoi
-       if (imhd.ne.0) alphaBi = alpha(2,i)
-              
+       if (imhd.ne.0) then
+          Brho2i = dot_product(Brhoi,Brhoi)
+          valfven2i = Brho2i*rhoi
+          alphaBi = alpha(2,i)
+       endif
        gradhi = 1./(1. - gradh(i))
        !if (gradhi.le.0.5) then
        !   write(iprint,*) 'Error in grad h terms, part ',i,gradhi
@@ -371,23 +386,28 @@ subroutine get_rates
 !  see Morris and Monaghan (1997)
 !     
     if (iavlim.ne.0) then
-       if (iavlim.eq.2) then
-	  source = max(drhodt(i)*rho1i*(2.0-alpha(1,i)),0.0)    ! source term is div v
+       if (mod(iavlim,10).eq.2) then
+          source = max(drhodt(i)*rho1i,0.0)*(2.0-alpha(1,i))
+       else
+	  source = max(drhodt(i)*rho1i,0.0)   ! source term is div v   
+       endif
+
+       tdecay1 = (avdecayconst*vsig)/hh(i)	! 1/decay time (use vsig)
+       daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
+       !
+       !--also evolve resistivity parameter if iav > 10
+       !
+       if (iavlim.gt.10 .and. imhd.ne.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = abs(divB(i))*SQRT(rho1i)
-          sourceB = MAX(sourceJ,sourcedivB)*(2.0-alpha(2,i))
-       else
-          source = max(drhodt(i)*rho1i,0.0)    ! source term is div v
-          !--calculate source term for the resistivity parameter  
-          sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
-          sourcedivB = abs(divB(i))*SQRT(rho1i)
-          sourceB = MAX(sourceJ,sourcedivB)
+          if (mod(iavlim,20).eq.2) then
+             sourceB = MAX(sourceJ,sourcedivB)*(2.0-alpha(2,i))
+          else
+             sourceB = MAX(sourceJ,sourcedivB)
+          endif
+          daldt(2,i) = (alphaBmin - alpha(2,i))*tdecay1 + sourceB
        endif
-              
-       tdecay1 = (avdecayconst*vsig)/hh(i)	! 1/decay time (use vsig)
-       daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
-       if (imhd.ne.0) daldt(2,i) = (alphaBmin - alpha(2,i))*tdecay1 + sourceB
     else
        daldt(:,i) = 0.
     endif
@@ -535,38 +555,27 @@ contains
     !
     !--max signal velocity (Joe's)
     !
-    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i	 	&
-         - 2.*spsoundi*projBi/rhoi5)	&
-         +sqrt(spsoundi**2 + valfven2i 		&
-         + 2.*spsoundi*projBi/rhoi5))
-    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j		&
-         - 2.*spsoundj*projBj/rhoj5)	&
-         +sqrt(spsoundj**2 + valfven2j		&
-         + 2.*spsoundj*projBj/rhoj5))
+    vsigi = 0.5*(sqrt(spsoundi**2 + valfven2i - 2.*spsoundi*projBi/rhoi5) &
+                +sqrt(spsoundi**2 + valfven2i + 2.*spsoundi*projBi/rhoi5))
+    vsigj = 0.5*(sqrt(spsoundj**2 + valfven2j - 2.*spsoundj*projBj/rhoj5) &
+                +sqrt(spsoundj**2 + valfven2j + 2.*spsoundj*projBj/rhoj5))
     !
     !--max signal velocity (my version)
     !
-!                vsig2i = spsoundi**2 + valfven2i
-!		vsig2j = spsoundj**2 + valfven2j				
-!		
-!		vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
-!		vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
-!		
-!		IF (vsigproji.LT.0. .OR. vsigprojj.LT.0.) THEN
-!		   WRITE(iprint,*) ' rates: vsig det < 0 ',   &
-!		     'i: ',vsigproji,vsig2i**2,  	&
-!		     4*(spsoundi*projBi)**2*rho1i,	&
-!		     spsoundi,projBi,rho1i,		&
-!		     'j: ',vsigprojj,vsig2j**2,   	&
-!		     4*(spsoundj*projBj)**2*rho1j,	&
-!		     spsoundj,projBj,rho1j
-!		   CALL quit  
-!		ENDIF
-		
-!		vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-!		vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
+!    vsig2i = spsoundi**2 + valfven2i
+!    vsig2j = spsoundj**2 + valfven2j						
+!    vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
+!    vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
+!    if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
+!       write(iprint,*) ' rates: vsig det < 0 ',
+!       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i	&
+!       'j: ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+!       call quit  
+!    endif
+!    vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
+!    vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
-    vsig = vsigi + vsigj - beta*dvdotr ! used where dvdotr>0 in MHD
+    vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
     
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
@@ -585,8 +594,8 @@ contains
 !  pressure term (generalised form)
 !----------------------------------------------------------------------------
     if (iprterm.ge.0) then
-       prterm = phii_on_phij*Prho2i*sqrtgi*grkerni 		&
-            + phij_on_phii*Prho2j*sqrtgj*grkernj
+       prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
+              + phij_on_phii*Prho2j*sqrtgj*grkernj
     else
        prterm = 0.
     endif
@@ -600,24 +609,16 @@ contains
 !  compute this even if direct sum - gives divv for art vis.
 !----------------------------------------------------------------------------
 !
-    !drhodti = phii_on_phij*pmassj*dvdotr*grkerni
-    !drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
-    drhodti = pmassj*dvdotr*grkerni
-    drhodtj = pmassi*dvdotr*grkernj
-    
-    drhodt(i) = drhodt(i) + drhodti
-    drhodt(j) = drhodt(j) + drhodtj
+    !drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
+    !drhodt(j) = drhodt(j) + phij_on_phii*pmassi*dvdotr*grkernj    
+    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
 
-    if (imhd.ne.0) then
-       call mhd_terms
-    else	! if no mhd
-       Brho2j = 0.
-       Brho2i = 0.  
-       Brhoi(:) = 0.
-       Brhoj(:) = 0.
-       projBrhoi = 0.
-       projBrhoj = 0.
-    endif
+!------------------------------------------------------------------------
+!  Lorentz force and time derivative of B terms
+!------------------------------------------------------------------------
+
+    if (imhd.ne.0) call mhd_terms
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -880,9 +881,9 @@ contains
                - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj             
        elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
           dBconsdt(:,i) = dBconsdt(:,i)		&
-               - phii_on_phij*pmassj*(dvel(:)*projBrhoi + rho1i*veli(:)*projdB)*grkerni 
+               - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
           dBconsdt(:,j) = dBconsdt(:,j) 		&
-               - phij_on_phii*pmassi*(dvel(:)*projBrhoj + rho1j*velj(:)*projdB)*grkernj
+               - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
        else                 ! non-conservative (usual) form
           dBconsdt(:,i) = dBconsdt(:,i)		&
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
@@ -919,6 +920,9 @@ contains
 !---------------------------------------------------------------------------- 
   subroutine energy_equation
     implicit none
+    real, dimension(ndimV) :: prvterm
+    real :: Bidotvj, Bidotvi, Bjdotvj, Bjdotvi
+    real :: prvaniso, projprv, prvanisoi, prvanisoj
              
     Bidotvj = dot_product(Brhoi,velj)
     Bjdotvi = dot_product(Brhoj,veli)
@@ -926,17 +930,17 @@ contains
     ! (isotropic stress)
     !
     prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*sqrtgi*grkerni &
-         + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
+               + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
     !
     ! (anisotropic stress)
     !
     prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
-         - Bjdotvi*projBrhoj*phij_on_phii*grkernj
+                - Bjdotvi*projBrhoj*phij_on_phii*grkernj
     projprv = dot_product(prvterm,dr)		   
     !
     ! (add source term for anticlumping term)		   
     !
-    if (ianticlump.eq.1 .and. imagforce.eq.2) then
+    if (imhd.ne.0 .and. ianticlump.eq.1 .and. imagforce.eq.2) then
        ! prvaniso = prvaniso - Rjoe*prvaniso
        ! (if applied in x-direction only)
        Bidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
@@ -946,9 +950,9 @@ contains
        Bjdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
        
        prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phii_on_phij*grkerni &
-            -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
+                          -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
        prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phii_on_phij*grkerni &
-            -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
+                          -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
     endif
        
     dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
