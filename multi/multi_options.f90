@@ -25,14 +25,9 @@ PROGRAM multirun
  
  nruns = int_from_string(charnruns)
  
- IF (filename.EQ.'') THEN
-  PRINT*,' Enter filename for runs'
-  READ*,filename
- ENDIF
- 
- IF (nruns.LE.0) THEN
-  PRINT*,' Enter number of runs:'
-  READ*,nruns
+ IF (filename.EQ.'' .OR. nruns.LE.0) THEN
+  PRINT*,'Usage: multirun filename nruns'
+  STOP
  ENDIF
  
  PRINT*,' filename = ',filename,' nruns = ',nruns 

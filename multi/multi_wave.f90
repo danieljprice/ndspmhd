@@ -23,15 +23,10 @@ PROGRAM multirun
  CALL getarg(2,charnruns)
  
  nruns = int_from_string(charnruns)
- 
- IF (filename.EQ.'') THEN
-  PRINT*,' Enter filename for runs'
-  READ*,filename
- ENDIF
- 
- IF (nruns.LE.0) THEN
-  PRINT*,' Enter number of runs:'
-  READ*,nruns
+
+ IF (filename.EQ.'' .OR. nruns.LE.0) THEN
+  PRINT*,'Usage: multirun filename nruns'
+  STOP
  ENDIF
  
  PRINT*,' filename = ',filename,' nruns = ',nruns  
@@ -45,7 +40,7 @@ PROGRAM multirun
  PRINT*,' reading multirun.in... '
  CALL read_infile('multirun.in')
  PRINT*,' initial psep = ',psep
- 
+
  DO i=1,nruns
     IF (i.GE.10) THEN
        filenum = ACHAR(48+i/10)//ACHAR(48+mod(i,10))
