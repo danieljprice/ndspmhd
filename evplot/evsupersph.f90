@@ -5,23 +5,24 @@
 !
 program plotmeagraph
   implicit none
-  integer maxstep,ncol
+  integer maxstep,ncol,maxcol
   parameter (maxstep=50000)
-  parameter (ncol=21)	! (6)21 (non)MHD	set the number of columns here
+  parameter (maxcol=21)	! (6)21 (non)MHD	maximum number of columns
   integer nstep,npart,i,j
   integer mysteps,ipick,ipickx
-  integer iplotx(ncol),iploty(ncol), nplots
-  integer multiplotx(ncol),multiploty(ncol),nplotsmulti
-  real evdata(maxstep,ncol),evplot(maxstep)
-  real lim(ncol,2),time(maxstep),ekin(maxstep)
+  integer iplotx(maxcol),iploty(maxcol), nplots
+  integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
+  real evdata(maxstep,maxcol),evplot(maxstep)
+  real lim(maxcol,2),time(maxstep),ekin(maxstep)
   character*20 rootname,filename
-  character*24 title,label(ncol),dummy
+  character*24 title,label(maxcol),dummy
   character*40 labely
   character*1 ans
   logical icycle
   print*,' Welcome to Dan''s supersphplotev 2003... '
 
   mysteps=maxstep
+  ncol = 6
   icycle = .false.
   !
   !--get filename
