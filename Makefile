@@ -52,6 +52,15 @@ multirun:
 3D:
 	cd src; make 3D
 
+GR1D:
+	cd src; make GR1D
+	
+GR2D:
+	cd src; make GR2D
+
+GR3D:
+	cd src; make GR3D
+
 clean:
 	cd src; rm *.o *.mod
 
