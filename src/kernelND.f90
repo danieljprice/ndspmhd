@@ -1148,14 +1148,12 @@ subroutine interpolate_kernel(q2,w,gradw)
 !
  dxx = q2 - index*dq2table
 !
-!--calculate slope for w, gradw
+!--calculate slope for w, gradw and interpolate for each
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
- dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
-!
-!--interpolate for kernel and derivative
-!
  w = (wij(index)+ dwdx*dxx)
+
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
  gradw = (grwij(index)+ dgrwdx*dxx)
  
 end subroutine interpolate_kernel
@@ -1182,21 +1180,20 @@ subroutine interpolate_kernels(q2,w,gradw,walt,gradwalt)
  dxx = q2 - index*dq2table
 !
 !--calculate slope for w, gradw, waniso, gradwaniso
+!  and interpolate for each
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
- dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
-!
-!--interpolate for kernel and derivative
-!
  w = (wij(index)+ dwdx*dxx)
+
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
  gradw = (grwij(index)+ dgrwdx*dxx)
 !
 !--interpolate for alternative kernel and derivative
 !
  dwaltdx =  (wijalt(index1)-wijalt(index))*ddq2table
- dgrwaltdx =  (grwijalt(index1)-grwijalt(index))*ddq2table
-
  walt = (wijalt(index)+ dwaltdx*dxx)
+
+ dgrwaltdx =  (grwijalt(index1)-grwijalt(index))*ddq2table
  gradwalt = (grwijalt(index)+ dgrwaltdx*dxx)
  
 end subroutine interpolate_kernels
@@ -1303,16 +1300,15 @@ subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
 !
  dxx = q2 - index*dq2table
 !
-!--calculate slope for w, gradw
+!--calculate slope for w, gradw and interpolate for each
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
- dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
- dgrgrwdx =  (grgrwij(index1)-grgrwij(index))*ddq2table
-!
-!--interpolate for kernel and derivative
-!
  w = (wij(index)+ dwdx*dxx)
+
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
  gradw = (grwij(index)+ dgrwdx*dxx)
+
+ dgrgrwdx =  (grgrwij(index1)-grgrwij(index))*ddq2table
  gradgradw = (grgrwij(index)+ dgrgrwdx*dxx)
  
 end subroutine interpolate_kernel_dens
