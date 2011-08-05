@@ -360,7 +360,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  if (ierr.ne.0) stop 'error allocating memory in uniform_spherical'
 
  if (present(rmin)) then
-    radmin = rmin + hfact*psep
+    radmin = rmin
  else
     radmin = 0.
  endif
@@ -368,7 +368,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  ntemp = 0 ! actual number of particles to use
  do i=1,npart
     rad = sqrt(dot_product(x(:,i),x(:,i)))
-    if (rad**2.lt.(rmax - 0.5*psep) .and. rad.ge.radmin) then
+    if (rad.lt.rmax .and. rad.ge.radmin) then
        ntemp = ntemp + 1
        partlist(ntemp) = i
     endif   

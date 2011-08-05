@@ -10,11 +10,11 @@
 # specify editor to use for file editing
 EDITOR = nedit
 
-#F90C = ifc
-#F90FLAGS =  -O -C -WB -r8
-#LDFLAGS = -Vaxlib
-F90C =  g95
-F90FLAGS = -O -r8 -Wall
+F90C = ifc
+F90FLAGS =  -O -C -WB -r8
+LDFLAGS = -Vaxlib
+#F90C =  g95
+#F90FLAGS = -O -r8 -Wall
 
 # Fortran flags same as F90
 FC = $(F90C)
