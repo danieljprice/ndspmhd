@@ -27,7 +27,7 @@ SUBROUTINE initialise
 !      
  IMPLICIT NONE
  CHARACTER(LEN=20) :: infile,evfile
- CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
+ CHARACTER(LEN=20) :: datfile,logfile   ! rootname is global in loguns
  INTEGER :: i,j
 !
 !--add extensions to set filenames (remove trailing blanks)
@@ -40,7 +40,7 @@ SUBROUTINE initialise
 !--Initialise log file (if used)
 !
  IF (iprint.NE.6) THEN
-    OPEN(UNIT=iprint,FILE=logfile,ERR=669,	&
+    OPEN(UNIT=iprint,FILE=logfile,ERR=669,   &
          STATUS='replace',FORM='formatted')
  ELSE
     logfile = 'screen   '
@@ -72,21 +72,21 @@ SUBROUTINE initialise
 !--work out multiplication factor for source term in Morris and Monaghan scheme
 !  (just from gamma)
 
- IF (abs(gamma-1.).GT.1.e-3) THEN	! adiabatic
+ IF (abs(gamma-1.).GT.1.e-3) THEN   ! adiabatic
     avfact = LOG(4.)/(LOG((gamma+1.)/(gamma-1.)))
  ELSE
-    avfact = 1.0	! isothermal 
+    avfact = 1.0   ! isothermal 
  ENDIF
 !
 !--write first header to logfile/screen
 !
  CALL write_header(1,infile,datfile,evfile,logfile)    
  
- CALL setkern		! setup kernel tables
+ CALL setkern      ! setup kernel tables
  npart = 0
  itype = 0
- CALL setup    		! setup particles, allocation of memory is called
- 			! could replace this with a call to read_dump
+ CALL setup          ! setup particles, allocation of memory is called
+          ! could replace this with a call to read_dump
  CALL check_setup       ! check for errors in the particle setup
 !
 !--setup additional quantities that are not done in setup
@@ -134,7 +134,7 @@ SUBROUTINE initialise
 !  (copy both conservative and primitive here)
 !
  IF (ANY(ibound.GT.1)) THEN
-    DO i=npart+1,ntotal	
+    DO i=npart+1,ntotal   
        j = ireal(i)
        call copy_particle(i,j)
     ENDDO

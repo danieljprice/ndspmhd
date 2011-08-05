@@ -25,10 +25,10 @@ subroutine set_fixedbound
         itype(nstart:ntotal) = 1
         !!--fix the values of rho, h equal to those just outside the fixed zone
         ireal(1:nbpts) = nbpts+1
-	rho(1:nbpts) = rho(nbpts+1)
+        rho(1:nbpts) = rho(nbpts+1)
         hh(1:nbpts) = hh(nbpts+1)
         gradh(1:nbpts) = gradh(nbpts+1)
-	ireal(nstart:npart) = npart-nbpts
+        ireal(nstart:npart) = npart-nbpts
         rho(nstart:npart) = rho(npart-nbpts)
         hh(nstart:npart) = hh(npart-nbpts)
         gradh(nstart:npart) = gradh(npart-nbpts)
@@ -41,7 +41,7 @@ subroutine set_fixedbound
         !--now fix the ghost particles that have been set
         npart1 = npart + 1
         itype(npart1:ntotal) = 1  ! set all these particles to be fixed
-        npart = ntotal		  ! no ghosts
+        npart = ntotal              ! no ghosts
      endif
   else
 !
@@ -51,19 +51,19 @@ subroutine set_fixedbound
 !    
      write(iprint,10) ' Fixed particles set: finding nearest real parts' 
      do i=1,npart
-	if (itype(i).eq.1) then
-	   rmin = 1.e10
-	   do j=1,npart
-	      if (j.ne.i .and. itype(j).ne.1) then   ! find closest real particle
-	         dx = x(:,i) - x(:,j)
-	         rr = DOT_PRODUCT(dx,dx)
-	         if (rr.lt.rmin) then
-		    rmin = rr
-		    ireal(i) = j
-		 endif
-	      endif
-	   enddo
-	   if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
+        if (itype(i).eq.1) then
+           rmin = 1.e10
+           do j=1,npart
+              if (j.ne.i .and. itype(j).ne.1) then   ! find closest real particle
+                 dx = x(:,i) - x(:,j)
+                 rr = DOT_PRODUCT(dx,dx)
+                 if (rr.lt.rmin) then
+                    rmin = rr
+                    ireal(i) = j
+                 endif
+              endif
+           enddo
+           if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
      enddo
   endif

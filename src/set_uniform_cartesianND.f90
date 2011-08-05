@@ -43,7 +43,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  WRITE(iprint,*) 'Uniform cartesian distribution '
 
  IF (ndim.EQ.1) THEN 
-    idist = 1	! in 1D use default version
+    idist = 1   ! in 1D use default version
  ELSE
     idist = idistin
  ENDIF
@@ -94,14 +94,14 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     CALL alloc(ntot)
     npart = ntot
 
-    ystart = 0.5*deltay		!psepy
+    ystart = 0.5*deltay      !psepy
     ipart = npartin
     DO k=1,npartz
        DO j=1,nparty
           xstart = 0.25*psep
           IF (MOD(j,2).EQ.0) xstart = xstart + 0.5*psep
           DO i = 1,npartx
-             ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
+             ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              IF (ndim.GE.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
           ENDDO
@@ -135,14 +135,14 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     CALL alloc(ntot)
     npart = ntot
 
-    ystart = 0.5*deltay		!psepy
+    ystart = 0.5*deltay      !psepy
     ipart = 0
     DO k=1,npartz
        DO j=1,2*nparty
           xstart = 0.25*deltax
           IF (MOD(j,2).EQ.0) xstart = xstart + 0.5*deltax
           DO i = 1,npartx
-             ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
+             ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              IF (ndim.GE.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
           ENDDO
@@ -199,7 +199,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
     ntot = npartx*nparty*npartz
     ipart = npartin
-    npart = npartin + ntot	! add to particles already setup
+    npart = npartin + ntot   ! add to particles already setup
     WRITE(iprint,*) 'Cubic lattice, adding ',ntot,', npart = ',npart,npartx,nparty,npartz
     WRITE(iprint,*) 'xmin = ',xmin, ' xmax = ',xmax
     CALL alloc(npart)
@@ -207,17 +207,16 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     DO k=1,npartz
        DO j=1,nparty
           DO i = 1,npartx
-             ipart = ipart + 1	!(k-1)*nparty + (j-1)*npartx + i
+             ipart = ipart + 1   !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
              IF (ndim.GE.2) THEN
-	        x(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
-	        IF (ndim.GE.3) THEN
-		   x(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
-		ENDIF
-	     ENDIF
-!	        print*,'new particle ',ipart,'x =', x(:,ipart)
-
-	  ENDDO
+                x(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
+                IF (ndim.GE.3) THEN
+                   x(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
+                ENDIF
+             ENDIF
+!           print*,'new particle ',ipart,'x =', x(:,ipart)
+         ENDDO
        ENDDO
     ENDDO
  END SELECT
@@ -231,7 +230,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !    
     iseed = -268
     xran(1) = ran1(iseed)
-    ampl = 0.1*psep	! perturbation amplitude
+    ampl = 0.1*psep   ! perturbation amplitude
     
     DO i=npartin+1,npart  ! apply to new particles only
        DO j=1,ndim

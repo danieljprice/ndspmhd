@@ -33,7 +33,7 @@ END MODULE bound
 
 MODULE debug
  IMPLICIT NONE
- INTEGER :: itemp 	! to print debugging info for a specific particle
+ INTEGER :: itemp    ! to print debugging info for a specific particle
  LOGICAL :: trace
  CHARACTER(LEN=6) :: idebug
 END MODULE
@@ -90,7 +90,7 @@ END MODULE
 
 MODULE kernel
  IMPLICIT NONE
- INTEGER, PARAMETER :: ikern=4000	 ! dimensions of kernel table
+ INTEGER, PARAMETER :: ikern=4000    ! dimensions of kernel table
  REAL, DIMENSION(0:ikern) :: wij,grwij,grgrwij
  REAL :: dq2table,ddq2table,radkern2,radkern
  CHARACTER(LEN=100) :: kernelname
@@ -116,7 +116,7 @@ END MODULE linklist
 MODULE loguns
  IMPLICIT NONE
  INTEGER :: iprint,ievfile,idatfile,iread,ireadf     
- CHARACTER(LEN=20) :: rootname 		! name of the run
+ CHARACTER(LEN=20) :: rootname       ! name of the run
 END MODULE loguns   
 
 !-------------------------------------------------------------------
@@ -128,7 +128,7 @@ MODULE options
  IMPLICIT NONE
  INTEGER :: iener,icty,iav,iavlim,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
- INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
+ INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
  INTEGER :: igeom
@@ -185,7 +185,7 @@ END MODULE rates
 !  rates of change at the beginning of the time step
 !-------------------------------------------------------------------
 
-!MODULE rates_in		! only needed if using leapfrog
+!MODULE rates_in      ! only needed if using leapfrog
 ! IMPLICIT NONE
 ! REAL, DIMENSION(:), ALLOCATABLE :: drhodtin,dudtin,dendtin,daldtin
 ! REAL, DIMENSION(:,:), ALLOCATABLE :: forcein,dBfielddtin

@@ -20,7 +20,7 @@ subroutine get_rates
  use timestep
  use xsph
  use anticlumping
- use setup_params	! for hfact
+ use setup_params      ! for hfact
   
  use fmagarray
  use derivB
@@ -129,7 +129,7 @@ subroutine get_rates
 !      
  dtcourant = 1.e6  
  zero = 1.e-10
- do i=1,ntotal	! using ntotal just makes sure they are zero for ghosts
+ do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
   drhodt(i) = 0.0
   dudt(i) = 0.0
@@ -173,18 +173,18 @@ subroutine get_rates
 !  phi can be any scalar variable  
 !
  select case(iprterm)
-    case(1)		! this gives the (P_a + P_b) / (rho_a rho_b) form
+    case(1)            ! this gives the (P_a + P_b) / (rho_a rho_b) form
        phi(1:ntotal) = rho(1:ntotal)
-    case(2)		! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
+    case(2)            ! this gives the HK89 form SQRT(Pa Pb)/rhoa rhob
        phi(1:ntotal) = sqrt(pr(1:ntotal))/rho(1:ntotal)    
-    case default	! this gives the usual continuity, momentum and induction eqns
+    case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
  !
  !--calculate kernel for the MHD anticlumping term
  !
  if (ianticlump.eq.1) then
-  q2joe = (1./1.5)**2	! 1/hfact is initial particle spacing in units of h 
+  q2joe = (1./1.5)**2      ! 1/hfact is initial particle spacing in units of h 
   call interpolate_kernel(q2joe,wabjoei,grkernjoe)
  endif
  ! print*,'wabjoe = ',wabjoei
@@ -192,7 +192,7 @@ subroutine get_rates
 !
 !--Loop over all the link-list cells
 !
- loop_over_cells: do icell=1,ncellsloop		! step through all cells
+ loop_over_cells: do icell=1,ncellsloop            ! step through all cells
 
     !print*,'> doing cell ',icell
     !
@@ -200,12 +200,12 @@ subroutine get_rates
     !  (common to all particles in the cell)
     !
     call get_neighbour_list(icell,neighcell,listneigh,nneigh)
-	 
-    i = ifirstincell(icell)	! start with first particle in cell
+       
+    i = ifirstincell(icell)      ! start with first particle in cell
     idone = -1
     if (i.ne.-1) iprev = i
 
-    loop_over_cell_particles: do while (i.ne.-1)	! loop over home cell particles
+    loop_over_cell_particles: do while (i.ne.-1)      ! loop over home cell particles
 
        !print*,'Doing particle ',i,x(:,i),valfven2i,rho(i),hh(i)
        idone = idone + 1
@@ -222,10 +222,10 @@ subroutine get_rates
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
-       if (imhd.ge.11) then	! if mag field variable is B
+       if (imhd.ge.11) then      ! if mag field variable is B
           Bi(:) = Bcons(:,i)
           Brhoi(:) = Bi(:)*rho1i
-       elseif (imhd.gt.0) then	! if mag field variable is B/rho
+       elseif (imhd.gt.0) then      ! if mag field variable is B/rho
           Brhoi(:) = Bcons(:,i)
           Bi(:) = Bfield(:,i)
        endif
@@ -242,7 +242,7 @@ subroutine get_rates
        hi = hh(i)
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
-	  call quit
+        call quit
        endif
        hi1 = 1./hi
        hi21 = hi1*hi1
@@ -254,47 +254,47 @@ subroutine get_rates
        loop_over_neighbours: do n = idone+1,nneigh
        
           j = listneigh(n)
-	  if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then		! don't count particle with itself
-	     dx(:) = x(:,i) - x(:,j)
+        if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
+           dx(:) = x(:,i) - x(:,j)
       !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
-	     hj = hh(j)
-	     hj1 = 1./hj
-	     hj21 = hj1*hj1
-	     hfacwabj = hj1**ndim
-	     hfacgrkernj = hfacwabj*hj1
+           hj = hh(j)
+           hj1 = 1./hj
+           hj21 = hj1*hj1
+           hfacwabj = hj1**ndim
+           hfacgrkernj = hfacwabj*hj1
              hav = 0.5*(hi + hj)
              hav1 = 1./hav
              h21 = hav1*hav1
              hfacwab = hav1**ndim 
              hfacgrkern = hfacwab*hav1
      
-	     rij2 = dot_product(dx,dx)
-	     rij = sqrt(rij2)
-	     if (rij.eq.0.) then
-	        write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
+           rij2 = dot_product(dx,dx)
+           rij = sqrt(rij2)
+           if (rij.eq.0.) then
+              write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                 call quit
-	     endif	
-	     q2 = rij2*h21	
-	     q2i = rij2*hi21
-	     q2j = rij2*hj21
-	     dr(1:ndim) = dx(1:ndim)/rij	! unit vector
-	     if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0.
+           endif      
+           q2 = rij2*h21      
+           q2i = rij2*hi21
+           q2j = rij2*hj21
+           dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
+           if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0.
 
              !----------------------------------------------------------------------------
              !  do pairwise interaction if either particle is within range of the other
              !----------------------------------------------------------------------------
-	     if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
+           if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
                 call rates_core
-	     else	! if outside 2h
-!		  PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2)
-	     endif	! r < 2h or not
+           else      ! if outside 2h
+!              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2)
+           endif      ! r < 2h or not
 
-	   endif		! j.ne.i
+         endif            ! j.ne.i
         
-	  enddo loop_over_neighbours
+        enddo loop_over_neighbours
 
        iprev = i
-       if (iprev.ne.-1) i = ll(i)		! possibly should be only IF (iprev.NE.-1)
+       if (iprev.ne.-1) i = ll(i)            ! possibly should be only IF (iprev.NE.-1)
     
     enddo loop_over_cell_particles
             
@@ -341,7 +341,7 @@ subroutine get_rates
 !  done multiple times within the loop)
 !
     if (imhd.ne.0) then
-       divB(i) = divB(i)*rho1i		!*rhoi
+       divB(i) = divB(i)*rho1i            !*rhoi
        curlB(:,i) = curlB(:,i)*rho1i
        dBconsdt(:,i) = dBconsdt(:,i)*rho1i
     endif    
@@ -379,7 +379,7 @@ subroutine get_rates
 !
     valfven2i = 0.
     if (imhd.ne.0) valfven2i = dot_product(Bfield(:,i),Bfield(:,i))*rho1i
-    vsig = sqrt(spsound(i)**2. + valfven2i)	! approximate vsig only
+    vsig = sqrt(spsound(i)**2. + valfven2i)      ! approximate vsig only
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
 !--calculate time derivative of alpha (artificial viscosity coefficient)
@@ -389,10 +389,10 @@ subroutine get_rates
        if (mod(iavlim,10).eq.2) then
           source = max(drhodt(i)*rho1i,0.0)*(2.0-alpha(1,i))
        else
-	  source = max(drhodt(i)*rho1i,0.0)   ! source term is div v   
+        source = max(drhodt(i)*rho1i,0.0)   ! source term is div v   
        endif
 
-       tdecay1 = (avdecayconst*vsig)/hh(i)	! 1/decay time (use vsig)
+       tdecay1 = (avdecayconst*vsig)/hh(i)      ! 1/decay time (use vsig)
        daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        !
        !--also evolve resistivity parameter if iav > 10
@@ -438,7 +438,7 @@ subroutine get_rates
 !
 !--set rates to zero on ghosts
 !
- do i=npart+1,ntotal	! using ntotal just makes sure they are zero for ghosts
+ do i=npart+1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
   drhodt(i) = 0.0
   dudt(i) = 0.0
@@ -489,7 +489,7 @@ contains
        call interpolate_kernel(q2j,wabj,grkernj)
        wabj = wabj*hfacwabj
        grkernj = grkernj*hfacgrkernj
-!  (calculate average)  		
+!  (calculate average)              
        grkern = 0.5*(grkerni + grkernj)
        wab = 0.5*(wabi + wabj)
 !  (grad h terms)  
@@ -497,7 +497,7 @@ contains
           gradhj = 1./(1. - gradh(j))
           grkerni = grkerni*gradhi
           grkernj = grkernj*gradhj
-       else  ! if not using grad h correction		   
+       else  ! if not using grad h correction               
           grkerni = grkern
           grkernj = grkern
        endif
@@ -505,7 +505,7 @@ contains
 !
 !--define local copies of quantities
 !
-    velj(:) = vel(:,j)		
+    velj(:) = vel(:,j)            
     dvel(:) = veli(:) - velj(:)
     dvdotr = dot_product(dvel,dr)
     rhoj = rho(j)
@@ -513,21 +513,21 @@ contains
     rho2j = rhoj*rhoj
     rho21j = rho1j*rho1j
     rhoj5 = sqrt(rhoj)
-    rhoij = rhoi*rhoj		
+    rhoij = rhoi*rhoj            
     Prho2j = pr(j)*rho21j
     spsoundj = spsound(j)
     pmassj = pmass(j)
     
     phii_on_phij = phii/phi(j)
-    phij_on_phii = phi(j)*phii1 	
-    sqrtgj = sqrtg(j)	
+    phij_on_phii = phi(j)*phii1       
+    sqrtgj = sqrtg(j)      
     !-- mhd definitions --!
-    if (imhd.ge.11) then	! if B is mag field variable
+    if (imhd.ge.11) then      ! if B is mag field variable
        Bj(:) = Bcons(:,j)
        Brhoj(:) = Bj(:)*rho1j
-    elseif (imhd.ne.0) then	! if B/rho is mag field variable
+    elseif (imhd.ne.0) then      ! if B/rho is mag field variable
        Brhoj(:) = Bcons(:,j)
-       Bj(:) = Bfield(:,j)		    	          
+       Bj(:) = Bfield(:,j)                                
     endif
     if (imhd.ne.0) then
        dB(:) = Bi(:) - Bj(:)
@@ -541,9 +541,9 @@ contains
     endif
     
     !--maximum velocity for timestep control
-    !		vmag = SQRT(DOT_PRODUCT(dvel,dvel))
-    !		vsigdtc = vmag + spsoundi + spsoundj  	&
-    !			       + sqrt(valfven2i) + sqrt(valfven2j)
+    !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
+    !            vsigdtc = vmag + spsoundi + spsoundj        &
+    !                         + sqrt(valfven2i) + sqrt(valfven2j)
     vsig = 0.
     viss = 0.
 !----------------------------------------------------------------------------
@@ -563,12 +563,12 @@ contains
     !--max signal velocity (my version)
     !
     vsig2i = spsoundi**2 + valfven2i
-    vsig2j = spsoundj**2 + valfven2j						
+    vsig2j = spsoundj**2 + valfven2j                                    
     vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
     vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
     if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
        write(iprint,*) ' rates: vsig det < 0 ', &
-       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i,	&
+       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i,      &
        'j: ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
        call quit  
     endif
@@ -656,7 +656,7 @@ contains
     real :: term,avterm,avtermB,rhoav1
     !
     !--definitions
-    !	
+    !      
     alphaav = 0.5*(alphai + alpha(1,j))
     alphaB = 0.5*(alphaBi + alpha(2,j))
 !!    alphaB = 0.5*(alphaBi + alphaB(j))
@@ -670,8 +670,8 @@ contains
     !  artificial viscosity (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0) then		
-       visc = avterm*viss	! viss=abs(dvdotr) defined in rates
+    if (dvdotr.lt.0) then            
+       visc = avterm*viss      ! viss=abs(dvdotr) defined in rates
        !
        !--add this to the momentum equation (viscous force)
        ! 
@@ -691,11 +691,11 @@ contains
     !
     !--add this to the induction equation
     !
-    if (imhd.le.10) then		! evolving B/rho
-       dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*dBdtvisc(:)		   
+    if (imhd.le.10) then            ! evolving B/rho
+       dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*dBdtvisc(:)               
        dBconsdt(:,j) = dBconsdt(:,j) - rhoj*pmassi*dBdtvisc(:)
-    elseif (imhd.eq.11) then	! evolving B
-       dBconsdt(:,i) = dBconsdt(:,i) + rho2i*pmassj*dBdtvisc(:)		   
+    elseif (imhd.eq.11) then      ! evolving B
+       dBconsdt(:,i) = dBconsdt(:,i) + rho2i*pmassj*dBdtvisc(:)               
        dBconsdt(:,j) = dBconsdt(:,j) - rho2j*pmassi*dBdtvisc(:)
     endif
 
@@ -710,8 +710,8 @@ contains
        !  kinetic + thermal energy terms - applied only when particles approaching
        !
        if (dvdotr.lt.0) then
-          v2i = dot_product(veli,dr)**2	! energy along line
-          v2j = dot_product(velj,dr)**2	! of sight
+          v2i = dot_product(veli,dr)**2      ! energy along line
+          v2j = dot_product(velj,dr)**2      ! of sight
           eni = udiss_frac*uu(i) + 0.5*v2i !!!+ 0.5*B2i*rhoav1
           enj = udiss_frac*uu(j) + 0.5*v2j !!!+ 0.5*B2j*rhoav1
           ediff = eni - enj 
@@ -730,13 +730,13 @@ contains
           B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
           B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
        endif
-       ediffB = 0.5*(B2i-B2j)*rhoav1	! needed if applying Bvisc everywhere
+       ediffB = 0.5*(B2i-B2j)*rhoav1      ! needed if applying Bvisc everywhere
        qdiff = qdiff - avtermB*ediffB
        !
        !  add to total energy equation
        !
        dendt(i) = dendt(i) - pmassj*qdiff
-       dendt(j) = dendt(j) + pmassi*qdiff     		
+       dendt(j) = dendt(j) + pmassi*qdiff                 
        
     elseif (iener.gt.0) then
        !
@@ -745,7 +745,7 @@ contains
        !  kinetic + thermal energy terms
        !
        if (dvdotr.lt.0) then
-          vissv = -avterm*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2	
+          vissv = -avterm*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2      
           vissu = avterm*udiss_frac*(uu(i) - uu(j))   
        else
           vissv = 0.
@@ -780,7 +780,7 @@ contains
   subroutine mhd_terms
     implicit none
 
-    !----------------------------------------------------------------------------		
+    !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
     !
@@ -796,23 +796,23 @@ contains
        curlBi(2) = 0.
     endif
     
-    if (imagforce.eq.1) then	! vector form (dot products)
+    if (imagforce.eq.1) then      ! vector form (dot products)
        
        BidotdB = dot_product(Brhoi,dB)
        BjdotdB = dot_product(Brhoj,dB)
-       fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))		  
+       fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))              
        fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
        
-    elseif (imagforce.eq.2) then	! tensor formalism in generalised form
+    elseif (imagforce.eq.2) then      ! tensor formalism in generalised form
        !
        !--isotropic mag force (pressure gradient)
-       !		  
+       !              
        fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
        !
        !--anisotropic force (including variable smoothing length terms)
        !
        faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
-            + Brhoj(:)*projBrhoj*phii_on_phij*grkernj		   
+            + Brhoj(:)*projBrhoj*phii_on_phij*grkernj               
        !
        !--Joe's correction term (preserves momentum conservation)
        !  in 1D we only do this in the x-direction
@@ -826,15 +826,15 @@ contains
        endif
        !
        !--add contributions to magnetic force
-       !	  
+       !        
        fmagi(:) = faniso(:) - fiso*dr(:)
        
-    elseif (imagforce.eq.5) then	! Morris' Hybrid form
+    elseif (imagforce.eq.5) then      ! Morris' Hybrid form
        
        rhoij = rhoi*rhoj
        fiso = grkern*0.5*(Brho2i + Brho2j)
        faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
-       fmagi(:) = faniso(:) - fiso*dr(:)		  
+       fmagi(:) = faniso(:) - fiso*dr(:)              
        
     endif
     !
@@ -849,18 +849,18 @@ contains
     curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkern
     !
     !--add Lorentz force to total force
-    !        	
+    !              
     if (imagforce.eq.1) then
        fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
        fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
        force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
        force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
-    elseif (imagforce.eq.5) then	! Morris' Hybrid force
+    elseif (imagforce.eq.5) then      ! Morris' Hybrid force
        fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
        fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
        force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-       force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:)) 			        
-    else 	! symmetric forces fmagxi = -fmagxj
+       force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
+    else       ! symmetric forces fmagxi = -fmagxj
        fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)
        fmag(:,j) = fmag(:,j) - pmassi*fmagi(:)
        force(:,i) = force(:,i) + pmassj*fmagi(:)
@@ -875,19 +875,19 @@ contains
     !
     if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
        if (imhd.eq.3) then   ! conservative form (explicitly symmetric)
-          dBconsdt(:,i) = dBconsdt(:,i)		&
+          dBconsdt(:,i) = dBconsdt(:,i)            &
                + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j) 		&
+          dBconsdt(:,j) = dBconsdt(:,j)             &
                - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj             
        elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
-          dBconsdt(:,i) = dBconsdt(:,i)		&
+          dBconsdt(:,i) = dBconsdt(:,i)            &
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j) 		&
+          dBconsdt(:,j) = dBconsdt(:,j)             &
                - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
        else                 ! non-conservative (usual) form
-          dBconsdt(:,i) = dBconsdt(:,i)		&
+          dBconsdt(:,i) = dBconsdt(:,i)            &
                - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-          dBconsdt(:,j) = dBconsdt(:,j) 		&
+          dBconsdt(:,j) = dBconsdt(:,j)             &
                - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
        endif
        
@@ -899,7 +899,7 @@ contains
        !
        !   (evolving B)
        !
-    elseif (imhd.ge.11) then	! note divided by rho later		  
+    elseif (imhd.ge.11) then      ! note divided by rho later              
        dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
        
@@ -909,7 +909,7 @@ contains
           dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
        endif
     endif
-		   
+               
 
     return
   end subroutine mhd_terms
@@ -934,11 +934,11 @@ contains
     !
     ! (anisotropic stress)
     !
-    prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
+    prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni      & 
                 - Bjdotvi*projBrhoj*phij_on_phii*grkernj
-    projprv = dot_product(prvterm,dr)		   
+    projprv = dot_product(prvterm,dr)               
     !
-    ! (add source term for anticlumping term)		   
+    ! (add source term for anticlumping term)               
     !
     if (imhd.ne.0 .and. ianticlump.eq.1 .and. imagforce.eq.2) then
        ! prvaniso = prvaniso - Rjoe*prvaniso
@@ -958,7 +958,7 @@ contains
     dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
     dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj)
     !
-    ! (source term for hyperbolic divergence correction)		
+    ! (source term for hyperbolic divergence correction)            
     !
     if (idivBzero.ge.2) then
        dendt(i) = dendt(i) + pmassj*projBi*gradpsiterm

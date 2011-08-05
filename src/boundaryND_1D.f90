@@ -5,7 +5,7 @@
 !! for ND case only periodic boundaries implemented
 !! NOTE: AT THE MOMENT THIS DOES *NOT* DO MEMORY REALLOCATION IF npart > ARRAY SIZE
 !!-------------------------------------------------------------------------
-	 
+       
 SUBROUTINE boundary
  USE dimen_mhd
  USE debug
@@ -39,7 +39,7 @@ SUBROUTINE boundary
 
     IF (ndim.GT.1) THEN    
 !       WRITE(iprint,*) 'warning: inflow/outflow not implemented in ND'
-    ELSE
+    ELSE      
     
     npartin = npart
 !
@@ -63,21 +63,21 @@ SUBROUTINE boundary
        IF (debugging) WRITE(iprint,*) 'inflow to left boundary npart = ',npart+1
        IF ((x(1,1)-xmin(1)).GT.2*psepleft) THEN
           WRITE(iprint,*)' Need more than one particle',psepleft,(x(1,1)-xmin(1))/psepleft
-	  nnew = INT((x(1,1)-xmin(1))/psepleft)
-	  WRITE(iprint,*)' Number of particles needed = ',nnew
-       ENDIF	  
-       DO i=npart,1,-1		! relabel particles
+          nnew = INT((x(1,1)-xmin(1))/psepleft)
+          WRITE(iprint,*)' Number of particles needed = ',nnew
+       ENDIF        
+       DO i=npart,1,-1            ! relabel particles
 !          print*,' particle ',i+1,' = ',i
 !--copy both primitive and conservative variables
-	  x(1,i+1) = x(1,i)		! (must copy all particle properties)
-	  itype(i+1) = itype(i)	  
-	  call copy_particle(i+1,i)
+          x(1,i+1) = x(1,i)            ! (must copy all particle properties)
+          itype(i+1) = itype(i)        
+          call copy_particle(i+1,i)
        ENDDO       
 !
 !--now make new particle number 1
 !  (particle properties are automatically set in the next iteration of step)
 !
-       npart = npart + 1	! add new particle
+       npart = npart + 1      ! add new particle
        x(1,1) = x(1,1) - psepleft
        call copy_particle(1,2)  ! copy quantities from particle 2
        itype(1:nbpts) = 1
@@ -89,43 +89,43 @@ SUBROUTINE boundary
 !       
     ELSEIF (x(1,1).LT.xmin(1)) THEN
        nsub = INT((xmin(1)-x(1,1))/psepleft) !+ 1
-       IF (debugging) 	&
+       IF (debugging)       &
           WRITE(iprint,*) 'outflow from left boundary npart = ',npart-nsub,nsub
-       npart = npart - nsub	! subtract particle(s)
-       DO i=1,npart		! relabel particles         
-          x(1,i) = x(1,i+nsub)		! (must copy all particle properties)
-	  call copy_particle(i,i+nsub)
+       npart = npart - nsub      ! subtract particle(s)
+       DO i=1,npart            ! relabel particles         
+          x(1,i) = x(1,i+nsub)             ! (must copy all particle properties)
+          call copy_particle(i,i+nsub)
        ENDDO
               
     ENDIF
 !
 !--right boundary
 !    
-    IF (x(1,npart).GT.xmax(1)) THEN		! outflow from right boundary
+    IF (x(1,npart).GT.xmax(1)) THEN            ! outflow from right boundary
        nsub = INT((x(1,npart)-xmax(1))/psepright) !+ 1
        IF (debugging) WRITE(iprint,*) 'outflow from right boundary npart = ',npart-nsub,nsub       
 !--if more than one particle, check other particles close to boundary
        IF (nsub.GE.2) THEN
           WRITE(iprint,*) 'need more than one particle ',nsub
           nsubtemp = 0
-	  DO i=0,nsub
-	     IF (x(1,npart-i).GT.xmax(1)) THEN
-	        nsubtemp = nsubtemp + 1
-	     ENDIF
-	  ENDDO
-	  nsub = nsubtemp
+          DO i=0,nsub
+             IF (x(1,npart-i).GT.xmax(1)) THEN
+                nsubtemp = nsubtemp + 1
+             ENDIF
+          ENDDO
+          nsub = nsubtemp
           WRITE(iprint,*) 'really need more than one particle ',nsub
-       ENDIF	  
-       npart = npart - nsub	! subtract particle(s)
-    ELSEIF (x(1,npart).LT.(xmax(1)-psepright)) THEN	! inflow from right boundary   
+       ENDIF        
+       npart = npart - nsub      ! subtract particle(s)
+    ELSEIF (x(1,npart).LT.(xmax(1)-psepright)) THEN      ! inflow from right boundary   
        IF (debugging) WRITE(iprint,*) 'inflow to right boundary npart = ',npart+1
        IF ((x(1,npart)-xmax(1)).GT.2*psepright) THEN
           WRITE(iprint,*)' Need more than one particle',psepright,(x(1,npart)-xmax(1))/psepright
-	  nnew = INT((x(1,npart)-xmax(1))/psepright)
-	  WRITE(iprint,*)' Number of particles needed = ',nnew
-       ENDIF	  
+          nnew = INT((x(1,npart)-xmax(1))/psepright)
+          WRITE(iprint,*)' Number of particles needed = ',nnew
+       ENDIF        
 
-       npart = npart + 1	! add only one new particle
+       npart = npart + 1      ! add only one new particle
 !
 !--create new particle number npart
 !  (force etc calculated next step - doesn't matter so long as its a fixed
@@ -184,16 +184,16 @@ SUBROUTINE boundary
        DO jdim=1,ndim
           IF (ibound(jdim).EQ.3) THEN
              IF (x(jdim,i).GT.xmax(jdim)) THEN
-!	        print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
-	        x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-	        xin(jdim,i) = x(jdim,i)
-	     ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
-!	        print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
-!	        read*
+!               print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
+                x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
+                xin(jdim,i) = x(jdim,i)
+             ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
+!              print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)           
+!                read*
                 x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-	        xin(jdim,i) = x(jdim,i)
-             ENDIF	  
-	  ENDIF
+                xin(jdim,i) = x(jdim,i)
+             ENDIF        
+        ENDIF
        ENDDO
     
     ENDDO   

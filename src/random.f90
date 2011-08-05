@@ -26,7 +26,7 @@ REAL FUNCTION ran1(iseed)
 !--initialise
 ! 
  IF (iseed.LE.0 .OR. iy.EQ.0) THEN
-    iseed = MAX(-iseed,1) 	! do not allow iseed = 0
+    iseed = MAX(-iseed,1)  ! do not allow iseed = 0
     DO j = ntab+8,1,-1
        k = iseed/iq
        iseed = ia*(iseed-k*iq) - ir*k

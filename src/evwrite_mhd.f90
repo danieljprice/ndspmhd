@@ -1,7 +1,7 @@
 !!--------------------------------------------------------------------
 !! Calculate conserved quantities etc and write to .ev file
 !!--------------------------------------------------------------------
-	 
+  
 SUBROUTINE evwrite(t,etot,momtot)
  USE dimen_mhd
  USE debug
@@ -39,7 +39,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--allow for tracing flow
 !      
  IF (trace) WRITE(iprint,*) ' Entering subroutine evwrite'
-    	  
+       
  ekin = 0.0
  etherm = 0.0
  emag = 0.0
@@ -80,7 +80,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 
     pmassi = pmass(i)
     rhoi = rho(i)
-    veli(:) = vel(:,i)	 
+    veli(:) = vel(:,i)  
     mom(:) = mom(:) + pmassi*veli(:)
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
     etherm = etherm + pmassi*uu(i)
@@ -88,11 +88,11 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--potential energy from external forces
 !    
     SELECT CASE(iexternal_force)
-    CASE(1)	! toy star force (x^2 potential)
+    CASE(1) ! toy star force (x^2 potential)
        epot = epot + 0.5*pmassi*DOT_PRODUCT(x(:,i),x(:,i))
-    CASE(2)	! 1/r^2 force(1/r potential)
+    CASE(2) ! 1/r^2 force(1/r potential)
        epot = epot + pmassi/SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
-    CASE(3)	! potential from n point masses
+    CASE(3) ! potential from n point masses
        WRITE(iprint,*) 'potential not calculated for point masses'
     END SELECT
 !
@@ -100,11 +100,11 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
     IF (imhd.NE.0) THEN
        IF (imhd.GE.11) THEN
-	  Bi(:) = Bcons(:,i)
-	  Brhoi(:) = Bi(:)/rhoi
+          Bi(:) = Bcons(:,i)
+          Brhoi(:) = Bi(:)/rhoi
        ELSE
           Brhoi(:) = Bcons(:,i)
-	  Bi(:) = Brhoi(:)*rhoi
+          Bi(:) = Brhoi(:)*rhoi
        ENDIF
        B2i = DOT_PRODUCT(Bi,Bi)
        Bmagi = SQRT(B2i)
@@ -114,18 +114,18 @@ SUBROUTINE evwrite(t,etot,momtot)
        emag = emag + 0.5*pmassi*B2i/rhoi
 !
 !--Plasma beta minimum/maximum/average
-!	 
+!  
        IF (B2i.LT.1.e-5) THEN
-	  betamhdi = 0.
+          betamhdi = 0.
        ELSE 
-	  betamhdi = pr(i)/(0.5*B2i)	    
+          betamhdi = pr(i)/(0.5*B2i)     
        ENDIF
        betamhdav = betamhdav + betamhdi
        IF (betamhdi.GT.betamhdmax) betamhdmax = betamhdi
        IF (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
 !
 !--Maximum divergence of B
-!	 
+!  
        IF (divBi.GT.divBmax) divBmax = divBi
        divBav = divBav + divBi
 !
@@ -137,7 +137,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
        fmagabs = SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
        IF (fmagabs.GT.1.e-8) THEN
-          fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)	  
+          fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)   
        ELSE
           FdotBi = 0.
        ENDIF
@@ -163,11 +163,11 @@ SUBROUTINE evwrite(t,etot,momtot)
        IF (Bmagi.EQ.0.) THEN
           omegamhdi = 0.
        ELSE
-	  omegamhdi = divBi*hh(i)/Bmagi	    
-       ENDIF	   
+          omegamhdi = divBi*hh(i)/Bmagi     
+       ENDIF    
        IF (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
        IF (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
-       omegamhdav = omegamhdav + omegamhdi	  
+       omegamhdav = omegamhdav + omegamhdi   
 !
 !--Conserved magnetic flux (int B dV)
 !
@@ -200,17 +200,17 @@ SUBROUTINE evwrite(t,etot,momtot)
 
 !    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag,	&
-          crosshel,betamhdmin,betamhdav,betamhdmax,			&
-	  divBav,divBmax,divBtot,					&
-          fdotBav,FdotBmax,force_err_av,force_err_max,			&
-	  omegamhdav,omegamhdmax,fracdivBok
+    WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag, &
+          crosshel,betamhdmin,betamhdav,betamhdmax,   &
+          divBav,divBmax,divBtot,     &
+          fdotBav,FdotBmax,force_err_av,force_err_max,   &
+          omegamhdav,omegamhdmax,fracdivBok
 30  FORMAT(20(1pe18.10,1x),1pe8.2)
       
  ELSE
 
     WRITE(ievfile,*) t,ekin,etherm,emag,etot,momtot
-40  FORMAT(6(1pe20.13,1x))	       
+40  FORMAT(6(1pe20.13,1x))        
 
  ENDIF
 

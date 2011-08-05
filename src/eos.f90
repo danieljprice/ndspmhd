@@ -40,7 +40,7 @@ SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,isize)
     CALL quit      
  ENDIF
 
- IF (iener.EQ.0) THEN	! polytropic (isothermal when gamma=1)
+ IF (iener.EQ.0) THEN   ! polytropic (isothermal when gamma=1)
     WHERE (rho > 0.)
       pr = polyk*rho**gamma
       vsound = SQRT(gamma*pr/rho)
@@ -50,7 +50,7 @@ SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,isize)
        uu = pr/(gamma1*rho)    
        END WHERE
     ENDIF   
- ELSE		! adiabatic
+ ELSE      ! adiabatic
     WHERE (rho > 0.)
       pr = gamma1*uu*rho
       vsound = SQRT(gamma*pr/rho)
