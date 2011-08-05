@@ -61,7 +61,7 @@ SUBROUTINE step
        
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
-       x(:,i) = xin(:,i) + hdt*velin(1:ndim,i)       
+       x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)       
        vel(:,i) = velin(:,i)
        Bcons(:,i) = Bconsin(:,i)	     
        rho(i) = rhoin(i)
@@ -72,7 +72,7 @@ SUBROUTINE step
 !
 !--x is predicted to the half timestep
 !
-       x(:,i) = xin(:,i) + hdt*velin(1:ndim,i)          
+       x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)          
 !
 !--also update the other quantities to the half timestep - this is not symplectic,
 !  however only x should be necessary to calculate the forces if the density is
@@ -133,7 +133,7 @@ SUBROUTINE step
  DO i=1,npart
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
-       x(:,i) = x(:,i) + hdt*vel(:,i)
+       x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)
        Bcons(:,i) = Bconsin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
@@ -142,7 +142,7 @@ SUBROUTINE step
     ELSE
 !--this should be the only update for the velocity (ie. no predictor)
        vel(:,i) = velin(:,i) + dt*force(:,i)	! stepped through whole timestep
-       x(:,i) = x(:,i) + hdt*vel(:,i)		! nb x is stepped from its current value at t^1/2
+       x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)		! nb x is stepped from its current value at t^1/2
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdt(:,i)   ! ** CHECK THE REST **
        IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodt(i)
        IF (ihvar.EQ.2) THEN
