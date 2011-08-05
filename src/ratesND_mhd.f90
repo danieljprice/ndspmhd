@@ -393,7 +393,7 @@ SUBROUTINE get_rates
 !
 		vsig = vsigi + vsigj + beta*viss
 	
-!		vsigdtc = vsig		! this is Joe's sigma
+!		vsigdtc is the signal velocity used in the timestep control
                 vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
 		
 		IF (dvdotr.LT.0. .AND. iav.NE.0) THEN	! only for approaching particles
@@ -430,7 +430,7 @@ SUBROUTINE get_rates
 !--time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - gives divv for art vis.
 !
-	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni	! gradhi = 1 if not set
+	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni
 		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
 				
 		drhodt(i) = drhodt(i) + drhodti
