@@ -3,7 +3,7 @@
 ! throughout the code
 !------------------------------------------------------------------
 module utils
- public :: minmaxave,cross_product3D,curl3D_epsijk
+ public :: minmaxave,cross_product3D,curl3D_epsijk,det
 
 contains
 !-------------------------------------------------------------------
@@ -92,5 +92,20 @@ subroutine matrixinvert3D(A,Ainv,ierr)
 
  return
 end subroutine matrixinvert3D
+
+real function det(A)
+ implicit none
+ real, intent(in), dimension(3,3) :: A
+ real, dimension(3) :: x0,x1,x2,result
+ 
+ x0 = A(1,:)
+ x1 = A(2,:)
+ x2 = A(3,:)
+ 
+ call cross_product3D(x1,x2,result)
+ det = dot_product(x0,result)
+
+ return
+end function det
 
 end module utils
