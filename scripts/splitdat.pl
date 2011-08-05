@@ -1,4 +1,4 @@
-#!/bin/env/perl
+#!/bin/env perl
 #
 # @(#) perl script to split SPH data file into separate files containing 
 # @(#) one timestep each (plus header line)
