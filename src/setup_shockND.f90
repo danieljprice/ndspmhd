@@ -46,7 +46,7 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 0.   
+ dsmooth = 0.
  equalmass = .true.   ! use equal mass particles??
  stretchx = .false.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
@@ -299,10 +299,10 @@ subroutine setup
 !
  Bconst(:) = 0.
  Bconst(1) = Bxinit
-! if (abs(Byleft - Byright).lt.tiny(Byleft)) then
-!    Bconst(2) = Byleft
-!    write(iprint,*) 'treating constant y-field as external'
-! endif
+ if (abs(Byleft - Byright).lt.tiny(Byleft)) then
+    Bconst(2) = Byleft
+    write(iprint,*) 'treating constant y-field as external'
+ endif
 
  if (abs(Bzleft - Bzright).lt.tiny(Bzleft)) then
     Bconst(3) = Bzleft
@@ -315,8 +315,12 @@ subroutine setup
  if (imhd.lt.0) then
     do i=1,npart
        Bevol(:,i) = 0.
-       Bevol(3,i) = -Bfield(2,i)*x(1,i)
-       if (abs(Bzleft - Bzright).gt.tiny(Bzleft)) Bevol(2,i) = Bfield(3,i)*x(1,i)
+       if (abs(Byleft - Byright).gt.tiny(Byright)) then
+          Bevol(3,i) = -Bfield(2,i)*x(1,i)
+       endif
+       if (abs(Bzleft - Bzright).gt.tiny(Bzleft)) then
+          Bevol(2,i) = Bfield(3,i)*x(1,i)
+       endif
     enddo
  endif
 !
@@ -324,7 +328,8 @@ subroutine setup
 !  smooth pressure jump (no spikes)
 !
 ! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
- if (.false.) then
+ if (.true.) then
+    if (any(ibound.eq.1)) call set_fixedbound()
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
     do i=1,npart
