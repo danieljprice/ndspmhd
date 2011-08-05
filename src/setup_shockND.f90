@@ -304,15 +304,10 @@ subroutine setup
 !--setup vector potential if necessary
 !
  if (imhd.lt.0) then
-    if (ndim.lt.2) stop 'error: can''t set up vector potential in 1D'
     do i=1,npart
        Bevol(:,i) = 0.
-       if (ndim.eq.2) then
-          Bevol(1,i) = -Bfield(2,i)*x(1,i)
-       else
-          Bevol(3,i) = -Bfield(2,i)*x(1,i)
-          Bevol(2,i) = Bfield(3,i)*x(1,i)
-       endif
+       Bevol(3,i) = -Bfield(2,i)*x(1,i)
+       Bevol(2,i) = Bfield(3,i)*x(1,i)
     enddo
  endif
 !

@@ -63,7 +63,7 @@ subroutine setup
 !--setup uniform density grid of particles (2D) with sinusoidal field/velocity
 !  determines particle number and allocates memory
 !
- call set_uniform_cartesian(22,psep,xmin,xmax)        ! 2 = close packed arrangement
+ call set_uniform_cartesian(4,psep,xmin,xmax)        ! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -88,7 +88,8 @@ subroutine setup
     elseif (imhd.lt.0) then
 !--vector potential setup
        Bevol(:,ipart) = 0.
-       Bevol(1,ipart) = 0.5/pi*Bzero*(cos(2.*pi*x(2,ipart)) + 0.5*cos(4.*pi*x(1,ipart)))
+       if (ndimV.lt.3) stop 'ndimV too small in setup_orstang'
+       Bevol(3,ipart) = 0.5/pi*Bzero*(cos(2.*pi*x(2,ipart)) + 0.5*cos(4.*pi*x(1,ipart)))
     else
        Bfield(:,ipart) = 0.
     endif 
