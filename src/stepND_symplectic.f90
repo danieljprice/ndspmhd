@@ -44,7 +44,7 @@ SUBROUTINE step
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
-    Bconsin(:,i) = Bcons(:,i)
+    Bevolin(:,i) = Bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
@@ -63,7 +63,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN	! fixed particles
        x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)       
        vel(:,i) = velin(:,i)
-       Bcons(:,i) = Bconsin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)	     
        rho(i) = rhoin(i)
        hh(i) = hhin(i)	    
        en(i) = enin(i)
@@ -80,7 +80,7 @@ SUBROUTINE step
 !  and also no mag field. Could perhaps work out a better way to do this.
 !
        vel(:,i) = velin(:,i) + hdt*force(:,i)
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact*(pmass(i)/rho(i))**hpower	! my version
@@ -134,7 +134,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
        x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)
-       Bcons(:,i) = Bconsin(:,i)
+       Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
@@ -143,7 +143,7 @@ SUBROUTINE step
 !--this should be the only update for the velocity (ie. no predictor)
        vel(:,i) = velin(:,i) + dt*force(:,i)	! stepped through whole timestep
        x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)		! nb x is stepped from its current value at t^1/2
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdt(:,i)   ! ** CHECK THE REST **
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)   ! ** CHECK THE REST **
        IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodt(i)
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + dt*dhdt(i)

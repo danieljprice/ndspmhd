@@ -31,10 +31,10 @@ subroutine conservative2primitive
 !--calculate magnetic flux density B from the conserved variable
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
-     Bfield = Bcons
+     Bfield = Bevol
   elseif (imhd.ne.0) then ! if using B/rho as conserved variable
      do i=1,npart
-        Bfield(:,i) = Bcons(:,i)*rho(i)
+        Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
   endif
 !
@@ -126,10 +126,10 @@ subroutine primitive2conservative
 !--calculate conserved variable from the magnetic flux density B
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
-     Bcons = Bfield
+     Bevol = Bfield
   elseif (imhd.ne.0) then ! if using B/rho as conserved variable
      do i=1,npart
-        Bcons(:,i) = Bfield(:,i)/rho(i)
+        Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
   endif
 !

@@ -36,8 +36,8 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
- REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBconsin
- REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBcons,dumdBconsdt,dumfmag
+ REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin
+ REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
  REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm
 !--gr terms
  REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
@@ -96,14 +96,14 @@ SUBROUTINE alloc(newsizein)
     
     dumxin(:,1:idumsize) = xin(:,1:idumsize)
     dumvelin(:,1:idumsize) = velin(:,1:idumsize)
-    dumBconsin(:,1:idumsize) = Bconsin(:,1:idumsize)
+    dumBevolin(:,1:idumsize) = Bevolin(:,1:idumsize)
     
     dumx(:,1:idumsize) = x(:,1:idumsize)
     dumvel(:,1:idumsize) = vel(:,1:idumsize)
     dumforce(:,1:idumsize) = force(:,1:idumsize)
-    dumBcons(:,1:idumsize) = Bcons(:,1:idumsize)
+    dumBevol(:,1:idumsize) = Bevol(:,1:idumsize)
     dumBfield(:,1:idumsize) = Bfield(:,1:idumsize)
-    dumdBconsdt(:,1:idumsize) = dBconsdt(:,1:idumsize)
+    dumdBevoldt(:,1:idumsize) = dBevoldt(:,1:idumsize)
     dumfmag(:,1:idumsize) = fmag(:,1:idumsize)
     dumcurlB(:,1:idumsize) = curlB(:,1:idumsize)
     dumxsphterm(:,1:idumsize) = xsphterm(:,1:idumsize)
@@ -144,15 +144,15 @@ SUBROUTINE alloc(newsizein)
 !
     DEALLOCATE (pmass,xin,rhoin,hhin,enin,alphain,psiin)
     DEALLOCATE (velin)
-    IF (ALLOCATED(Bconsin)) DEALLOCATE (Bconsin)
+    IF (ALLOCATED(Bevolin)) DEALLOCATE (Bevolin)
 !
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhaniso,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
-    IF (ALLOCATED(Bcons)) DEALLOCATE(Bcons)
-    IF (ALLOCATED(dBconsdt)) DEALLOCATE(dBconsdt)
+    IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
+    IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
 !
 !--equation of state
 !
@@ -206,7 +206,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE (rhoin(newsize),hhin(newsize))
     ALLOCATE (enin(newsize),psiin(newsize))   ! alpha done below
     ALLOCATE (velin(ndimV,newsize))
-    ALLOCATE (Bconsin(ndimB,newsize))
+    ALLOCATE (Bevolin(ndimB,newsize))
 !
 !--particle properties and derivatives
 !
@@ -218,8 +218,8 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(psi(newsize),dpsidt(newsize))
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),gradhaniso(newsize))
     ALLOCATE(pr(newsize))
-    ALLOCATE(Bcons(ndimB,newsize))
-    ALLOCATE(Bfield(ndimB,newsize),dBconsdt(ndimB,newsize))	! mag field
+    ALLOCATE(Bevol(ndimB,newsize))
+    ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))	! mag field
 !
 !--equation of state
 !
@@ -271,14 +271,14 @@ SUBROUTINE alloc(newsizein)
     
     xin(:,1:idumsize) = dumxin(:,1:idumsize)
     velin(:,1:idumsize) = dumvelin(:,1:idumsize)
-    Bconsin(:,1:idumsize) = dumBconsin(:,1:idumsize)
+    Bevolin(:,1:idumsize) = dumBevolin(:,1:idumsize)
     
     x(:,1:idumsize) = dumx(:,1:idumsize)
     vel(:,1:idumsize) = dumvel(:,1:idumsize)
     force(:,1:idumsize) = dumforce(:,1:idumsize)
     Bfield(:,1:idumsize) = dumBfield(:,1:idumsize)
-    Bcons(:,1:idumsize) = dumBcons(:,1:idumsize)
-    dBconsdt(:,1:idumsize) = dumdBconsdt(:,1:idumsize)
+    Bevol(:,1:idumsize) = dumBevol(:,1:idumsize)
+    dBevoldt(:,1:idumsize) = dumdBevoldt(:,1:idumsize)
     fmag(:,1:idumsize) = dumfmag(:,1:idumsize)
     curlB(:,1:idumsize) = dumcurlB(:,1:idumsize)
     xsphterm(:,1:idumsize) = dumxsphterm(:,1:idumsize)

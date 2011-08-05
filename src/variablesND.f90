@@ -160,7 +160,7 @@ MODULE part
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
  REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,psi
  REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms,alpha
- REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bcons
+ REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bevol
 END MODULE part 
 
 !-------------------------------------------------------------------
@@ -171,7 +171,7 @@ MODULE part_in
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,psiin
  REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin,alphain
- REAL, DIMENSION(:,:), ALLOCATABLE :: Bconsin
+ REAL, DIMENSION(:,:), ALLOCATABLE :: Bevolin
 END MODULE
 
 !-------------------------------------------------------------------
@@ -190,7 +190,7 @@ END MODULE
 MODULE rates
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt
- REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBconsdt,daldt
+ REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBevoldt,daldt
 END MODULE rates
 
 !-------------------------------------------------------------------

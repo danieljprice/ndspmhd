@@ -26,7 +26,7 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
- REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
+ REAL, DIMENSION(ndimV,npart) :: forcein,dBevoldtin
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin,uuin,dpsidtin
  REAL :: hdt
 !
@@ -41,7 +41,7 @@ SUBROUTINE step
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
-    Bconsin(:,i) = Bcons(:,i)
+    Bevolin(:,i) = Bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
@@ -50,7 +50,7 @@ SUBROUTINE step
     psiin(i) = psi(i)
     
     forcein(:,i) = force(:,i)
-    dBconsdtin(:,i) = dBconsdt(:,i)
+    dBevoldtin(:,i) = dBevoldt(:,i)
     drhodtin(i) = drhodt(i)
     dhdtin(i) = dhdt(i)
     dendtin(i) = dendt(i)
@@ -77,7 +77,7 @@ SUBROUTINE step
           stop 'step: error: ireal not set for fixed parts'
        endif
        vel(:,i) = velin(:,i)
-       Bcons(:,i) = Bconsin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)	     
        rho(i) = rhoin(i)
        hh(i) = hhin(i)	    
        en(i) = enin(i)
@@ -86,7 +86,7 @@ SUBROUTINE step
     ELSE
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdtin(:,i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact*(pmass(i)/rho(i))**hpower	! my version
@@ -129,7 +129,7 @@ SUBROUTINE step
  DO i=1,npart
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
-       Bcons(:,i) = Bconsin(:,i)
+       Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
@@ -137,7 +137,7 @@ SUBROUTINE step
        psi(i) = psiin(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*(force(:,i)+forcein(:,i))	    
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*(dBconsdt(:,i)+dBconsdtin(:,i))	  
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))	  
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*(drhodt(i)+drhodtin(i))
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + hdt*(dhdt(i)+dhdtin(i))

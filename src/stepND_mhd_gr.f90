@@ -35,7 +35,7 @@ SUBROUTINE step
  DO i=1,npart
     xin(:,i) = x(:,i)
     pmomin(:,i) = pmom(:,i)
-    Bconsin(:,i) = Bcons(:,i)
+    Bevolin(:,i) = Bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
@@ -48,7 +48,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN	! fixed particles
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
-       Bcons(:,i) = Bconsin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)	     
        IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
@@ -56,7 +56,7 @@ SUBROUTINE step
     ELSE
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        pmom(:,i) = pmomin(:,i) + hdt*force(:,i)
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
@@ -114,7 +114,7 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
-       Bcons(:,i) = Bconsin(:,i)
+       Bevol(:,i) = Bevolin(:,i)
        IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(:,i) = alphain(:,i)
@@ -138,7 +138,7 @@ SUBROUTINE step
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
        IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
-       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + dt*dBconsdt(:,i)	  
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)	  
     ENDIF
  ENDDO	 	
 !

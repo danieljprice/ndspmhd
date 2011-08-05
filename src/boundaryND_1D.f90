@@ -160,7 +160,7 @@ SUBROUTINE boundary
        rhoin(i) = rho(i)
        hhin(i) = hh(i)
        enin(i) = en(i)
-       Bconsin(:,i) = Bcons(:,i)
+       Bevolin(:,i) = Bevol(:,i)
        alphain(:,i) = alpha(:,i)
 !
 !--check to see if particles are ordered left to right

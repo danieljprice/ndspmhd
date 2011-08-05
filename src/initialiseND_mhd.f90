@@ -118,12 +118,12 @@ SUBROUTINE initialise
  force = 0.
  dhdt = 0.
  daldt = 0.    
- dBconsdt = 0.
+ dBevoldt = 0.
  dpsidt = 0.
  DO i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
-    Bconsin(:,i) = Bcons(:,i)
+    Bevolin(:,i) = Bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)

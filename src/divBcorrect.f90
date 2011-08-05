@@ -92,10 +92,10 @@ SUBROUTINE divBcorrect(npts,ntot)
        endif
        
        IF (imhd.GE.11) THEN
-          Bcons(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
+          Bevol(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
        ELSE
           DO i=1,npart
-             Bcons(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
+             Bevol(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
 	  ENDDO
        ENDIF
        if (ntot.gt.npart) then
@@ -103,7 +103,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 	     call copy_particle(i,ireal(i))
           enddo
        endif
-       !!CALL primitive2conservative ! so Bfield -> Bcons
+       !!CALL primitive2conservative ! so Bfield -> Bevol
        
        if (debugging) then
           call output(time,nsteps)   ! output div B and Bfield after correction
@@ -160,10 +160,10 @@ SUBROUTINE divBcorrect(npts,ntot)
        write(iprint,*) 'done'
 
        IF (imhd.GE.11) THEN
-          Bcons(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
+          Bevol(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
        ELSE
           DO i=1,npart
-             Bcons(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
+             Bevol(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
 	  ENDDO
        ENDIF
        if (ntot.gt.npart) then
