@@ -9,21 +9,24 @@
 ! Daniel Price, Institute of Astronomy, Cambridge, UK, 2004
 ! dprice@ast.cam.ac.uk
 !-------------------------------------------------------------------
-subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,c_L,c_R,pr,vstar)
+subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,rho_L,rho_R,pr,vstar)
   implicit none
   real, parameter :: tol = 1.5e-2
-  real, intent(in) :: gamma,p_L,p_R,v_L,v_R,c_L,c_R
+  real, intent(in) :: gamma,p_L,p_R,v_L,v_R,rho_L,rho_R
   real, intent(out) :: pr,vstar
   integer, parameter :: maxits = 30
   integer :: its
+  real :: c_L, c_R
   real :: prnew, f_L, f_R, dfdp_L, dfdp_R, f, df, dp
   real :: power, denom, cs2
 !
 !--use isothermal solver if appropriate
 !
+  c_L = sqrt(gamma*p_L/rho_L)
+  c_R = sqrt(gamma*p_R/rho_R)
   if (gamma.lt.1.0001) then
-     cs2 = c_L**2
-     call get_pstar_isothermal(cs2,v_L,v_R,p_L/cs2,p_R/cs2,pr,vstar)
+     cs2 = p_L/rho_L
+     call get_pstar_isothermal(cs2,v_L,v_R,rho_L,rho_R,pr,vstar)
      return
   endif
 !
