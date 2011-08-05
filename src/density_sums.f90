@@ -87,7 +87,7 @@ contains
        gradgradh(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
-       if (imhd.eq.0 .and. iprterm.eq.10) then
+       if (imhd.eq.0) then
           psi(i) = 0.
           unity(i) = 0.
        endif
@@ -272,12 +272,19 @@ contains
                    gradgradh(j) = gradgradh(j) + weight*pmassi*dwdhdhj
                 endif
                 
-                if (imhd.eq.0 .and. iprterm.eq.10) then
-                   psi(i) = psi(i) + pmassj*wabi*uu(j)
-                   unity(i) = unity(i) + wconst*wabi/hfacwabi
-                   if (i.ne.j) then
-                      psi(j) = psi(j) + pmassi*wabj*uu(i)
-                      unity(j) = unity(j) + wconst*wabj/hfacwabj
+                if (imhd.eq.0) then
+                   if (iprterm.eq.10) then
+                      psi(i) = psi(i) + pmassj*wabi*uu(j)
+                      unity(i) = unity(i) + wconst*wabi/hfacwabi
+                      if (i.ne.j) then
+                         psi(j) = psi(j) + pmassi*wabj*uu(i)
+                         unity(j) = unity(j) + wconst*wabj/hfacwabj
+                      endif
+                   elseif (iprterm.eq.12) then
+                      psi(i) = psi(i) + wconst*wabi/hfacwabi
+                      if (i.ne.j) then
+                         psi(j) = psi(j) + wconst*wabj/hfacwabj
+                      endif                   
                    endif
                 endif
                 
@@ -303,7 +310,8 @@ contains
             
     enddo loop_over_cells
     
-    do i=1,npart
+   ! do i=1,npart
+       !if (psi(i).lt.0.999 .or. psi(i).gt.1.001) print*,'unity = ',i,x(1,i),psi(i)
        !if (imhd.eq.0) then
        !   print*,i,' del^2 rho = ',psi(i)
        !endif
@@ -313,7 +321,7 @@ contains
         !  psi(i) = 0.
        !endif
 !       psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
-    enddo
+  !  enddo
     !print*,'uu = ',i,uu(i),psi(i),uu(i)-psi(i)
     !enddo
     !print*,'end of density, rho, gradh = ',rho(itemp),gradh(itemp),hh(itemp),numneigh(itemp)
