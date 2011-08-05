@@ -41,6 +41,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
 !--gr terms
  REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
+ REAL, DIMENSION(ndimV,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype,idumnumneigh
  !REAL, DIMENSION(ndim,ndim,newsizein) :: dumgradmatrix
 
@@ -128,6 +129,9 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(fgrav)) dumfgrav(:,1:idumsize) = fgrav(:,1:idumsize)
     dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
     dumdens(1:idumsize) = dens(1:idumsize)
+    IF (ALLOCATED(sourceterms)) dumsourceterms(:,1:idumsize) = sourceterms(:,1:idumsize)
+    IF (ALLOCATED(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
+    IF (ALLOCATED(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
     !dumgradmatrix(:,:,1:idumsize)=gradmatrix(:,:,1:idumsize)
 
@@ -183,6 +187,7 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(sqrtg)) DEALLOCATE(sqrtg)
     IF (ALLOCATED(sourceterms)) DEALLOCATE(sourceterms)
     IF (ALLOCATED(pmom)) DEALLOCATE(pmom)
+    IF (ALLOCATED(pmomin)) DEALLOCATE(pmomin)
     IF (ALLOCATED(dens)) DEALLOCATE(dens)
     
     !IF (ALLOCATED(gradmatrix)) DEALLOCATE(gradmatrix)
@@ -247,7 +252,11 @@ SUBROUTINE alloc(newsizein)
 !
    ALLOCATE(sqrtg(newsize))
    ALLOCATE(dens(newsize))
-   
+   ALLOCATE(pmom(ndimV,newsize))
+   ALLOCATE(pmomin(ndimV,newsize))
+   IF (igeom.NE.0) THEN
+      ALLOCATE(sourceterms(ndimV,newsize))
+   ENDIF   
    !ALLOCATE(gradmatrix(ndim,ndim,newsize))
    
  IF (reallocate) THEN
@@ -300,9 +309,12 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(fgrav)) fgrav(:,1:idumsize) = dumfgrav(:,1:idumsize)
     sqrtg(1:idumsize) = dumsqrtg(1:idumsize)
     dens(1:idumsize) = dumdens(1:idumsize)
-    
-    !gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize)
-    
+    pmom(:,1:idumsize) = dumpmom(:,1:idumsize)
+    pmomin(:,1:idumsize) = dumpmomin(:,1:idumsize)
+    IF (ALLOCATED(sourceterms)) THEN
+       sourceterms(:,1:idumsize) = dumsourceterms(:,1:idumsize)
+    ENDIF    
+    !gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize) 
  ELSE
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0

@@ -119,11 +119,11 @@ subroutine iterate_density
               func = rhoi - rho(i)
               dfdh = omegai/dhdrhoi
               
-              hnew = hh(i) - func/dfdh
-              if (hnew.le.0. .or. gradh(i).lt.0.5 .or. abs(func)/rho(i) .gt.0.5) then
+              !hnew = hh(i) - func/dfdh
+              !if (hnew.le.0. .or. gradh(i).lt.0.5 .or. abs(func)/rho(i) .gt.0.5) then
               !   print*,' rapid density change on particle ',i
                  hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen            
-              endif
+              !endif
 !              if (hnew/hh(i) .lt. 0.5 .or. hnew/hh(i).gt.2.0) then
               !print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
               !print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)

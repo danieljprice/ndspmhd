@@ -19,6 +19,7 @@
 !---------------------------------------------------------------------
 subroutine conservative2primitive
   use dimen_mhd
+  use debug
   use options
   use loguns  
   use bound
@@ -29,6 +30,8 @@ subroutine conservative2primitive
   integer :: i,j
   real, dimension(ndimV) :: gdiag
   real :: B2i, v2i
+
+  if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
   sqrtg = 1.
 !
@@ -71,13 +74,13 @@ subroutine conservative2primitive
   !
   !--cylindrical
   !
-  case(1)
+  case(2)
      sourceterms(1,:) = pr(:)/rho(:)
      if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + pmom(2,:)
   !
   !--spherical
   !
-  case(2)
+  case(3)
      do i=1,npart
         sourceterms(1,i) = pr(i)/rho(i)
         if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)**2*vel(2,i)
@@ -86,7 +89,7 @@ subroutine conservative2primitive
   !
   !--spherical polars with logarithmic radial co-ordinate
   !
-  case(3)
+  case(4)
      do i=1,npart
         sourceterms(:,i) = 0.!! WORK THESE OUT!!
      enddo
@@ -119,6 +122,9 @@ end subroutine conservative2primitive
 !---------------------------------------------------------------------
 subroutine primitive2conservative
   use dimen_mhd
+  use debug
+  use loguns
+  
   use eos
   use options
   use part
@@ -127,8 +133,10 @@ subroutine primitive2conservative
   use timestep
   implicit none
   integer :: i,iktemp
-  real, dimension(ndim) :: gdiag
+  real, dimension(ndimV) :: gdiag
   real :: B2i, v2i
+
+  if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 
   sqrtg = 1.
 !
@@ -136,8 +144,7 @@ subroutine primitive2conservative
 !
   if (igeom.lt.10) then
      do i=1,npart
-        call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
-        
+        call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
         rho(i) = dens(i)*sqrtg(i)
 	hh(i) = hfact*(pmass(i)/rho(i))**dndim
      enddo
@@ -177,6 +184,9 @@ subroutine primitive2conservative
         call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
 	     gamma,polyk,1) 	
      enddo
+  else
+     write(iprint,*) 'invalid igeom in conservative2primitive: igeom = ',igeom
+     stop
   endif
 
   return  
