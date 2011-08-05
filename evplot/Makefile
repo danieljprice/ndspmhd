@@ -8,15 +8,21 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-FC = f90
+F90C = lf95
 
 FFLAGS = 
-LDFLAGS = -lpgplot -L/local/lib/pgplot -lX11 -lF77
+F90FLAGS = -O
+LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 
-SOURCES= evsupersph.f 
+# define the implicit rule to make a .o file from a .f90 file
 
-OBJECTS = $(SOURCES:.f=.o)
+%.o : %.f90
+	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
+
+SOURCES= evsupersph.f90
+
+OBJECTS = $(SOURCES:.f90=.o)
 
 ../evsupersph: $(OBJECTS)
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
