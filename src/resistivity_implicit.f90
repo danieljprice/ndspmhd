@@ -58,7 +58,6 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  nsweeps = 10
  
  sweeps: do isweep = 1,nsweeps 
-
 !
 !--update Bfieldnew on ghosts
 !
@@ -165,12 +164,15 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 
  enddo sweeps
 
+!
+!--what we actually return from this routine is an extra contribution to
+!  dBevoldt, as if it had been computed with the B^(n+1) in it.
+!
  if (dt.gt.0.) then
- do i=1,npart
-    dBevoldt(:,i) = dBevoldt(:,i) + (Bfieldnew(:,i) - Bfield(:,i))/dt
- enddo
+    do i=1,npart
+       dBevoldt(:,i) = dBevoldt(:,i) + (Bfieldnew(:,i) - Bfield(:,i))/dt
+    enddo
  endif
- !read*
 
  return
 end subroutine Bdiffusion
