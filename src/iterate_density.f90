@@ -37,7 +37,7 @@ subroutine iterate_density
 !
   implicit none
   integer :: i,j,itsdensitymax
-  integer :: ncalc,ncalcprev,ncalctotal,nrhosmall
+  integer :: ncalc,ncalcprev,ncalctotal,nrhosmall,nwarn
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
@@ -111,6 +111,7 @@ subroutine iterate_density
      ncalc = 0
      redolink = .false.
      nrhosmall = 0
+     nwarn = 0
      
      if (ihvar.ne.0) then
         do j=1,ncalcprev
@@ -132,7 +133,7 @@ subroutine iterate_density
                  dhdni = -hh(i)/(ndim*(densnumi + rhomin))          ! deriv of this
                  omegai =  1. - dhdni*gradhn(i)           
                  if (omegai.lt.1.e-5) then
-                    print*,'warning: omega < 1.e-5 ',i,omegai
+                    !print*,'warning: omega < 1.e-5 ',i,omegai
                     if (abs(omegai).eq.0.) call quit
                  endif
                  gradhn(i) = 1./omegai
@@ -144,7 +145,7 @@ subroutine iterate_density
                  dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
                  omegai =  1. - dhdrhoi*gradh(i)
                  if (omegai.lt.1.e-5) then
-                    print*,'warning: omega < 1.e-5 ',i,omegai
+                    !print*,'warning: omega < 1.e-5 ',i,omegai
                     if (abs(omegai).eq.0.) call quit
                  endif
                  gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
@@ -160,10 +161,11 @@ subroutine iterate_density
 !--overwrite if iterations are going wrong
 !
               if (usenumdens .and. (hnew.le.0 .or. gradhn(i).le.0)) then
-                 print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
+                 nwarn = nwarn + 1
+                 !print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
                  hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
               elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.0)) then
-                 print*,' warning: h or omega < 0 in iterations',i,hnew,gradh(i)
+                 nwarn = nwarn + 1
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               endif
               !if (numneigh(i).le.1) then
@@ -210,8 +212,11 @@ subroutine iterate_density
               
            endif   ! itype .NE. 1
         enddo
+        if (nwarn.gt.0) then
+           write(iprint,*) ' WARNING: h or omega < 0 in iterations ',nwarn,' times'
+        endif
         if (nrhosmall.gt.0) then
-           write(iprint,"(a,i3,a,i8,a)") ' warning: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
+           write(iprint,"(a,i3,a,i8,a)") ' WARNING: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
         endif
         
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
