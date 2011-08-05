@@ -101,7 +101,7 @@ SUBROUTINE link
  ELSE
     IF (ndim.EQ.1) ncellsloop = ncells - 1
     IF (ndim.EQ.2) ncellsloop = ncells-ncellsx(1)
-    IF (ndim.EQ.3) ncellsloop = ncells-ncellsx(1)*ncellsx(2) ! inefficient in 3D
+    IF (ndim.EQ.3) ncellsloop = ncells	!-ncellsx(1)*ncellsx(2) ! inefficient in 3D
  ENDIF
 ! print*,' ncellsloop = ',ncellsloop
 ! read*
