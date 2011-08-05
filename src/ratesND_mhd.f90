@@ -11,7 +11,7 @@ subroutine get_rates
  use artvi
  use eos
  use hterms
- use kernels, only:radkern2,ianticlump
+ use kernels, only:radkern2
  use linklist
  use options
  use part
@@ -88,10 +88,6 @@ subroutine get_rates
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
  real :: gradhi,gradhni
-!
-!  (joe's mhd fix)
-!
- real :: wabaniso,wabanisoi,wabanisoj,grkernaniso,grkernanisoi,grkernanisoj
 !
 !  (time step criteria)
 !      
@@ -378,14 +374,14 @@ subroutine get_rates
 !  (note that the dBevoldt term should be divided by rho)
 !  
     if (imhd.ge.11) then  ! evolving B
-       dBevoldt(:,i) = dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
+       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
        if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i              
+          gradpsi(:,i) = gradpsi(:,i)*rho1i
        endif
     elseif (imhd.gt.0) then ! evolving B/rho
-       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
+       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
        if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i**2      
+          gradpsi(:,i) = gradpsi(:,i)*rho1i**2
        endif
     elseif (imhd.lt.0) then ! vector potential evolution
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i
@@ -524,99 +520,50 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
-!
-!--calculate both kernels if using anticlumping kernel
-!
+
    pmassj = pmass(j)
-   if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1) then
-      if (ikernav.eq.1) then
-         hav = 0.5*(hi + hj)
-         hav1 = 1./hav
-         h21 = hav1*hav1
-         hfacwab = hav1**ndim 
-         hfacgrkern = hfacwab*hav1
-         q2 = rij2*h21        
-         call interpolate_kernels(q2,wab,grkern,wabaniso,grkernaniso)
-         wab = wab*hfacwab
-         grkern = grkern*hfacgrkern
-         grkernaniso = grkernaniso*hfacgrkern
-         grkerni = grkern
-         grkernj = grkern
-         grkernanisoi = grkernaniso
-         grkernanisoj = grkernaniso
-      else
-         hfacwabj = hj1**ndim
-         hfacgrkernj = hfacwabj*hj1
-         !  (using hi)
-         call interpolate_kernels(q2i,wabi,grkerni,wabanisoi,grkernanisoi)
-         wabi = wabi*hfacwabi
-         grkerni = grkerni*hfacgrkerni
-         grkernanisoi = grkernanisoi*hfacgrkerni
-         !  (using hj)
-         call interpolate_kernels(q2j,wabj,grkernj,wabanisoj,grkernanisoj)
-         wabj = wabj*hfacwabj
-         grkernj = grkernj*hfacgrkernj
-         grkernanisoj = grkernanisoj*hfacgrkernj
-         !  (calculate average)              
-         wab = 0.5*(wabi + wabj)  ! wab only used in XSPH term
-         !  (grad h terms)  
-         if (ikernav.eq.3) then  ! if using grad h correction
-            grkerni = grkerni*gradhi
-            grkernj = grkernj*gradh(j)
-            grkern = 0.5*(grkerni + grkernj)
-         else  ! if not using grad h correction               
-            grkern = 0.5*(grkerni + grkernj)
-            grkerni = grkern
-            grkernj = grkern
-            grkernaniso = 0.5*(grkernanisoi + grkernanisoj)
-            grkernanisoi = grkernaniso
-            grkernanisoj = grkernaniso
-         endif
-      endif
+!
+!--calculate the kernel(s)
+!
+   if (ikernav.eq.1) then
+      hav = 0.5*(hi + hj)
+      hav1 = 1./hav
+      h21 = hav1*hav1
+      hfacwab = hav1**ndim
+      hfacgrkern = hfacwab*hav1
+      q2 = rij2*h21
+      call interpolate_kernel(q2,wab,grkern)
+      wab = wab*hfacwab
+      grkern = grkern*hfacgrkern
+      grkerni = grkern
+      grkernj = grkern
    else
-!
-!--or just calculate the usual kernel
-!
-      if (ikernav.eq.1) then
-         hav = 0.5*(hi + hj)
-         hav1 = 1./hav
-         h21 = hav1*hav1
-         hfacwab = hav1**ndim
-         hfacgrkern = hfacwab*hav1
-         q2 = rij2*h21
-         call interpolate_kernel(q2,wab,grkern)
-         wab = wab*hfacwab
-         grkern = grkern*hfacgrkern
+      !  (using hi)
+      call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)
+      wabi = wabi*hfacwabi
+      wabalti = wabalti*hfacwabi
+      grkerni = grkerni*hfacgrkerni
+      grkernalti = grkernalti*hfacgrkerni
+      !  (using hj)
+      hfacwabj = hj1**ndim
+      hfacgrkernj = hfacwabj*hj1
+      call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
+      wabj = wabj*hfacwabj
+      wabaltj = wabaltj*hfacwabj
+      grkernj = grkernj*hfacgrkernj
+      grkernaltj = grkernaltj*hfacgrkernj
+      !  (calculate average)              
+      wab = 0.5*(wabi + wabj)
+      wabalt = 0.5*(wabalti + wabaltj)
+      !  (grad h terms)  
+      if (ikernav.eq.3) then  ! if using grad h corrections
+         grkerni = grkerni*gradhi !!!(1. + gradhni*gradhi/pmassj)
+         grkernj = grkernj*gradh(j) !!!(1. + gradhn(j)*gradh(j)/pmassi)
+         grkern = 0.5*(grkerni + grkernj)
+      else  ! if not using grad h correction               
+         grkern = 0.5*(grkerni + grkernj)
          grkerni = grkern
          grkernj = grkern
-      else
-         !  (using hi)
-         call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)
-         wabi = wabi*hfacwabi
-         wabalti = wabalti*hfacwabi
-         grkerni = grkerni*hfacgrkerni
-         grkernalti = grkernalti*hfacgrkerni
-         !  (using hj)
-         hfacwabj = hj1**ndim
-         hfacgrkernj = hfacwabj*hj1
-         call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
-         wabj = wabj*hfacwabj
-         wabaltj = wabaltj*hfacwabj
-         grkernj = grkernj*hfacgrkernj
-         grkernaltj = grkernaltj*hfacgrkernj
-         !  (calculate average)              
-         wab = 0.5*(wabi + wabj)
-         wabalt = 0.5*(wabalti + wabaltj)
-         !  (grad h terms)  
-         if (ikernav.eq.3) then  ! if using grad h correction
-            grkerni = grkerni*gradhi !!!(1. + gradhni*gradhi/pmassj)
-            grkernj = grkernj*gradh(j) !!!(1. + gradhn(j)*gradh(j)/pmassi)
-            grkern = 0.5*(grkerni + grkernj)
-         else  ! if not using grad h correction               
-            grkern = 0.5*(grkerni + grkernj)
-            grkerni = grkern
-            grkernj = grkern
-         endif
       endif
    endif
 !
@@ -997,34 +944,15 @@ contains
        fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
        !
        !--anisotropic force (including variable smoothing length terms)
-       !  (also including Joe's correction term which preserves momentum conservation)
-       !   in 1D we only do this in the x-direction
        !
-       if (ianticlump.eq.1) then
-          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkernanisoi  &
-                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernanisoj               
-          
-!          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni  &
-!                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj
-!	  divBonrho =  projBrhoi*rho1i*grkerni + &
-!	               projBrhoj*rho1j*grkernj
-
-          if (ndimV.gt.ndim) then
-             faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
-                                  + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
-          endif
-
-       else
 !          faniso(:) = (Brhoi(:)*projBrhoi &
 !                     - Bconst(:)*projBconst*rho21i)*phij_on_phii*grkerni &
 !                    + (Brhoj(:)*projBrhoj &
 !                     - Bconst(:)*projBconst*rho21j)*phii_on_phij*grkernj
-          faniso(:) = (Brhoi(:)*projBrhoi &
-                     - stressmax*dr(:)*rho21i)*phij_on_phii*grkerni &
-                    + (Brhoj(:)*projBrhoj &
-                     - stressmax*dr(:)*rho21j)*phii_on_phij*grkernj
-       endif
-
+       faniso(:) = (Brhoi(:)*projBrhoi &
+                  - stressmax*dr(:)*rho21i)*phij_on_phii*grkerni &
+                 + (Brhoj(:)*projBrhoj &
+                  - stressmax*dr(:)*rho21j)*phii_on_phij*grkernj
        !
        !--add contributions to magnetic force
        !        
@@ -1121,7 +1049,7 @@ contains
     !
     ! (anisotropic stress)
     !
-    if (imhd.ne.0 .and. ianticlump.eq.1 .and. imagforce.eq.2) then
+    if (imhd.ne.0 .and. imagforce.eq.2) then
        !
        !  with anticlumping term must add contribution from anisotropic term 
        !  explicitly and subtract contribution from B/rho version of induction equation
