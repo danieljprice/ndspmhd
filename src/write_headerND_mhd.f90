@@ -182,7 +182,12 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     WRITE(iprint,250) 'rho',hmin,hmax,have
     CALL minmaxave(uu(1:npart),hmin,hmax,have,npart)
     WRITE(iprint,250) 'u',hmin,hmax,have
-250 FORMAT (1x,a3,' min = ',1pe9.2,' max = ',1pe9.2,' ave = ',1pe9.2)
+    
+    DO i=1,ndim
+       CALL minmaxave(vel(i,1:npart),hmin,hmax,have,npart)
+       WRITE(iprint,250) 'v'//coord(i),hmin,hmax,have
+    ENDDO
+250 FORMAT (1x,a3,' min = ',1pe9.2,' max = ',1pe9.2,' av = ',1pe9.2)
     WRITE(iprint,*)
 
  ENDIF
