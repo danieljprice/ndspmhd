@@ -67,7 +67,11 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
     nparty = INT((xmax(2)-xmin(2))/deltay)
     npartz = 1
     
-    !--check that nparty is divisible by 3 for periodic boundaries
+!--for periodic boundaries, ymax needs to be divisible by 2
+    if (ibound(2).eq.3) then
+       nparty = 2*INT(nparty/2)
+       print*,' periodic boundaries: adjusting nparty = ',nparty
+    endif
 !
 !--adjust psep so that particles fill the volume
 !
@@ -78,11 +82,6 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--or adjust the boundaries appropriately
 !
-    !!--for periodic boundaries, ymax needs to be divisible by 2
-    if (ibound(2).eq.3) then
-       nparty = 2*INT(nparty/2)
-       print*,' periodic boundaries: adjusting nparty = ',nparty
-    endif
     xmax(2) = xmin(2) + nparty*deltay
     PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
 !
