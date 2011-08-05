@@ -18,6 +18,8 @@ else
    echo '	cd ../; make edit'$1
    echo 'evplot:'
    echo '	cd ../; make plotev'
+   echo 'moddump:'
+   echo '	cd ../utils; make clean; make moddump'$1
    echo 'clean:'
    echo '	cd ../; make clean'
 endif
