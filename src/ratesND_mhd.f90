@@ -22,6 +22,7 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
+ use grutils, only:metric_diag,dot_product_gr
  !!use matrixcorr
 !
 !--define local variables
@@ -45,6 +46,7 @@ subroutine get_rates
 !--gr terms
 !
  real :: sqrtgi,sqrtgj
+ real, dimension(ndimV) :: gdiagi,gdiagj
 !
 !  (velocity)
 !      
@@ -57,7 +59,7 @@ subroutine get_rates
  real, dimension(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
  real, dimension(ndimB) :: faniso,fmagi,fmagj
  real, dimension(ndimB) :: curlBi
- real :: fiso
+ real :: fiso,B2i,B2j
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
@@ -97,7 +99,7 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
- real :: stressterm, stressmax, B2i
+ real :: stressterm, stressmax
 !
 !--allow for tracing flow
 !      
@@ -140,7 +142,8 @@ subroutine get_rates
  stressmax = 0.
  if (imhd.ne.0) then
     do i=1,ntotal
-       B2i = dot_product(Bfield(:,i),Bfield(:,i))
+       call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
+       B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
        stressterm = max(0.5*B2i - pr(i),0.)
        stressmax = max(stressterm,stressmax)
     enddo
@@ -226,8 +229,14 @@ subroutine get_rates
        if (imhd.ne.0) then
           Bi(:) = Bfield(:,i)
           Brhoi(:) = Bi(:)*rho1i
-          Brho2i = dot_product(Brhoi,Brhoi)
-          valfven2i = Brho2i*rhoi
+!          if (geom(1:6).ne.'cartes') then
+             call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
+             B2i = dot_product_gr(Bi,Bi,gdiagi)
+!          else
+!             B2i = dot_product(Bi,Bi)
+!          endif
+          Brho2i = B2i*rho21i
+          valfven2i = B2i*rho1i
           alphaBi = alpha(3,i)
        endif
        gradhi = gradh(i)
@@ -314,22 +323,10 @@ subroutine get_rates
 !
 !--calculate maximum vsig over all the particles for use in the hyperbolic cleaning
 !
-! vsig2max = 0.
-! print*,'calculating vsig2max...'
-
  if (imhd.ne.0 .and. idivBzero.ge.2) then
-    !do i=1,npart
-    !   valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/rho(i)
-    !   vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
-    !   vsig2max = max(vsig2max,vsig2) 
-    !enddo
-! print*,' vsig2max = ',vsig2max
-!!    vsigmax = vsigdtc !!!SQRT(vsig2max)
     vsig2max = vsigmax**2
  endif
-! print*,'vsigmax = ',sqrt(vsig2max)
-! read*
- 
+
  do i=1,npart
  
     rho1i = 1./rho(i)
@@ -364,7 +361,7 @@ subroutine get_rates
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = (gamma-1.)/rho(i)**(gamma-1.)*dudt(i)      
+       dendt(i) = (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
     elseif (iener.gt.0) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
@@ -405,7 +402,14 @@ subroutine get_rates
 !  in the dissipation switches
 !
     valfven2i = 0.
-    if (imhd.ne.0) valfven2i = dot_product(Bfield(:,i),Bfield(:,i))*rho1i
+    if (imhd.ne.0) then
+!       if (geom(1:6).ne.'cartes') then
+          call metric_diag(x(:,i),gdiagi,sqrtgi,ndim,ndimv,geom)
+          valfven2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi)/dens(i)
+!       else
+!          valfven2i = dot_product(Bfield(:,i),Bfield(:,i))/dens(i)       
+!       endif
+    endif
     vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
     vsig = SQRT(vsig2)
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
@@ -598,9 +602,15 @@ contains
        projdB = dot_product(dB,dr)
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
-       Brho2j = dot_product(Brhoj,Brhoj)
-       !!Brho2j = dot_product((Bj+Bconstj)*rho1j,(Bj+Bconstj)*rho1j)
-       valfven2j = Brho2j*rhoj
+       
+!       if (geom(1:6).ne.'cartes') then
+          call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
+          B2j = dot_product_gr(Bj,Bj,gdiagj)
+!       else
+!          B2j = dot_product(Bj,Bj)
+!       endif
+       Brho2j = B2j*rho21j
+       valfven2j = B2j/dens(j)
        projBconst = dot_product(Bconst,dr)
     endif
         
@@ -924,24 +934,26 @@ contains
     case(3)  ! alternative symmetric formulation on aniso
 
        rhoij = rhoi*rhoj
-       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+       fiso = 0.5*(Brho2i*grkerni*sqrtgi + Brho2j*grkernj*sqrtgj)
        ! faniso is        B*div B        +    B dot grad B
-       faniso(:) = (Bi(:)*projBj*grkerni + Bj(:)*projBi*grkernj)/rhoij
+       faniso(:) = (gdiagi(:)*Bi(:)*projBj*grkerni*sqrtgi &
+                  + gdiagj(:)*Bj(:)*projBi*grkernj*sqrtgj)/rhoij
        fmagi(:) = faniso(:) - fiso*dr(:)   
     
     case(5)      ! Morris' Hybrid form
        
        rhoij = rhoi*rhoj
-       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+       fiso = 0.5*(Brho2i*grkerni*sqrtgi + Brho2j*grkernj*sqrtgj)
 !--note that I have tried faniso with grkerni and grkernj but much worse on mshk2
-       faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
-       fmagi(:) = faniso(:) - fiso*dr(:)          
+       faniso(:) = grkern*(gdiagj(:)*Bj(:)*projBj*sqrtgj &
+                         - gdiagi(:)*Bi(:)*projBi*sqrtgi)/rhoij
+       fmagi(:) = faniso(:) - fiso*dr(:)
        
     case default   ! tensor formalism in generalised form
        !
        !--isotropic mag force (pressure gradient)
        !              
-       fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
+       fiso = 0.5*(Brho2i*phij_on_phii*grkerni*sqrtgi + Brho2j*phii_on_phij*grkernj*sqrtgj)
        !
        !--anisotropic force (including variable smoothing length terms)
        !
@@ -949,9 +961,9 @@ contains
 !                     - Bconst(:)*projBconst*rho21i)*phij_on_phii*grkerni &
 !                    + (Brhoj(:)*projBrhoj &
 !                     - Bconst(:)*projBconst*rho21j)*phii_on_phij*grkernj
-       faniso(:) = (Brhoi(:)*projBrhoi &
+       faniso(:) = (gdiagi(:)*Brhoi(:)*projBrhoi*sqrtgi &
                   - stressmax*dr(:)*rho21i)*phij_on_phii*grkerni &
-                 + (Brhoj(:)*projBrhoj &
+                 + (gdiagj(:)*Brhoj(:)*projBrhoj*sqrtgj &
                   - stressmax*dr(:)*rho21j)*phii_on_phij*grkernj
        !
        !--add contributions to magnetic force

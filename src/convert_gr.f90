@@ -19,7 +19,8 @@ subroutine convert_setup(geomold,geom)
 
  use geometry
  implicit none
- character(len=*), intent(in) :: geomold,geom
+ character(len=*), intent(in) :: geomold
+ character(len=*), intent(inout) :: geom
  integer :: i,igeomold,igeom,icart
  real, dimension(ndim) :: xnew,vecnew
 
@@ -37,7 +38,9 @@ subroutine convert_setup(geomold,geom)
       igeomold = 1
    case default
       write(iprint,*) 'ERROR: cannot convert co-ordinate systems (incompatible)'
-      stop
+      write(iprint,*) '=> Retaining original co-ordinate system'
+      geom = geomold
+      return
  end select
  select case(geom(1:6))
    case('sphrpt')

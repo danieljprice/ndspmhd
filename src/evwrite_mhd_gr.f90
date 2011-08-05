@@ -18,7 +18,7 @@ subroutine evwrite(t,etot,momtot)
 !--define local variables
 !
  implicit none
- integer :: i
+ integer :: i,npartnonzero
  real, intent(in) :: t
  real, intent(out) :: etot,momtot
  real :: ekin,etherm,emag,epot
@@ -71,7 +71,7 @@ subroutine evwrite(t,etot,momtot)
     fluxtotmag = 0.
     crosshel = 0.      
  endif 
-
+ npartnonzero = 0
 !
 !--should really recalculate the thermal energy from the total energy here
 !  (otherwise uu is from the half time step and same with bfield)
@@ -82,10 +82,10 @@ subroutine evwrite(t,etot,momtot)
     call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
     
     pmassi = pmass(i)
-    rhoi = rho(i)
+    rhoi = dens(i)
     veli(:) = vel(:,i)  
     mom(:) = mom(:) + pmassi*pmom(:,i)
-    ekin = ekin + 0.5*pmassi*dot_product_gr(veli,veli,gdiag,ndimV)
+    ekin = ekin + 0.5*pmassi*dot_product_gr(veli,veli,gdiag)
     etherm = etherm + pmassi*uu(i)
 !
 !--potential energy from external forces
@@ -96,32 +96,29 @@ subroutine evwrite(t,etot,momtot)
 !--mhd parameters
 !
     if (imhd.ne.0) then
-       if (imhd.ge.11) then
-          Bi(:) = Bevol(:,i)
-          Brhoi(:) = Bi(:)/rhoi
-       else
-          Brhoi(:) = Bevol(:,i)
-          Bi(:) = Brhoi(:)*rhoi
-       endif
-       B2i = dot_product_gr(Bi,Bi,gdiag,ndimV)
+       Bi(:) = Bfield(:,i)
+       Brhoi(:) = Bi(:)/rhoi
+       B2i = dot_product_gr(Bi,Bi,gdiag)
        Bmagi = sqrt(B2i)
-       forcemagi = sqrt(dot_product_gr(force(:,i),force(:,i),gdiag,ndimV))
+       forcemagi = sqrt(dot_product_gr(force(:,i),force(:,i),gdiag))
        divBi = abs(divB(i))
  
-       emag = emag + 0.5*pmassi*b2i/rhoi
+       emag = emag + 0.5*pmassi*B2i/rhoi
 !
 !--plasma beta minimum/maximum/average
 !  
-       if (B2i.lt.1.e-5) then
+       if (B2i.lt.tiny(B2i)) then
           betamhdi = 0.
        else 
-          betamhdi = pr(i)/(0.5*B2i)     
+          npartnonzero = npartnonzero + 1
+          betamhdi = pr(i)/(0.5*B2i)
+          !print*,'beta i = ',pr(i),B2i,betamhdi
        endif
        betamhdav = betamhdav + betamhdi
        if (betamhdi.gt.betamhdmax) betamhdmax = betamhdi
        if (betamhdi.lt.betamhdmin) betamhdmin = betamhdi
 !
-!--maximum divergence of b
+!--maximum divergence of B
 !  
        if (divBi.gt.divBmax) divBmax = divBi
        divbav = divbav + divBi
@@ -147,7 +144,7 @@ subroutine evwrite(t,etot,momtot)
 !  evaluate these quantities just after the call to rates.
 !       
        if (forcemagi.gt.1.e-8 .and. Bmagi.gt.1e-8) then
-          force_erri = abs(dot_product_gr(fmag(:,i),Bi(:),gdiag,ndimV))/(forcemagi*Bmagi)
+          force_erri = abs(dot_product_gr(fmag(:,i),Bi(:),gdiag))/(forcemagi*Bmagi)
        else
           force_erri = 0.
        endif
@@ -173,14 +170,14 @@ subroutine evwrite(t,etot,momtot)
 !
 !--conserved cross helicity (int v.B dv)
 !
-       crosshel = crosshel + pmassi*dot_product_gr(veli,Brhoi,gdiag,ndimV)
+       crosshel = crosshel + pmassi*dot_product_gr(veli,Brhoi,gdiag)
 
     endif
 
  enddo
  
  etot = etherm + ekin + emag + epot
- momtot = sqrt(dot_product_gr(mom,mom,gdiag,ndimV))
+ momtot = sqrt(dot_product_gr(mom,mom,gdiag))
 
 !
 !--write line to .ev file
@@ -188,14 +185,17 @@ subroutine evwrite(t,etot,momtot)
  if (imhd.ne.0) then      
 
     fluxtotmag = sqrt(dot_product(fluxtot,fluxtot))
-    betamhdav = betamhdav/float(npart)
+    if (npartnonzero.gt.0) then
+       betamhdav = betamhdav/float(npartnonzero)
+       omegamhdav = omegamhdav/float(npartnonzero)
+       divbav = divbav/float(npartnonzero)
+       fdotbav = fdotbav/float(npartnonzero)
+       force_err_av = force_err_av/float(npartnonzero)
+    endif
     fracdivbok = 100.*fracdivbok/float(npart)
-    omegamhdav = omegamhdav/float(npart)
-    divbav = divbav/float(npart)
-    fdotbav = fdotbav/float(npart)
-    force_err_av = force_err_av/float(npart)
 
 !    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
+    print*,'beta(av) = ',betamhdav
 
     write(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag, &
           crosshel,betamhdmin,betamhdav,betamhdmax,   &

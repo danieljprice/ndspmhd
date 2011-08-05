@@ -35,6 +35,7 @@ subroutine conservative2primitive
 
   nerr = 0
   sqrtg = 1.
+  B2i = 0.
 !
 !--this is the procedure for general (non-relativistic) diagonal metrics
 !
@@ -53,10 +54,10 @@ subroutine conservative2primitive
         stop 'GR vector potential not implemented'
      endif     
      
+     if (imhd.ne.0) B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag)
      if (iener.eq.3) then     ! total energy is evolved
-        v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
-        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/dens(i)
-        uu(i) = en(i) - 0.5*v2i - 0.5*B2i
+        v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag)
+        uu(i) = en(i) - 0.5*v2i - 0.5*B2i/dens(i)
         if (uu(i).lt.0.) then
            nerr = nerr + 1
            uu(i) = 0.
@@ -71,17 +72,15 @@ subroutine conservative2primitive
      !--call equation of state to get pressure (needed for source terms)
      !
      call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma,polyk,1)
-  enddo
-
-  if (geom(1:4).ne.'cart') then
+     !
+     !--calculate source terms (spatial derivatives of metric)
+     !
      if (allocated(sourceterms)) then
-        call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
-                           sourceterms(:,1:npart),ndim,ndimV,npart,geom)
-     else
-        write(iprint,*) 'ERROR: non-cartesian geometry but source terms not allocated'
-        stop
+        call metric_derivs(x(:,i),vel(:,i),Bfield(:,i),rho(i),pr(i),B2i, &
+                           sourceterms(:,i),ndim,ndimV,geom)
      endif
-  endif
+
+  enddo
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -137,18 +136,29 @@ subroutine primitive2conservative
   implicit none
   integer :: i,j,iktemp
   real, dimension(ndimV) :: gdiag
-  real :: B2i, v2i, hmin, hmax, hav
+  real :: B2i, v2i, hmin, hmax, hav, polyki
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 
   sqrtg = 1.
+  B2i = 0.
 !
-!--this is the procedure for general (non-relativistic) diagonal metrics
+!--set initial h and rho (conservative) from dens (primitive) as given in setup/ data read
 !
   do i=1,npart
      call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,geom)
      rho(i) = dens(i)*sqrtg(i)
      hh(i) = hfact*(pmass(i)/rho(i))**dndim
+!
+!--also work out what polyk should be if using iener = 0
+!    
+     if (iener.eq.0) then
+        polyki = (gamma - 1.)*uu(i)/dens(i)**(gamma-1.)
+        if (abs(polyki-polyk).gt.epsilon(polyk)) then
+           write(iprint,*) 'NOTE: setting polyk = ',polyki,' (infile says ',polyk,')'
+           polyk = polyki
+        endif
+     endif
   enddo
 !
 !--overwrite this with a direct summation
@@ -167,9 +177,19 @@ subroutine primitive2conservative
         hh(1:npart) = hav
      endif
   endif
-
+!
+!--check for errors with memory allocation
+!
+  if (geom(1:4).ne.'cart' .and. .not.allocated(sourceterms)) then
+     write(iprint,*) 'ERROR: non-cartesian geometry but source terms not allocated'
+     stop    
+  endif
+!
+!--this is the procedure for general (non-relativistic) diagonal metrics
+!
   do i=1,npart
      call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
+     dens(i) = rho(i)/sqrtg(i) ! replace primitive variable after summation
 
      if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
 
@@ -181,27 +201,27 @@ subroutine primitive2conservative
         stop 'vector potential not implemented for GR'
      endif
 
+     if (imhd.ne.0) B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag)
      if (iener.eq.3) then     ! total energy is evolved
-        v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag,ndimV)
-        B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/dens(i)
-        en(i) = uu(i) + 0.5*v2i + 0.5*B2i
+        v2i = DOT_PRODUCT_GR(vel(:,i),vel(:,i),gdiag)
+        en(i) = uu(i) + 0.5*v2i + 0.5*B2i/dens(i)
      else   ! thermal energy is evolved
         en(i) = uu(i)
      endif
-
+     !
+     !--call equation of state to get pressure (needed for source terms)
+     !
      call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i), &
-	  gamma,polyk,1) 	
-  enddo
-     
-  if (geom(1:4).ne.'cart') then
+	  gamma,polyk,1)
+!     print*,i,'pr = ',pr(i),rho(i)/sqrtg(i)
+     !
+     !--calculate source terms (spatial derivatives of metric)
+     !
      if (allocated(sourceterms)) then
-        call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
-                           sourceterms(:,1:npart),ndim,ndimV,npart,geom)
-     else
-        write(iprint,*) 'ERROR: non-cartesian geometry but source terms not allocated'
-        stop
+        call metric_derivs(x(:,i),vel(:,i),Bfield(:,i),rho(i),pr(i),B2i, &
+                           sourceterms(:,i),ndim,ndimV,geom)
      endif
-  endif
+  enddo
 !
 !--copy the conservative variables onto the ghost particles
 !  
