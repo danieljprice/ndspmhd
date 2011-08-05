@@ -16,6 +16,8 @@ else
    echo '	cd ../plot; make dansph'
    echo 'plotc:'
    echo '	cd ../plot; make clean; make'
+   echo 'aplot:'
+   echo '	cd ../plot; make ascii'
    echo 'edit:'
    echo '	cd ../; make edit'$1
    echo 'evplot:'
