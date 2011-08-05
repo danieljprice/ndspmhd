@@ -26,7 +26,7 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: ipart
+ integer :: ipart,n1
  real :: denszero,przero,densc,uuc,uuzero,rc,prc
  real :: totmass,gam1,massp,psepc,radius
  real, dimension(ndim) :: xmaxtemp
@@ -67,13 +67,14 @@ subroutine setup
  psepc = psep*(denszero/densc)**(1./ndim)
  xmaxtemp = rc
  call set_uniform_cartesian(1,psepc,xmin,xmaxtemp,rmax=rc) ! 2 = close packed arrangement
+ n1 = npart
  call set_uniform_cartesian(1,psep,xmin,xmax,rmin=rc)
  ntotal = npart
 !
 !--determine particle mass
 !
  totmass = denszero*(product(xmax(:)-xmin(:)) - pi*rc**2)   ! assumes cartesian boundaries
- massp = totmass/float(ntotal)                  ! average particle mass
+ massp = totmass/float(ntotal - n1)                  ! average particle mass
 !
 !--now assign particle properties
 ! 
