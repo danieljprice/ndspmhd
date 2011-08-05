@@ -11,7 +11,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  USE debug
  USE loguns
  
- USE anticlumping
+ USE kernels, only:ianticlump,eps,neps
  USE artvi
  USE bound
  USE hterms, only:rhomin

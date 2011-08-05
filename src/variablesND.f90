@@ -121,7 +121,7 @@ MODULE options
  INTEGER :: iener,icty,iav,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
- INTEGER :: iexternal_force,ixsph,ianticlump
+ INTEGER :: iexternal_force,ixsph
  INTEGER :: igravity,ikernel
  INTEGER :: igeom,maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
@@ -229,13 +229,3 @@ MODULE xsph
  REAL, DIMENSION(:,:), ALLOCATABLE :: xsphterm
  REAL :: xsphfac
 END MODULE xsph
-
-!-------------------------------------------------------------------
-! anticlumping term settings
-!-------------------------------------------------------------------
-
-MODULE anticlumping
- IMPLICIT NONE
- INTEGER :: neps
- REAL :: eps
-END MODULE anticlumping

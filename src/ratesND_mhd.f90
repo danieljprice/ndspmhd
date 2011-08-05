@@ -11,14 +11,13 @@ subroutine get_rates
  use artvi
  use eos
  use hterms
- use kernels, only:radkern2
+ use kernels, only:radkern2,ianticlump
  use linklist
  use options
  use part
  use rates
  use timestep
  use xsph
- use anticlumping
   
  use fmagarray
  use derivB

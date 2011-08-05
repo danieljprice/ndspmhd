@@ -12,8 +12,10 @@
 module kernels
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
+ integer :: ianticlump,neps
+ real, parameter, private :: pi = 3.141592653589
  real, dimension(0:ikern) :: wij,grwij,wijaniso,grwijaniso
- real :: dq2table,ddq2table,radkern2,radkern
+ real :: dq2table,ddq2table,radkern2,radkern,eps
 !--these variables for force softening only
  real, dimension(0:ikern) :: potensoft,fsoft
 !--these variables needed for plotting and analysis only (not in rates etc)
@@ -30,27 +32,16 @@ contains
 ! with lots more.
 !
 !-----------------------------------------------------------------
-subroutine setkern
- use dimen_mhd, only:ndim
- use debug, only:trace
- use loguns, only:iprint
- use options, only:ikernel,ianticlump
- use setup_params, only:pi
- use anticlumping
+subroutine setkern(ikernel,ndim)
  implicit none         !  define local variables
+ integer, intent(in) :: ikernel, ndim
  integer :: i,j,npower
  real :: q,q2,q4,cnormk,cnormkaniso
  real :: term1,term2,term3,term4
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4
  real :: alpha,beta,gamma,a,b,c,wdenom,wint
-!
-!--allow for tracing flow
-!
- if (trace) write(iprint,*) ' entering subroutine setkern'
-!
-!--set choice of kernel (this could be read in as a parameter)
-!
+
  cnormk = 0.0
  wij = 0.
  grwij = 0.
@@ -184,7 +175,7 @@ subroutine setkern
         cnormk = 42./(2.*pi*(a*alpha**7 + b*beta**7 + c*gamma**7 + radkern**7))
         print*,'2d cnormk = ',cnormk,' a,b = ',a,b,beta,alpha
       case default
-       write(iprint,666)
+       write(*,666)
        stop  
     end select
   
@@ -393,7 +384,7 @@ subroutine setkern
       case(1)
        cnormk = 1./16.
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -431,7 +422,7 @@ subroutine setkern
       case(3)
        cnormk = 105/(16.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -466,7 +457,7 @@ subroutine setkern
       case(3)
        cnormk = 15./(64.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -500,7 +491,7 @@ subroutine setkern
       case(3)
        cnormk = 30./(31.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -542,7 +533,7 @@ subroutine setkern
       case(3)
        cnormk = -30.*alpha/(pi*(20.*alpha**3 - 45.*alpha**2 + 4.*alpha - 10.))
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -576,7 +567,7 @@ subroutine setkern
       case(1)
        cnormk = 10./(6.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -606,7 +597,7 @@ subroutine setkern
        a = 0.9
        cnormk = 2./(3.*a - 1.)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -645,7 +636,7 @@ subroutine setkern
       case(3)
        cnormk = 30./(31.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -687,7 +678,7 @@ subroutine setkern
       case(3)
        cnormk = 315./(32768.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -721,7 +712,7 @@ subroutine setkern
       case(3)
        cnormk = 45045./(134217728.*pi)
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -750,7 +741,7 @@ subroutine setkern
       case(3)
        cnormk = 1.
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -787,7 +778,7 @@ subroutine setkern
       case(3)
        cnormk = 1.
       case default
-       write(iprint,666)
+       write(*,666)
        stop
     end select
     do i=0,ikern
@@ -884,7 +875,6 @@ subroutine setkern
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       if (i.eq.j) write(iprint,*) ' j = ',j,q,q2,wij(j)
        grwijaniso(i) = cnormkaniso*grwij(i)*(1. - 0.5*eps*(wij(i)/wdenom)**neps)
        wijaniso(i) = cnormkaniso*wij(i)*(1. - 0.5*eps/(neps+1.)*(wij(i)/wdenom)**neps) 
        grgrwijaniso(i) = cnormkaniso*(grgrwij(i)*  &
@@ -941,11 +931,6 @@ subroutine setkern
  grgrwij = cnormk*grgrwij
 
 666 format(/,'ERROR!!! normalisation constant not defined in kernel',/)
-!
-!--write kernel name to log file
-!
- write(iprint,10) trim(kernelname)
-10 format(/,' Smoothing kernel = ',a,/)
 !
 !--the variable ddq2table is used in interpolate_kernel
 !

@@ -51,7 +51,7 @@ SUBROUTINE step
  USE timestep
  USE setup_params
  USE xsph
- USE anticlumping
+ USE kernels, only:eps
 !
 !--define local variables
 !
