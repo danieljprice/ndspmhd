@@ -33,7 +33,13 @@ subroutine setup
  nbpts = 0      ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
-!
+ 
+! xmin(1) = -0.5
+! xmax(1) = 0.5
+! xmin(2) = -0.5*sqrt(3./4.)
+! xmax(2) = 0.5*sqrt(3./4.)!
+! xmin(3) = -0.5*sqrt(6.)/3.
+! xmax(3) = 0.5*sqrt(6.)/3.!!
 !--set up the uniform density grid
 !
 ! npart = int((xmax(1)-xmin(1))/psep) !!int((1./psep)**3)
@@ -43,7 +49,7 @@ subroutine setup
  rmax = 0.5
 
 !! call cp_distribute(rmin,rmax,psep,ntotal,x(1,1:npart),x(2,1:npart),x(3,1:npart),npart)
- call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
  npart = ntotal
  print*,'npart =',npart
 !
