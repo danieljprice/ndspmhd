@@ -6,8 +6,8 @@
 splashdir=~/splash
 if [ $# -ne 2 ]; then
    echo Usage: $0 version description
-   echo "(NB: run cvs -q tag 'v1_x_x--`date +%d/%m/%y`' and modify splash.f90 *first* before doing build)"
-   nedit $splashdir/splash.f90 &
+   echo "(NB: run git tag 'v1_x_x--`date +%d/%m/%y`' and modify splash.f90 *first* before doing build)"
+   nedit $splashdir/src/splash.f90 &
 else
    date=`date '+%d/%m/%y'`
    vernum=$1
@@ -64,7 +64,7 @@ else
 #--tar file of directory
    cd /tmp
    tarfile=$builddir-$vernum.tar
-   tar cf $tarfile $builddir
+   tar cvf $tarfile $builddir
    gzip $tarfile
    echo 'copying '$tarfile' to download directory'
    cd $webdir/download
