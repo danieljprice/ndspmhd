@@ -22,7 +22,7 @@ contains
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
     use options, only:ikernav,igravity,imhd
     !use matrixcorr
-    use part, only:Bfield
+    use part, only:Bfield,ntotal
     use rates, only:dBevoldt
 !
 !--define local variables
@@ -41,11 +41,12 @@ contains
 !  (particle properties - local copies)
 !      
     real :: rij,rij2
-    real :: hi,hi1,hav,hav1,hj,hj1,hi2,hj2,hi21
+    real :: hi,hi1,hav,hav1,hj,hj1,hi21
     real :: hfacwab,hfacwabi,hfacwabj
-    real, dimension(ndim) :: dx
+    real, dimension(ndim) :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(npart) :: rhoin
+    real, dimension(ntotal) :: h1
     real :: dvdotr,pmassi,pmassj,projBi,projBj
 !
 !  (kernel quantities)
@@ -80,6 +81,9 @@ contains
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
     enddo
+    do i=1,ntotal
+       h1(i) = 1./hh(i)
+    enddo
 !
 !--Loop over all the link-list cells
 !
@@ -100,27 +104,26 @@ contains
 
 !       PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i)
           idone = idone + 1
-          hi = hh(i)
-          hi1 = 1./hi
-          hi2 = hi*hi
-          hi21 = hi1*hi1
-          hfacwabi = hi1**ndim
           pmassi = pmass(i)
+          xi(:) = x(:,i)
           veli(:) = vel(:,i) 
+          hi = hh(i)
+          hi1 = h1(i)
+          hfacwabi = hi1**ndim
+          hi21 = hi1*hi1
 !
 !--for each particle in the current cell, loop over its neighbours
 !
           loop_over_neighbours: do n = idone+1,nneigh
              j = listneigh(n)
-             dx(:) = x(:,i) - x(:,j)
-             hj = hh(j)
-             hj1 = 1./hj
-             hj2 = hj*hj
-             hfacwabj = hj1**ndim
-         
+             dx(:) = xi(:) - x(:,j)
+
+             if (ikernav.eq.1) hj = hh(j)
+             hj1 = h1(j)
+
              rij2 = dot_product(dx,dx)
              q2i = rij2*hi21
-             q2j = rij2/hj2       
+             q2j = rij2*hj1*hj1
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
 !       
 !--do interaction if r/h < compact support size
@@ -135,6 +138,7 @@ contains
                 if (i.LE.npart) numneigh(i) = numneigh(i) + 1
                 if (j.LE.npart .and. j.ne.i) numneigh(j) = numneigh(j) + 1
                 rij = sqrt(rij2)
+                hfacwabj = hj1**ndim         
 !
 !--weight self contribution by 1/2
 !
@@ -164,9 +168,9 @@ contains
                 else
                    if (igravity.ne.0 .and. ikernav.eq.3 .and. ndim.eq.3) then
                       call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
-                      gradsoft(i) = gradsoft(i) + weight*pmassj*dphidhi/hi2
+                      gradsoft(i) = gradsoft(i) + weight*pmassj*dphidhi*hi21
                       call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
-                      gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj/hj2
+                      gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj*hj1*hj1
                    else
                       call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
                       call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
@@ -318,9 +322,9 @@ contains
 !  (particle properties - local copies)
 !      
     real :: rij,rij2
-    real :: hi,hi1,hi2
+    real :: hi,hi1,hi2,hi21
     real :: hfacwabi,hfacgrkerni,pmassj
-    real, dimension(ndim) :: dx
+    real, dimension(ndim) :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(nlist) :: rhoin
     real :: dvdotr,projBi
@@ -378,26 +382,28 @@ contains
        hi = hh(i)
        hi2 = hi*hi
        hi1 = 1./hi
+       hi21 = hi1*hi1
        
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
+       xi = x(:,i)
        veli(:) = vel(:,i) 
 !
 !--loop over current particle's neighbours
 !
        loop_over_neighbours: do n = 1,nneigh
           j = listneigh(n)
-          dx(:) = x(:,i) - x(:,j)
+          dx(:) = xi(:) - x(:,j)
 !
 !--calculate averages of smoothing length if using this averaging
 !                           
           rij2 = dot_product(dx,dx)
-          rij = sqrt(rij2)
-          q2i = rij2/hi2
+          q2i = rij2*hi21
 !      
 !--do interaction if r/h < compact support size
 !
           if (q2i.LT.radkern2) then
+             rij = sqrt(rij2)
              !!!if (i.eq.416) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
              pmassj = pmass(j)

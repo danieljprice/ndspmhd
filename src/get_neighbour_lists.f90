@@ -41,7 +41,7 @@ contains
 !
     if (ifirstincell(icell).le.0) then
        if (debugging) write(iprint,*) 'icell:',icell,' cell empty: no neighbours'
-       listneigh = 0
+       !listneigh = 0 ! unnecessary
        nneigh = 0
        return
     endif
@@ -174,7 +174,7 @@ contains
 !
     if (ifirstincell(icell).le.0) then
        if (debugging) write(iprint,*) 'icell:',icell,' cell empty: no neighbours'
-       listneigh = 0
+       !listneigh = 0 unnecessary
        nneigh = 0
        return
     endif
