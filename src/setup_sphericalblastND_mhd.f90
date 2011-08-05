@@ -99,6 +99,7 @@ subroutine modify_dump
  real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
+ logical, parameter :: dosedov = .false.
  
  write(iprint,*) 'modifying dump by adding blast'
 
@@ -108,7 +109,6 @@ subroutine modify_dump
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rblast = 2.*hfact*psep		! radius of the initial blast
  rbuffer = rblast	!+10.*psep		! radius of the smoothed front
  bzero(:) = 0.0
  const = 1./sqrt(4.*pi) 
@@ -116,13 +116,20 @@ subroutine modify_dump
     bzero(1) = 3.0 !!sqrt(2.*pi)         !10.0*const	! uniform field in bx direction
 !    bzero(2) = sqrt(2.*pi)
  endif
- przero = 0.0		! initial pressure
+ if (dosedov) then
+    rblast = 2.*hfact*psep		! radius of the initial blast
+    przero = 0.1		! initial pressure
+    enblast = 1.0
+    enzero = 0.
+    prblast = gam1*enblast/(4./3.*pi*rblast**3)
+    !enblast = enblast/massp   ! enblast is now the energy to put in a single particle
+ else
+    rblast = 0.1 		! radius of the initial blast
+    przero = 0.1		! initial pressure
+    prblast = 10.0	! initial pressure within rblast
+ endif
+
  denszero = 1.0
- prblast = 10.0	! initial pressure within rblast
- enblast = 1.0
- enzero = 0.
- prblast = gam1*enblast/(4./3.*pi*rblast**3)
- !enblast = enblast/massp   ! enblast is now the energy to put in a single particle
 !
 !--smoothing length for kernel smoothing
 ! 
