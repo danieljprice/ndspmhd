@@ -142,7 +142,7 @@ subroutine get_rates
   gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
-  curlB(:,i) = 0.0
+  if (imagforce.ne.7) curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -411,7 +411,7 @@ subroutine get_rates
           call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
           force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
           fmag(:,i) = fmagi(:)*rho1i
-       else
+       elseif (imagforce.ne.7) then
           curlB(:,i) = curlB(:,i)*rho1i
        endif
        divB(i) = divB(i)*rho1i
@@ -752,7 +752,9 @@ contains
        endif
        Brho2j = B2j*rho21j
        projBconst = dot_product(Bconst,dr)
-       if (imhd.lt.0) dBevol(:) = Bevoli(:) - Bevol(:,j)
+       if (imhd.lt.0) then
+          dBevol(:) = Bevoli(:) - Bevol(:,j)
+       endif
     endif
     forcej(:) = 0.
         
@@ -1426,12 +1428,16 @@ contains
 
        !--add B Bext term
        faniso(:) = faniso(:) + (Bi(:)*rho21i*grkerni + Bj(:)*rho21j*grkernj)*projBconst
+
+       !--add 3D term
+       faniso(:) = faniso(:) - (Bevoli(:)*dot_product(curlB(:,i),dr)*rho21i*grkerni &
+                                + Bevol(:,j)*dot_product(curlB(:,j),dr)*rho21j*grkernj)
        
        !--correct stress with constant term
-       !faniso(:) = faniso(:) - (Bconst(:)*rho21i*grkerni + Bconst(:)*rho21j*grkernj)*projBconst
+       faniso(:) = faniso(:) - (Bconst(:)*rho21i*grkerni + Bconst(:)*rho21j*grkernj)*projBconst
 
        !--correct with anticlumping term       
-       faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
+       !faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
 
        fmagi(:) = faniso(:) - fiso*dr(:)
     
@@ -1488,16 +1494,11 @@ contains
        !--calculate curl B for current (only if field is 3D)
        !  this is used in the switch for the artificial resistivity term
        !
-       call cross_product3D(dB,dr,curlBi)
-!          curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
-!          curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
-!          curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-!       elseif (ndimV.eq.2) then  ! just Jz in 2D
-!          curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
-!          curlBi(2) = 0.
-!       endif
-       curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
-       curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+       if (imagforce.ne.7) then
+          call cross_product3D(dB,dr,curlBi)
+          curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
+          curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+       endif
        !
        !--add Lorentz force to total force
        !              

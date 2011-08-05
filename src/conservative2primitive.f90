@@ -28,7 +28,7 @@ subroutine conservative2primitive
   use smooth, only:smooth_variable
   use rates, only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
-  use setup_params, only:Byleft,Byright,Bzleft,Bzright
+  use derivB, only:curlB
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i, pri, dhdrhoi
@@ -54,17 +54,23 @@ subroutine conservative2primitive
      gradpsi(:,:) = 0.
      psi(:) = 0.
      zeta(:) = 0.
-     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
         Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
-        !--construct xi term
-        dhdrhoi = -hh(i)/(ndim*(rho(i)))
-        gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
-        zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
-        psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
-        !if (i.lt.10) print*,i,'xi = ',psi(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        if (imagforce.eq.7) then
+           !--construct xi term
+           dhdrhoi = -hh(i)/(ndim*(rho(i)))
+           gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
+           zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
+           psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
+           !if (i.lt.10) print*,i,'xi = ',psi(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
+        endif
      enddo
+     if (imagforce.eq.7) then
+        !--get J using symmetric curl operator
+        call get_curl(2,npart,x,pmass,rho,hh,Bfield,curlB)
+     endif
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   endif
@@ -168,6 +174,7 @@ subroutine primitive2conservative
   use timestep
   use getcurl
   use rates, only:gradpsi
+  use derivB, only:curlB
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
@@ -245,7 +252,7 @@ subroutine primitive2conservative
   elseif (imhd.lt.0) then ! if using vector potential
      if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
      write(iprint,*) 'getting B field from vector potential (init)...'
-     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
         Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
@@ -258,6 +265,8 @@ subroutine primitive2conservative
      enddo
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
+     write(iprint,*) 'getting J from B (init)...'
+     call get_curl(2,npart,x,pmass,rho,hh,Bfield,curlB)
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
