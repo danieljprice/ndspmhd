@@ -68,21 +68,13 @@ MODULE fmagarray
 END MODULE
 
 !-------------------------------------------------------------------
-! Gravitational potential and force
-!-------------------------------------------------------------------
-MODULE gravity
- IMPLICIT NONE
- REAL, DIMENSION(:,:), ALLOCATABLE :: fgrav
-END MODULE gravity
-
-!-------------------------------------------------------------------
 !  correction terms when using a spatially variable smoothing length
 !-------------------------------------------------------------------     
 
 MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
- REAL, DIMENSION(:), ALLOCATABLE :: gradh
+ REAL, DIMENSION(:), ALLOCATABLE :: gradh,gradhn
  REAL :: rhomin
 END MODULE hterms
 
