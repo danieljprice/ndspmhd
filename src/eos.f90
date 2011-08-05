@@ -107,7 +107,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho)
       pr = gamma1*uu*rho
       vsound = sqrt(gamma*pr/rho)
     endif
-    print *,'here ',uu,rho
+    !print *,'here ',uu,rho
  endif
       
  return
