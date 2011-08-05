@@ -49,6 +49,7 @@ SUBROUTINE read_infile(infile)
 
  GOTO 55
 50 WRITE(iprint,*) 'Error reading infile: re-writing with current options'
+   CLOSE(UNIT=iread)
    ians = 'y'
    GOTO 1001
 55 CONTINUE
