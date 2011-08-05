@@ -109,6 +109,7 @@ subroutine write_dump(t,dumpfile)
         do i=1,ndimV
            write(idatfile) Bevol(i,1:nprint)
         enddo
+        write(idatfile) Bconst(:)
      endif
   else
      do i=1,2
@@ -158,6 +159,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  use part
  use setup_params
  use geometry
+ use mem_allocation, only:alloc
 !
 !--define local variables
 !      
@@ -237,8 +239,6 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     write(iprint,*) 'warning: mhd input file, but MHD is off'
  elseif (imhd.ne.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
     write(iprint,*) 'WARNING: non-mhd infile but MHD is on (Bfield set to 0)'
- elseif (imhd.lt.0) then
-    write(iprint,*) 'ERROR: cannot yet re-start using vector potential'
  endif
 !
 !--switch current geometry to that of the file if not convertible
@@ -307,6 +307,22 @@ subroutine read_dump(dumpfile,tfile,copysetup)
        read(ireadf,iostat=ierr) Bfield(i,1:npart)
     enddo
     read(ireadf,iostat=ierr) psi(1:npart)
+    !--read vector potential if necessary
+    if (imhd.lt.0) then
+       do i=1,4+2*ndimV
+          read(ireadf,iostat=ierr)
+       enddo
+       do i=1,ndimV
+          read(ireadf,iostat=ierr) Bevol(i,1:npart)
+          if (ierr /= 0) write(iprint,*) '*** error reading vector potential from file ***'
+       enddo
+       read(ireadf,iostat=ierr) Bconst(1:ndimV)
+       if (ierr /= 0) then
+          write(iprint,*) '*** error reading Bconst from file ***'
+          write(iprint,*) 'please enter values for Bconst:'
+          read*,Bconst(1:ndimV)
+       endif
+    endif
  elseif (iformat.eq.2) then
     !--read alpha in MHD format
     do i=1,3
