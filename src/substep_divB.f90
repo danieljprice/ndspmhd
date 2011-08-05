@@ -48,7 +48,7 @@ subroutine substep_divb(icall,dtfull,nsubstepsin,bevol,psi,divbi,gradpsi, &
  real, dimension(ntot), intent(in) :: hh, pmass, rho
  real, dimension(ntot) :: psiin
  real, dimension(ndimV,ntot) :: Bevolin, Bfield
- real :: dpsidti, alphasub
+ real :: dpsidti
  integer :: i,j,istep,nsubsteps,nloops,isteptot
  integer, dimension(1) :: imaxpart
  real :: dtsub,hdt,vsig2substep,vsigsubstep, maxdivbi,crap1,crap2
@@ -82,7 +82,6 @@ subroutine substep_divb(icall,dtfull,nsubstepsin,bevol,psi,divbi,gradpsi, &
  Bevolin = Bevol 
 ! divBi(:) = 0.
 ! gradpsi(:,:) = 0.
- alphasub = 0.1
 
  nloops = nsubstepsin + 1
 
@@ -165,7 +164,7 @@ subroutine substep_divb(icall,dtfull,nsubstepsin,bevol,psi,divbi,gradpsi, &
     !enddo
     !print*,'before mini rates: max divBi = ',maxdivBi,imaxpart
 
-    CALL get_divBgradpsi(divBi,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot,alphasub)
+    CALL get_divBgradpsi(divBi,gradpsi,Bfield,psi,x,hh,pmass,rho,npart,ntot)
     
     maxdivBi = -1.0
     imaxpart = 1

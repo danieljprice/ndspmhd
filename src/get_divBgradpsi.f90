@@ -9,7 +9,7 @@
 !! global modules
 !!------------------------------------------------------------------------
 
-subroutine get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphasub)
+subroutine get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  use dimen_mhd, only:ndim, ndimV
  use debug, only:trace
  use loguns, only:iprint
@@ -27,7 +27,6 @@ subroutine get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
  real, dimension(ntot), intent(in) :: psi, rho
  real, dimension(ntot), intent(out) :: divb
  real, dimension(ndimv,ntot), intent(out) :: gradpsi
- real, intent(in) :: alphasub
 !
 !--define local variables
 !
