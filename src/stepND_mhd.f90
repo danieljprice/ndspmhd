@@ -56,7 +56,7 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim
- REAL :: hdt, maxdivB,crap1,crap2
+ REAL :: hdt, maxdivB,crap1,crap2,divBlam,divBlammax
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
 !
@@ -83,7 +83,7 @@ SUBROUTINE step
  ELSEIF (idivBzero.GE.2) THEN
     maxdivB = MAXVAL(ABS(divB(1:npart)))
     
-    nsubsteps_divB = 0
+    nsubsteps_divB = -1
     !IF (maxdivB.gt.1.0) then
     !   nsubsteps_divB = 1
     !endif
@@ -101,13 +101,55 @@ SUBROUTINE step
        ENDIF
        CALL output(0.0,1)
        !psidecayfact = 1.0
-       !DO i=1,100
-          CALL substep_divB(1,dt,1000,Bevol(:,1:ntotal),psi(1:ntotal), &
+       !DO i=1,40
+          CALL substep_divB(1,dt,100,Bevol(:,1:ntotal),psi(1:ntotal), &
                          divB(1:ntotal),gradpsi(:,1:ntotal), &
                          x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
                          rho(1:ntotal),itype(1:ntotal),npart,ntotal)
           !CALL evwrite(real(i),crap1,crap2)
           CALL output(psidecayfact,1)
+       !ENDDO   
+          divBlammax = 1000.0
+          DO i=1,npart
+             if (abs(divB(i)).gt.1.e-5) then
+             divBlam = sqrt(dot_product(Bevol(:,i),Bevol(:,i)))*rho(i)/abs(divB(i))
+             divBlammax = min(divBlam,divBlammax)
+             endif
+          ENDDO
+          print*,'min wavelength = ',divBlammax
+          read*
+
+       !DO i=1,50
+!          psidecayfact = 0.16
+!          CALL substep_divB(1,dt,50,Bevol(:,1:ntotal),psi(1:ntotal), &
+!                        divB(1:ntotal),gradpsi(:,1:ntotal), &
+!                         x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+!                         rho(1:ntotal),itype(1:ntotal),npart,ntotal)
+          CALL output(psidecayfact,1)
+
+!          psidecayfact = 1.0
+!          CALL substep_divB(1,dt,10,Bevol(:,1:ntotal),psi(1:ntotal), &
+!                        divB(1:ntotal),gradpsi(:,1:ntotal), &
+!                         x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+!                         rho(1:ntotal),itype(1:ntotal),npart,ntotal)
+!          CALL output(psidecayfact,1)
+          
+!          psidecayfact = 0.16
+!          CALL substep_divB(1,dt,20,Bevol(:,1:ntotal),psi(1:ntotal), &
+!                        divB(1:ntotal),gradpsi(:,1:ntotal), &
+!                         x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+!                         rho(1:ntotal),itype(1:ntotal),npart,ntotal)
+!          CALL output(psidecayfact,1)
+
+!          psidecayfact = 0.16
+!          CALL substep_divB(1,dt,20,Bevol(:,1:ntotal),psi(1:ntotal), &
+!                        divB(1:ntotal),gradpsi(:,1:ntotal), &
+!                         x(:,1:ntotal),hh(1:ntotal),pmass(1:ntotal), &
+!                         rho(1:ntotal),itype(1:ntotal),npart,ntotal)
+
+     !    !CALL evwrite(real(i),crap1,crap2)
+!          CALL output(psidecayfact,1)
+      !ENDDO
        !read*
        !ENDDO
 
