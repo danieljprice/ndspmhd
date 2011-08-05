@@ -1239,7 +1239,7 @@ contains
     !  (applied everywhere)
     !--------------------------------------------
     if (imhd.ne.0) then
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              Bvisc(:) = dB(:)*rhoav1
           else
@@ -1291,7 +1291,7 @@ contains
        !
        !  magnetic energy terms - applied everywhere
        !
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              B2i = dot_product(Bi,Bi) ! total magnetic energy 
              B2j = dot_product(Bj,Bj) 
@@ -1335,13 +1335,13 @@ contains
        !
        !  add magnetic energy term - applied everywhere
        !
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
           else
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
-       elseif (imhd.lt.0 .and. iav.eq.1) then
+       elseif (imhd.lt.0 .and. iav.eq.1 .and. imhd.ne.-3) then
           !vissB = -alphaB*0.5*(dot_product(curlB(:,i)-curlB(:,j),dBevol(:)))*rhoav1
           vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
        else
