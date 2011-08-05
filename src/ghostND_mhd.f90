@@ -94,6 +94,7 @@ subroutine set_ghost_particles
         !
         !--xmax boundary
         !        
+        vpart(:) = vel(:,i)
         dx = xmax(1) - x(1,i)
         if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
            xpart(1) = xmin(1) - dx
