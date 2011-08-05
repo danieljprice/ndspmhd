@@ -410,10 +410,12 @@ program plotmeagraph
         !
         !--apply transformations to plot limits
         !
-        call transform_limits(lim(iplotx(i),1),lim(iplotx(i),2), &
-                              xmin,xmax,itrans(iplotx(i)))
-        call transform_limits(lim(iploty(i),1),lim(iploty(i),2), &
-                              ymin,ymax,itrans(iploty(i)))
+        xmin = lim(iplotx(i),1)
+        xmax = lim(iplotx(i),2)
+        ymin = lim(iploty(i),1)
+        ymax = lim(iploty(i),2)
+        call transform_limits(xmin,xmax,itrans(iplotx(i)))
+        call transform_limits(ymin,ymax,itrans(iploty(i)))
         !
         !--setup plotting page
         !
@@ -454,10 +456,11 @@ program plotmeagraph
            !
            !--apply transformations to plot data
            !
-           call transform(evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
-                xplot(1:nstepsfile(ifile)),itrans(iplotx(i)),nstepsfile(ifile))
-           call transform(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
-                yplot(1:nstepsfile(ifile)),itrans(iploty(i)),nstepsfile(ifile))
+           xplot(1:nstepsfile(ifile)) = evdata(1:nstepsfile(ifile),iplotx(i),ifile)
+           yplot(1:nstepsfile(ifile)) = evdata(1:nstepsfile(ifile),iploty(i),ifile)
+
+           call transform(xplot(1:nstepsfile(ifile)),itrans(iplotx(i)))
+           call transform(yplot(1:nstepsfile(ifile)),itrans(iploty(i)))
            
            call PGLINE(nstepsfile(ifile),xplot(1:nstepsfile(ifile)), &
                 yplot(1:nstepsfile(ifile)))
