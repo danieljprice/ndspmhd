@@ -43,6 +43,7 @@ SUBROUTINE write_infile(infile)
   WRITE(iread,150) ixsph,xsphfac
   WRITE(iread,160) igravity
   WRITE(iread,170) damp
+  WRITE(iread,180) ikernel
  CLOSE(UNIT=iread)
 
 10 FORMAT(f14.10,22x,'! particle separation')
@@ -62,6 +63,7 @@ SUBROUTINE write_infile(infile)
 150 FORMAT(i1,2x,f5.3,28x,'! use XSPH, parameter')
 160 FORMAT(i1,35x,'! self-gravity')
 170 FORMAT(f7.4,28x,'! artificial damping (0.0 or few percent)')
+180 FORMAT(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 
  WRITE(iprint,200) infile
 200 FORMAT (' Input file ',a20,' created successfully')

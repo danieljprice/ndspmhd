@@ -98,7 +98,7 @@ SETUP3D = setup_alfvenwaveND_x.f90
 SOURCES = variablesND.f90 sphND_mhd.f90   \
          allocateND.f90 boundaryND_1D.f90 \
 	 conservative2primitive.f90 coord_transform.f90 \
-	 densityND.f90 \
+	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \

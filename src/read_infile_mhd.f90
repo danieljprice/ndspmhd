@@ -44,6 +44,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*) ixsph,xsphfac
   READ(iread,*) igravity
   READ(iread,*) damp
+  READ(iread,*) ikernel
  CLOSE(UNIT=iread)
 !
 !--check options for possible errors
@@ -81,44 +82,7 @@ SUBROUTINE read_infile(infile)
 1000  FORMAT (' Input file ',a20,' not found')
       WRITE(iprint,*) ' Would you like to create one with default options?'
       READ*,ians
-      IF (ians.EQ.'y'.OR.ians.EQ.'Y') THEN
-!
-!--set default options
-!         
-	 psep = 0.01
-	 tmax = 10.0
-	 tout = 1.0
-	 nmax = 1000000
-	 nout = -1
-	 gamma = 5./3.
-	 iener = 3
-	 gconst = 1.0
-	 polyk = 1.0
-	 icty = 0
-	 ndirect = nmax
-	 ialtform = 0
-	 iav = 1
-	 alphamin = 0.1
-	 beta = 2.0
-	 iavlim = 1
-	 avconst = 0.1
-	 ikernav = 3
-	 ihvar = 3
-	 hfact = 1.5
-	 idumpghost = 1
-	 imhd = 1
-	 imagforce = 2
-	 idivBzero = 0
-	 ianticlump = 1
-	 eps = 0.8
-	 neps = 5
-	 ixsph = 0
-	 xsphfac = 0.0
-	 igravity = 0
-	 damp = 0.0
-	 
-	 CALL write_infile(infile)
-      ENDIF
+      IF (ians.EQ.'y'.OR.ians.EQ.'Y') CALL write_infile(infile)
 
       STOP 'exiting...'
       

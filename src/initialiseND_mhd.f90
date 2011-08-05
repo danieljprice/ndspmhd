@@ -77,6 +77,7 @@ SUBROUTINE initialise
 !
 !--read parameters from the infile
 !
+ CALL set_default_options   ! set the default options
  CALL read_infile(infile)
 !
 !--Open data/ev files
@@ -92,13 +93,11 @@ SUBROUTINE initialise
  ELSE
     avfact = 1.0	! isothermal 
  ENDIF
- iexternal_force = 0	! unless toy star is setup
 !
 !--write first header to logfile/screen
 !
  CALL write_header(1,infile,datfile,evfile,logfile)    
  
- ikernel = 0		! set type of kernel (this could be read as input options)
  CALL setkern		! setup kernel tables
  npart = 0
  CALL setup    		! setup particles, allocation of memory is called
