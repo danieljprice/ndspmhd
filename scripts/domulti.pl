@@ -9,15 +9,15 @@ my $nruns;
 my $nsteps;
 my $startnum;
 my $zero = 0;
-my $nstart = 1;	## number to start from (either zero or 1)
 my $ext = '.dat';
 my $SPMHD = 'SPMHD';
 
-if ($#ARGV !=2) {
-   die "Usage: $0 nD rootname nruns \n";
+if ($#ARGV <2) {
+   die "Usage: $0 nD rootname nruns [nstartfrom]\n";
 }
 
-my ($ndim,$rootname,$nruns) = @ARGV;
+my ($ndim,$rootname,$nruns,$nstart) = @ARGV;
+$nstart = 1 unless defined $nstart; ## number to start from (either zero or 1)
 
 # make a new directory for the run
 print "making new directory $rootname";
