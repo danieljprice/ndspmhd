@@ -52,7 +52,7 @@ subroutine conservative2primitive
   case(11:) ! if using B as conserved variable
      Bfield = Bevol
   case(10)  ! remapped B/rho
-     remap = .true.
+     remap = .false.
      !--set x0 correctly on ghost particles
      if (any(ibound.gt.1)) then  ! ghost particles
         dxbound(:) = xmax(:) - xmin(:)
@@ -322,6 +322,7 @@ subroutine primitive2conservative
   use getBeulerpots, only:get_B_eulerpots
   use rates, only:gradpsi
   use derivB, only:curlB
+  use utils,  only:minmaxave
   implicit none
   integer :: i,j,iktemp,iremap,nremap
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi, emagold,emag
