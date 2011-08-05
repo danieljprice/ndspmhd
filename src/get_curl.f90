@@ -19,6 +19,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  use setup_params,        only:hfact
  use part,                only:itype,ntotal
  use bound,               only:ireal
+ use utils,               only:cross_product3D
 !
 !--define local variables
 !

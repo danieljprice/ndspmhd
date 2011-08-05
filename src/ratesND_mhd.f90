@@ -26,6 +26,7 @@ subroutine get_rates
  use grutils, only:metric_diag,dot_product_gr
  use getBeulerpots, only:compute_rmatrix,exactlinear
  use matrixcorr, only:dxdx,idxdx,jdxdx,ndxdx
+ use utils, only:cross_product3D
 !
 !--define local variables
 !

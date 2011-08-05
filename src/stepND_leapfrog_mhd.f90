@@ -23,6 +23,7 @@ subroutine step
  use xsph
  use particlesplit, only:particle_splitting
  use geometry, only:coord_transform,vector_transform
+ use utils,    only:cross_product3D
 !
 !--define local variables
 !
