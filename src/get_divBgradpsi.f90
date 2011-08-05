@@ -19,7 +19,6 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
  USE linklist
  USE options
  USE get_neighbour_lists
- USE eos, only:spsound
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npart,ntot
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
@@ -42,15 +41,15 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
  REAL :: rij,rij2
  REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
  REAL :: hfacwab,hfacwabi,hfacwabj,rho1j,rho1i
- REAL :: pmassi,pmassj,projdB,gradpsiterm,vsig
+ REAL :: pmassi,pmassj,projdB,gradpsiterm
  REAL, DIMENSION(ndim) :: dx
- REAL, DIMENSION(ndimV) :: dr,Bdiss
+ REAL, DIMENSION(ndimV) :: dr
 !
 !  (kernel quantities)
 !
  REAL :: q2,q2i,q2j      
  REAL :: wab,wabi,wabj
- REAL :: grkern,grkerni,grkernj,weight
+ REAL :: grkern,grkerni,grkernj
 !
 !--allow for tracing flow
 !      
