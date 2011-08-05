@@ -34,7 +34,7 @@ subroutine initialise
  implicit none
  character(len=len(rootname)+3) :: infile,evfile,dumpfile
  character(len=len(rootname)+6) :: logfile   ! rootname is global in loguns
- integer :: i,j,idash,idot,ierr,idotin
+ integer :: i,j,idash,idot,ierr,idotin,ierr1,ierr2
  logical :: iexist
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
@@ -153,9 +153,10 @@ subroutine initialise
 !--setup kernel tables
 !
  ikernelalt = ikernel
- call setkernels(ikernel,ikernelalt,ndim)
+ call setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
+ if (ierr1.ne.0 .or. ierr2.ne.0) stop 'error with kernel setup' 
  npart = 0
 
  if (ifile.lt.0) then
