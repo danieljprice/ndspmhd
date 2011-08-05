@@ -27,7 +27,7 @@ program plotmeagraph
   real :: xmin, xmax, ymin, ymax
   real :: hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*120, legendtext*120
-  character(len=24) :: title,label(maxcol)
+  character(len=120) :: title,label(maxcol)
   character(len=40) :: labely,text
   character(len=1) :: ans
   character(len=2) :: ioption
@@ -94,27 +94,7 @@ program plotmeagraph
 !
 !--read legend text from the legend file, if it exists
 !
-  if (nfiles.gt.1) then
-     open(unit=50,file='legend',status='old',ERR=22)
-     print*,'reading labels from legend file...'
-     do ifile=1,nfiles  
-        read(50,"(a)",ERR=21,END=20) legendtext(ifile)
-     enddo
-     close(unit=50)
-     goto 23
-20   continue
-     print*,'error: end of file in legend file'
-     legendtext(ifile:nfiles) = rootname(ifile:nfiles)
-     close(unit=50)
-     goto 23
-21   continue
-     print*,'error reading from legend file'
-     close(unit=50)
-22   continue
-     print*,'legend file not found'
-     legendtext(1:nfiles) = rootname(1:nfiles)
-23   continue
-   endif
+  call read_legend_file
 !
 !--read defaults file
 !
@@ -167,6 +147,9 @@ program plotmeagraph
 !  menu
   menuloop: do
 
+  !
+  !--set column labels
+  !
   label = 'crap    '  ! default name
 
   label(1) = 'nstep          '
@@ -194,6 +177,10 @@ program plotmeagraph
      label(21) = 'omega_mhd (max) '
      label(22) = '% particles with omega < 0.01 '
   endif
+  !
+  !--overwrite column labels if columns file exists
+  !
+  call read_columns_file(ncol,label(2:ncol+1))
 
   if (ANY(itrans.ne.0)) then
      do i=1,ncol
@@ -208,9 +195,9 @@ program plotmeagraph
   print 12
   ihalf = ncol/2                ! print in two columns
   iadjust = mod(ncol,2)
-  print 11, (i,label(i),ihalf+i+iadjust,label(ihalf+i+iadjust),i=1,ihalf)
+  print 11, (i,label(i)(1:20),ihalf+i+iadjust,label(ihalf+i+iadjust)(1:20),i=1,ihalf)
   if (iadjust.ne.0) then
-     print 13, ihalf + iadjust,label(ihalf+iadjust)
+     print 13, ihalf + iadjust,trim(label(ihalf+iadjust))
   endif
 !
 !--print menu options
@@ -570,7 +557,78 @@ program plotmeagraph
 ! ------------------------------------------------------------------------      
   
   close(8)  
+  
+contains
+
+!-------------------------------------------------------
+! reads legend text from the legend file, if it exists
+!-------------------------------------------------------
+
+ subroutine read_legend_file
+  implicit none
+
+  if (nfiles.gt.1) then
+     open(unit=50,file='legend',status='old',ERR=22)
+     print*,'reading labels from legend file...'
+     do ifile=1,nfiles  
+        read(50,"(a)",ERR=21,END=20) legendtext(ifile)
+     enddo
+     close(unit=50)
+     goto 23
+20   continue
+     print*,'error: end of file in legend file'
+     legendtext(ifile:nfiles) = rootname(ifile:nfiles)
+     close(unit=50)
+     goto 23
+21   continue
+     print*,'error reading from legend file'
+     close(unit=50)
+22   continue
+     print*,'legend file not found'
+     legendtext(1:nfiles) = rootname(1:nfiles)
+23   continue
+   endif
+ end subroutine read_legend_file
+
+
+
 end program plotmeagraph
+
+
+!-------------------------------------------------------
+! reads column labels from columns file, if it exists
+!-------------------------------------------------------
+
+ subroutine read_columns_file(ncolumns,label)
+  implicit none
+  integer, intent(in) :: ncolumns
+  character(len=*), dimension(ncolumns), intent(inout) :: label 
+  integer :: icol,i
+
+  if (ncolumns.gt.1) then
+     open(unit=51,file='columns',status='old',ERR=22)
+     print*,'reading column labels from columns file...'
+     do icol=1,ncolumns
+        read(51,"(a)",ERR=21,END=20) label(icol)
+     enddo
+     close(unit=51)
+     goto 23
+20   continue
+     print*,'error: end of file in columns file'
+     do i=icol-1,ncolumns
+        write(label(i),*) 'column',i
+     enddo
+     close(unit=51)
+     goto 23
+21   continue
+     print*,'error reading from columns file'
+     close(unit=51)
+22   continue
+     print*,'columns file not found'
+23   continue
+   endif
+   
+ end subroutine read_columns_file
 
 !-------------------------------------------------------------------------      
 !  this subroutine reads the contents of the .ev file
