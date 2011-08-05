@@ -25,6 +25,7 @@ subroutine iterate_density
   
   use bound
   use hterms
+  use linklist, only:numneigh
   use options, only:ikernav,ihvar,ibound,maxdensits,tolh
   use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho
   use setup_params
@@ -36,7 +37,7 @@ subroutine iterate_density
 !
   implicit none
   integer :: i,j,itsdensitymax
-  integer :: ncalc,ncalcprev,ncalctotal
+  integer :: ncalc,ncalcprev,ncalctotal,nrhosmall
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
@@ -63,7 +64,7 @@ subroutine iterate_density
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
-  usenumdens = .true.
+  usenumdens = .false.
   ncalcprev = 0
   gradh = 0.
   gradhn = 0.
@@ -109,6 +110,7 @@ subroutine iterate_density
      redolistprev(1:ncalcprev) = redolist(1:ncalcprev)
      ncalc = 0
      redolink = .false.
+     nrhosmall = 0
      
      if (ihvar.ne.0) then
         do j=1,ncalcprev
@@ -120,7 +122,8 @@ subroutine iterate_density
                     write(iprint,*) 'error: rho(',i,') = ',rho(i),hh(i),pmass(i)
                     call quit
                  else
-                    write(iprint,*) 'Warning : rho < 1e-6 '
+                    nrhosmall = nrhosmall + 1
+                    !!write(iprint,*) 'Warning : rho < 1e-6 '
                  endif
               endif
               
@@ -207,6 +210,9 @@ subroutine iterate_density
               
            endif   ! itype .NE. 1
         enddo
+        if (nrhosmall.gt.0) then
+           write(iprint,"(a,i3,a,i8,a)") ' warning: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
+        endif
         
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
            write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
@@ -256,6 +262,8 @@ subroutine iterate_density
   elseif ((itsdensity.gt.1 .and. ndim.ge.2)) then
      write(iprint,*) ' Finished density, iterations = ', &
                      itsdensity, ncalctotal,' used rhomin = ',rhomin
+     write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
+                     ' max nneigh = ',maxval(numneigh(1:npart))
   endif
 
   return
