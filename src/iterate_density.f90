@@ -179,8 +179,8 @@ subroutine iterate_density
      
   enddo iterate
   
-  if (itsdensity.gt.1) write(iprint,*) ' Finished density, iterations = ', &
-                                       itsdensity, ncalctotal
+!  if (itsdensity.gt.1) write(iprint,*) ' Finished density, iterations = ', &
+!                                       itsdensity, ncalctotal
   
   return
 end subroutine iterate_density
