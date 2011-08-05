@@ -28,7 +28,7 @@ subroutine alloc(newsizein,sortlist)
  use part_in
  use rates
  use xsph
- !use matrixcorr
+ use matrixcorr
 !
 !--define local variables
 !
@@ -51,7 +51,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
- !real, dimension(ndim,ndim,newsizein) :: dumgradmatrix
+ real, dimension(ndim + (ndim*ndim - ndim)/2,newsizein) :: dumdxdx
 
  logical :: reallocate, isortparts
 !
@@ -162,7 +162,7 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
-    !dumgradmatrix(:,:,1:idumsize)=gradmatrix(:,:,1:idumsize)
+    dumdxdx(:,1:idumsize)=dxdx(:,1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -220,7 +220,7 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmomin)) deallocate(pmomin)
     if (allocated(dens)) deallocate(dens)
     
-    !if (allocated(gradmatrix)) deallocate(gradmatrix)
+    if (allocated(dxdx)) deallocate(dxdx)
     endif
 
  endif
@@ -288,7 +288,7 @@ subroutine alloc(newsizein,sortlist)
    if (geom(1:4).ne.'cart') then
       allocate(sourceterms(ndimv,newsize))
    endif
-   !allocate(gradmatrix(ndim,ndim,newsize))
+   allocate(dxdx(ndim + (ndim*ndim - ndim)/2,newsize))
  endif
  
  if (reallocate .or. isortparts) then
@@ -349,12 +349,12 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
     endif    
-    !gradmatrix(:,:,1:idumsize) = dumgradmatrix(:,:,1:idumsize) 
+    dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize) 
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
-    !gradmatrix(:,:,:) = 1.
- endif   
+    dxdx(:,:) = 1.
+ endif
        
 !
 !--debugging information
