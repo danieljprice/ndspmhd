@@ -9,17 +9,18 @@ module getBeulerpots
 contains
 
 subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfield,remap)
- use dimen_mhd, only:ndim,ndimV,idim
- use debug, only:trace
- use loguns, only:iprint
+ use dimen_mhd,    only:ndim,ndimV,idim
+ use debug,        only:trace
+ use loguns,       only:iprint
  
- use kernels, only:interpolate_kernel_curl,radkern2
- use linklist, only:ll,ifirstincell,ncellsloop
+ use kernels,      only:interpolate_kernel_curl,radkern2
+ use linklist,     only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list
- use hterms, only:gradh
+ use hterms,       only:gradh
  use setup_params, only:hfact
- use part, only:itype,ntotal
- use bound, only:ireal
+ use part,         only:itype,ntotal
+ use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
+ use bound,        only:ireal
 !
 !--define local variables
 !
@@ -28,7 +29,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real, dimension(ndim,idim), intent(in) :: x
  real, dimension(idim), intent(in) :: pmass,rho,hh
  real, dimension(ndimV,idim), intent(inout) :: alphapot
- real, dimension(ndim,idim), intent(inout)  :: betapot
+ real, dimension(ndimV,idim), intent(inout)  :: betapot
  real, dimension(ndimV,idim), intent(out) :: Bfield
  logical, intent(in) :: remap
  real :: weight
@@ -43,15 +44,18 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real :: pmassi
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr,dalpha,dbeta,Bk,alphapoti,betapoti
- real, dimension(ndim,ndimV) :: gradalphai,gradbetai
+ real, dimension(ndimV,ndimV) :: gradalphai,gradbetai
+ real, dimension(ndxdx) :: dxdxi
+ real, dimension(6) :: rmatrix
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
- real :: rho21i,rho21gradhi
+ real :: rho21i,rho21gradhi,denom,ddenom
  real, dimension(ntotal) :: h1
- real, dimension(ndim,ndimV,ntotal) :: gradalpha, gradbeta
+ real, dimension(ndimV,ndimV,ntotal) :: gradalpha, gradbeta
+ logical :: use_exact_linear = .true.
 !
 !--allow for tracing flow
 !      
- if (trace) write(iprint,*) ' entering subroutine get_curl' 
+ if (trace) write(iprint,*) ' entering subroutine get_B_eulerpots' 
 !
 !--initialise quantities
 !
@@ -64,6 +68,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
     h1(i) = 1./hh(i)
  enddo
  Bfield = 0.
+ dxdx(:,:) = 0.
 !
 !--loop over all the link-list cells
 !
@@ -95,6 +100,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        rho21gradhi = rho21i*gradh(i)
        gradalphai(:,:) = 0.
        gradbetai(:,:) = 0.
+       dxdxi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -149,6 +155,9 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
                       gradbeta(:,k,j) = gradbeta(:,k,j) + pmassi*dbeta(k)*dr(:)*grkernj
                    enddo
 
+                   dxdxi(:) = dxdxi(:) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dr(jdxdx(1:ndxdx))*grkerni
+                   dxdx(:,j) = dxdx(:,j) + 2.*pmass(i)*(dx(idxdx(1:ndxdx)))*dr(jdxdx(1:ndxdx))*grkernj
+
                 end select
 
              endif
@@ -157,6 +166,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        
        gradalpha(:,:,i) = gradalpha(:,:,i) + gradalphai(:,:)
        gradbeta(:,:,i) = gradbeta(:,:,i) + gradbetai(:,:)
+       dxdx(:,i) = dxdx(:,i) + dxdxi(:)
        iprev = i
        if (iprev.ne.-1) i = ll(i) ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
@@ -166,9 +176,23 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  do i=1,npart
     select case(iderivtype)
     case default
-       gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
-       gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
-       
+       if (use_exact_linear) then
+          call compute_rmatrix3D(dxdx(:,i),rmatrix,denom)
+          if (abs(denom).gt.epsilon(denom)) then
+             ddenom = 1./denom
+             do k=1,ndimV
+                call exactlinear3D(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
+                call exactlinear3D(gradbeta(:,k,i),gradbeta(:,k,i),rmatrix,ddenom)
+             enddo
+          else
+             gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
+             gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
+          endif
+       else
+          gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
+          gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
+       endif
+
        !--compute B = grad alpha x grad beta
        do k=1,ndimV
           call cross_product3D(gradalpha(:,k,i),gradbeta(:,k,i),Bk)
@@ -184,12 +208,73 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           enddo
           !print*,i,' new vector potential = ',alphapoti(:)
           alphapot(:,i) = alphapoti(:)
-          betapot(:,i) = x(:,i)
+          betapot(1:ndim,i) = x(1:ndim,i)
        endif
     end select
  enddo
 
  return
 end subroutine get_B_eulerpots
-      
+
+!----------------------------------------------------------------
+!+
+!  Computes matrix terms needed for exact linear derivatives
+!+
+!----------------------------------------------------------------
+subroutine compute_rmatrix3D(dxdxi,rmatrix,denom)
+ implicit none
+ real, dimension(:), intent(in) :: dxdxi
+ real, dimension(6), intent(out) :: rmatrix
+ real, intent(out) :: denom
+ real :: rxxi,rxyi,rxzi,ryyi,ryzi,rzzi
+
+ rxxi = dxdxi(1)
+ rxyi = dxdxi(2)
+ rxzi = dxdxi(3)
+ ryyi = dxdxi(4)
+ ryzi = dxdxi(5)
+ rzzi = dxdxi(6)
+
+ denom = rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi &
+       - rxxi*ryzi*ryzi - ryyi*rxzi*rxzi - rzzi*rxyi*rxyi
+
+ rmatrix(1) = ryyi*rzzi - ryzi*ryzi    ! xx
+ rmatrix(2) = rxzi*ryzi - rzzi*rxyi    ! xy
+ rmatrix(3) = rxyi*ryzi - rxzi*ryyi    ! xz
+ rmatrix(4) = rzzi*rxxi - rxzi*rxzi    ! yy
+ rmatrix(5) = rxyi*rxzi - rxxi*ryzi    ! yz
+ rmatrix(6) = rxxi*ryyi - rxyi*rxyi    ! zz
+
+end subroutine compute_rmatrix3D
+
+!----------------------------------------------------------------
+!+
+!  Internal subroutine that inverts the matrix to get an
+!  exact linear derivative
+!+
+!----------------------------------------------------------------
+pure subroutine exactlinear3D(gradA,dAin,rmatrix,ddenom)
+ implicit none
+ real, dimension(:), intent(out) :: gradA
+ real, dimension(:), intent(in)  :: dAin
+ real, intent(in), dimension(6) :: rmatrix
+ real, intent(in)  :: ddenom
+ real, dimension(size(dAin)) :: dA
+ 
+ !--make local copy of dA to allow input array (dAin)
+ !  to be same as output (gradA)
+ dA = dAin
+
+ gradA(1) =(dA(1)*rmatrix(1) + dA(2)*rmatrix(2) + dA(3)*rmatrix(3))*ddenom
+ gradA(2) =(dA(1)*rmatrix(2) + dA(2)*rmatrix(4) + dA(3)*rmatrix(5))*ddenom
+ gradA(3) =(dA(1)*rmatrix(3) + dA(2)*rmatrix(5) + dA(3)*rmatrix(6))*ddenom
+
+ !--the above is equivalent to:
+ !gradAx =(dAx*termxx + dAy*termxy + dAz*termxz)*ddenom
+ !gradAy =(dAx*termxy + dAy*termyy + dAz*termyz)*ddenom
+ !gradAz =(dAx*termxz + dAy*termyz + dAz*termzz)*ddenom
+
+ return
+end subroutine exactlinear3D
+
 end module getBeulerpots
