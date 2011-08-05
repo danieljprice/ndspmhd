@@ -39,7 +39,7 @@ subroutine check_setup
         write(iprint,20) 'huge pmass values ',pmass(i),i
         stop
      endif     
-     if (uu(i).lt.tiny(uu)) then
+     if (uu(i).lt.0.) then
         write(iprint,20) 'uu < 0 ',uu(i),i
         stop
      endif
@@ -54,6 +54,13 @@ subroutine check_setup
      xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
      
   enddo
+
+!
+!--warnings only
+! 
+  if (any(uu(1:npart).eq.0.)) then
+     write(iprint,*) ' WARNING: uu = 0 on some particles'
+  endif
   
   xcentre = xcentre / SUM(pmass(1:npart))
 
