@@ -26,7 +26,7 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
  REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
- REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin 
+ REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin,uuin
  REAL :: hdt
 !
 !--allow for tracing flow
@@ -44,6 +44,7 @@ SUBROUTINE step
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
+    uuin(i) = uu(i)
     alphain(i) = alpha(i)
     
     forcein(:,i) = force(:,i)
@@ -107,7 +108,7 @@ SUBROUTINE step
     IF (ierr.EQ.1) THEN ! negative thermal energy
        nerror = nerror + 1
        !WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-       uu(i) = 0.	!uuin(i) + dt*dudt(i)
+       uu(i) = 0. !uuin(i) + dt*dudt(i)
     ENDIF
 !
 !--calculate the pressure using the equation of state

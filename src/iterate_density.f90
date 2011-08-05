@@ -111,7 +111,10 @@ subroutine iterate_density
               endif
               
               gradh(i) = gradh(i)/rho(i)    ! now that rho is known
-              if (abs(1.-gradh(i)).lt.1.e-5) print*,'eek'
+              if (abs(1.-gradh(i)).lt.1.e-5) then
+	         print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
+		 if (abs(1.-gradh(i)).eq.0.) call quit
+	      endif
 !
 !--perform Newton-Raphson iteration on rho
 !      

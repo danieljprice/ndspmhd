@@ -38,7 +38,7 @@ SUBROUTINE setup
 !
  IF (ndim.EQ.3) STOP ' code not yet working for ndim=3'
  IF (ndimV.NE.3) STOP ' Need ndimV=3 for this problem'
- IF (iener.NE.0) STOP ' eos should be isothermal for this problem (iener=0)'
+!! IF (iener.NE.0) STOP ' eos should be isothermal for this problem (iener=0)'
 !
 !--set boundaries
 !            	    
