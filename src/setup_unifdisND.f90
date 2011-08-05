@@ -2,28 +2,30 @@
 !     Set up a uniform density cartesian grid of particles in ND
 !----------------------------------------------------------------
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !            
- IMPLICIT NONE
- INTEGER :: i
- REAL :: massp,volume,totmass
- REAL :: denszero
+ implicit none
+ integer :: i
+ real :: massp,volume,totmass
+ real :: denszero
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
 !
 !--set boundaries
 ! 	    
@@ -34,30 +36,30 @@ SUBROUTINE setup
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(11,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass
 !
  denszero = 1.0
- volume = PRODUCT(xmax(:)-xmin(:))
+ volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
- massp = totmass/FLOAT(ntotal) ! average particle mass
+ massp = totmass/float(ntotal) ! average particle mass
 !
 !--now assign particle properties
 ! 
- DO i=1,ntotal
+ do i=1,ntotal
     vel(:,i) = 0.
     !!!vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
-    Bfield(:,i) = 0.
- ENDDO 
+    bfield(:,i) = 0.
+ enddo 
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) '  Exiting subroutine setup'
+ if (trace) write(iprint,*) '  exiting subroutine setup'
   
- RETURN
-END
+ return
+end

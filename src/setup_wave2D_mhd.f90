@@ -4,44 +4,46 @@
 !     x, y and z axes
 !----------------------------------------------------------------
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ 
+ use uniform_distributions
 !
 !--define local variables
 !            
- IMPLICIT NONE
- INTEGER :: i
- INTEGER, PARAMETER :: itsmax = 100
-! REAL, PARAMETER :: pi = 3.1415926536
- REAL, PARAMETER :: tol = 1.e-8
- INTEGER :: its
- REAL, DIMENSION(ndim) :: runit,dxi,dxmax
- REAL, DIMENSION(ndimV) :: velzero
- REAL, DIMENSION(ndimB) :: Bzero
- REAL :: massp,totmass,denszero,gam1,uuzero,przero
- REAL :: anglexy,ampl,wk,xlambda,rmax,denom
- REAL :: ri,rprev,xmassfrac,func,fderiv
- REAL :: pri,spsoundi,valfven2i
- REAL :: vampl_par,vampl_perp,vamplz,vamply,vamplx
- REAL :: vparallel,vperp,vz
- REAL :: Bparallel,Bperp,Bz
- REAL :: Bamplx,Bamply,Bamplz,Bampl_perp
- REAL :: vfast,vslow,vcrap,vwave,term,dens1
+ implicit none
+ integer :: i
+ integer, parameter :: itsmax = 100
+! real, parameter :: pi = 3.1415926536
+ real, parameter :: tol = 1.e-8
+ integer :: its
+ real, dimension(ndim) :: runit,dxi,dxmax
+ real, dimension(ndimv) :: velzero
+ real, dimension(ndimb) :: bzero
+ real :: massp,totmass,denszero,gam1,uuzero,przero
+ real :: anglexy,ampl,wk,xlambda,rmax,denom
+ real :: ri,rprev,xmassfrac,func,fderiv
+ real :: pri,spsoundi,valfven2i
+ real :: vampl_par,vampl_perp,vamplz,vamply,vamplx
+ real :: vparallel,vperp,vz
+ real :: bparallel,bperp,bz
+ real :: bamplx,bamply,bamplz,bampl_perp
+ real :: vfast,vslow,vcrap,vwave,term,dens1
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup'
- WRITE(iprint,*) '------------ Wave setup ----------------'
+ if (trace) write(iprint,*) ' entering subroutine setup'
+ write(iprint,*) '------------ wave setup ----------------'
 !
 !--set direction of wave propagation (runit is unit vector in this direction)
 !
@@ -49,24 +51,24 @@ SUBROUTINE setup
 ! anglez = 45	! angle in degrees z plane
  anglexy = anglexy*pi/180.	! convert to radians
 
- IF (ndim.EQ.2) THEN
-    runit(1) = COS(anglexy)
-    runit(2) = SIN(anglexy)
- ELSE 
-    STOP 'This wave setup only for 2D'       
+ if (ndim.eq.2) then
+    runit(1) = cos(anglexy)
+    runit(2) = sin(anglexy)
+ else 
+    stop 'this wave setup only for 2d'       
 !      runit(3) = 0.
- ENDIF
- WRITE(iprint,*) ' runit = ',runit
+ endif
+ write(iprint,*) ' runit = ',runit
 !
 !--read/set wave parameters
 ! 
  ampl = 0.001
-! WRITE (*,*) 'Enter amplitude of disturbance'
-! READ (*,*) ampl
+! write (*,*) 'enter amplitude of disturbance'
+! read (*,*) ampl
  
  xlambda = 1.0
-! WRITE (*,*) 'Enter wavelength lambda'
-! READ (*,*) xlambda
+! write (*,*) 'enter wavelength lambda'
+! read (*,*) xlambda
     
  wk = 2.0*pi/xlambda	! 	wave number
  
@@ -77,7 +79,7 @@ SUBROUTINE setup
  nbpts = 0	! no fixed particles
  xmin(:) = 0.0	! set position of boundaries
  xmax(:) = 1.0/runit(:)
-! PRINT*,'xmin,xmax = ',xmin,xmax
+! print*,'xmin,xmax = ',xmin,xmax
 !
 !--setup parameters
 !
@@ -86,9 +88,9 @@ SUBROUTINE setup
  vz = 0.1
  denszero = 1.0
  przero = 0.1
- Bparallel = 1.0
- Bperp = 0.1
- Bz = 0.1
+ bparallel = 1.0
+ bperp = 0.1
+ bz = 0.1
  uuzero = 0.3
 !
 !--work out dependent parameters
@@ -98,54 +100,54 @@ SUBROUTINE setup
  velzero(1) = vparallel*runit(1) - vperp*runit(2)
  velzero(2) = vparallel*runit(2) + vperp*runit(1)
  velzero(3) = vz
- Bzero(1) = Bparallel*runit(1) - Bperp*runit(2)
- Bzero(2) = Bparallel*runit(2) + Bperp*runit(1)
- Bzero(3) = Bz
+ bzero(1) = bparallel*runit(1) - bperp*runit(2)
+ bzero(2) = bparallel*runit(2) + bperp*runit(1)
+ bzero(3) = bz
 !
 !--initially set up a uniform density grid (also determines npart)
 !
- CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
+ call set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !
  dxmax(:) = xmax(:) - xmin(:)
- totmass = denszero*PRODUCT(dxmax)
- massp = totmass/FLOAT(npart) ! average particle mass
- PRINT*,'npart,massp = ',npart,massp
+ totmass = denszero*product(dxmax)
+ massp = totmass/float(npart) ! average particle mass
+ print*,'npart,massp = ',npart,massp
  
- DO i=1,npart
+ do i=1,npart
     vel(:,i) = velzero
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    IF (imhd.GE.1) THEN 
-       Bfield(:,i) = Bzero
-    ENDIF 
- ENDDO
+    if (imhd.ge.1) then 
+       bfield(:,i) = bzero
+    endif 
+ enddo
 
  ntotal = npart
   
- rmax = DOT_PRODUCT(dxmax,runit)
-! PRINT*,'rmax = ',rmax
- denom = rmax - ampl/wk*(COS(wk*rmax)-1.0)
+ rmax = dot_product(dxmax,runit)
+! print*,'rmax = ',rmax
+ denom = rmax - ampl/wk*(cos(wk*rmax)-1.0)
 !
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- CALL equation_of_state(przero,spsoundi,uuzero,denszero,gamma,polyk,1)
+ call equation_of_state(przero,spsoundi,uuzero,denszero,gamma,polyk,1)
 !
-!--work out MHD wave speeds
+!--work out mhd wave speeds
 !
  dens1 = 1./denszero
  
- valfven2i = Bparallel**2*dens1
- vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
-                 + SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*dens1)))
- vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
-                 - SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*dens1)))
- vcrap = SQRT(spsoundi**2 + valfven2i)
+ valfven2i = bparallel**2*dens1
+ vfast = sqrt(0.5*(spsoundi**2 + valfven2i			&
+                 + sqrt((spsoundi**2 + valfven2i)**2	&
+                 - 4.*(spsoundi*bparallel)**2*dens1)))
+ vslow = sqrt(0.5*(spsoundi**2 + valfven2i			&
+                 - sqrt((spsoundi**2 + valfven2i)**2	&
+                 - 4.*(spsoundi*bparallel)**2*dens1)))
+ vcrap = sqrt(spsoundi**2 + valfven2i)
 
 !----------------------------
 ! set the wave speed to use
@@ -158,84 +160,84 @@ SUBROUTINE setup
 !
 !--now perturb the particles appropriately
 !    
- DO i=1,npart
+ do i=1,npart
  
     dxi(:) = x(:,i) - xmin(:)
-    ri = DOT_PRODUCT(dxi,runit)
+    ri = dot_product(dxi,runit)
 
     rprev = 2.*rmax
     xmassfrac = ri/rmax	! current mass fraction(for uniform density)
 				! determines where particle should be
 !
-!--Use rootfinder on the integrated density perturbation
+!--use rootfinder on the integrated density perturbation
 !  to find the new position of the particle
 !    
     its = 0
 	 
-    DO WHILE ((ABS(ri-rprev).GT.tol).AND.(its.LT.itsmax))
+    do while ((abs(ri-rprev).gt.tol).and.(its.lt.itsmax))
        rprev = ri
-       func = xmassfrac*denom - (ri - ampl/wk*(COS(wk*ri)-1.0))
-       fderiv = -1.0 - ampl*SIN(wk*ri)
-       ri = ri - func/fderiv	! Newton-Raphson iteration
+       func = xmassfrac*denom - (ri - ampl/wk*(cos(wk*ri)-1.0))
+       fderiv = -1.0 - ampl*sin(wk*ri)
+       ri = ri - func/fderiv	! newton-raphson iteration
        its = its + 1 
-!      PRINT*,'iteration',its,'ri =',ri 
-    ENDDO
+!      print*,'iteration',its,'ri =',ri 
+    enddo
 	 	 	 
-    IF (its.GE.itsmax) THEN
-       WRITE(iprint,*) 'Error: soundwave - too many iterations'
-       CALL quit 
-    ENDIF
+    if (its.ge.itsmax) then
+       write(iprint,*) 'error: soundwave - too many iterations'
+       call quit 
+    endif
 	  
-!    IF (idebug(1:5).EQ.'sound') THEN
-!       WRITE(*,99002) i,its,ri-rprev,x(1,i),xmin(1)+ri*runit(1)
-99002  FORMAT('Particle',i5,' converged in ',i4,	&
+!    if (idebug(1:5).eq.'sound') then
+!       write(*,99002) i,its,ri-rprev,x(1,i),xmin(1)+ri*runit(1)
+99002  format('particle',i5,' converged in ',i4,	&
        ' iterations, error in x =',1(1pe10.2,1x),/,	&
        'previous r = ',1(0pf8.5,1x),			&
        'moved to r = ',1(0pf8.5,1x)) 
-!    ENDIF
+!    endif
     x(:,i) = xmin(:) + ri*runit(:)
 !
 !--multiply by the appropriate amplitudes
 !
     dens1 = 1./dens(i)
-    term = 1./(vwave**2 - Bparallel**2*dens1)
+    term = 1./(vwave**2 - bparallel**2*dens1)
     vampl_par = vwave*ampl
-    vampl_perp = -vampl_par*Bparallel*Bperp*dens1*term
-    vamplz = -vampl_par*Bparallel*Bfield(3,i)*dens1*term
+    vampl_perp = -vampl_par*bparallel*bperp*dens1*term
+    vamplz = -vampl_par*bparallel*bfield(3,i)*dens1*term
     
     vamplx = vampl_par*runit(1) - vampl_perp*runit(2)
     vamply = vampl_par*runit(2) + vampl_perp*runit(1)
 
-    vel(1,i) = vamplx*SIN(wk*ri)
-    vel(2,i) = vamply*SIN(wk*ri)
-    vel(3,i) = vamplz*SIN(wk*ri)
+    vel(1,i) = vamplx*sin(wk*ri)
+    vel(2,i) = vamply*sin(wk*ri)
+    vel(3,i) = vamplz*sin(wk*ri)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uu(i) = uu(i) + pri/dens(i)*ampl*SIN(wk*ri)	! if not polytropic
+   uu(i) = uu(i) + pri/dens(i)*ampl*sin(wk*ri)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
-    Bampl_perp = vwave*Bperp*vampl_par*term*SIN(wk*ri)
-    Bamplz = vwave*Bz*vampl_par*term*SIN(wk*ri)
+    bampl_perp = vwave*bperp*vampl_par*term*sin(wk*ri)
+    bamplz = vwave*bz*vampl_par*term*sin(wk*ri)
     
-    Bamplx = -Bampl_perp*runit(2)
-    Bamply = Bampl_perp*runit(1)
+    bamplx = -bampl_perp*runit(2)
+    bamply = bampl_perp*runit(1)
     
-    Bfield(1,i) = Bzero(1) + Bamplx*SIN(wk*ri)
-    Bfield(2,i) = Bzero(2) + Bamply*SIN(wk*ri)
-    Bfield(3,i) = Bzero(3) + Bamplz*SIN(wk*ri)
-    dens(i) = dens(i)*(1.+ampl*SIN(wk*ri))
+    bfield(1,i) = bzero(1) + bamplx*sin(wk*ri)
+    bfield(2,i) = bzero(2) + bamply*sin(wk*ri)
+    bfield(3,i) = bzero(3) + bamplz*sin(wk*ri)
+    dens(i) = dens(i)*(1.+ampl*sin(wk*ri))
 
- ENDDO
+ enddo
 
- WRITE(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
- WRITE(iprint,*) ' sound speed  = ',spsoundi
- WRITE(iprint,*) ' alfven speed = ',SQRT(valfven2i)
- WRITE(iprint,*) ' fast speed   = ',vfast
- WRITE(iprint,*) ' slow speed   = ',vslow
- WRITE(iprint,*) ' wave speed   = ',vwave
+ write(iprint,*) ' wave set: amplitude = ',ampl,' wavelength = ',xlambda,' k = ',wk
+ write(iprint,*) ' sound speed  = ',spsoundi
+ write(iprint,*) ' alfven speed = ',sqrt(valfven2i)
+ write(iprint,*) ' fast speed   = ',vfast
+ write(iprint,*) ' slow speed   = ',vslow
+ write(iprint,*) ' wave speed   = ',vwave
  
- RETURN
-END
+ return
+end
