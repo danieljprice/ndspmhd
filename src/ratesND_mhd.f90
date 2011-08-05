@@ -595,8 +595,8 @@ contains
          wab = 0.5*(wabi + wabj)
          !  (grad h terms)  
          if (ikernav.eq.3) then  ! if using grad h correction
-            !grkerni = grkerni*gradhi
-            !grkernj = grkernj*gradh(j)
+            grkerni = grkerni*gradhi
+            grkernj = grkernj*gradh(j)
             grkern = 0.5*(grkerni + grkernj)
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)

@@ -1,7 +1,7 @@
 !!---------------------------------------------------------------------!!
-!! evolves the simulation through all timesteps                !!
+!! evolves the simulation through all timesteps                        !!
 !! this subroutine contains the main timestepping loop and calls       !! 
-!!  the output routines at the appropriate times             !!
+!!  the output routines at the appropriate times                       !!
 !!---------------------------------------------------------------------!!
 
 SUBROUTINE evolve
@@ -10,13 +10,15 @@ SUBROUTINE evolve
  USE loguns
  USE options
  USE timestep
+ 
+ USE dumpfiles
 !
 !--define local variables
 !
  IMPLICIT NONE
  REAL :: tprint
  INTEGER :: noutput,nevwrite
- REAL :: t_start,t_end,t_used
+ REAL :: t_start,t_end,t_used,tzero
  REAL :: etot, momtot, etotin, momtotin, detot, dmomtot
  CHARACTER(LEN=10) :: finishdate, finishtime
 !
@@ -25,17 +27,19 @@ SUBROUTINE evolve
  IF (trace) WRITE(iprint,*) ' Entering subroutine evolve'
 !
 !--Set initial timestep
+!  (nb: time is set in initialise and should not be changed here
+!   as can be non-zero from reading a dumpfile)
 !
  dt = 0.
  dt0 = 0.
  tprint = 0.
  t_start = 0.
  t_end = 0.
- time = 0.
  nsteps = 0
  nevwrite = 1   ! frequency of writing to .ev file (could be read as parameter)
  detot = 0.
  dmomtot = 0.
+ tzero = time
 !
 !--calculate initial values of conserved quantities
 !
@@ -50,10 +54,10 @@ SUBROUTINE evolve
 !
 !--write initial conditions to output file
 !  
- CALL output(time,nsteps)
+ IF (ifile.lt.0) CALL write_dump(time,nsteps)
 
  noutput = 1
- tprint = tout
+ tprint = tzero + tout
 ! CALL quit
 !
 !--get starting CPU time
@@ -90,9 +94,9 @@ SUBROUTINE evolve
  
 !--if making movies and need ghosts to look right uncomment the line below, 
        IF (idumpghost.EQ.1 .AND. ANY(ibound.GE.2)) CALL set_ghost_particles
-       CALL output(time,nsteps)
+       CALL write_dump(time,nsteps)
        noutput = noutput + 1
-       tprint = noutput*tout
+       tprint = tzero + noutput*tout
     ENDIF
 !    
 !--calculate total energy etc and write to ev file    
@@ -111,7 +115,6 @@ SUBROUTINE evolve
 
 !------------------------------------------------------------------------
 
- write(iprint,6)
 !
 !--get ending CPU time
 !

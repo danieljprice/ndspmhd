@@ -22,29 +22,65 @@ SUBROUTINE initialise
  USE part
  USE part_in
  USE setup_params
+ 
+ USE dumpfiles
 !
 !--define local variables
 !      
  IMPLICIT NONE
- CHARACTER(LEN=20) :: infile,evfile
- CHARACTER(LEN=20) :: datfile,logfile   ! rootname is global in loguns
- INTEGER :: i,j
+ CHARACTER(LEN=len(rootname)+3) :: infile,evfile,dumpfile
+ CHARACTER(LEN=len(rootname)+6) :: logfile   ! rootname is global in loguns
+ INTEGER :: i,j,idash,idot,int_from_string
+ LOGICAL :: iexist
+!
+!--if filename is of the form crap_xxxxx.dat restart from a given dump
+!
+ idash = index(rootname,'_')
+ idot = index(rootname,'.')
+ if (idash.ne.0) then
+    if (idot.eq.0) idot = len_trim(rootname)+1
+    print*,idash,idot,rootname(idash+1:idot-1)
+    ifile = int_from_string(rootname(idash+1:idot-1))
+    dumpfile = trim(rootname)
+    rootname = rootname(1:idash-1)
+    if (ifile.lt.0 .or. ifile.gt.99999) then
+       print*,'*** error in run name, trying to extract dump number '
+       stop
+    endif
+    print*,'ifile = ',ifile,'rootname = ',trim(rootname)
+    !!ifile = ifile - 1
+    !stop
+ else
+    ifile = -1
+ endif
 !
 !--add extensions to set filenames (remove trailing blanks)
 !
  infile = TRIM(rootname)//'.in'
  evfile = TRIM(rootname)//'.ev'
- datfile = TRIM(rootname)//'.dat'
+!! datfile = TRIM(rootname)//'.dat'
  logfile = TRIM(rootname)//'.log'      
 !
 !--Initialise log file (if used)
 !
- IF (iprint.NE.6) THEN
-    OPEN(UNIT=iprint,FILE=logfile,ERR=669,   &
-         STATUS='replace',FORM='formatted')
- ELSE
+ if (iprint.ne.6) then
+    if (ifile.lt.0) then
+       open(unit=iprint,file=logfile,err=669,status='replace',form='formatted')
+    else
+       inquire(file=logfile,exist=iexist)
+       if (iexist) then
+          i = 0
+          do while(iexist)
+             i = i + 1
+             write(logfile,"(a,i2.2,'.log')") trim(rootname),i
+             inquire(file=logfile,exist=iexist)
+          enddo
+       endif
+       open(unit=iprint,file=logfile,err=669,status='new',form='formatted')
+    endif
+ else
     logfile = 'screen   '
- ENDIF
+ endif
 !
 !--start tracing flow into logfile
 !
@@ -72,8 +108,8 @@ SUBROUTINE initialise
 !
 !--Open data/ev files
 !
- OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='unformatted')
- OPEN(UNIT=ievfile,ERR=668,FILE=evfile,STATUS='replace',FORM='formatted') 
+!! OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='unformatted')
+ OPEN(UNIT=ievfile,ERR=668,FILE=evfile,STATUS='replace',FORM='formatted')
 !
 !--work out multiplication factor for source term in Morris and Monaghan scheme
 !  (just from gamma)
@@ -86,19 +122,23 @@ SUBROUTINE initialise
 !
 !--write first header to logfile/screen
 !
- CALL write_header(1,infile,datfile,evfile,logfile)    
+ CALL write_header(1,infile,evfile,logfile)    
  
  CALL setkern      ! setup kernel tables
  npart = 0
- CALL setup          ! setup particles, allocation of memory is called
-          ! could replace this with a call to read_dump
- CALL check_setup       ! check for errors in the particle setup
+ 
+ if (ifile.lt.0) then
+    call setup          ! setup particles, allocation of memory is called
+ else
+    call read_dump(trim(dumpfile),time)      ! or read from dumpfile
+ endif
+ call check_setup       ! check for errors in the particle setup
 !
 !--setup additional quantities that are not done in setup
 !
- alpha(1,:) = alphamin
- alpha(2,:) = alphaumin
- alpha(3,:) = alphaBmin
+! alpha(1,:) = alphamin
+! alpha(2,:) = alphaumin
+! alpha(3,:) = alphaBmin
  gradh = 0.
  divB = 0.
  curlB = 0.
@@ -152,7 +192,7 @@ SUBROUTINE initialise
 !
 !--write second header to logfile/screen
 !
- CALL write_header(2,infile,datfile,evfile,logfile)    
+ CALL write_header(2,infile,evfile,logfile)    
       
  RETURN
 !

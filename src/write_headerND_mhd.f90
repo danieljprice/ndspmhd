@@ -6,7 +6,7 @@
 !! icall = 2 (after particle setup)
 !!-----------------------------------------------------------------
 
-SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
+SUBROUTINE write_header(icall,infile,evfile,logfile)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -27,7 +27,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
  IMPLICIT NONE
  INTEGER :: i
  INTEGER, INTENT(IN) :: icall
- CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,datfile,logfile
+ CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,logfile
  CHARACTER(LEN=19) :: boundtype
  CHARACTER(LEN=1), DIMENSION(3) :: coord
  CHARACTER(LEN=10) :: startdate, starttime
@@ -73,11 +73,10 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
     starttime = starttime(1:2)//':'//starttime(3:4)//':'//starttime(5:)
     WRITE(iprint,"(' Run started on ',a,' at ',a)") startdate,starttime
     
-    WRITE(iprint, 20) infile,datfile,evfile,logfile
-    IF (iprint.NE.6) WRITE(*, 20) infile,datfile,evfile,logfile
+    WRITE(iprint, 20) infile,evfile,logfile
+    IF (iprint.NE.6) WRITE(*, 20) infile,evfile,logfile
 20 FORMAT(/,                                &
       ' Read input from   : ',a,/,        &
-      ' Writing output to : ',a,/,        &
       ' Writing energy to : ',a,/,        &
       ' Writing log to    : ',a,/)
 !
