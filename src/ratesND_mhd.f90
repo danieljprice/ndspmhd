@@ -689,12 +689,13 @@ contains
     use options, only:usenumdens
     use cons2prim, only:specialrelativity
     implicit none
-    real :: prstar, vstar
+    real :: prstar,prstari,prstarj,vstar
     real :: dvsigdtc
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
     real :: vidotdS,vjdotdS,altrhoi,altrhoj,gammastar,vperp2
+    real :: enthalpi,enthalpj,term
 
    pmassj = pmass(j)
 !
@@ -817,6 +818,16 @@ contains
        ! special relativistic signal velocities
        !
        select case(iav)
+       case(5)
+          enthalpi = 1. + uui + pri/dens(i)
+          enthalpj = 1. + uuj + prj/dens(j)
+          spsoundi = sqrt(gamma*pri/dens(i)/enthalpi)
+          spsoundj = sqrt(gamma*prj/dens(j)/enthalpj)
+          vsigi = max((veli(1) + spsoundi)/(1. + veli(1)*spsoundi), &
+                      (veli(1) - spsoundi)/(1. - veli(1)*spsoundi))
+          vsigj = max((velj(1) + spsoundj)/(1. + velj(1)*spsoundj), &
+                      (velj(1) - spsoundj)/(1. - velj(1)*spsoundj))
+          vsig = max(vsigi,vsigj,0.)
        case(4)
           !
           ! just using the speed of light...
@@ -851,7 +862,7 @@ contains
           vsigj=sqrt(((spsoundj**2)+beta*(gammastar-1.0))/(1+((spsoundj**2)+((beta*(gammastar-1))/(gamma-1)))))
           vsig=abs(((vsigi+projvi)/(1.+vsigi*projvi))-((vsigj-projvj)/(1.-vsigj*projvj)))
 
-       case default  
+       case default
           !
           ! this is vsig(1) from Chow & Monaghan '97 (equation 5.7)
           !
@@ -934,18 +945,29 @@ contains
     if (iprterm.ge.0) then
        if (iav.lt.0) then
           !!if (abs(pri-prj).gt.1.e-2) then
+          if (iav.eq.-2) then
+             !--lanzafame (2009)-style
+             if (dvdotr.lt.0.) then
+                term = atan(-5.*dvdotr/spsoundi)/1.57077
+                prstari = pri*(1.-alphai*term*dvdotr/spsoundi)**2
+                term = atan(-5.*dvdotr/spsoundj)/1.57077
+                prstarj = prj*(1.-alpha(1,j)*term*dvdotr/spsoundj)**2
+             else
+                prstari = pri
+                prstarj = prj
+             endif
+          else
              call riemannsolver(gamma,pri,prj,-projvi,-projvj, &
                rhoi,rhoj,prstar,vstar)
+             prstari = prstar
+             prstarj = prstar
+          endif
 !             if (prstar.gt.1.00001*max(pri,prj) .or. prstar.lt.0.99999*min(pri,prj)) then
 !                print*,'error, pstar = ',prstar,'i,j = ',pri,prj,projvi,projvj
 !             endif
              !prstar = 0.5*(pri + prj)
-             prterm = prstar*(phii_on_phij*rho21i*sqrtgi*grkerni &
-                         + phij_on_phii*rho21j*sqrtgj*grkernj)
-          !!else
-          !!  prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
-          !!       + phij_on_phii*Prho2j*sqrtgj*grkernj
-          !!endif
+          prterm = prstari*phii_on_phij*rho21i*sqrtgi*grkerni &
+                 + prstarj*phij_on_phii*rho21j*sqrtgj*grkernj
        else
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
@@ -959,6 +981,12 @@ contains
              !altrhoj = prj/((gamma-1.)*uuj)
              prterm = uui*uuj*(gamma-1.)**2*(1./pri*grkerni &
                                            + 1./prj*grkernj)
+          elseif (iprterm.eq.12) then
+!
+!--volume correction from uhat
+!          
+             prterm = psi(i)*Prho2i*sqrtgi*grkerni &
+                    + psi(j)*Prho2j*sqrtgj*grkernj
           endif
        endif
        !
@@ -996,8 +1024,8 @@ contains
     if (iener.eq.3) then
        call energy_equation
     elseif (iener.gt.0 .and. iav.lt.0) then
-       dudt(i) = dudt(i) + pmassj*prstar*(rho21i)*dvdotr*grkerni
-       dudt(j) = dudt(j) + pmassi*prstar*(rho21j)*dvdotr*grkernj
+       dudt(i) = dudt(i) + pmassj*prstari*(rho21i)*dvdotr*grkerni
+       dudt(j) = dudt(j) + pmassi*prstarj*(rho21j)*dvdotr*grkernj
     elseif (iener.eq.4) then
        !
        !--add surface term
@@ -1271,7 +1299,7 @@ contains
 ! Change this to change the artificial viscosity algorithm
 ! Inherits the values of local variables from rates
 !
-! This version corresponds to special reletivity.
+! This version corresponds to special relativity.
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_sr
     implicit none
@@ -1362,7 +1390,7 @@ contains
        dudt(j) = (dudt(j) + alphaav*lorentzj*pmassi*term*qdiffj)
 
     else 
-       stop 'wrong iener in special reletivity'
+       stop 'wrong iener in special relativity'
     endif
     
     return
