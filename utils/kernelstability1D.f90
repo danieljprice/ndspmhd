@@ -17,7 +17,7 @@ subroutine kernelstability1D
   save icall
   
   icall = icall + 1
-  print*,'icall = ',icall
+  !print*,'icall = ',icall
   cs2 = 1.0
   rhozero = 1.0
   psep = 1.0
@@ -30,7 +30,6 @@ subroutine kernelstability1D
      x(i) = xmin + i*psep
   enddo
   ipart = npart/2
-  print*,' summing onto particle ',ipart, 'xmin = ',xmin, 'x = ',x(ipart),maxval(x)
 !
 !--set up an array of smoothing length values
 !
@@ -81,7 +80,7 @@ subroutine kernelstability1D
 ! 
   datmin = 0.0  !!minval(dat)
   datmax = int(maxval(dat)) + 1
-  print*,'datmax = ',datmax,maxval(dat)*100,nint(maxval(dat)*100)
+  !!print*,'datmax = ',datmax,maxval(dat)*100,nint(maxval(dat)*100)
   dcont = (datmax-datmin)/real(ncont)   ! even contour levels
   do i=1,ncont
      levels(i) = datmin + real(i)*dcont
