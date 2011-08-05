@@ -79,7 +79,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 read_infile_mhd.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 set_velfield1D.f90 \
-	 smooth.f90 stepND_mhd.f90 \
+	 smooth.f90 stepND_leapfrog_mhd.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
 #	 check_neighbourlist.f90
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
