@@ -26,34 +26,34 @@
 !!
 !!---------------------------------------------------------------------------
 
-SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
+subroutine substep_divb(icall,dtfull,nsubstepsin,bevol,psi,divbi,gradpsi, &
                         x,hh,pmass,rho,itype,npart,ntot)
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE options
- USE timestep
- USE derivb
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use options
+ use timestep
+ use derivb
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER, INTENT(IN) :: icall,nsubstepsin,npart,ntot
- INTEGER, DIMENSION(ntot), INTENT(IN) :: itype
- REAL, INTENT(IN) :: dtfull
- REAL, DIMENSION(ndimV,ntot), INTENT(INOUT) :: Bevol,gradpsi
- REAL, DIMENSION(ntot), INTENT(INOUT) :: psi,divBi
- REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: hh, pmass, rho
- REAL, DIMENSION(ntot) :: psiin
- REAL, DIMENSION(ndimV,ntot) :: Bevolin, Bfield
- REAL :: dpsidti, alphasub
- INTEGER :: i,j,istep,indexmax,nsubsteps,nloops,isteptot
- INTEGER, DIMENSION(1) :: imaxpart
- REAL :: dtsub,hdt,vsig2substep,vsigsubstep, maxdivBi,crap1,crap2
- LOGICAL :: dopredictor, docorrector
- SAVE isteptot
+ implicit none
+ integer, intent(in) :: icall,nsubstepsin,npart,ntot
+ integer, dimension(ntot), intent(in) :: itype
+ real, intent(in) :: dtfull
+ real, dimension(ndimV,ntot), intent(inout) :: Bevol,gradpsi
+ real, dimension(ntot), intent(inout) :: psi,divBi
+ real, dimension(ndim,ntot), intent(in) :: x
+ real, dimension(ntot), intent(in) :: hh, pmass, rho
+ real, dimension(ntot) :: psiin
+ real, dimension(ndimV,ntot) :: Bevolin, Bfield
+ real :: dpsidti, alphasub
+ integer :: i,j,istep,nsubsteps,nloops,isteptot
+ integer, dimension(1) :: imaxpart
+ real :: dtsub,hdt,vsig2substep,vsigsubstep, maxdivbi,crap1,crap2
+ logical :: dopredictor, docorrector
+ save isteptot
 !
 !--allow for tracing flow
 !      
@@ -223,8 +223,8 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divBi,gradpsi, &
 !    enddo
 ! ENDIF
 
- print*,'finished substeps'
+ print*,'finished substeps',icall
  IF (trace) WRITE (iprint,*) ' Exiting subroutine substep_divBi'
       
- RETURN
-END SUBROUTINE substep_divB
+ return
+end subroutine substep_divb
