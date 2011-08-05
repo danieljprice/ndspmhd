@@ -12,7 +12,7 @@ EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
 
-doubleprecision= yes
+DOUBLEPRECISION= yes
 
 ifeq ($(SYSTEM), ukaff1a)
     F90C= xlf_r -qnosave
@@ -91,7 +91,7 @@ endif
 
 # Set other optional flags depending on settings
 
-ifeq ($(debug), yes)
+ifeq ($(DEBUG), yes)
     F90FLAGS += ${DEBUGFLAG}
 endif
 
@@ -103,7 +103,7 @@ ifeq ($(ENDIAN), LITTLE)
     F90FLAGS += ${ENDIANFLAGLITTLE}
 endif
 
-ifeq ($(doubleprecision), yes)
+ifeq ($(DOUBLEPRECISION), yes)
     F90FLAGS += ${DBLFLAG}
 endif
 
@@ -165,12 +165,13 @@ SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_blobevap2D.f90
 #SETUP2D = setup_cylblast2D.f90
 #SETUP2D = setup_jadvect2D.f90
-SETUP2D = setup_neutronstarkh.f90
+#SETUP2D = setup_neutronstarkh.f90
+#SETUP2D = setup_sunblast2D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
-SETUP3D = setup_sphericalblastND_mhd.f90
+#SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
@@ -180,6 +181,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_densityprofileND.f90 
 #SETUP3D = setup_recontest3D.f90
 #SETUP3D = setup_forcefree3D.f90
+SETUP3D = setup_blastisoND.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -293,10 +295,10 @@ checksystem:
 	@echo ""
 	@echo "Compiling ndspmhd for $(SYSTEM) system..........."
 	@echo ""
-        ifeq ($(debug), yes)
+        ifeq ($(DEBUG), yes)
 	     @echo "Debugging flags are ON"
         endif
-        ifeq ($(doubleprecision), yes)
+        ifeq ($(DOUBLEPRECISION), yes)
 	     @echo "Flags set for DOUBLE PRECISION"
         else
 	     @echo "Flags set for SINGLE PRECISION"
