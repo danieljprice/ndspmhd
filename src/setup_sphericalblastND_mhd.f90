@@ -41,8 +41,8 @@ subroutine setup
  nbpts = 0
  xmin(:) = -0.5     ! same xmin in all dimensions
  xmax(:) = 0.5
- !xmin(2) = -0.75
- !xmax(2) = 0.75
+ xmin(2) = -0.75
+ xmax(2) = 0.75
  denszero = 1.0
  przero = 0.1
  
@@ -91,6 +91,7 @@ subroutine modify_dump
  use timestep, only:time
  use setup_params, only:pi,psep,hfact
  use eos, only:gamma
+ use cons2prim, only:specialrelativity
  implicit none
  integer :: ipart
  real :: prblast,pri,uui,enblast,enzero,const
@@ -99,7 +100,7 @@ subroutine modify_dump
  real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
- logical, parameter :: dosedov = .true.
+ logical, parameter :: dosedov = .false.
  
  write(iprint,*) 'modifying dump by adding blast'
 
@@ -109,14 +110,21 @@ subroutine modify_dump
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0        ! co-ordinates of the centre of the initial blast
- rbuffer = rblast       !+10.*psep      ! radius of the smoothed front
  bzero(:) = 0.0
  const = 1./sqrt(4.*pi) 
  if (imhd.ne.0) then
     bzero(1) = 3.0 !!sqrt(2.*pi)         !10.0*const	! uniform field in bx direction
 !    bzero(2) = sqrt(2.*pi)
  endif
- if (dosedov) then
+ if (specialrelativity) then
+    rblast = 0.04
+    przero = 1.0
+    denszero = 1.
+    prblast = 1000.
+    enblast = 1.0
+    prblast = gam1*enblast/(4./3.*pi*rblast**3)
+    write(iprint,*) 'using setup for special relativistic problem'
+ elseif (dosedov) then
     rblast = 2.*hfact*psep      ! radius of the initial blast
     przero = 0.0                ! initial pressure
     enblast = 1.0
@@ -128,7 +136,7 @@ subroutine modify_dump
     przero = 0.1                ! initial pressure
     prblast = 10.0              ! initial pressure within rblast
  endif
-
+ rbuffer = rblast       !+10.*psep      ! radius of the smoothed front
  denszero = 1.0
 !
 !--smoothing length for kernel smoothing
