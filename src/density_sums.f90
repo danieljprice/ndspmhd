@@ -14,11 +14,11 @@ contains
 !!------------------------------------------------------------------------
 
   subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
-                     gradh,gradhn,gradsoft,npart)
+                     gradh,gradhn,gradsoft,gradgradh,npart)
     use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
-    use kernels, only:radkern2,interpolate_kernel,interpolate_kernels,interpolate_kernel_soft
+    use kernels, only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
     use options, only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
     !use matrixcorr
@@ -32,7 +32,7 @@ contains
     integer, intent(in) :: npart
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
  
     integer :: i,j,n
     integer :: icell,iprev,nneigh
@@ -55,8 +55,8 @@ contains
 !
     real :: q2,q2i,q2j      
     real :: wab,wabi,wabj,weight,wabalti,wabaltj
-    real :: grkern,grkerni,grkernj,grkernalti,grkernaltj
-    real :: dwdhi,dwdhj,dwaltdhi,dwaltdhj,dphidhi,dphidhj ! grad h terms
+    real :: grkern,grkerni,grkernj,grkernalti,grkernaltj,grgrkerni,grgrkernj
+    real :: dwdhi,dwdhj,dwaltdhi,dwaltdhj,dphidhi,dphidhj,dwdhdhi,dwdhdhj ! grad h terms
     real :: wconst
 !
 !--allow for tracing flow
@@ -71,6 +71,8 @@ contains
     dwdhj = 0.
     dwaltdhi = 0.
     dwaltdhj = 0.
+    dwdhdhi = 0.
+    dwdhdhj = 0.
     wconst = 1./hfact**ndim
 
     do i=1,npart
@@ -82,6 +84,7 @@ contains
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
+       gradgradh(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        !gradmatrix(:,:,i) = 0.
        if (imhd.eq.0 .and. iprterm.eq.10) then
@@ -180,17 +183,20 @@ contains
                       call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
                       gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj*hj1*hj1
                       if (ikernelalt.ne.ikernel) then
-                         call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
-                         call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)                      
+                         call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
+                         call interpolate_kernels_dens(q2j,wabj,grkernj,grgrkernj,wabaltj,grkernaltj)
                       else
+                         stop 'grgrkerni will not work here'
                          wabalti = wabi
                          grkernalti = grkerni
                          wabaltj = wabj
                          grkernaltj = grkernj
+                         grgrkerni = 0.
+                         grgrkernj = 0.
                       endif
                    else
-                      call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
-                      call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
+                      call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
+                      call interpolate_kernels_dens(q2j,wabj,grkernj,grgrkernj,wabaltj,grkernaltj)
                    endif
               !  (using hi)
                    wabi = wabi*hfacwabi
@@ -218,7 +224,11 @@ contains
                    dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
                    dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
                    dwaltdhj = -rij*grkernaltj*hj1 - ndim*wabaltj*hj1
-                                              
+                   
+                   dwdhdhi = ndim*(ndim+1)*wabi*hi1**2 + 2.*(ndim+1)*rij*hi1**2*grkerni &
+                           + rij**2*hi1**4*hfacwabi*grgrkerni
+                   dwdhdhj = ndim*(ndim+1)*wabj*hj1**2 + 2.*(ndim+1)*rij*hj1**2*grkernj &
+                           + rij**2*hj1**4*hfacwabj*grgrkernj
                 endif
 !
 !--calculate density and number density
@@ -258,6 +268,8 @@ contains
                    gradh(j) = gradh(j) + weight*pmassi*dwdhj
                    gradhn(i) = gradhn(i) + weight*dwaltdhi
                    gradhn(j) = gradhn(j) + weight*dwaltdhj
+                   gradgradh(i) = gradgradh(i) + weight*pmassj*dwdhdhi
+                   gradgradh(j) = gradgradh(j) + weight*pmassi*dwdhdhj
                 endif
                 
                 if (imhd.eq.0 .and. iprterm.eq.10) then
@@ -333,12 +345,12 @@ contains
 !!------------------------------------------------------------------------
   
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
-                             gradh,gradhn,gradsoft,npart,nlist,ipartlist)
+                             gradh,gradhn,gradsoft,gradgradh,npart,nlist,ipartlist)
     use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
  
-    use kernels, only:radkern2,interpolate_kernels,interpolate_kernel_soft
+    use kernels, only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
     use options, only:igravity,imhd,ikernel,ikernelalt,iprterm
     !use matrixcorr
@@ -352,7 +364,7 @@ contains
     integer, intent(in) :: npart
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft
+    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -374,8 +386,8 @@ contains
 !  (kernel quantities)
 !
     real :: q2i      
-    real :: wabi,wabalti,grkerni,grkernalti 
-    real :: dwdhi,dwaltdhi,dphidhi ! grad h terms
+    real :: wabi,wabalti,grkerni,grgrkerni,grkernalti 
+    real :: dwdhi,dwaltdhi,dphidhi,dwdhdhi ! grad h terms
     real :: wconst,unityi
 !
 !--allow for tracing flow
@@ -397,6 +409,7 @@ contains
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
+       gradgradh(i) = 0.
 !       gradmatrix(:,:,i) = 0.
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
@@ -460,13 +473,13 @@ contains
                 call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
                 gradsoft(i) = gradsoft(i) + pmassj*dphidhi/hi2
                 if (ikernel.ne.ikernelalt) then
-                   call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
+                   call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)             
                 else
                    wabalti = wabi
                    grkernalti = grkerni
                 endif
              else
-                call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
+                call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)             
              endif
              wabi = wabi*hfacwabi
              wabalti = wabalti*hfacwabi
@@ -477,6 +490,10 @@ contains
 !             
              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
              dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
+
+             dwdhdhi = ndim*(ndim+1)*wabi*hi1**2 + 2.*(ndim+1)*rij*hi1**2*grkerni &
+                     + rij**2*hi1**4*hfacwabi*grgrkerni
+
 !
 !--calculate density and number density
 !
@@ -504,6 +521,7 @@ contains
 
              gradh(i) = gradh(i) + pmassj*dwdhi
              gradhn(i) = gradhn(i) + dwaltdhi
+             gradgradh(i) = gradgradh(i) + pmassj*dwdhdhi
 
              if (imhd.eq.0 .and. iprterm.eq.10) then
                 psi(i) = psi(i) + pmassj*wabi*uu(j)

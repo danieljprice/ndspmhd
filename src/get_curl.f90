@@ -59,6 +59,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  do i=1,ntotal
     h1(i) = 1./hh(i)
  enddo
+ if (present(curlBgradh)) curlBgradh(:,:) = 0.
 !
 !--loop over all the link-list cells
 !
@@ -86,6 +87,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        pmassi = pmass(i)
        Bi(:) = Bvec(:,i)
        curlBi(:) = 0.
+       if (present(curlBgradh)) curlBgradhi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -119,12 +121,12 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
                 call interpolate_kernel_curl(q2i,grkerni,grgrkerni)
 !                wabi = wabi*hfacwabi
                 grkerni = grkerni*hi1 !!*hfacwabi*hi1
-                dgradwdhi = -(ndim+1.)*grkerni*hfacwabi*hi21 - rij*hi21*grgrkerni*hfacwabi
+                dgradwdhi = -(ndim+1.)*hi1*(grkerni*hfacwabi) - rij*hi1**3*grgrkerni*hfacwabi
                 !  (using hj)
                 call interpolate_kernel_curl(q2j,grkernj,grgrkernj)
 !                wabj = wabj*hfacwabj
                 grkernj = grkernj*hj1 !!*hfacwabj*hj1
-                dgradwdhj = -(ndim+1.)*grkernj*hfacwabj*hj1*hj1 - rij*hj1**2*grgrkernj*hfacwabj
+                dgradwdhj = -(ndim+1.)*hj1*(grkernj*hfacwabj) - rij*hj1**3*grgrkernj*hfacwabj
 !
 !--calculate curl of Bvec (NB dB is 3-dimensional, dr is also but zero in parts)
 !
@@ -154,8 +156,9 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        enddo loop_over_neighbours
        
        curlB(:,i) = curlB(:,i) + curlBi(:)
-       curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
-       
+       if (present(curlBgradh)) then
+          curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
+       endif       
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
@@ -164,6 +167,9 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
 
  do i=1,npart
     curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
+    if (present(curlBgradh)) then
+       curlBgradh(:,i) = curlBgradh(:,i)*gradh(i)
+    endif
 !    curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
 !    curlB(:,i) = rho(i)*curlB(:,i) !!*gradh(i)
  enddo

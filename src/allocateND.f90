@@ -41,7 +41,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  real, dimension(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  real, dimension(newsizein) :: dumpsi
- real, dimension(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumpr,dumspsound
+ real, dimension(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumgradgradh,dumpr,dumspsound
  real, dimension(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt,dumpoten
  real, dimension(ndim,newsizein) :: dumxin,dumx
  real, dimension(ndimv,newsizein) :: dumvelin,dumvel,dumBevolin
@@ -146,6 +146,7 @@ subroutine alloc(newsizein,sortlist)
     dumgradh(1:idumsize) = gradh(1:idumsize)
     dumgradhn(1:idumsize) = gradhn(1:idumsize)
     dumgradsoft(1:idumsize) = gradsoft(1:idumsize)
+    dumgradgradh(1:idumsize) = gradgradh(1:idumsize)
 
     dumpr(1:idumsize) = pr(1:idumsize)
     dumspsound(1:idumsize) = spsound(1:idumsize)
@@ -179,6 +180,8 @@ subroutine alloc(newsizein,sortlist)
 !
     deallocate(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     deallocate(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,gradsoft,pr)
+    deallocate(gradgradh)
+    if (allocated(zeta)) deallocate(zeta)
     if (allocated(poten)) deallocate(poten)
     if (allocated(Bfield)) deallocate(Bfield)
     if (allocated(Bevol)) deallocate(Bevol)
@@ -247,6 +250,8 @@ subroutine alloc(newsizein,sortlist)
     allocate(psi(newsize),dpsidt(newsize))
     allocate(hh(newsize))
     allocate(dhdt(newsize),gradh(newsize),gradhn(newsize),gradsoft(newsize))
+    allocate(gradgradh(newsize))
+    if (imhd.lt.0) allocate(zeta(newsize))
     allocate(pr(newsize))
     allocate(Bevol(ndimb,newsize))
     allocate(Bfield(ndimb,newsize),dBevoldt(ndimb,newsize))  ! mag field
@@ -327,6 +332,7 @@ subroutine alloc(newsizein,sortlist)
     gradh(1:idumsize) = dumgradh(iorder(1:idumsize))
     gradhn(1:idumsize) = dumgradhn(iorder(1:idumsize))
     gradsoft(1:idumsize) = dumgradsoft(iorder(1:idumsize))
+    gradgradh(1:idumsize) = dumgradgradh(iorder(1:idumsize))
     if (allocated(poten)) poten(1:idumsize) = dumpoten(iorder(1:idumsize))
     
     pr(1:idumsize) = dumpr(iorder(1:idumsize))

@@ -1591,14 +1591,14 @@ subroutine interpolate_kernel(q2,w,gradw)
 end subroutine interpolate_kernel
 
 !!----------------------------------------------------------------------
-!! same but for kernal *and* modified kernel in anticlumping term
+!! same but for kernel *and* modified kernel in anticlumping term
 !!----------------------------------------------------------------------
 subroutine interpolate_kernels(q2,w,gradw,gradwalt,gradgradwalt)
  implicit none
  integer :: index,index1
  real, intent(in) :: q2
  real, intent(out) :: w,gradw,gradwalt,gradgradwalt
- real :: dxx,dwdx,dgrwdx,dwaltdx,dgrwaltdx,dgrgrwaltdx
+ real :: dxx,dwdx,dgrwdx,dgrwaltdx,dgrgrwaltdx
 !
 !--find nearest index in kernel table
 ! 
@@ -1722,12 +1722,12 @@ end subroutine interpolate_kernel_soft
 !! must then divide returned w, grad grad w by h^ndim, h^ndim+2 respectively
 !!----------------------------------------------------------------------
 
-subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
+subroutine interpolate_kernels_dens(q2,w,gradw,gradgradw,walt,gradwalt)
  implicit none
  integer :: index,index1
  real, intent(in) :: q2
- real, intent(out) :: w,gradw,gradgradw
- real :: dxx,dwdx,dgrwdx,dgrgrwdx
+ real, intent(out) :: w,gradw,gradgradw,walt,gradwalt
+ real :: dxx,dwdx,dgrwdx,dgrgrwdx,dwaltdx,dgrwaltdx
 !
 !--find nearest index in kernel table
 ! 
@@ -1740,7 +1740,7 @@ subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
 !
  dxx = q2 - index*dq2table
 !
-!--calculate slope for w, gradw and interpolate for each
+!--calculate slope for w, gradw, gradgradw and interpolate for each
 ! 
  dwdx =  (wij(index1)-wij(index))*ddq2table
  w = (wij(index)+ dwdx*dxx)
@@ -1750,8 +1750,18 @@ subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
 
  dgrgrwdx =  (grgrwij(index1)-grgrwij(index))*ddq2table
  gradgradw = (grgrwij(index)+ dgrgrwdx*dxx)
+!
+!--interpolate for alternative kernel and derivative
+!
+ walt = wijalt(index)
+ dwaltdx =  (wijalt(index1)-walt)*ddq2table
+ walt = walt + dwaltdx*dxx
+
+ gradwalt = grwijalt(index)
+ dgrwaltdx =  (grwijalt(index1)-gradwalt)*ddq2table
+ gradwalt = gradwalt + dgrwaltdx*dxx
  
-end subroutine interpolate_kernel_dens
+end subroutine interpolate_kernels_dens
 
 !!----------------------------------------------------------------------
 !! kernels used in calculating the curl in get_curl.f90

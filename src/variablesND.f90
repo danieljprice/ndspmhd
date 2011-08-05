@@ -64,7 +64,7 @@ END MODULE
 MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
- REAL, DIMENSION(:), ALLOCATABLE :: gradh,gradhn,gradsoft
+ REAL, DIMENSION(:), ALLOCATABLE :: gradh,gradhn,gradsoft,gradgradh,zeta
  REAL :: rhomin
 END MODULE hterms
 

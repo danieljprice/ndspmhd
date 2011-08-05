@@ -53,7 +53,7 @@ subroutine get_rates
 !
 !  (velocity)
 !      
- real, dimension(ndimV) :: veli,velj,dvel
+ real, dimension(ndimV) :: veli,velj,dvel,fmean
  real, dimension(ndimV) :: dr
  real :: dvdotr
 !
@@ -138,12 +138,8 @@ subroutine get_rates
   dendt(i) = 0.0
   dBevoldt(:,i) = 0.0
   daldt(:,i) = 0.0
-  if (imhd.lt.0) then
-     dpsidt(i) = dot_product(Bfield(:,i),gradpsi(:,i))
-  else
-     dpsidt(i) = 0.0
-     gradpsi(:,i) = 0.0
-  endif
+  dpsidt(i) = 0.0
+  gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -400,7 +396,8 @@ subroutine get_rates
  if (imhd.ne.0 .and. idivBzero.ge.2) then
     vsig2max = vsigmax**2
  endif
-
+ 
+ fmean(:) = 0.
  do i=1,npart
  
     rho1i = 1./rho(i)
@@ -493,6 +490,7 @@ subroutine get_rates
 !       write(iprint,*) 'rates: force ridiculous ',force(:,i),' particle ',i
 !       call quit
 !    endif
+    fmean(:) = fmean(:) + pmass(i)*force(:,i)
     forcemag = sqrt(dot_product(force(:,i),force(:,i)))   
     fonh = forcemag/hh(i)
     if (fonh.gt.fhmax .and. itype(i).ne.1) fhmax = fonh
@@ -578,6 +576,8 @@ subroutine get_rates
           dpsidt(i) = 0.
     end select
  enddo
+ 
+ if (sqrt(dot_product(fmean,fmean)).gt.1.e-8) print*,'WARNING: fmean = ',fmean(:)
 !
 !--calculate timestep constraint from the forces
 !  dtforce is returned together with dtcourant to the main timestepping loop
@@ -1316,6 +1316,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc
     real :: dwdxdxi,dwdxdyi,dwdydyi
     real :: dwdxdxj,dwdxdyj,dwdydyj,rij1
+    real :: dgradwdhi,dgradwdhj
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1351,8 +1352,14 @@ contains
        rij1 = 1./rij
        fiso = -1.5*(Brho2i*grkerni*sqrtgi + Brho2j*grkernj*sqrtgj)
        
-       !--add gradh contribution to isotropic force term
-       fiso = fiso + (dpsidt(i)*gradhi*grkernalti + dpsidt(j)*gradh(j)*grkernaltj)
+       !--add gradh term
+       fiso = fiso + (zeta(i)*rho21i*grkerni + zeta(j)*rho21j*grkernj)
+
+       !--add dgradW/dh contribution to isotropic force term
+       !  [grgrkernalti has been multiplied by 1/h^(ndim+2) already]
+       dgradwdhi = -(ndim+1.)*hi1*grkernalti - rij*hi1*grgrkernalti
+       dgradwdhj = -(ndim+1.)*hj1*grkernaltj - rij*hj1*grgrkernaltj
+       fiso = fiso + (psi(i)*dgradwdhi + psi(j)*dgradwdhj)
        
        dwdxdxi = dr(1)*dr(1)*grgrkernalti + (1. - dr(1)*dr(1))*rij1*grkernalti
        dwdxdyi = dr(1)*dr(2)*grgrkernalti - dr(1)*dr(2)*rij1*grkernalti
@@ -1368,6 +1375,7 @@ contains
        faniso(2) = -dBevol(3)*(Brhoi(2)*dwdxdyi*gradhi*rho1i + Brhoj(2)*dwdxdyj*gradh(j)*rho1j &
                              -(Brhoi(1)*dwdydyi*gradhi*rho1i + Brhoj(1)*dwdydyj*gradh(j)*rho1j))
        faniso(3) = 0.
+
        !--correct with anticlumping term       
        !faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
 

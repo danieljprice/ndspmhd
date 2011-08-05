@@ -27,9 +27,11 @@ subroutine conservative2primitive
   use getcurl, only:get_curl
   use smooth, only:smooth_variable
   use rates, only:gradpsi
+  use hterms, only:gradgradh,gradh,zeta
   implicit none
   integer :: i,j,nerr
-  real :: B2i, v2i, pri
+  real :: B2i, v2i, pri, dhdrhoi
+  real, dimension(ndimV) :: Binti
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -47,10 +49,23 @@ subroutine conservative2primitive
      enddo
   elseif (imhd.lt.0) then ! if using vector potential
      !write(iprint,*) 'getting B field from vector potential...'
+     if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
+     gradpsi(:,:) = 0.
+     psi(:) = 0.
+     zeta(:) = 0.
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
+        Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
+        !--construct xi term
+        dhdrhoi = -hh(i)/(ndim*(rho(i)))
+        gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
+        zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
+        psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
+        !if (i.lt.10) print*,i,'xi = ',psi(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
      enddo
+     !--reset gradpsi to zero after we have finished using it
+     gradpsi(:,:) = 0.
   endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
@@ -115,6 +130,8 @@ subroutine conservative2primitive
   if (any(ibound.gt.1)) then
      do i=npart+1,ntotal
         j = ireal(i)
+        if (allocated(zeta)) zeta(i) = zeta(j)
+        psi(i) = psi(j)
         if (allocated(dens)) dens(i) = dens(j)
         if (any(ibound.eq.6)) then
            pri = 2.5 - 0.1*dens(i)*x(2,i)
@@ -143,7 +160,7 @@ subroutine primitive2conservative
   use debug
   use loguns
   use bound, only:ireal
-  use hterms, only:rhomin
+  use hterms, only:rhomin,gradgradh,gradh,zeta
   use eos
   use options
   use part
@@ -153,7 +170,8 @@ subroutine primitive2conservative
   use rates, only:gradpsi
   implicit none
   integer :: i,j,iktemp
-  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
+  real, dimension(ndimV) :: Binti
   logical :: isetpolyk
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
@@ -190,6 +208,7 @@ subroutine primitive2conservative
   if (ihvar.le.0) then
      call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
      hh(1:ntotal) = hav
+     print*,'HMIN,hmax,hav = ',hmin,hmax,hav
   endif
 !
 !--overwrite this with a direct summation
@@ -224,11 +243,21 @@ subroutine primitive2conservative
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
   elseif (imhd.lt.0) then ! if using vector potential
+     if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
      write(iprint,*) 'getting B field from vector potential (init)...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
      do i=1,npart
+        Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
+        !--construct xi term
+        dhdrhoi = -hh(i)/(ndim*(rho(i)))
+        gradpsi(:,i) = dhdrhoi*gradpsi(:,i)
+        zeta(i) = dot_product(Bfield(:,i),gradpsi(:,i)) + dot_product(Bfield(:,i),Binti(:))*gradgradh(i)*gradh(i)
+        psi(i) = dot_product(Bfield(:,i),Binti(:))*gradh(i)/rho(i)*dhdrhoi
+        print*,i,'xi = ',psi(i),zeta(i),' zeta = ',gradgradh(i),' gradpsi = ',gradpsi(:,i) !,Bfield(:,i)
      enddo
+     !--reset gradpsi to zero after we have finished using it
+     gradpsi(:,:) = 0.
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
