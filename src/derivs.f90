@@ -6,12 +6,11 @@ subroutine derivs
  use loguns, only:iprint
  use options, only:ibound,icty
  implicit none
- logical :: itiming
+ logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
 !
- itiming = .true.
  if (itiming) call cpu_time(t1)
  if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
 !
