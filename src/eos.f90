@@ -1,60 +1,70 @@
 !!-----------------------------------------------------------------
-!! This subroutine returns the prsure and sound speed
+!! this subroutine returns the prsure and sound speed
 !! from rho and/or u_therm via the equation of state
 !!
 !! size of array is specified on input, so can send in either whole
 !! arrays or individual elements (just be consistent!)
 !!-----------------------------------------------------------------
+!-------------------------------------------------------------------
+!  equation of state related quantities
+!-------------------------------------------------------------------
 
-SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,polyk,isize)
- USE options
- USE loguns
+module eos
+ implicit none
+ real :: gamma, polyk
+
+contains
+
+subroutine equation_of_state(pr,vsound,uu,rho)
+ use options, only:iener
+ use loguns
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER :: i
- INTEGER, INTENT(IN) :: isize
- REAL, INTENT(IN) :: gamma, polyk
- REAL, INTENT(IN), DIMENSION(isize) :: rho
- REAL, INTENT(OUT), DIMENSION(isize) :: pr
- REAL, INTENT(INOUT), DIMENSION(isize) :: uu,vsound
- REAL :: gamma1
-
+ implicit none
+ integer :: i,isize
+ real, intent(in), dimension(:) :: rho
+ real, intent(out), dimension(size(rho)) :: pr
+ real, intent(inout), dimension(size(rho)) :: uu,vsound
+ real :: gamma1
+ 
+ isize = size(rho)
  gamma1 = gamma - 1.
 !
 !--exit gracefully if rho is negative
 !
- IF (ANY(rho.LT.0.)) THEN
-    WRITE(iprint,*) 'eos: rho -ve, exiting'
-    DO i=1,isize
-       IF (rho(i).LT.0.) WRITE(iprint,*) i,rho(i),uu(i)
-    ENDDO
-    CALL quit
- ELSEIF ((iener.NE.0).AND.ANY(uu.LT.0.)) THEN
-    WRITE(iprint,*) 'eos: u_therm -ve, exiting',isize
-    DO i=1,isize
-       IF (uu(i).LT.0.) WRITE(iprint,*) i,rho(i),uu(i)
-    ENDDO    
-    CALL quit      
- ENDIF
+ if (any(rho.lt.0.)) then
+    write(iprint,*) 'eos: rho -ve, exiting'
+    do i=1,isize
+       if (rho(i).lt.0.) write(iprint,*) i,rho(i),uu(i)
+    enddo
+    call quit
+ elseif ((iener.ne.0).and.any(uu.lt.0.)) then
+    write(iprint,*) 'eos: u_therm -ve, exiting',isize
+    do i=1,isize
+       if (uu(i).lt.0.) write(iprint,*) i,rho(i),uu(i)
+    enddo    
+    call quit
+ endif
 
- IF (iener.EQ.0) THEN   ! polytropic (isothermal when gamma=1)
-    WHERE (rho > 0.)
+ if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
+    where (rho > 0.)
       pr = polyk*rho**gamma
-      vsound = SQRT(gamma*pr/rho)
-    END WHERE  
-    IF (ABS(gamma1).GT.1.e-3) THEN
-       WHERE (rho > 0.) 
-       uu = pr/(gamma1*rho)    
-       END WHERE
-    ENDIF   
- ELSE      ! adiabatic
-    WHERE (rho > 0.)
+      vsound = sqrt(gamma*pr/rho)
+    end where 
+    if (abs(gamma1).gt.1.e-3) then       
+       where (rho > 0.) 
+       uu = pr/(gamma1*rho)
+       end where
+    endif   
+ else      ! adiabatic
+    where (rho > 0.)
       pr = gamma1*uu*rho
-      vsound = SQRT(gamma*pr/rho)
-    END WHERE  
- ENDIF
+      vsound = sqrt(gamma*pr/rho)
+    end where  
+ endif
       
- RETURN
-END SUBROUTINE equation_of_state
+ return
+end subroutine equation_of_state
+
+end module eos
