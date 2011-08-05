@@ -126,7 +126,7 @@ MODULE options
  INTEGER :: maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
- REAL :: damp,dampz,dampr,psidecayfact,tolh
+ REAL :: damp,dampz,dampr,psidecayfact,tolh,hsoft
  CHARACTER(LEN=12) :: geom
 END MODULE
 

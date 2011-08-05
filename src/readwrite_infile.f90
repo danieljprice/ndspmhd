@@ -23,7 +23,7 @@ subroutine write_infile(infile)
 !--define local variables
 !      
  implicit none
- character(len=*), intent(in) :: infile   
+ character(len=*), intent(in) :: infile
 !
 !--allow for tracing flow
 !      
@@ -45,7 +45,7 @@ subroutine write_infile(infile)
   write(iread,130) idivbzero,psidecayfact
   write(iread,140) ianticlump,eps,neps
   write(iread,150) ixsph,xsphfac
-  write(iread,160) igravity
+  write(iread,160) igravity,hsoft
   write(iread,170) damp, dampz, dampr
   write(iread,180) ikernel
   write(iread,190) iexternal_force
@@ -67,7 +67,7 @@ subroutine write_infile(infile)
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
 140 format(i1,2x,f5.3,2x,i2,24x,'! anticlumping term (0:off 1:on), eps, power')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
-160 format(i1,35x,'! self-gravity')
+160 format(i1,2x,1pe9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
 180 format(i1,35x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i1,35x,'! external force (1: toy star, 2:1/r^2 )')
@@ -104,6 +104,7 @@ subroutine read_infile(infile)
 !      
  implicit none
  character(len=*), intent(in) :: infile 
+ character(len=len(infile)+3) :: infilenew   
  character(len=1) :: ians  
 !
 !--allow for tracing flow
@@ -126,7 +127,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50) idivbzero,psidecayfact
   read(iread,*,err=50) ianticlump,eps,neps
   read(iread,*,err=50) ixsph,xsphfac
-  read(iread,*,err=50) igravity
+  read(iread,*,err=50) igravity,hsoft
   if (ndim.eq.3) then
      read(iread,*,err=50) damp,dampr,dampz
   elseif (ndim.eq.2) then
@@ -140,10 +141,11 @@ subroutine read_infile(infile)
  close(unit=iread)
 
  goto 55
-50 write(iprint,*) 'error reading '//trim(infile)//': re-writing with current options'
+50 continue
    close(unit=iread)
-   ians = 'y'
-   call write_infile(infile)
+   infilenew = trim(infile)//'_new'
+   write(iprint,*) 'error reading '//trim(infile)//': writing '//trim(infilenew)//' with current options'
+   call write_infile(infilenew)
    stop
 55 continue
 !
