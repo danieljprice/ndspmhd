@@ -12,6 +12,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
  USE debug
  USE loguns
  USE part
+ USE setup_params
 !
 !--define local variables
 !            
@@ -45,7 +46,7 @@ SUBROUTINE set_uniform_spherical(idist,rmax)
 
  ntemp = 0		! actual number of particles to use
  DO i=1,npart
-    rad = SQRT(DOT_PRODUCT(xin(:,i),xin(:,i)))
+    rad = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
     IF (rad.LE.rmax) THEN
        ntemp = ntemp + 1
        partlist(ntemp) = i
