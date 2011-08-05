@@ -14,16 +14,19 @@ subroutine setup
  use part
  use setup_params
  use eos
+ use rates, only:force
  
  use uniform_distributions
 !
 !--define local variables
 !            
  implicit none
- integer :: i,iseed
- real :: Rcentre,HoverR,dfac,rhomax,Rtorus
- real :: rmintorus,rmaxtorus,ran1,thetamin,thetamax
- real :: rr,phi,theta,rhoi,rhonorm,przero,fran,zi,rcyl,rfromtorus
+ integer :: i,nrings,iring,ipart,npartphi
+ real :: Rtorus,dfac,Mstar,Mtorus
+ real :: massp,r_in,r_out,deltar,polyn,sumA
+ real :: ri,zi,rhofac,deltaphi,densi,phii,pri
+ real :: deltartemp,denstemp,rtemp,deltar0,dens0
+ real :: rhat(3), omegai,rpart,frad,v2onr,deltarprev
 !
 !--allow for tracing flow
 !
@@ -33,71 +36,188 @@ subroutine setup
 ! 	    
  ibound = 0	! boundaries
  nbpts = 0	! use ghosts not fixed
- xmin(:) = -2.	! set position of boundaries
+ xmin(:) = 0.	! set position of boundaries
  xmax(:) = 0.
+ iexternal_force = 6
 !
 !--set up the uniform density grid
 !
- Rcentre = 1.0
- HoverR = 0.1
+ Rtorus = 1.0
  dfac = 1.1
- rhomax = 1.0
- Rtorus = Rcentre*HoverR
- 
- rmintorus = Rcentre - Rtorus
- rmaxtorus = Rcentre + Rtorus
- thetamin = 0.5*pi - abs(ATAN(0.1))
- thetamax = 0.5*pi + abs(ATAN(0.1))
- 
- write(iprint,*) 'Setup for Keplerian torus thing (Owen, Laure)'
- write(iprint,*) ' rmin, max = ',rmintorus,rmaxtorus
- write(iprint,*) ' theta min,max = ',thetamin,thetamax
+ Mstar = 1.0
+ Mtorus = 4.e-4
+  
+ write(iprint,*) 'Setup for beer-related torus thing (Owen, Laure)'
  write(iprint,*) 'enter particle number '
  read*,npart
  ntotal = npart
 
- call alloc(ntotal)
+ call alloc(2*ntotal)
 
- iseed = -7834
-
- i = 0 
- do while (i < npart)
+ massp = Mtorus/real(ntotal)
 !
-!--choose random number in r, phi and theta
+!--integrate to get total mass (in order to set A in P = A*rho^gamma)
+!  (Owen was particularly fussy about using A not K)
 !
-   rr = rmintorus + ran1(iseed)*(rmaxtorus-rmintorus)
-   phi = 2.*pi*(ran1(iseed) - 0.5)
-   theta = thetamin + (ACOS(2.*ran1(iseed) - 1.))/pi*(thetamax-thetamin)
-   
-   rcyl = rr*COS(theta - 0.5*pi)
-   zi = rr*SIN(theta - 0.5*pi)
-   rfromtorus = sqrt((rcyl - Rcentre)**2 + zi**2)
-   
-!
-!--compute density from formula
-!
-   if (rfromtorus.le.Rtorus) then ! check we are in the torus
-      rhoi = rhofunc(rr,theta,gamma,rhomax,dfac,Rcentre)
-      rhonorm = rhoi/rhomax
-   else
-      rhonorm = 0.
-      rhoi = 0.
-   endif
-   
-   fran = ran1(iseed)
-   if (fran < rhonorm) then
-      i = i + 1
-      x(1,i) = rr*SIN(theta)*COS(phi)
-      x(2,i) = rr*SIN(theta)*SIN(phi)
-      x(3,i) = rr*COS(theta)
-      dens(i) = rhoi
-      pmass(i) = 1.0
-!      przero = AA*rhoi**gamma
-      uu(i) = 0. !! przero/((gamma-1.)*rhoi)
-      Bfield(:,i) = 0.
-   endif
-   
+ r_in = 0.1
+ r_out = 1.5
+ nrings = 50
+ deltar = (r_out - r_in)/real(nrings-1)
+ polyn = 1./(gamma-1.)
+ sumA = 0.
+ do iring=1,nrings
+    ri = r_in + (iring-1)*deltar
+    zi = 0.
+    sumA = sumA + 2.*pi*ri*deltar*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
  enddo
+!
+!--rearrange to get A (which I call polyk)
+!
+ polyk = ((sumA/Mtorus)**(1./polyn))/(polyn + 1.)
+ print*,' polyk = ',polyk
+!--rhofac is the factor which multiplies rhofunc to give rho
+!  this is 1/B in Owen lingo
+ rhofac = 1./(polyk*(polyn+1.))**polyn
+
+!
+!--setup first ring at r=Rtorus
+!
+ ipart = 0
+ ri = Rtorus
+ zi = 0.
+ densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+!--calculate delta r and delta phi from rho
+ deltar = sqrt(massp/densi)
+ deltaphi = deltar/ri
+ npartphi = int(2.*pi/deltaphi)
+!--correct deltaphi to integer number of particles
+ deltaphi = 2.*pi/npartphi
+!--correct deltar to match new deltaphi
+ deltar = ri*deltaphi
+!--now setup ring of particles
+ do i = 1,npartphi
+    ipart = ipart + 1
+    phii = (i-1)*deltaphi
+    x(1,ipart) = ri*COS(phii)
+    x(2,ipart) = ri*SIN(phii)
+    dens(ipart) = densi
+    pmass(ipart) = massp
+    pri = polyk*densi**gamma
+    uu(ipart) = pri/(densi*(gamma-1.))
+ enddo
+ deltar0 = deltar
+ dens0 = densi
+
+!
+!--setup rings from Rtorus outwards until dens < 0
+!
+ do while (densi > tiny(dens))
+    !--take half step in r using current deltar
+    rtemp = ri + 0.5*deltar
+    !--get density
+    denstemp = rhofac*rhofunc(rtemp,zi,polyn,dfac,Mstar,Rtorus)
+    !--calculate delta r and delta phi from rho
+    deltartemp = sqrt(massp/denstemp)
+    !--corrector step on r using midpoint density
+    ri = ri + deltartemp
+    !--get density
+    densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    if (densi.gt.tiny(densi)) then
+       !--get new deltar at new position
+       deltar = sqrt(massp/densi)    
+       deltaphi = deltar/ri
+       npartphi = int(2.*pi/deltaphi)
+       !--correct deltaphi to integer number of particles
+       deltaphi = 2.*pi/npartphi
+
+       if (ri*deltaphi.lt.2.0*deltartemp) then
+          !--correct deltar to match new deltaphi
+          deltar = ri*deltaphi
+          !--now setup ring of particles
+          do i = 1,npartphi
+             ipart = ipart + 1
+             phii = (i-1)*deltaphi
+             x(1,ipart) = ri*COS(phii)
+             x(2,ipart) = ri*SIN(phii)
+             dens(ipart) = densi
+             pmass(ipart) = massp
+             pri = polyk*densi**gamma
+             uu(ipart) = pri/(densi*(gamma-1.))
+          enddo
+       else
+          deltar = ri*deltaphi
+          print*,'skipping ring, too few particles : ',npartphi
+       endif
+    endif
+    
+ enddo
+! 
+!--setup rings from Rtorus inwards until dens < 0
+!
+ ri = Rtorus
+ deltar = deltar0
+ densi = dens0
+ do while (densi > tiny(dens))
+    !--take half step in r using current deltar
+    rtemp = ri - 0.5*deltar
+    !--get density
+    denstemp = rhofac*rhofunc(rtemp,zi,polyn,dfac,Mstar,Rtorus)
+    !--calculate delta r and delta phi from rho
+    deltartemp = sqrt(massp/denstemp)
+    !--corrector step on r using midpoint density
+    ri = ri - deltartemp
+    !--get density
+    densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    if (densi.gt.tiny(densi)) then
+       !--get new deltar at new position
+       deltar = sqrt(massp/densi)    
+       deltaphi = deltar/ri
+       npartphi = int(2.*pi/deltaphi)
+       !--correct deltaphi to integer number of particles
+       deltaphi = 2.*pi/npartphi
+       if (ri*deltaphi.lt.2.0*deltartemp) then
+          !--correct deltar to match new deltaphi
+          deltar = ri*deltaphi
+          !--now setup ring of particles
+          do i = 1,npartphi
+             ipart = ipart + 1
+             phii = (i-1)*deltaphi
+             x(1,ipart) = ri*COS(phii)
+             x(2,ipart) = ri*SIN(phii)
+             dens(ipart) = densi
+             pmass(ipart) = massp
+             pri = polyk*densi**gamma
+             uu(ipart) = pri/(densi*(gamma-1.))
+          enddo
+       else
+          deltar = ri*deltaphi
+          print*,'skipping ring, too few particles : ',npartphi
+       endif
+    endif
+ enddo
+ npart = ipart
+ ntotal = ipart
+
+ call primitive2conservative
+ !
+ !--balance pressure forces with centripedal acceleration
+ !
+ vel = 0.
+! do i=1,npart
+!    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+!    rhat(1:2) = x(1:2,i)/rpart
+!    rhat(3) = 0.
+!    frad = abs(dot_product(force(:,i),rhat(:)))
+!    omegai = sqrt(frad)/rpart
+!    vel(1,i) = -omegai*x(2,i)
+!    vel(2,i) = omegai*x(1,i)
+!    if (ndimV.ge.3) vel(3,i) = 0.
+    !!print*,'forcez = ',force(3,i),force(2,i)
+    !v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
+    !print*,'v2onr = ',v2onr*rhat(2),force(2,i),v2onr*rhat(1),force(1,i)
+    
+! enddo
+
 !
 !--allow for tracing flow
 !
@@ -107,23 +227,21 @@ subroutine setup
 
 contains
 
-real function rhofunc(rr,theta,gamma,rhomax,dd,R0)
+real function rhofunc(rr,zz,polyn,dd,Mstar,R0)
  implicit none
- real, intent(in) :: rr,theta,gamma,rhomax,dd,R0
- real :: polyn,AA,term
+ real, intent(in) :: rr,zz,polyn,dd,Mstar,R0
+ real :: term
 !
-!--work out A from rhomax
+!--functional form of rho/(A(n+1))^n
 !
- polyn = 1./(gamma-1.)
- AA = 1./((polyn + 1.)*rhomax**(1./polyn))*((dd-1.)/(2.*dd))
-!
-!--now functional form of rho
-!
- term = (1./((polyn + 1.)*R0*AA) &
-          *(R0/rr - 0.5*(R0/(rr*SIN(theta)))**2 - 1./(2.*dd)))
- rhofunc = term**polyn
+ term = Mstar/R0*(R0/sqrt(rr**2 + zz**2) - 0.5*(R0/rr)**2 - 1./(2.*dd))
+ if (term.gt.tiny(term)) then
+    rhofunc = term**polyn
+ else
+    rhofunc = 0.
+ endif
 
 end function rhofunc
 
-end
+end subroutine setup
 
