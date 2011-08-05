@@ -192,7 +192,7 @@ subroutine read_infile(infile)
     write(iprint,100) 'tolh really, really tiny (probably zero)!!'
     stop
  endif
- if (iresist.lt.0 .or. iresist.gt.2) then
+ if (iresist.lt.0 .or. iresist.gt.3) then
     write(iprint,100) 'invalid choice of resistivity formulation'
     stop
  endif
