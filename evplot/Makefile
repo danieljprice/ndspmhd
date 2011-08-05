@@ -37,4 +37,4 @@ transforms.o :
 	$(F90C) -c $(F90FLAGS) ../plot/transform.f90 -o $@ 
 	
 clean: 
-	rm *.o
+	rm *.o *.mod
