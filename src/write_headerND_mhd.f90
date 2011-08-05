@@ -229,9 +229,13 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
        ENDDO
        CALL minmaxave(dummy(1:npart),hmin,hmax,have,npart)
        WRITE(iprint,250) 'Mach #',hmin,hmax,have
-    ENDIF
-!--plasma beta
+    ENDIF    
     IF (imhd.NE.0) THEN
+       DO i=1,ndimV
+          CALL minmaxave(Bfield(i,1:npart),hmin,hmax,have,npart)
+          WRITE(iprint,250) 'B'//trim(coord(i)),hmin,hmax,have
+       ENDDO
+!--plasma beta
        DO i=1,npart
           B2i = dot_product(Bfield(:,i),Bfield(:,i))
           dummy(i) = pr(i)/(0.5*B2i)
