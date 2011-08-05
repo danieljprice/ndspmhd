@@ -112,13 +112,13 @@ SUBROUTINE initialise
  psi = 0.
  sqrtg = 1.
 !
-!--calculate the conservative quantities (rho, en, B/rho)
-!
- call primitive2conservative
-!
 !--if using fixed particle boundaries, set them up
 !
  IF (ANY(ibound.EQ.1)) CALL set_fixedbound
+!
+!--calculate the conservative quantities (rho, en, B/rho)
+!
+ call primitive2conservative
 !
 !--Set derivatives to zero until calculated
 !      
