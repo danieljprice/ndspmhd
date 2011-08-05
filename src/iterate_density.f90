@@ -113,7 +113,7 @@ subroutine iterate_density
      nrhosmall = 0
      nwarn = 0
      
-     if (ihvar.eq.3) then
+     if (ikernav.eq.3) then
         do j=1,ncalcprev
            i = redolistprev(j)
 
@@ -130,7 +130,8 @@ subroutine iterate_density
               
               if (usenumdens) then
                  densnumi = (hfact/hh(i))**ndim                ! this is the number density compatible with the old h
-                 dhdni = -hh(i)/(ndim*(densnumi + rhomin))          ! deriv of this
+!                 dhdni = -hh(i)/(ndim*(densnumi + rhomin))          ! deriv of this
+                 dhdni = -hh(i)/(ndim*(densn(i) + rhomin))          ! deriv of this
                  omegai =  1. - dhdni*gradhn(i)           
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
@@ -143,7 +144,8 @@ subroutine iterate_density
                  gradsoft(i) = gradsoft(i)*dhdni
               else
                  rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
-                 dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
+                 dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
+!                 dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
                  omegai =  1. - dhdrhoi*gradh(i)
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
