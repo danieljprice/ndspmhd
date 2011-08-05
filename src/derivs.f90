@@ -4,7 +4,7 @@
 !
 subroutine derivs
  use loguns, only:iprint
- use options, only:ibound,icty,ihvar
+ use options, only:ibound,icty,ihvar,imhd
  use part, only:hh,x,npart
  use setup_params, only:hfact
  implicit none
@@ -43,7 +43,13 @@ subroutine derivs
 !--calculate density by direct summation
 !
  if (itiming) call cpu_time(t2)
- if (icty.LE.0) call iterate_density
+ if (imhd.eq.5) then
+    imhd = 55
+    call iterate_density
+    imhd = 5
+ else
+    if (icty.LE.0) call iterate_density
+ endif
 !
 !--calculate primitive variables from conservative variables
 !
