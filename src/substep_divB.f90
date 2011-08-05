@@ -38,7 +38,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  REAL, DIMENSION(ndimV,ntot) :: Bevolin
  INTEGER :: i,j,istep,indexmax,nsubsteps
  REAL :: dtsub,hdt,vsig2substep,vsigsubstep
- LOGICAL :: dopredictor, docorrector
+ LOGICAL :: nopredictor, docorrector
 !
 !--allow for tracing flow
 !      
@@ -74,7 +74,7 @@ SUBROUTINE substep_divB(icall,dtfull,nsubstepsin,Bevol,psi,divB,gradpsi, &
  nopredictor = (icall.eq.1) .or. (istep.ne.nsubsteps)
  docorrector = (icall.eq.2) .or. (istep.ne.nsubsteps)
 
- if (not.nopredictor) then
+ if (.not.nopredictor) then
     !
     !--Mid-point Predictor step
     !
