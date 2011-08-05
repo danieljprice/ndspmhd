@@ -46,12 +46,18 @@ program plotfreq
  call pglab(' radial mode ',' frequency ',' ')
  !!call pgpt(npts,rmode(1:npts),freq(1:npts),17)
  call pgpt(npts,rmode(1:npts),freqexact(1:npts),2)
- call pgsls(4)
  call pgslw(1)
+ call pgsls(4)
  call pgline(npts,rmode(1:npts),freqexact(1:npts))
  !!call pgsci(2)
- !!call pgpt(npts,rmode(1:npts),freq2(1:npts),4)
+ call pgpt(npts,rmode(1:npts),0.5*freq2(1:npts),4)
  call pgpt(npts,rmode(1:npts),0.5*freq3(1:npts),17)
+
+ call pgsls(3)
+ call pgline(npts,rmode(1:npts),0.5*freq2(1:npts))
+ call pgsls(2)
+ call pgline(npts,rmode(1:npts),0.5*freq3(1:npts))
+
  
 !
 !--plot legend
