@@ -227,7 +227,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     write(iprint,*) 'warning: setup file contains ghosts, but none set'
  endif
 
- if (imhd.le.0 .and. (iformat.eq.2 .or. iformat.eq.4)) then
+ if (imhd.eq.0 .and. (iformat.eq.2 .or. iformat.eq.4)) then
     write(iprint,*) 'warning: mhd input file, but MHD is off'
  elseif (imhd.gt.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
     write(iprint,*) 'WARNING: non-mhd infile but MHD is on (Bfield set to 0)'
