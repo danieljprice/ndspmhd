@@ -30,7 +30,7 @@ SUBROUTINE write_infile(infile)
   WRITE(iread,20) tmax,tout,nmax,nout
   WRITE(iread,30) gamma
   WRITE(iread,40) iener,polyk
-  WRITE(iread,50) icty,ndirect
+  WRITE(iread,50) icty,ndirect,maxdensits
   WRITE(iread,60) iprterm
   WRITE(iread,70) iav,alphamin,alphaumin,alphaBmin,beta
   WRITE(iread,80) iavlim,iaulim,iaBlim,avdecayconst
@@ -50,7 +50,7 @@ SUBROUTINE write_infile(infile)
 20 FORMAT(f7.3,2x,f7.3,2x,i9,1x,i5,3x,'! tmax, tout, nmax, nout')
 30 FORMAT(f14.12,22x,'! gamma ')
 40 FORMAT(i1,2x,f5.3,28x,'! type of energy equation, alphaumin, alphaBmin, polyk(for iener=0)')
-50 FORMAT(i1,2x,i9,24x,'! type of cty equation (0:direct sum 1:time deriv 2:alt time deriv)')
+50 FORMAT(i1,2x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv 2:alt time deriv)')
 60 FORMAT(i1,35x,'! type of pressure term (0:normal 1:Pa+Pb/rhoa*rhob 2:Hernquist/Katz )')
 70 FORMAT(i1,2x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphaB(min), beta')
 80 FORMAT(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, aB limiter, constant for this(0.1-0.2)')

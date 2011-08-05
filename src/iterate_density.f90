@@ -48,7 +48,7 @@ subroutine iterate_density
 !--set maximum number of iterations to perform
 ! 
   if ((ikernav.eq.3).and.(ihvar.ne.0)) then
-     itsdensitymax = 20   ! perform 1 fixed point iteration
+     itsdensitymax = maxdensits  ! perform 1 fixed point iteration
   else
      itsdensitymax = 0   ! no iterations
   endif

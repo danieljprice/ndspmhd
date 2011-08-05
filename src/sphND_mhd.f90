@@ -58,7 +58,8 @@ PROGRAM SUPERSPMHD_ND
 !
     version = 'NDSPMHD-3D-v5-3'
 !   * multiple runnames off command line (does them in order)
-!   *** this version used for 2.5D alfven wave results
+!   * dissipation switches for resistivity and conductivity
+!   * some modifications of anticlumping term for different h's
 !    version = 'NDSPMHD-3D-v5-2_18_05_2004' (saved 2:50pm)
 !    *** this version used to obtain swave and hydro shocks for thesis 10/5/04 ***
 !    *** this version used to obtain 1D MHD shock tube results for thesis 13/5/04
@@ -297,7 +298,7 @@ PROGRAM SUPERSPMHD_ND
  IF (runname(1)(1:1).EQ.' ') THEN
     nruns = 1
 10  WRITE(6,*) 'Enter name of run:'
-    READ(*,*,ERR=10) rootname
+    READ(*,*,ERR=10) runname(1)
 !    STOP 'Usage: spmhd runname '
  ENDIF
 
