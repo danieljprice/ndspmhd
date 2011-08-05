@@ -28,6 +28,7 @@ system "cp $ndim$SPMHD ./$rootname";
 system "cp defaults ./$rootname";
 system "cd $rootname; ln -s ../supersphplot ./supersphplot";
 system "cd $rootname; ln -s ../evsupersph ./evsupersph";
+system "cd $rootname; ../scripts/writemake.tcsh $ndim > Makefile";
 
 # call the multirun program to generate the input files
 system "cd $rootname; ../multi/multirun $rootname $nruns";
@@ -35,7 +36,7 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 # write appropriate runnames to 'runname' and execute program
 for ($n = $nstart;$n<=$nruns;$n++) {
     print "doing run $rootname$n \n";
-    system "cd $rootname; ./$ndim$SPMHD $rootname$n";
+    system "cd $rootname; ./$ndim$SPMHD $rootname$n >> $rootname$n.output";
 }
 
 # call the sametime program to write simultaneous data steps
