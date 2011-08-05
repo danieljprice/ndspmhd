@@ -7,7 +7,7 @@ program moddump
  use derivB
  use rates, only:drhodt
  use eos, only:polyk
- use setup_params, only:igeomsetup
+ use setup_params, only:geomsetup
  implicit none
  character(len=120) :: dumpfilein,dumpfileout
  logical :: iexist,iwrite,ians
@@ -40,7 +40,7 @@ program moddump
 !--read input dump
 !
  call read_dump(dumpfilein,tfile,copysetup=.true.)
- igeom = igeomsetup
+ geom = geomsetup
 !
 !--perform modifications
 !
