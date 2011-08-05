@@ -111,8 +111,11 @@ SUBROUTINE initialise
  IF (ANY(ibound.EQ.1)) CALL set_fixedbound
 !
 !--calculate the conservative quantities (rho, en, B/rho)
+!  this also sets the smoothing length
 !
  call primitive2conservative
+
+ call check_neighbourlist
 !
 !--Set derivatives to zero until calculated
 !      
