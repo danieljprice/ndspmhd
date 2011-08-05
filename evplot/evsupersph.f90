@@ -123,11 +123,12 @@ program plotmeagraph
         lim(i,2) = max(lim(i,2),maxval(evdata(1:nstepsfile(ifile),i,ifile)))
      enddo
      if (lim(i,1).eq.lim(i,2)) then
+        print*,' equal plot limits column ',i
         lim(i,2) = lim(i,2)*1.05 
         lim(i,1) = lim(i,1) - 0.05*lim(i,2)
         if (lim(i,2).eq.0.0) lim(i,2) = 1.0
      endif
-     if (i.gt.1) lim(i,2) = lim(i,2)*1.1
+     !!if (i.gt.1) lim(i,2) = lim(i,2)*1.1
   enddo
   lim(1,1) = 0.0
 
