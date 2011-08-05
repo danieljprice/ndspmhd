@@ -9,18 +9,18 @@ program plotmeagraph
   integer, parameter :: maxfile=8
   integer, parameter :: maxstep=100000
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
-  integer nstep,npart,i,j,iprev,nfiles,ifile,ifilesteps
+  integer i,iprev,nfiles,ifile,ifilesteps
   integer mysteps,ipick,ipickx,nacross,ndown
   integer ichange, iongraph, ipt
   integer iplotx(maxcol),iploty(maxcol), nplots
   integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
   integer nstepsfile(maxfile)
   real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
-  real lim(maxcol,2),time(maxstep),ekin(maxstep)
+  real lim(maxcol,2)
   real hpos,vpos
   character, dimension(maxfile) :: rootname*20, legendtext*120
   character*23 :: filename
-  character*24 :: title,label(maxcol),dummy
+  character*24 :: title,label(maxcol)
   character*40 :: labely
   character*1 ans
   logical icycle
@@ -421,7 +421,7 @@ end program plotmeagraph
 
 subroutine readev(nsteps,evdata,ncols,rootname)
   implicit none
-  integer i,j
+  integer :: i
   integer, intent(in) :: ncols
   integer, intent(inout) :: nsteps
   real, dimension(nsteps,ncols), intent(out) :: evdata
@@ -547,7 +547,7 @@ subroutine legend(icall,text,hpos,vposin)
 !!--make up line style if > 5 calls (must match actual line drawn)
   if (icall.gt.5) then
      call pgpt(2,xline,yline,mod(icall,5)+1)
-     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),mod(icall,5)+1)
+     call pgpt1(1,0.5*(xline(1)+xline(2)),yline(1),mod(icall,5)+1)
   endif  
   call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
 
