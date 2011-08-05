@@ -250,7 +250,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !    
     iseed = -268
     xran(1) = ran1(iseed)
-    ampl = 0.05*psep   ! perturbation amplitude
+    ampl = 0.1*psep   ! perturbation amplitude
     
     DO i=npartin+1,npart  ! apply to new particles only
        DO j=1,ndim

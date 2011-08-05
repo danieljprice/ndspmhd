@@ -58,11 +58,11 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
-#SETUP2D = setup_shearflow2D.f90
+SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
-SETUP2D = setup_Bxpeak25D_mhd.f90
+#SETUP2D = setup_Bxpeak25D_mhd.f90
 #SETUP2D = setup_disc2D_2.f90
 #SETUP2D = setup_logodivB.f90
 
