@@ -46,6 +46,7 @@ subroutine set_linklist
 ! (this is already calculated in set_ghosts if using ghost particles)
  
  if (all(ibound.le.1)) hhmax = maxval(hh(1:npart))
+ if (hhmax.gt.1.e10) write(iprint,*) 'ERROR: hmax > 10**10 on ',maxloc(hh(1:npart))
  dxcell = radkern*hhmax            ! size of link list cell (=compact support region)
  if (dxcell.le.0) then
     write(iprint,*) 'error: link: max h <=0 :',hhmax,maxloc(hh(1:npart))    
@@ -77,7 +78,7 @@ subroutine set_linklist
  
  ncells = product(ncellsx)
 
- !write(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
+! write(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
 
  ncellsloop = ncells
 !
