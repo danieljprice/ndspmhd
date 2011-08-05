@@ -11,128 +11,129 @@
 !!  Needs to be preceded by a call to linklist to setup neighbour lists   !!
 !!  The density should also be previously known				  !!
 !!------------------------------------------------------------------------!!
-
-SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
- USE dimen_mhd
- USE debug
- USE loguns
+module smooth
+ implicit none
+ public :: smooth_variable
  
- USE bound
- USE kernels, only:interpolate_kernel
- USE linklist
- USE part
+ private
+ 
+contains
+
+subroutine smooth_variable(xinput,xsmooth,x,pmass,hh,rho)
+ use dimen_mhd
+ use debug
+ use loguns
+ 
+ use bound
+ use kernels, only:interpolate_kernel,radkern2
+ use linklist, only:ll,ifirstincell,ncellsloop
+ use get_neighbour_lists
+ use part, only:npart,ntotal
+ implicit none
+ real, dimension(:), intent(in) :: xinput
+ real, dimension(:,:), intent(in) :: x
+ real, dimension(:), intent(in) :: pmass,hh,rho
+ real, dimension(:), intent(out) :: xsmooth
 !
 !--define local variables
 !      
- IMPLICIT NONE
- INTEGER :: i,j,n
- INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
- INTEGER :: idone,iprev,nsize,nneigh,icell
- REAL, DIMENSION(nsize), INTENT(IN) :: xinput
- REAL, DIMENSION(nsize), INTENT(OUT) :: xsmooth
- REAL, DIMENSION(ndim) :: dx
- REAL :: termi,termj,hav,hi,hav1,h21,hfacwab
- REAL :: q2,rij2,weight,wab,grkern
+ integer :: i,j,n
+ integer, dimension(ntotal) :: listneigh ! neighbour list
+ integer :: idone,iprev,nneigh,icell
+ real, dimension(ndim) :: dx
+ real :: termi,termj,hi,hi21
+ real :: q2i,q2j,rij2,weight,wabi,wabj,grkerni,grkernj
 !
 !--allow for tracing flow
 !
- WRITE(iprint,*) 'Smoothing initial conditions...'
+ write(iprint,*) 'applying smoothing...'
 !
 !--initialise quantities
 !
- nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )	! max size of neighbour list
-
+ listneigh = 0
  xsmooth(:) = 0.
 !
 !--check size of input array is consistent with rho
 !
- IF (SIZE(xinput).NE.SIZE(rho)) THEN 
-    WRITE(iprint,*)  &
-      'Error: smooth: input array and rho have different dimensions'
-    CALL quit   
- ENDIF   
+ if (size(xinput).ne.size(rho)) then 
+    write(iprint,*)  &
+      'error: smooth: input array and rho have different dimensions'
+    call quit   
+ endif   
 !
-!--Loop over all the link-list cells
+!--loop over all the link-list cells
 !
- loop_over_cells: DO icell=1,ncellsloop		! step through all cells
+ loop_over_cells: do icell=1,ncellsloop		! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    CALL get_neighbour_list(icell,listneigh,nneigh)
+    call get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
     i = ifirstincell(icell)
     idone = -1	! note density summation includes current particle
-    IF (i.NE.-1) iprev = i
+    if (i.ne.-1) iprev = i
 
-    loop_over_cell_particles: DO WHILE (i.NE.-1)		! loop over home cell particles
+    loop_over_cell_particles: do while (i.ne.-1)		! loop over home cell particles
 
-!       PRINT*,'Doing particle ',i,nneigh,' neighbours',pmass(i)
+!       print*,'doing particle ',i,nneigh,' neighbours',pmass(i)
        idone = idone + 1
        hi = hh(i)
-       termi = pmass(i)*xinput(i)/rho(i)
+       termi = pmass(i)*xinput(i)/(rho(i)*hi**ndim)
+       hi21 = 1./hi**2
 !
 !--for each particle in the current cell, loop over its neighbours
 !
-       loop_over_neighbours: DO n = idone+1,nneigh
+       loop_over_neighbours: do n = idone+1,nneigh
 	  j = listneigh(n)
-	  dx(:) = x(:,i) - x(:,j)
-	  termj = pmass(j)*xinput(j)/rho(j)
-!
-!--calculate averages of smoothing lengths
-!			 
-	  hav = 0.5*(hi + hh(j))
-	  hav1 = 1./hav
-	  h21 = hav1*hav1
-	  hfacwab = hav1**ndim
-	  
-	  rij2 = DOT_PRODUCT(dx,dx)
-	  q2 = rij2*h21
+          if (.not.(i.gt.npart.and.j.gt.npart)) then
+	     dx(:) = x(:,i) - x(:,j)
+	     termj = pmass(j)*xinput(j)/(rho(j)*hh(j)**ndim)
+	     rij2 = dot_product(dx,dx)
+	     q2i = rij2*hi21
+	     q2j = rij2/hh(j)**2
 !	
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-	 IF ((q2.LT.radkern2)  &
-	     .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
+	     weight = 1.0
+	     if (j.eq.i) weight = 0.5
+             if (q2i.lt.radkern2) then
 !	
-!--interpolate from kernel table (use average h)
+!--interpolate from kernel table (using hi and hj)
 !
-             CALL interpolate_kernel(q2,wab,grkern)
-	     wab = wab*hfacwab
+                call interpolate_kernel(q2i,wabi,grkerni)
+                xsmooth(i) = xsmooth(i) + termj*wabi*weight
+             endif
+             if (q2j.lt.radkern2) then
+!	
+!--interpolate from kernel table (using hi and hj)
 !
-!--calculate smoothed quantity
-!
-	    weight = 1.0
-	    IF (j.EQ.i) weight = 0.5
-
-            xsmooth(i) = xsmooth(i) + termj*wab*weight
-	    xsmooth(j) = xsmooth(j) + termi*wab*weight
-	 
-	 ENDIF
+                call interpolate_kernel(q2j,wabj,grkernj)
+   	        xsmooth(j) = xsmooth(j) + termi*wabj*weight
+             endif
+	 endif
 	    
-       ENDDO loop_over_neighbours
+       enddo loop_over_neighbours
 	    
        iprev = i
-       IF (iprev.NE.-1) i = ll(i)		! possibly should be only IF (iprev.NE.-1)
-    ENDDO loop_over_cell_particles
+       if (iprev.ne.-1) i = ll(i)		! possibly should be only if (iprev.ne.-1)
+    enddo loop_over_cell_particles
             
- ENDDO loop_over_cells
- 
-! WHERE (rho > 0.) 
-!    xsmooth(:) = xsmooth(:)/rho(:)
-! END WHERE
+ enddo loop_over_cells
 !
 !--update ghosts
 ! 
- IF (ntotal.GT.npart) THEN
-    DO i=npart+1,ntotal
+ if (ntotal.gt.npart) then
+    do i=npart+1,ntotal
        j = ireal(i)
        xsmooth(i) = xsmooth(j)
-    ENDDO
- ENDIF   
+    enddo
+ endif   
 
- RETURN
-END SUBROUTINE smooth_initial_conditions
+ return
+end subroutine smooth_variable
+
+end module smooth
