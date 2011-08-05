@@ -7,10 +7,13 @@
 SAVEDIR = ../version_control/`more version`_`date +%d_%m_%Y`
 
 all: 
-	cd src; make 1D
-	cd src; rm *.o *.mod; make 25D
-	cd plot; make	
+	cd src;  make 1D
+	cd src; make clean; make 2D
+	cd src; make clean; make 25D
+	cd plot; make dansph; make mrbsph	
 	cd evplot; make
+	cd utils; make sametime
+	cd multi; make initial; make multirun
 
 plotsph:
 	cd plot; make
