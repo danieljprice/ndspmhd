@@ -7,10 +7,10 @@
 
 .KEEP_STATE:
 
-FORTRAN = f95
-F90C = f95
+FORTRAN = f90
+F90C = f90
 
-F90FLAGS = -C -O4
+F90FLAGS = -O
 ##LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lg2c -lpng ##-lF77
 LDFLAGS = -lpgplot -lX11 -lF77
 

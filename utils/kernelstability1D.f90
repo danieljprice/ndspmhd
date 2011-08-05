@@ -16,12 +16,17 @@ subroutine kernelstability1D(iplot,nacross,ndown)
   real :: datmin, datmax, dcont, omegasq, omegasq1D
   real :: charheight
   character(len=5) :: string,labely
-  logical :: negstress
+  character(len=50) :: filename, text
+  logical :: negstress, contours
   
   cs2 = 1.0
   rhozero = 1.0
   psep = 1.0
   pmass = rhozero*psep
+!
+!--set various options
+!  
+  contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
@@ -80,42 +85,76 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
 !--now plot this using PGPLOT
 !
+  if (contours .or. negstress) then
 !!  call pgbegin(0,'?',1,1)
 !!  call pgsch(1.2)
-  call danpgtile(iplot,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
+     call danpgtile(iplot,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
                  'kx',TRIM(labely),TRIM(kernelname),0,0)
 !  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
 !  call pglabel('kx',TRIM(labely),TRIM(kernelname)) ! use this for movie
 
-  trans(1) = kxmin - 0.5*dkx               ! this is for the pgimag call
-  trans(2) = dkx                  ! see help for pgimag/pggray/pgcont
-  trans(3) = 0.0
-  trans(4) = ymin - 0.5*dy
-  trans(5) = 0.0
-  trans(6) = dy
+     trans(1) = kxmin - 0.5*dkx               ! this is for the pgimag call
+     trans(2) = dkx                  ! see help for pgimag/pggray/pgcont
+     trans(3) = 0.0
+     trans(4) = ymin - 0.5*dy
+     trans(5) = 0.0
+     trans(6) = dy
 !
 !--set contour levels
 ! 
-  datmin = minval(dat)
-  datmax = maxval(dat)
-  print*,'datmax = ',datmax,datmin  !!maxval(dat)*100,nint(maxval(dat)*100)
-  dcont = (datmax-datmin)/real(ncont)   ! even contour levels
-  do i=1,ncont
-     levels(i) = datmin + real(i)*dcont
-  enddo
-  call pgcont(dat,nkx,ny,1,nkx,1,ny,levels,ncont,trans)
+     datmin = minval(dat)
+     datmax = maxval(dat)
+     print*,'datmax = ',datmax,datmin  !!maxval(dat)*100,nint(maxval(dat)*100)
+     dcont = (datmax-datmin)/real(ncont)   ! even contour levels
+     do i=1,ncont
+        levels(i) = datmin + real(i)*dcont
+     enddo
+     call pgcont(dat,nkx,ny,1,nkx,1,ny,levels,ncont,trans)
 !
 !--label levels
 !
-  do i=1,ncont
-     write(string,"(f5.2)") levels(i)
-     !!print*,'level = ',levels(i),string
-     call pgqch(charheight) ! query character height
-     call pgsch(0.5*charheight)   ! shrink character height
-     call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,14)
-     call pgsch(charheight) ! restore character height
-  enddo
-!!  call pgend
+     do i=1,ncont
+        write(string,"(f5.2)") levels(i)
+        !!print*,'level = ',levels(i),string
+        call pgqch(charheight) ! query character height
+        call pgsch(0.5*charheight)   ! shrink character height
+        call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,14)
+        call pgsch(charheight) ! restore character height
+     enddo
+  
+  else
+!
+!--plot just the line along kx = 0
+!
+     call pgsch(1.0)
+     call danpgtile(iplot,nacross,ndown, &
+          1.0,1.99,0.8,1.11, &  ! tiled plots
+          'h','cs',TRIM(kernelname),0,0)
+     call pgline(ny,yaxis(1:ny),sqrt(dat(1,1:ny)))
+     !
+     !--plot line from file
+     !
+     call pgsls(2)
+     if (iplot.eq.1) then
+        open(unit=11,file='legend',status='old')
+20      continue
+        do i=1,4
+           call getarg(i,filename)
+	   call pgsls(i)
+           if (filename(1:1).ne.' ') then
+	      call plotfreq(filename)
+	      read(11,"(a)",end=21) text
+21            continue
+	      print*,trim(text),filename
+              call legend(i,trim(text),0.6,25.0)
+	   endif
+	enddo
+        close(unit=11)
+     endif
+
+     call pgsch(charheight)
+     call pgsls(1)
+  endif
 
 end subroutine kernelstability1D
 
@@ -154,3 +193,39 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,x,npart,ipart)
   omegasq1D = (2.*cs2*pmass/rhozero)*RR*sum1 + (1.-2.*RR)*cs2*(pmass/rhozero*sum2)**2
 
 end function omegasq1D
+
+!
+! subroutine to plot to content of the .freq file
+!
+subroutine plotfreq(filename)
+ implicit none
+ integer, parameter :: max = 100
+ integer :: i,npts
+ real, dimension(max) :: hfact,freq
+ character(len=50) :: filename
+ 
+ if (index(filename,'.freq').eq.0) then
+    filename = trim(filename)//'.freq'
+ endif
+ 
+ print*,'opening ',trim(filename)
+ 
+ open(1,file=filename,status='old',err=20)
+ do i=1,max
+    read(1,*,end=10) hfact(i),freq(i)
+    !!print*,i,hfact(i),freq(i)
+ enddo
+10 continue
+ close(1)
+ npts = i-1
+
+ if (filename(1:3).eq.'hfi') then
+    call pgpt(npts,hfact(1:npts),freq(1:npts),17)
+ else
+    call pgline(npts,hfact(1:npts),freq(1:npts))
+ endif
+! call pgpt(npts,hfact(1:npts),freq(1:npts),17)
+20 continue
+
+ return
+end subroutine plotfreq
