@@ -31,8 +31,8 @@ EDITOR = nedit
 # use the following instead for double precision
 #F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
 # monash compiler (lf95):
-F90FLAGS = -O 
-DBLFLAGS = -dbl
+F90FLAGS = ##-O 
+DBLFLAGS = ##-dbl
 
 
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
@@ -69,12 +69,13 @@ SETUP1D = setup_toystar1D.f90
 #SETUP2D = setup_unifdisND.f90
 SETUP2D = setup_unifsphND.f90
 
-SETUP25D = setup_alfvenwaveND.f90
+#SETUP25D = setup_alfvenwaveND.f90
+SETUP25D = setup_alfvenwaveND_x.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 SETUP3D = setup_shockND.f90
-
+SETUP3D = setup_alfvenwaveND_x.f90
 ######################################################################
 
 # these files are common to all dimensions

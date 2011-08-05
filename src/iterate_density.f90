@@ -67,8 +67,8 @@ subroutine iterate_density
      enddo
   endif
   
-  iterate: do while ((ncalc.gt.0).and.(itsdensity.le.itsdensitymax)    &
-       .and. ncalc.ne.ncalcprev)
+  iterate: do while ((ncalc.gt.0).and.(itsdensity.le.itsdensitymax)) !!    &
+    !!!!   .and. ncalc.ne.ncalcprev)
      
      itsdensity = itsdensity + 1
      if (isize.ne.size(rho)) then
@@ -105,11 +105,11 @@ subroutine iterate_density
                     write(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i)
                     call quit
                  else
-                    write(iprint,*) 'Warning : rho < 1e-5 '
+                    write(iprint,*) 'Warning : rho < 1e-3 '
                  endif
               endif
               
-              gradh(i) = gradh(i)/rho_old(i)    ! now that rho is known
+              gradh(i) = gradh(i)/rho(i)    ! now that rho is known
               if (abs(1.-gradh(i)).lt.1.e-5) print*,'eek'
 !
 !--perform Newton-Raphson iteration on rho
