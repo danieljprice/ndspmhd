@@ -86,13 +86,6 @@ SUBROUTINE divBcorrect(npts,ntot)
        
        write(iprint,*) 'done'
        
-       if (debugging) then
-          write(iprint,*) ' calculating div B after correction'
-          CALL get_divB(divBonrho,ntot)
-          if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
-          divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
-       endif
-       
        IF (imhd.GE.11) THEN
           Bevol(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
        ELSE
@@ -106,8 +99,18 @@ SUBROUTINE divBcorrect(npts,ntot)
           enddo
        endif
        !!CALL primitive2conservative ! so Bfield -> Bevol
-       
        if (debugging) then
+          write(iprint,*) ' calculating div B after correction'
+          CALL get_divB(divBonrho,ntot)
+          !
+          !--set divB to zero on ghosts and on real counterparts
+          !  this is to avoid problems at the boundary
+          !
+          do i=npart+1,ntot
+             divBonrho(i) = 0.
+             divBonrho(ireal(i)) = 0.
+          enddo
+          divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)
        endif
