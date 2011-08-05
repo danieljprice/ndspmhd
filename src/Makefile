@@ -244,13 +244,13 @@ crap:
 
 ## files from elsewhere
 
-prompting.o:
+prompting.o: ../plot/prompting.f90
 	$(F90C) -c ../plot/prompting.f90 -o $@
 
-geometry.o:
+geometry.o: ../plot/geometry.f90
 	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
 
-exact_densityprofiles.o:
+exact_densityprofiles.o: ../plot/exact_densityprofiles.f90
 	$(F90C) -c $(F90FLAGS) ../plot/exact_densityprofiles.f90 -o $@
 
 evolve_montecarlo.o: setup_densityprofileND.o
