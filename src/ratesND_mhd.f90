@@ -67,7 +67,7 @@ subroutine get_rates
 !
 !  (artificial viscosity quantities)
 !      
- real :: vsig,vsigi,vsigj
+ real :: vsig,vsigi,vsigj,vsigav
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin
@@ -122,6 +122,7 @@ subroutine get_rates
 !--initialise quantities
 !      
  dtcourant = 1.e6  
+ dtav = huge(dtav)
  zero = 1.e-10
  vsigmax = 0.
  dr(:) = 0.
@@ -489,7 +490,11 @@ subroutine get_rates
        !
        if (iener.gt.0 .and. iavlim(2).gt.0) then
           !--this is using h*/sqrt(u)*(del^2 u) as the source
-          sourceu = hh(i)*abs(del2u(i))/sqrt(uu(i))
+          if (uu(i).gt.epsilon(uu(i))) then
+             sourceu = hh(i)*abs(del2u(i))/sqrt(uu(i))
+          else
+             sourceu = 0.
+          endif
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
        endif
        !
@@ -688,6 +693,7 @@ contains
     !            vsigdtc = vmag + spsoundi + spsoundj        &
     !                         + sqrt(valfven2i) + sqrt(valfven2j)
     vsig = 0.
+    vsigav = 0.
 !----------------------------------------------------------------------------
 !  calculate signal velocity (this is used for timestep control
 !  and also in the artificial viscosity)
@@ -719,7 +725,7 @@ contains
 
     vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
-    vsignonlin = 0.5*max(vsigi + vsigj - 10.*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
  
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
@@ -735,6 +741,7 @@ contains
 !----------------------------------------------------------------------------
 
     if (iav.gt.0) call artificial_dissipation
+    if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
 
 !----------------------------------------------------------------------------
 !  pressure term (generalised form)
@@ -861,6 +868,7 @@ contains
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
+    vsigav = max(alphaav,alphau,alphaB)*vsig
     !!rhoav1 = 2./(rhoi + rhoj)
     if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
