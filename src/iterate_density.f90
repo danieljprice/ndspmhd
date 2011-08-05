@@ -52,7 +52,7 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-2
+  tol = 1.e-3
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
@@ -62,6 +62,11 @@ subroutine iterate_density
      do j=1,npart     
         redolist(j) = j
      enddo
+  endif
+  if (any(pmass(1:npart).ne.pmass(1))) then
+     rhomin = minval(rho(1:npart))
+  else
+     rhomin = 0.
   endif
   
   iterate: do while ((ncalc.gt.0).and.(itsdensity.le.itsdensitymax)) !!    &
@@ -203,7 +208,8 @@ subroutine iterate_density
 
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.2 .or. (itsdensity.gt.1 .and. ndim.ge.2)) then
-     write(iprint,*) ' Finished density, iterations = ',itsdensity, ncalctotal
+     write(iprint,*) ' Finished density, iterations = ', &
+                     itsdensity, ncalctotal,' used rhomin = ',rhomin
   endif
   
   return
