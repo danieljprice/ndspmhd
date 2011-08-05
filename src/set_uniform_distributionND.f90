@@ -18,9 +18,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--include relevant global variables
 !
- use dimen_mhd
- use debug
- use loguns
+ use dimen_mhd, only:ndim,ndimV
+ use debug, only:trace
+ use loguns, only:iprint
  use linklist, only:iamincell
  use bound, only:hhmax
  use get_neighbour_lists, only:get_neighbour_list_partial
@@ -44,7 +44,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed,imask
  integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
  integer, dimension(1000) :: listneigh
- real :: xstart,ystart,deltax,deltay,deltaz
+ real :: xstart,ystart,zstart,deltax,deltay,deltaz
  real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart
  real, dimension(ndim) :: xran,xcentre,dx
  logical :: adjustdeltas,offsetx
@@ -111,6 +111,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
        nparty = 2*int(nparty/2)
        print*,' periodic boundaries: adjusting nparty = ',nparty
     endif
+!--for periodic boundaries, ymax needs to be divisible by 2
+    if (ndim.eq.3 .and. ibound(3).eq.3 .and..not.present(rmax)) then
+       npartz = 3*int(npartz/3)
+       print*,' periodic boundaries: adjusting npartz = ',npartz
+    endif
 !
 !--adjust psep so that particles fill the volume
 !
@@ -132,6 +137,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
              xmax(3) = xmin(3) + npartz*deltaz
              print*,' adjusted z boundary : zmax  = ',xmax(3)
           endif
+          print*,'xmin,max = ',xmin(:),xmax(:)
        endif
     endif
     
@@ -187,7 +193,8 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     ipart = npartin
     do k=1,npartz
        do j=1,nparty
-          ystart = 0.5*deltay
+          ystart = deltay/6.
+          zstart = 0.5*deltaz
           xstart = 0.25*deltax
           if (mod(k,3).eq.0) then  ! 3rd layer
              ystart = ystart + 2./3.*deltay
@@ -204,7 +211,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
              ipart = ipart + 1      !(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              if (ndim.ge.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
-             if (ndim.ge.3) x(3,ipart) = xmin(3) + (k-1)*deltaz
+             if (ndim.ge.3) x(3,ipart) = xmin(3) + (k-1)*deltaz + zstart
 !--do not use if not within radial cuts
              rr = sqrt(dot_product(x(1:ndim,ipart),x(1:ndim,ipart))) 
              if (rr .lt. radmin .or. &
