@@ -58,7 +58,8 @@ endif
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    F90C= gfortran
-   F90FLAGS= -O3 -Wall -L. 
+   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   DBLFLAG= -fdefault-real-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -frange-check
    OMPFLAG= -fopenmp
@@ -140,6 +141,8 @@ SETUP1D = setup_shockND.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 #SETUP1D = setup_clareshk1D.f90
+#SETUP1D = setup_resist1D.f90
+#SETUP1D = setup_anyrho1Dran.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -169,6 +172,11 @@ SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_neutronstarkh.f90
 #SETUP2D = setup_sunblast2D.f90
 #SETUP2D = setup_recontest3D.f90
+#SETUP2D = setup_convection2D.f90
+#SETUP2D = setup_anyrho2Dmin.f90
+#SETUP2D = setup_posfromfile.f90
+#SETUP2D = setup_rayleightaylor2D.f90
+#SETUP2D = setup_blobweirdshape.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
@@ -184,6 +192,7 @@ SETUP3D = setup_shockND.f90
 #SETUP3D = setup_recontest3D.f90
 #SETUP3D = setup_forcefree3D.f90
 #SETUP3D = setup_blastisoND.f90
+#SETUP3D = setup_resistND.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -201,7 +210,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
-	 copy_particle.f90 \
+	 copy_particle.f90 particlesplitting.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
          grutils_gr.f90 \
@@ -211,7 +220,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
 	 linkND.f90 logun.f90 \
-         outputND_mhd.f90 \
+         outputND_mhd.f90\
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
 	 set_fixedbound.f90 smooth.f90 \
