@@ -103,21 +103,29 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     if (present(offset)) then
        if (offset) then
           xcentre(:) = 0.5*(xmin + xmax)
+          print*,'xcentre = ',xcentre
           npartx = int((xmax(1)-xcentre(1))/deltax) &
                  - int((xmin(1)-xcentre(1))/deltax) + 1
           nparty = int((xmax(2)-xcentre(2))/deltay) &
                  - int((xmin(2)-xcentre(2))/deltay) + 1
           write(iprint,*) &
            ' centred lattice : adjusting npartx,y = ',npartx,nparty
-          deltax = (xmax(1) - xmin(1))/npartx
-          deltay = (xmax(2) - xmin(2))/nparty
+          !deltax = (xmax(1) - xmin(1))/npartx
+          !deltay = (xmax(2) - xmin(2))/nparty
           write(iprint,*) '                 : adjusting deltax = ',deltax
           write(iprint,*) '                 : adjusting deltay = ',deltay
+          
+          xmin(1) = xcentre(1) - (npartx - 1)/2*deltax
+          xmax(1) = xcentre(1) + (npartx - 1)/2*deltax
+          xmin(2) = xcentre(2) - (nparty - 1)/2*deltay
+          xmax(2) = xcentre(2) + (nparty - 1)/2*deltay
+
           xmin(1) = xmin(1) - 0.25*deltax
           xmax(1) = xmax(1) - 0.25*deltax
 
-          !!xmin(2) = xmin(2) - 0.5*deltay
-          !!xmax(2) = xmax(2) - 0.5*deltay
+          xmin(2) = xmin(2) - 0.5*deltay
+          xmax(2) = xmax(2) - 0.5*deltay
+
        endif
     elseif (adjustdeltas) then
        deltax = (xmax(1)-xmin(1))/(float(npartx))
