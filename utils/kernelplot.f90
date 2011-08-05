@@ -17,15 +17,15 @@ program kernelplot
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 9
+ nkernels = 2
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 5
- epszero = -0.2
+ epszero = 0.4
  nepszero = 4
  hfact = 1.5
  samepage = .true.
  trace = .true.
- nacross = 2
+ nacross = 1
  ndown = 1
  xmin = 0.0
  xmax = 3.2
@@ -55,9 +55,8 @@ program kernelplot
     if (idivBzero.eq.5 .and. j.lt.7) then
        eps = eps+0.2
     else
-       eps = 0.4
-       if (j.eq.7) neps = 3
-       neps = neps + 1
+       if (j.eq.7) eps = 0.2
+       eps = eps + 0.2
     endif
     
     ikernel = iplotorder(j)
@@ -145,11 +144,11 @@ program kernelplot
 !
 !--second derivative
 !
-    !call pgsls(3)
-    !call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-    !if (idivBzero.eq.5) then
-    !   call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
-    !endif
+    call pgsls(3)
+    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+    if (idivBzero.eq.5) then
+       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+    endif
     call pgsls(1)
 !    call pgsci(1)
  enddo
@@ -160,23 +159,22 @@ program kernelplot
 !
  print*,'-------------- plotting kernel stability ------------------'
     !!call pgsch(0.6)
-   !! call pgpage
+    call pgpage
 !!    if (nkernels.eq.1) call pgpap(5.85,1./sqrt(2.))  ! change paper size
 
     eps = epszero
     neps = nepszero
     do j=1,nkernels
        if (idivBzero.eq.5) then
-          eps = eps + 0.2
+          if (j.eq.2) then
+	     eps = epszero
+	     hfact = 1.2
+	     call pgsls(2)
+	  endif
+          !eps = eps + 0.2
        endif
        ikernel = iplotorder(j)
        call setkern
-       dq2table = radkern2/real(ikern)
-       do i=0,ikern
-          q2 = i*dq2table
-          q = sqrt(q2)
-          dqkern(i) = q
-       enddo
        call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo
 
@@ -213,11 +211,11 @@ subroutine legend(icall,text,hpos,vposin)
   xline(2) = xline(1) + 3.*xch
 
 !!--make up line style if > 5 calls (must match actual line drawn)
-!  if (icall.eq.2) then
-!     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
-!     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
+   if (icall.eq.3) then
+     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
+     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
 !     !!call pgline(2,xline,yline)            ! draw line segment
-   if (icall.gt.0) then
+   elseif (icall.gt.0) then
      call pgline(2,xline,yline)            ! draw line segment
    endif  
 !

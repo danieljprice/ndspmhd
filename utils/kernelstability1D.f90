@@ -31,7 +31,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--set various options
 !  
-  contours = .true.     ! plot whole dispersion relation or just kx=0
+  contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .true.    ! plot vs h or R
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
@@ -162,25 +162,25 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--plot just the line along kx = 0
 !
      call pgsch(1.2)
-     if (iplotpos.eq.1) call pgpage
+     !!if (iplotpos.eq.1) call pgpage
      datmin = 1.0
-     datmax = 3.5 !!sqrt(maxval(dat(1,1:ny)))
+     datmax = 5.5 !!sqrt(maxval(dat(1,1:ny)))
      call danpgtile(iplotpos,nacross,ndown, &
-          ymin,ymax,datmin,datmax,labely,'cs',trim(kernelname),0,0)
+          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
      call pgline(ny,yaxis(1:ny),sqrt(abs(dat(1,1:ny))))
      
      !
      !--set legend position
      !
-     hpos = 0.1   ! horizontal position as % of viewport
-     vpos = 3.0  ! vertical position in character heights from top
+     hpos = 0.45   ! horizontal position as % of viewport
+     vpos = 4.0  ! vertical position in character heights from top
      write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
-     if (nplots.gt.1) then
-        call legend(iloop,trim(text),hpos,vpos)   
-     else
-        call legend(0,trim(text),hpos,vpos)  
-     endif
+     !if (nplots.gt.1) then
+     !   call legend(iplot,trim(text),hpos,vpos)   
+     !else
+        call legend(0,'cubic spline, h=1.2\gDp',hpos,vpos)  
+     !endif
      !
      !--plot line from file
      !
@@ -200,7 +200,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 	enddo
         close(unit=11)
      else
-        call legend(5,trim(kernelname)//', fixed h',hpos,vpos)     
+        !!call legend(5,trim(kernelname)//', fixed h',hpos,vpos)     
      endif
 
      call pgsch(charheight)
