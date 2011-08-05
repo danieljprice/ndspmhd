@@ -50,6 +50,7 @@ subroutine set_default_options
    ikernav = 3
    ihvar = 2
    hfact = 1.2
+   tolh = 1.e-3
    idumpghost = 1
    imhd = 1
    imagforce = 2
