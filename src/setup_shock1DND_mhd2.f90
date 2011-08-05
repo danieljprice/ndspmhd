@@ -144,9 +144,9 @@ SUBROUTINE setup
  npart = npartleft + npartright
  DO j=1,npart
     if (j.le.npartleft) then
-       x(1,j) = xcentre - (npartleft-j-1)*psepleft - 0.*psepleft
+       x(1,j) = xcentre - (npartleft-j-1)*psepleft - 0.5*psepleft
     else
-       x(1,j) = xcentre + (j-npartleft-1)*psep + 1.0*psep
+       x(1,j) = xcentre + (j-npartleft-1)*psep + 1.5*psep
     endif
     dx0 = massp/dens(j)
 !    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
