@@ -44,36 +44,49 @@ system "cd $rootname; ../multi/multirun $rootname $nruns";
 
 
 my $machine;
-my $n = 1;
+my $njobsrun = 1;
 my $jobsrun;
+my $ncpu = 1;
+my $njobspermachine = 3;
+my $n;
 
 # loop through all available machines looking for spare CPU
 foreach $machine (@machines) {
     chomp($machine);
     print "----------------- \n trying $machine \n";
-    # get load average for this machine using uptime command
-    my $loadav = `ssh $machine uptime | cut -f5 -d':' | cut -f1 -d','`;
-    chomp($loadav);
-    print " load average last 1 minute = $loadav";
-    if ( $loadav < 0.75 ) {
+    # get a list of CPU in use using ps and add it all up to get the total
+    my @usages = `ssh $machine ps -eo %cpu | sed 1d `;
+       # add up total cpu percentage currently in use
+       my $cpuinuse = 0.0;
+       for ($ncpu = 0;$ncpu<=$#usages;$ncpu++) {
+           $cpuinuse = $cpuinuse + @usages[$ncpu];
+       }
+    print "cpu percentage in use = $cpuinuse \n";
+#    get load average for this machine using uptime command
+#    my $loadav = `ssh $machine uptime | cut -f5 -d':' | cut -f1 -d','`;
+#    chomp($loadav);
+#    print " load average last 1 minute = $loadav";
+    if ( $cpuinuse < 50.0 ) {
        print " ...OK \n";
        # run the job
-       print "running $rootname$n on machine $machine at nice +19\n";
-       system "ssh $machine 'cd $pwd/$rootname; nice +19 ./$ndim$SPMHD $rootname$n > $rootname$n.output &' ";
-       $n = $n + 1;
-       if ($n > $nruns) {
-          print "===========================================\n";
-          print "\n Hurrah! all jobs successfully submitted \n";
-          $jobsrun = $n - 1;
-          print " $jobsrun jobs run \n";
-          exit;
-       }   
+       for ($n = 1;$n<=$njobspermachine;$n++){
+           print "running $rootname$njobsrun on machine $machine at nice +19\n";
+           system "ssh $machine 'cd $pwd/$rootname; nice +19 ./$ndim$SPMHD $rootname$njobsrun > $rootname$njobsrun.output &' ";
+           $njobsrun = $njobsrun + 1;
+           if ($njobsrun > $nruns) {
+              print "===========================================\n";
+              print "\n Hurrah! all jobs successfully submitted \n";
+              $jobsrun = $njobsrun - 1;
+              print " $jobsrun jobs run \n";
+              exit;
+           }  
+       } 
     } else {
        print " ...too busy \n";
     }
 }
 
-$jobsrun = $n - 1;
+$jobsrun = $njobsrun - 1;
 print "=======================================================\n";
 print "WARNING: not enough machines available to run all jobs \n";
 print " $jobsrun jobs run \n";
