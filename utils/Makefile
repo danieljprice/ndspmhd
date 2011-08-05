@@ -44,8 +44,8 @@ kernelplot : $(OBJECTS)
 sametime : sametime.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ sametime.o
 
-plotfreq : plotfreq.o
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ plotfreq.o
+plotfreq : plotfreq.o danpgtile.o
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ plotfreq.o danpgtile.o
 
 plotfreq.o : plotfreq.f90
 	$(F90C) -c $(F90FLAGS) plotfreq.f90 -o $@
