@@ -106,13 +106,15 @@ PROGRAM combinedat
           PRINT*,'reallocating'
           ncolmax_old = ncolmax
 	  npartmax_old = npartmax
+	  IF (ALLOCATED(dattemp)) DEALLOCATE(dattemp)
 	  ALLOCATE(dattemp(ncolmax,npartmax,nfiles),STAT=ierr)
 	  IF (ierr.NE.0) PRINT*,'dattemp allocation error'	  
 	  dattemp = dat
 	  
 	  ncolmax = MAX(INT(1.1*ndata(ifile)),ncolmax)
 	  npartmax = MAX(INT(1.1*nprint(ifile)),npartmax)
-          ALLOCATE(dat(ncolmax,npartmax,nfiles))
+          IF (ALLOCATED(dat)) DEALLOCATE(dat)
+	  ALLOCATE(dat(ncolmax,npartmax,nfiles))
 	  IF (ierr.NE.0) PRINT*,'dat reallocation error'	  
 	  dat(1:ncolmax_old,1:npartmax_old,1:nfiles) = dattemp
 	  ncolmax = ndata(ifile)
