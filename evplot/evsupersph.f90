@@ -226,7 +226,7 @@ program plotmeagraph
   if (ipick.le.ncol .and. ipick.ge.1) then
      call prompt('Enter x axis: ',ipickx,1,ncol)
   endif
-  if ((ipick.ge.ncol+1).or.(ipick.lt.0)) then
+  if ((ipick.gt.ncol+1).or.(ipick.lt.0)) then
      exit menuloop
   elseif (ipick.eq.ncol+1) then
      if (nplotsmulti.eq.0) then
@@ -342,8 +342,10 @@ program plotmeagraph
   if (nplots.eq.1) then
      if (nfiles.gt.1) then
         call PGBEGIN(0,'?',1,1)
+        call PGSCH(1.0)
      else
         call PGBEGIN(0,'?',1,2)
+        call PGSCH(2.0)
      endif
   else
      isameXaxis = all(iplotx(1:nplots).eq.iplotx(1))
@@ -354,12 +356,15 @@ program plotmeagraph
      nacross = nplots/ndown
      if (isameXaxis .and. isameYaxis) then
         call PGBEGIN(0,'?',1,1) ! uses pgtile
+        call PGSCH(1.0)
      else
         call PGBEGIN(0,'?',nacross,ndown)
+        call PGSCH(2.0)
      endif
      if (nacross.eq.2 .and. ndown.eq.1) then
         call pgpap(11.7,0.5/sqrt(2.))
      endif
+     
   endif
   !!if (nplots.gt.2) call PGSCH(2.0)
 !
@@ -408,7 +413,7 @@ program plotmeagraph
            call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
            !call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
            !     lim(iploty(i),1),lim(iploty(i),2),0,1)
-            call pgmtxt('l',3.5,0.5,0.5,label(iploty(i)))
+            call pgmtxt('l',4.5,0.5,0.5,label(iploty(i)))
             call pglabel(label(iplotx(i)),' ',' ')
             !!call pglabel(label(iplotx(i)),label(iploty(i)),title)
         endif
