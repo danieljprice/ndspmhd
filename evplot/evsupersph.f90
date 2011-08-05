@@ -429,6 +429,7 @@ program plotmeagraph
            !--tiled plots
            !
            call pgsls(1)
+           call pgsci(1)
            call danpgtile(i,nacross,ndown,  &
                xmin,xmax,ymin,ymax, &
                label(iplotx(i)),label(iploty(i)),' ',0,0)
@@ -442,6 +443,7 @@ program plotmeagraph
            !--non-tiled plots
            !
            call pgsls(1)
+           call pgsci(1)
            if (nplots.gt.1) call pgsch(1.5) ! increase character height
            call pgpage
            call pgsvp(0.2,0.99,0.2,0.99)
@@ -457,7 +459,8 @@ program plotmeagraph
         !--draw the line
         !
         do ifile=1,nfiles
-           call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
+           call pgsls(MOD(ifile-1,5)+1)  ! change line style between plots
+           call pgsci(ifile+1)
            if (i.eq.iongraph .and. nfiles.gt.1) call legend(ifile,legendtext(ifile),hpos,vpos)
            !call PGSCI(ifile) ! or change line colour between plots
            
@@ -526,7 +529,8 @@ program plotmeagraph
 
         do i=1,nplots
            do ifile=1,nfiles
-              call PGSLS(MOD(ifile-1,5)+1)
+              call pgsls(MOD(ifile-1,5)+1)
+              call pgsci(ifile+1)
            !
            !--apply transformations to plot data
            !
@@ -552,6 +556,8 @@ program plotmeagraph
 !--plot error between timesteps
 !            
   if (nplots.eq.1 .and. nfiles.eq.1) then
+     call pgsls(1)
+     call pgsci(1)
      call PGENV(lim(iplotx(1),1),lim(iplotx(1),2), &
           minval(evplot),maxval(evplot),0,1)
      labely = '| delta '//TRIM(label(iploty(1)))//'|/'//label(iploty(1))
@@ -745,12 +751,18 @@ subroutine get_ncolumns(lunit,ncolumns)
 
  nblanklines = 0
  line = ' '
- do while (len_trim(line).eq.0)
-    read(lunit,"(a)") line
+ ierr = 0
+ do while (len_trim(line).eq.0 .and. ierr.eq.0)
+    read(lunit,"(a)",iostat=ierr) line
     nblanklines = nblanklines + 1
  enddo
- if (nblanklines.gt.1) print*,'skipped ',nblanklines-1,' blank lines'
- rewind(lunit)
+ if (ierr .ne.0 ) then
+    ncolumns = 0
+    return
+ else
+    if (nblanklines.gt.1) print*,'skipped ',nblanklines-1,' blank lines'
+    rewind(lunit)
+ endif
  dummyreal = -666.0
  
  ierr = 0
