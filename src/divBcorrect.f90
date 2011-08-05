@@ -199,13 +199,17 @@ SUBROUTINE divBcorrect(npts,ntot)
        if (debugging) write(iprint,*) ' calculating density...'
        if (icty.le.0) call iterate_density
 !
+!--calculate signal velocity
+!
+!       vsig2 = dot_product(Bin(:,i),Bin(:,i)
+!
 !--now evolve the constrained magnetic field within the hydro timestep
 !      
 !       do j=1,nsubsteps
 !
 !--calculate div B and grad psi terms for evolution equations
 !                
-!          call get_divBgradpsi(Btemp,psi,divB,gradpsi,ntot)
+!          call get_divBgradpsi(divB,gradpsi,Btemp,psitemp,x,hh,pmass,npart,ntot)
 !
 !--evolve B and psi
 !
