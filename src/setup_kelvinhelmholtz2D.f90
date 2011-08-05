@@ -111,10 +111,13 @@ subroutine setup
 !
     !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
     !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
-    if (abs(x(2,i)-0.25).lt.0.05 .or. abs(x(2,i)+0.25).lt.0.05) then
-       vel(2,i) = 0.05*sin(2.*pi*(x(1,i)+0.5)*6.)
+    if (abs(x(2,i)-0.25).lt.0.025 .or. abs(x(2,i)+0.25).lt.0.025) then
+       vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
     endif
  enddo
+ 
+ !!omegakh = sqrt(densmedium/denszero)*1.0/(denszero + densmedium)
+ print*,' tau_kh = ',sqrt(densmedium/denszero)*(1./6.)
 !
 !--get rho from a sum and then set u to give a
 !  smooth pressure
@@ -131,3 +134,36 @@ subroutine setup
   
  return
 end
+
+subroutine modify_dump
+ use loguns, only:iprint
+ use part
+ use options, only:imhd
+ use timestep, only:time
+ use setup_params, only:pi
+ implicit none
+ integer :: i
+!
+!--now assign particle properties
+!
+ write(iprint,*) 'modifying dump with velocities for Kelvin-Helmholtz run'
+ do i=1,ntotal
+    vel(:,i) = 0.
+    if (abs(x(2,i)).lt.0.25) then
+       vel(1,i) = 0.5 
+    else
+       vel(1,i) = -0.5
+    endif
+!
+!--add random velocity perturbation
+!
+    !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
+    !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
+    if (abs(x(2,i)-0.25).lt.0.025 .or. abs(x(2,i)+0.25).lt.0.025) then
+       vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
+    endif
+ enddo
+
+ time = 0.
+ 
+end subroutine modify_dump
