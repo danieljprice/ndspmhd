@@ -113,7 +113,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
 
                 hfacwabj = hj1**ndim
                 rij = sqrt(rij2)
-                dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
+                dr(1:ndim) = dx(1:ndim)/(rij + tiny(rij))  ! unit vector
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
@@ -134,8 +134,8 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
                    call cross_product3D(Bi(:),dr,curlBtermi)
                    call cross_product3D(Bvec(:,j),dr,curlBtermj)
                    curlBterm(:) = (curlBtermi(:)*rho21gradhi*grkerni + curlBtermj(:)/rho(j)**2*grkernj)
-                   curlBi(:) = curlBi(:) - pmass(j)*curlBterm(:)
-                   curlB(:,j) = curlB(:,j) + pmassi*curlBterm(:)
+                   curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)
+                   curlB(:,j) = curlB(:,j) - pmassi*curlBterm(:)
                 
                 case(3)  ! (dB using weights) -- multiply by weight below
                    grkerni = grkerni*hi1
