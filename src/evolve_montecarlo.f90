@@ -27,7 +27,8 @@ subroutine evolve
  integer, parameter :: nexact = 10001
  real, dimension(nexact) :: xexact, yexact
  real, dimension(npart) :: rr,fmag,residual
- real :: errL1,errL2,errLinf,toterrL2,toterrLinf,xmin,xmax,dxexact
+ real, dimension(2) :: msphere,rsoft
+ real :: errL1,errL2,errLinf,toterrL2,toterrLinf,xmin,xmax,dxexact,t1,t2
 !
 !--allow for tracing flow
 !      
@@ -83,7 +84,10 @@ subroutine evolve
 !--calculate the conservative quantities (rho, en, B/rho)
 !  this also sets the smoothing length and calculates forces
 !
+    call cpu_time(t1)
     call primitive2conservative
+    call cpu_time(t2)
+    print*,'cpu time used = ',t2-t1
 !
 !--compute exact solution for comparison
 !
@@ -99,7 +103,11 @@ subroutine evolve
        xexact(i) = xmin + (i-1)*dxexact
     enddo
 
-    call exact_densityprofiles(3,1,1.0,1.0,xexact,yexact,ierr)
+    msphere(1) = 0.5
+    msphere(2) = 0.5
+    rsoft(1) = 1.0
+    rsoft(2) = 0.1
+    call exact_densityprofiles(3,1,msphere,rsoft,xexact,yexact,ierr)
     call calculate_errors(xexact,yexact,rr,fmag,residual, &
          errL1,errL2,errLinf)
     toterrL2 = toterrL2 + errL2
