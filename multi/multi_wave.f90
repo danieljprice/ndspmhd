@@ -11,6 +11,8 @@ PROGRAM multirun
  USE timestep
  USE xsph
  USE anticlumping
+ 
+ USE infiles
  IMPLICIT NONE
  INTEGER :: i,j,nruns
  INTEGER :: ierr 
