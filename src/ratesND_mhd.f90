@@ -376,13 +376,6 @@ SUBROUTINE get_rates
 !		vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
 !		vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 !
-!--magnetosonic speed
-!		vsigi = SQRT(spsoundi**2+valfven2i+beta*viss*viss)
-!		vsigj = SQRT(spsoundj**2+valfven2j+beta*viss*viss)
-!--crap version		    
-!		vsigi = MAX(spsoundi,SQRT(valfven2i))
-!		vsigj = MAX(spsoundj,SQRT(valfven2j))
-
 		vsig = vsigi + vsigj + beta*viss
 	
 !		vsigdtc = vsig		! this is Joe's sigma
@@ -413,17 +406,10 @@ SUBROUTINE get_rates
 		   dBdtvisc(:) = 0.
 		   envisc = 0.
 		   uvisc = 0.
-!     		   vissB = -0.5*(DOT_PRODUCT(dB,dB)-projdB**2)
-!		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1**2
-!		   envisc = 0.5*alphaav*vsig*(vissB)*rhoav1*grkern!*abs(rx)
-!		   print*,'Bvisc, envisc = ',dBdtvisc,envisc
 	        ENDIF		
 !
 !--time step control (courant and viscous)
 !
-!		IF (0.8*hav/vsigdtc .LT. dtcourant) THEN
-!		   PRINT*,' new dtcourant = ',0.8*hav/vsigdtc,hav,vsigdtc,i,j
-!		ENDIF
 	        dtcourant = min(dtcourant,0.8*hav/vsigdtc)
 !
 !--time derivative of density (continuity equation)
@@ -460,15 +446,6 @@ SUBROUTINE get_rates
 		             - pmassj*(prterm*dr(:)+visc*vunit(:)*grkern)
 		  force(:,j) = force(:,j)	&
 		             + pmassi*(prterm*dr(:)+visc*vunit(:)*grkern)  
-!		  force(1,i) = force(1,i)	&
-!		             - pmassj*(prterm*dr(1)+visc*dr(1)*grkern)
-!		  force(1,j) = force(1,j)	&
-!		             + pmassi*(prterm*dr(1)+visc*dr(1)*grkern)  
-!		  force(2,i) = force(2,i)	&
-!		             - pmassj*(viscy*dr(1)*grkern)
-!		  force(2,j) = force(2,j)	&
-!		             + pmassi*(viscy*dr(1)*grkern)  
-
 		ELSE
 		  force(:,i) = force(:,i) - pmassj*prterm*dr(:)
 		  force(:,j) = force(:,j) + pmassi*prterm*dr(:)		
@@ -582,17 +559,10 @@ SUBROUTINE get_rates
 !
 !  (evolving B/rho)
 	          IF (imhd.EQ.1) THEN
-!		     IF (ianticlump.EQ.1 .AND. imagforce.EQ.2) THEN
-!		     dBfielddt(:,i) = dBfielddt(:,i)		&
-!                   - pmassj*(dvel(:)*projBrhoi)*grkerni*(1.-Rjoe) 
-!		     dBfielddt(:,j) = dBfielddt(:,j) 		&
-!     		   - pmassi*(dvel(:)*projBrhoj)*grkernj*(1.-Rjoe)	     
-!		     ELSE
 		     dBfielddt(:,i) = dBfielddt(:,i)		&
                    - pmassj*(dvel(:)*projBrhoi)*grkerni 
 		     dBfielddt(:,j) = dBfielddt(:,j) 		&
      		   - pmassi*(dvel(:)*projBrhoj)*grkernj
-!		     ENDIF
 
 		     IF (iav.EQ.2) THEN		! add dissipative term ***check
 	                dBfielddt(:,i) = dBfielddt(:,i)		&
@@ -676,8 +646,6 @@ SUBROUTINE get_rates
 		   ENDIF	   
 ! (dissipation term)
 		   IF (ndimV.GT.ndim) THEN
-!		      v2i = DOT_PRODUCT(veli,veli)	! total kinetic energy
-!		      v2j = DOT_PRODUCT(velj,velj)
 		      v2i = DOT_PRODUCT(veli,vunit)**2.	! along velocity line
 		      v2j = DOT_PRODUCT(velj,vunit)**2.	! (use in 1.5D)
 		   ELSE
