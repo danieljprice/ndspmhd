@@ -243,14 +243,3 @@ SUBROUTINE evwrite(t,etot,momtot)
  
  RETURN
 END SUBROUTINE evwrite
-
-subroutine cross_product3D(veca,vecb,vecc)
- implicit none
- real, dimension(3), intent(in) :: veca,vecb
- real, dimension(3), intent(out) :: vecc
- 
- vecc(1) = veca(2)*vecb(3) - veca(3)*vecb(2)
- vecc(2) = veca(3)*vecb(1) - veca(1)*vecb(3)
- vecc(3) = veca(1)*vecb(2) - veca(2)*vecb(1)
-
-end subroutine cross_product3D

@@ -14,8 +14,8 @@ subroutine minmaxave(x,xmin,xmax,xav,npts)
   real, intent(out) :: xmin,xmax,xav
   
   xav = 0.
-  xmin = 1.e10
-  xmax = -1.e10
+  xmin = huge(xmin)
+  xmax = -xmin
   do i=1,npts
      xav = xav + x(i)
      xmin = min(xmin,x(i))
@@ -25,3 +25,14 @@ subroutine minmaxave(x,xmin,xmax,xav,npts)
 
   return
 end subroutine minmaxave
+
+subroutine cross_product3D(veca,vecb,vecc)
+ implicit none
+ real, dimension(3), intent(in) :: veca,vecb
+ real, dimension(3), intent(out) :: vecc
+ 
+ vecc(1) = veca(2)*vecb(3) - veca(3)*vecb(2)
+ vecc(2) = veca(3)*vecb(1) - veca(1)*vecb(3)
+ vecc(3) = veca(1)*vecb(2) - veca(2)*vecb(1)
+
+end subroutine cross_product3D
