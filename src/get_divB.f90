@@ -113,7 +113,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-	     IF (((q2.LT.radkern2).OR.(q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
+	     IF (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
 		  .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
 !     
 !--interpolate from kernel table          
