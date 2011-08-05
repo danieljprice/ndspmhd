@@ -30,18 +30,6 @@ SUBROUTINE initialise
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
  INTEGER :: i,j
 !
-!--try reading rootname from the command line
-!
- CALL getarg(1,rootname)
-! 
-!--If nothing on command exit and print usage
-!
- IF (rootname(1:1).EQ.' ') THEN
-10  WRITE(6,*) 'Enter name of run:'
-    READ(*,*,ERR=10) rootname
-!    STOP 'Usage: spmhd runname '
- ENDIF
-!
 !--add extensions to set filenames (remove trailing blanks)
 !
  infile = TRIM(rootname)//'.in'
