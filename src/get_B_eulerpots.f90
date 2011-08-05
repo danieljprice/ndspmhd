@@ -8,6 +8,11 @@ module getBeulerpots
  
 contains
 
+!
+!--iderivtype:
+!  1: compute B = \nabla\alpha x \nabla\beta
+!  2: compute B = curl (alpha)
+!
 subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfield,remap)
  use dimen_mhd,    only:ndim,ndimV,idim
  use debug,        only:trace
@@ -21,6 +26,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  use part,         only:itype,ntotal
  use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
  use bound,        only:ireal
+ use options,      only:iuse_exact_derivs
 !
 !--define local variables
 !
@@ -51,7 +57,6 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real :: rho21i,rho21gradhi,denom,ddenom
  real, dimension(ntotal) :: h1
  real, dimension(ndimV,ndimV,ntotal) :: gradalpha, gradbeta
- logical :: use_exact_linear = .true.
 !
 !--allow for tracing flow
 !      
@@ -178,7 +183,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  do i=1,npart
     select case(iderivtype)
     case default
-       if (use_exact_linear) then
+       if (iuse_exact_derivs.gt.0) then
           call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
           !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
           if (abs(denom).gt.epsilon(denom)) then
@@ -199,22 +204,30 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
        endif
 
-       !--compute B = grad alpha x grad beta
-       do k=1,ndimV
-          call cross_product3D(gradalpha(:,k,i),gradbeta(:,k,i),Bk)
-          !print*,i,' B = B + ',Bk(:)
-          Bfield(:,i) = Bfield(:,i) + Bk(:)
-       enddo
-       !--remap to a new set of potentials
-       if (remap) then
-          !print*,i,' old vector potential = ',alphapot(:,i)
-          alphapoti(:) = 0.
+       if (iderivtype.eq.2) then
+          !--compute B = curl alpha (i.e., eps_ijk grad^j alpha^k)
+          call curl3D_epsijk(gradalpha(:,:,i),Bfield(:,i))
+          !print*,i,'Bfield from curl A= ',Bk(:)
+       else
+          !--compute B = grad alpha x grad beta
           do k=1,ndimV
-             alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradbeta(:,k,i)
+             call cross_product3D(gradalpha(:,k,i),gradbeta(:,k,i),Bk)
+             !print*,i,' B = B + ',Bk(:)
+             Bfield(:,i) = Bfield(:,i) + Bk(:)
           enddo
-          !print*,i,' new vector potential = ',alphapoti(:)
-          alphapot(:,i) = alphapoti(:)
-          betapot(1:ndim,i) = x(1:ndim,i)
+          !print*,i,' Bfield from grad alpha x grad beta = ',Bfield(:,i)
+          !read*
+          !--remap to a new set of potentials
+          if (remap) then
+             !print*,i,' old vector potential = ',alphapot(:,i)
+             alphapoti(:) = 0.
+             do k=1,ndimV
+                alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradbeta(:,k,i)
+             enddo
+             !print*,i,' new vector potential = ',alphapoti(:)
+             alphapot(:,i) = alphapoti(:)
+             betapot(1:ndim,i) = x(1:ndim,i)
+          endif
        endif
     end select
  enddo
