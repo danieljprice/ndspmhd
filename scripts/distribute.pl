@@ -52,7 +52,7 @@ for ($n = 1;$n<=$nruns;$n++) {
     my $cpuinuse = `ssh cornfed /home/dprice/ndspmhd/checkcpu.pl`;
     print "cpu percentage in use = $cpuinuse";
     if ( $cpuinuse < 50.0 ) {print "plenty of space available..."};
-    ##system "ssh $machine nice 19 ./1DSPMHD $rootname$n \>\>& $rootname$n.output \& \n";
+    ##system "ssh $machine nice +19 ./1DSPMHD $rootname$n \>\>& $rootname$n.output \& \n";
 # run this script
     print "doing run $rootname$n on machine @machines[$n1]\n";
 ##    system "./$rootname/$scriptfile"    
