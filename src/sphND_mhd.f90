@@ -66,6 +66,7 @@ PROGRAM SUPERSPMHD_ND
 !   * conservative2primitive and primitive2conservative
 !   * eos rehashed
 !   * setup is on primitive variables  
+!   * psep sent to set_uniform_cartesian
 !    version = 'NDSPMHD-3D-v5-0'
 !   *** saved as working 3D version ***
 !   * equations use general alternative formulation

@@ -12,7 +12,6 @@ SUBROUTINE setup
  USE bound
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -35,7 +34,7 @@ SUBROUTINE setup
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(1,xmin,xmax,.false.)
+ CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass

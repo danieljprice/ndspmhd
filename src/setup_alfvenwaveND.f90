@@ -87,7 +87,7 @@ SUBROUTINE setup
 !--initially set up a uniform density grid (also determines npart)
 !
  PRINT*,' setting up uniform density grid'
- CALL set_uniform_cartesian(2,xmin,xmax,.false.)	! 2 = close packed
+ CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !
