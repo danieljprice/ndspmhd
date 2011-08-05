@@ -1,5 +1,6 @@
 !!--------------------------------------------------------------------
-!! Computes the rates of change of everything (forces, energy eqn etc)
+!! Computes the rates of change of the conserved variables
+!! (forces, energy etc)
 !! This is the core of the SPH algorithm
 !!--------------------------------------------------------------------
 
@@ -147,7 +148,7 @@ SUBROUTINE get_rates
        phi(:) = 1.0 
  END SELECT
 !
-!--calculate kernel for Joe's correction term
+!--calculate kernel for the MHD anticlumping term
 !
  IF (ianticlump.EQ.1) THEN
   q2joe = (1./hfact)**2	! 1/hfact is initial particle spacing in units of h 
@@ -664,8 +665,6 @@ SUBROUTINE get_rates
        CASE(1)		! toy star (linear in co-ordinates)
           force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
     END SELECT
-!    IF (itoystar.EQ.1) force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
-
 !
 !--add gravitational force
 !
