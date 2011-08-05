@@ -54,6 +54,7 @@ SUBROUTINE step
        alpha(i) = alphain(i)
        psi(i) = psiin(i)
     ELSE
+       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        IF (ihvar.EQ.1) THEN
@@ -64,7 +65,6 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*daldt(i)	 
        psi(i) = psiin(i) + hdt*dpsidt(i)  
     ENDIF
@@ -122,8 +122,8 @@ SUBROUTINE step
        hh(i) = hhin(i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = velin(:,i) + hdt*force(:,i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
+       vel(:,i) = velin(:,i) + hdt*force(:,i)	    
        IF (ihvar.EQ.2) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
 	  IF (hh(i).LE.0.) THEN
