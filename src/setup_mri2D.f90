@@ -1,5 +1,6 @@
 !----------------------------------------------------------------
-!     Set up a uniform density cartesian grid of particles in ND
+!     Set up for the 2D (r-z) MRI test problem described in 
+!     Hawley & Balbus, ApJ 376, 223-233 (1991)
 !----------------------------------------------------------------
 
 subroutine setup
@@ -20,8 +21,8 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i
- real :: massp,volume,totmass
+ integer :: i,j,ipart,npartr,npartz
+ real :: massp,volume,totmass,deltar,deltaz,deltarav,rpos,zpos
  real :: denszero,uuzero,cs0,polyk0,Rcentre
  real :: przero,Bzeroz,asize,betamhd
 !
@@ -56,14 +57,43 @@ subroutine setup
  xmax(2) = 0.5*asize
 !
 !--set up the uniform density grid
+!  NB: uniform density in r-z means r spacing decreases linearly
 !
- call set_uniform_cartesian(11,psep,xmin,xmax,.false.,perturb=0.1)
+ npartr = int((xmax(1)-xmin(1))/psep)    
+ npartz = int((xmax(2)-xmin(2))/psep)
+ deltarav = (xmax(1)-xmin(1))/npartr
+ deltaz = (xmax(2)-xmin(2))/npartz
+ print*,'deltarav,deltaz = ',deltarav,deltaz
+ print*,'npartr, npartz = ',npartr,npartz
+ npart = npartr*npartz
+ call alloc(npart)
+     
+ ipart = 0
+ do j=1,npartz
+    zpos = xmin(2) + (j-0.5)*deltaz
+    rpos = xmin(1)
+    do i=1,npartr
+       ipart = ipart + 1
+       deltar = deltarav*Rcentre/rpos
+       !print*,'deltar = ',deltar, ' at r = ',rpos
+       rpos = rpos + 0.5*deltar
+       x(1,ipart) = rpos
+       x(2,ipart) = zpos
+       rpos = rpos + 0.5*deltar
+    enddo
+ enddo
+ !--adjust outer r boundary to fall halfway between lattice points
+ xmax(1) = rpos
+ print*,ipart,npart
+! call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass
 !
  denszero = 1.0
- volume = product(xmax(:)-xmin(:))
+!--volume is difference between 2 circles times z height
+!  utterly no idea where the factor of 2 comes from
+ volume = 0.5*(xmax(1)**2 - xmin(1)**2)*(xmax(2)-xmin(2)) 
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
 !
@@ -72,7 +102,7 @@ subroutine setup
  przero = 1.e-5
  cs0 = gamma*przero/denszero
  uuzero = przero/(denszero*(gamma-1.))
- polyk0 = (gamma-1.)*denszero**(1.-gamma)*uuzero
+ polyk0 = przero/denszero**gamma
  write(iprint,*) ' cs0 = ',cs0, ' u = ',uuzero
  write(iprint,*) ' polyk = ',polyk,' should be = ',polyk0
  polyk = polyk0
@@ -80,7 +110,7 @@ subroutine setup
  write(iprint,*) ' Omega_c = ',Omega, ' R_c = ',Rcentre
 
 !
-!--field strength
+!--field strength (beta = pr/(0.5*B^2))
 !
  betamhd = 1000.
  Bzeroz = sqrt(2.*przero/betamhd)
@@ -100,7 +130,7 @@ subroutine setup
     if (x(1,i).gt.(Rcentre-0.2*asize) .and. x(1,i).lt.(Rcentre+0.2*asize)) then
        Bfield(2,i) = Bzeroz
     endif
-    vel(3,i) = -1.5*Omega*x(1,i)
+    vel(3,i) = 1./x(1,i)**1.5 !!Omega
  enddo 
 !
 !--allow for tracing flow
