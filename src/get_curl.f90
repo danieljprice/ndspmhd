@@ -133,8 +133,8 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
                 !
                 !--compute rho * current density j
                 !
-                curlB(:,i) = curlB(:,i) - pmass(j)*curlBi(:)*grkerni
-                curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkernj
+                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni
+                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj
                 !      else
                 !         print*,' r/h > 2 '      
                 
