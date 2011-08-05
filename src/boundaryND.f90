@@ -12,7 +12,7 @@ subroutine boundary
  
  use bound, only:xmin,xmax
  use options, only:ibound
- use part, only:x,vel,npart
+ use part, only:x,vel,npart,x0
  use part_in, only:velin,xin
  use timestep, only:time
  use setup_params, only:Omega0,domegadr
@@ -51,11 +51,13 @@ subroutine boundary
              if (x(jdim,i).gt.xmax(jdim)) then
 !                print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
                 x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
+                if (allocated(x0)) x0(jdim,i) = xmin(jdim) + x0(jdim,i) - xmax(jdim)
                 ncross = ncross + 1
              elseif(x(jdim,i).lt.xmin(jdim)) then
 !                print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)             
 !                read*
                 x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
+                if (allocated(x0)) x0(jdim,i) = xmax(jdim) - (xmin(jdim) - x0(jdim,i))
                 ncross = ncross + 1
              endif          
           endif
