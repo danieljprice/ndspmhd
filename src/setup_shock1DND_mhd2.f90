@@ -23,11 +23,12 @@ SUBROUTINE setup
  USE options
  USE part
  USE setup_params
+ USE mem_allocation, only:alloc
 !
 !--define local variables
 !      
  IMPLICIT NONE
- INTEGER :: i,j,ntot
+ INTEGER :: i,j,ntot,npartleft,npartright
  REAL :: xcentre,densleft,densright,denshalf,uuleft,uuright
  REAL :: prleft, prright, exx, delta
  REAL :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
@@ -117,13 +118,16 @@ SUBROUTINE setup
 !
 ! allocate memory to start with
 !
- ntot = 2000
+ ntot = (xcentre - xmin(1))/psepleft + (xmax(1) - xcentre)/psep
+ npartleft = int((xcentre - xmin(1))/psepleft)
+ npartright = int((xmax(1) - xcentre)/psep)
+ print*,'npartleft = ',npartleft,' npartright = ',npartright
  CALL alloc(ntot)
 !
 !--setup the particles using the parameters given
 ! 
  x(1,1) = xmin(1) + 0.5*psepleft
- x(1,2) = xmin(1) + psep*densright/densleft + 0.5*psepleft
+ x(1,2) = xmin(1) + 1.5*psepleft
  DO i=1,2
     dens(i) = densleft
     uu(i) = uuleft
@@ -136,26 +140,32 @@ SUBROUTINE setup
     ENDIF 
  ENDDO
  
- j = 2     
- DO WHILE (x(1,j).LT.xmax(1) .AND. x(1,j).GT.xmin(1))
+! j = 2     
+ npart = npartleft + npartright
+ DO j=1,npart
+    if (j.le.npartleft) then
+       x(1,j) = xcentre - (npartleft-j-1)*psepleft - 0.*psepleft
+    else
+       x(1,j) = xcentre + (j-npartleft-1)*psep + 1.0*psep
+    endif
     dx0 = massp/dens(j)
-    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
-    delta = xhalf/psep
-    j = j + 1 
-    IF (delta.lt.-dsmooth) THEN
-       denshalf = densleft
-    ELSEIF (delta.gt.dsmooth) THEN
-       denshalf = densright
-    ELSE
-       exx = exp(delta)
-       denshalf = (densleft+ densright*exx)/(1+exx)
-    ENDIF
+!    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
+!    delta = xhalf/psep
+!    j = j + 1 
+!    IF (delta.lt.-dsmooth) THEN
+!       denshalf = densleft
+!    ELSEIF (delta.gt.dsmooth) THEN
+!       denshalf = densright
+!    ELSE
+!       exx = exp(delta)
+!       denshalf = (densleft+ densright*exx)/(1+exx)
+!    ENDIF
 !---------------------------------------------------	    
 !     calculate half steps then final step
 !---------------------------------------------------	    
-    dxhalf = massp/denshalf
-    dx1 = 2.*dxhalf - dx0
-    x(1,j) = xhalf + 0.5*dx1
+!    dxhalf = massp/denshalf
+!    dx1 = 2.*dxhalf - dx0
+!    x(1,j) = xhalf + 0.5*dx1
     delta = (x(1,j)-xcentre)/psep
     IF (delta.lt.-dsmooth) THEN
        dens(j) = densleft
@@ -197,7 +207,7 @@ SUBROUTINE setup
  Bconst(:) = 0.
  Bconst(1) = Bxinit
 
- npart = j-1
+ !npart = j-1
  ntotal = npart
  print*,'end of setup, npart = ',npart
 !
