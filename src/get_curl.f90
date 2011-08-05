@@ -89,7 +89,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        rho21i = 1./rho(i)**2
        rho21gradhi = rho21i*gradh(i)
        curlBi(:) = 0.
-       if (present(curlBgradh)) curlBgradhi(:) = 0.
+       curlBgradhi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
