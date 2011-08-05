@@ -138,7 +138,8 @@ SUBROUTINE step
 !--if doing divergence correction then do correction to magnetic field
 ! 
 ! IF (idivBzero.NE.0) CALL divBcorrect
-!
+ IF (ANY(ibound.NE.0)) CALL boundary        ! inflow/outflow/periodic boundary conditions
+
 !
 !--set new timestep from courant/forces condition
 !
