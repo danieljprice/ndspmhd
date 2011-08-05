@@ -156,11 +156,10 @@ SUBROUTINE density
 !  need to divide by rho once rho is known
 
 	       gradh(i) = gradh(i) + dhdrhoi*pmass(j)*weight*dwdhi
-	       gradh(j) = gradh(j) + dhdrhoj*pmass(i)*weight*dwdhj
-		  
+	       gradh(j) = gradh(j) + dhdrhoj*pmass(i)*weight*dwdhj		  
 	    ELSE
 	       rho(i) = rho(i) + pmass(j)*wab*weight		
-	       rho(j) = rho(j) + pmass(i)*wab*weight	
+	       rho(j) = rho(j) + pmass(i)*wab*weight
 	    ENDIF
 !	 ELSE
 !	    PRINT*,' r/h > 2 '      
