@@ -108,7 +108,7 @@ SUBROUTINE evwrite(t)
 !
        fmagabs = 1.	!SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
        IF (fmagabs.GT.1.e-6) THEN
-!          FdotBi = DOT_PRODUCT(fmag(:,i),Bi(:))/(fmagabs*Bmagi)
+!          FdotBi = DOT_PRODUCT(fmag(:,i),Bi(:))/(forcei(:,i)*Bmagi)
        ELSE
           FdotBi = 0.
        ENDIF
