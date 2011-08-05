@@ -3,10 +3,9 @@
 !!  Velocity field for periodic MHD turbulence simulations in 1D          !!
 !!                                                                        !!
 !!  Power spectrum of Gaussian random perturbations                       !!
-!!  Based partly on a similar code used by M. Bate & Volker Bromm         !!
-!!
-!!  Power spectrum is normalised according to the total specific
-!!  kinetic energy of the particles.
+!!                                                                        !!
+!!  Power spectrum is normalised according to the total specific          !!
+!!  kinetic energy of the particles.                                      !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
@@ -90,28 +89,8 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
     PRINT*,ifreq,amplk(ifreq),sigma,phase(ifreq)
 
  ENDDO
-!
-!--having got the amplitude of each frequency, we need to convert this back
-!  from k-space to real space, to work out the actual velocity perturbation
-!  at each point in space.
-!
-!  So, for each grid point, we sum over all the frequencies.
-!
-!
-!--to do this fast we would need to insert an inverse fourier transform here
-!
- WRITE(iprint,*) ' Constructing velocity field'
- 
-! DO i=1,ngrid
-!    xgrid(i) = xmin(1) + (i-1)*dxgrid + 0.5*dxgrid
-!    DO ifreq=1,nfreq
-!       wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
-!       wkdotx = wk*(xgrid(i)-xmin(1))
-!       vperp(i) = vperp(i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
-!    ENDDO
-! ENDDO
 
-! WRITE(iprint,*) ' Interpolating to particles...'
+ WRITE(iprint,*) ' Constructing velocity field'
 !
 !--now interpolate from the fixed grid to the SPH particles
 !
@@ -119,18 +98,15 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 
  DO i=1,npart
 !
-!--work out nearest grid point
-!    
-!    igrid = INT((xin(1,i) - xmin(1))/dxgrid) + 1 	! closest grid point
-!    PRINT*,'particle ',i,' grid = ',igrid,xin(1,i)
-!    dxx = xin(1,i) - xgrid(igrid) 		! distance of particle from pt 
-!    dvel = (vperp(igrid+1) - vperp(igrid))/dxgrid
+!--having got the amplitude of each frequency, we need to convert this back
+!  from k-space to real space, to work out the actual velocity perturbation
+!  at each point in space.
 !
+!  So, for each point in space, we sum over all the frequencies.
 !
-!--interpolate contribution from neighbouring grid points
-!   
-!    velin(2,i) = velin(2,i) + (vperp(igrid) + dxx*dvel)
-
+!--to do this fast we would need to insert an inverse fourier transform here
+!  and interpolate from a grid
+!
     DO ifreq=1,nfreq
        wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
        wkdotx = wk*(xin(1,i)-xmin(1))
