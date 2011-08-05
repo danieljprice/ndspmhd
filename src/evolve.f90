@@ -98,8 +98,8 @@ subroutine evolve
        else
           write(iprint,15) time,C_cour*dtcourant
        endif
-10     format(' t = ',f9.4,' dtforce = ',1pe10.3)
-15     format(' t = ',f9.4,' dtcourant = ',1pe10.3)
+10     format(' t = ',f12.4,' dtforce = ',1pe10.3)
+15     format(' t = ',f12.4,' dtcourant = ',1pe10.3)
     endif
     
 !    if (abs(dt).lt.1e-8) then
