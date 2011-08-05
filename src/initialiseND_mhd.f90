@@ -38,7 +38,7 @@ subroutine initialise
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
 !
- idash = index(rootname,'_')
+ idash = index(rootname,'_init')
  idot = index(rootname,'.dat')
  if (idash.ne.0) then
     if (idot.eq.0) then
@@ -54,7 +54,7 @@ subroutine initialise
        print*,'***starting new run using dumpfile***'
        ifile = 0
     endif
-    rootname = rootname(1:idash-1)
+    rootname = rootname(1:idash-1)    
     print*,'ifile = ',ifile,'rootname = ',trim(rootname)
     !!ifile = ifile - 1
     !stop
@@ -118,7 +118,7 @@ subroutine initialise
 !
  call set_default_options   ! set the default options
  call read_infile(infile)
- !!igeom = 2
+! geom = 'cylrpz' 
 !
 !--Open data/ev files
 !
@@ -155,7 +155,7 @@ subroutine initialise
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
  npart = 0
- 
+
  if (ifile.lt.0) then
     call setup          ! setup particles, allocation of memory is called
  else
@@ -164,8 +164,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- !!if (ifile.ge.0) call modify_dump
- !!geom = 'cylrpz'
+! if (ifile.ge.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
