@@ -118,6 +118,7 @@ MODULE options
  INTEGER, DIMENSION(3) :: iavlim
  REAL :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd
  CHARACTER(LEN=12) :: geom
+ LOGICAL :: usenumdens
 END MODULE
 
 !-------------------------------------------------------------------
