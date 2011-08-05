@@ -145,7 +145,7 @@ subroutine get_rates
 !--calculate maximum neg stress for instability correction
 !  
  stressmax = 0.
- if (imhd.ne.0) then
+ if (imhd.ne.0 .and. imagforce.eq.2) then
     do i=1,ntotal
        call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
        B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
@@ -467,7 +467,7 @@ subroutine get_rates
        if (iener.gt.0 .and. iavlim(2).gt.0) then
           !--this is using h*/sqrt(u)*(del^2 u) as the source
           sourceu = hh(i)*abs(del2u(i))/sqrt(uu(i))
-          daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
+          daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
        endif
        !
        !--artificial resistivity parameter if iavlim > 10
@@ -1011,9 +1011,9 @@ contains
     !--compute J via a direct second derivative for the vector/Euler potentials
     !  (J = -\nabla^2 \alpha)
     !
-       if (ndim.eq.2) then
+       if (ndim.le.2) then
           ! this is -\nabla^2 \alpha (equivalent to -\nabla^2 A_z in 2D)
-          dalphaterm = 2.*(Bevol(1,i)-Bevol(1,j))/rij
+          dalphaterm = 2.*(Bevol(3,i)-Bevol(3,j))/rij
           curlB(3,i) = curlB(3,i) - pmassj*rho1j*dalphaterm*grkerni
           curlB(3,j) = curlB(3,j) + pmassi*rho1i*dalphaterm*grkernj
        else
@@ -1024,15 +1024,14 @@ contains
        !--calculate curl B for current (only if field is 3D)
        !  this is used in the switch for the artificial resistivity term
        !
-       if (ndimV.eq.3) then
-          call cross_product3D(dB,dr,curlBi)
+       call cross_product3D(dB,dr,curlBi)
 !          curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
 !          curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
 !          curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-       elseif (ndimV.eq.2) then  ! just Jz in 2D
-          curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
-          curlBi(2) = 0.
-       endif
+!       elseif (ndimV.eq.2) then  ! just Jz in 2D
+!          curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
+!          curlBi(2) = 0.
+!       endif
        curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
        curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
        !
@@ -1041,9 +1040,9 @@ contains
        select case(imagforce)
        case(1)
           fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
-          fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
+          fmag(:,j) = fmag(:,j) + pmassi*fmagj(:)/rho2j
           force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
-          force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
+          force(:,j) = force(:,j) + pmassi*fmagj(:)/rho2j
        case(5)    ! Morris' Hybrid force
           fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
           fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
