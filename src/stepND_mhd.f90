@@ -84,7 +84,7 @@ SUBROUTINE step
     maxdivB = MAXVAL(ABS(divB(1:npart)))
     
     nsubsteps_divB = -1
-    IF (maxdivB.gt.0.1) then
+    IF (maxdivB.gt.1.0) then
        nsubsteps_divB = 1
     endif
     !IF (maxdivB.gt.0.) nsubsteps_divB = INT(LOG10(maxdivB))
@@ -99,7 +99,7 @@ SUBROUTINE step
           IF (ANY(ibound.GE.2)) CALL set_ghost_particles
           CALL set_linklist ! update neighbours for divB/gradpsi calls
        ENDIF
-       !!CALL output(0.0,1)
+       CALL output(0.0,1)
        DO i=1,100
           CALL substep_divB(1,dt,0,Bevol(:,1:ntotal),psi(1:ntotal), &
                          divB(1:ntotal),gradpsi(:,1:ntotal), &
@@ -107,7 +107,7 @@ SUBROUTINE step
                          rho(1:ntotal),itype(1:ntotal),npart,ntotal)
           CALL output(0.0,1)
        ENDDO
-       read*
+       !!read*
     ENDIF
  ENDIF
    
