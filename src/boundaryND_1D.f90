@@ -27,6 +27,7 @@ SUBROUTINE boundary
 !
 !--allow for tracing flow
 !      
+ debugging = .true.
  IF (trace) THEN
     WRITE(iprint,*) ' Entering subroutine boundary'
     debugging = .true.
@@ -89,13 +90,15 @@ SUBROUTINE boundary
 !       
     ELSEIF (x(1,1).LT.xmin(1)) THEN
        nsub = INT((xmin(1)-x(1,1))/psepleft) !+ 1
-       IF (debugging)       &
+       IF (debugging .and. nsub.gt.0)       &
           WRITE(iprint,*) 'outflow from left boundary npart = ',npart-nsub,nsub
-       npart = npart - nsub      ! subtract particle(s)
-       DO i=1,npart            ! relabel particles         
-          x(1,i) = x(1,i+nsub)             ! (must copy all particle properties)
-          call copy_particle(i,i+nsub)
-       ENDDO
+       IF (nsub.GT.0) THEN
+          npart = npart - nsub      ! subtract particle(s)
+          DO i=1,npart            ! relabel particles         
+             x(1,i) = x(1,i+nsub)             ! (must copy all particle properties)
+             call copy_particle(i,i+nsub)
+          ENDDO
+       ENDIF
               
     ENDIF
 !
