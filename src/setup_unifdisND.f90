@@ -34,7 +34,7 @@ SUBROUTINE setup
 !
 !--set up the uniform density grid
 !
- CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+ CALL set_uniform_cartesian(11,psep,xmin,xmax,.false.)
  ntotal = npart
 !
 !--determine particle mass

@@ -718,6 +718,7 @@ contains
        else
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
+          !!prterm = (pri - prj)/rhoij*grkern
        endif
     else
        prterm = 0.

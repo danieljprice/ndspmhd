@@ -3,7 +3,7 @@
 !!
 !!--------------------------------------------------------------------------
 
-SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
+SUBROUTINE divBcorrect(npts,ntot)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -15,8 +15,6 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
  USE timestep
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npts, ntot
- REAL, DIMENSION(ndimV,ntot), INTENT(INOUT) :: Btemp
- REAL, DIMENSION(ntot), INTENT(INOUT) :: psitemp
  REAL, PARAMETER :: pi = 3.14159265358979
  INTEGER :: i,icall
  REAL :: phi,dpi,ecrap,momcrap
@@ -79,7 +77,7 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
 !
 !--calculate the correction to the magnetic field
 ! 
-       write(iprint,"(a)",ADVANCE='NO') ' div B correction by projection step...'
+       write(iprint,"(a)",ADVANCE='NO') ' div B correction by scalar projection step...'
        CALL direct_sum_poisson(x(:,1:npart),source,phi,gradphi,npart)
 !
 !--correct the magnetic field
@@ -153,8 +151,8 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
 !
 !--calculate the correction to the magnetic field
 ! 
-       write(iprint,"(a)",ADVANCE='NO') ' div B correction by projection step...'
-!       CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
+       write(iprint,"(a)",ADVANCE='NO') ' div B correction by vector projection step...'
+       CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
 !
 !--correct the magnetic field
 !              
@@ -190,44 +188,7 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
           
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)
-       endif
-!----------------------------------------------------------------------------
-! Faster hyperbolic correction (ie with c_h faster than timestep restriction)
-!----------------------------------------------------------------------------
-    CASE(12)
-!
-!--get neighbours and calculate density if required
-!
-       if (debugging) write(iprint,*) ' linking ...'
-       call set_linklist
-       if (debugging) write(iprint,*) ' calculating density...'
-       if (icty.le.0) call iterate_density
-!
-!--calculate signal velocity
-!
-!       valfven2 = dot_product(Btemp(:,i),Btemp(:,i))/rho(i)
-!
-!--now evolve the constrained magnetic field within the hydro timestep
-!      
-!       do j=1,nsubsteps
-!
-!--calculate div B and grad psi terms for evolution equations
-!                
-!          call get_divBgradpsi(divB,gradpsi,Btemp,psitemp,x,hh,pmass,npart,ntot)
-!
-!--evolve B and psi
-!
-!          do i=1,npart
-!             Btemp(:,i) = Btemp(:,i) - dtsub*gradpsi(:,i)
-!             psi(i) = psi(i) - vsig2*divB(i)
-!          enddo
-!  
-!          if (debugging) then
-!             call output(time,nsteps)   ! output div B and Bfield before correction
-!             call evwrite(real(icall),ecrap,momcrap)
-!          endif
-!       enddo
-      
+       endif      
        
  END SELECT
  
