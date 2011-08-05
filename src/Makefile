@@ -126,7 +126,7 @@ SOURCES = sphND_mhd.f90   \
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 
 # these are the ordinary cartesian versions
-SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_mhd.f90
+SOURCES2 = allocateND.f90 conservative2primitive.f90 outputND_mhd.f90 stepND_leapfrog_mhd.f90
 
 # these files are for the gr version of the code
 SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outputND_mhd_gr.f90 \
