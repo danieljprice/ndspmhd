@@ -12,6 +12,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  USE part
  USE rates, only:force,potengrav
  USE fmagarray
+ USE timestep, only:dt
 !
 !--define local variables
 !
@@ -112,13 +113,8 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--mhd parameters
 !
     IF (imhd.NE.0) THEN
-       IF (imhd.GE.11) THEN
-          Bi(:) = Bevol(:,i)
-          Brhoi(:) = Bi(:)/rhoi
-       ELSE
-          Brhoi(:) = Bevol(:,i)
-          Bi(:) = Brhoi(:)*rhoi
-       ENDIF
+       Bi(:) = Bfield(:,i)
+       Brhoi(:) = Bi(:)/rhoi
        B2i = DOT_PRODUCT(Bi,Bi)
        Bmagi = SQRT(B2i)
        forcemagi = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))
@@ -226,7 +222,7 @@ SUBROUTINE evwrite(t,etot,momtot)
     !betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean
+    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean,dt
 40  FORMAT(24(1pe18.10,1x))        
 
  ENDIF
