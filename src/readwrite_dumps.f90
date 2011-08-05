@@ -51,6 +51,7 @@ subroutine write_dump(t,dumpfile)
  else
     ncolumns = ncolumns + 5
     iformat = 1
+    if (igravity.ne.0) ncolumns = ncolumns + 1
  endif
  if (geom(1:4).ne.'cart') then
     ncolumns = ncolumns + 2 + ndimV
@@ -114,6 +115,7 @@ subroutine write_dump(t,dumpfile)
      do i=1,ndimV
         write(idatfile) force(i,1:nprint)
      enddo
+     if (igravity.ne.0) write(idatfile) poten(1:nprint)
   endif
   if (geom(1:4).ne.'cart') then
      write(idatfile) rho(1:nprint)
