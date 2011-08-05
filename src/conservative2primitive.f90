@@ -40,6 +40,7 @@ subroutine conservative2primitive
   real, dimension(ndim) :: dxbound
   logical, parameter :: JincludesBext = .true.
   logical :: remap
+  real, parameter :: remap_tol = 1.e-1
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -72,7 +73,7 @@ subroutine conservative2primitive
   if ((imhd.eq.10 .or. imhd.eq.20 .or. imhd.eq.-3) .and. &
       nsteps_remap.gt.0 .and. mod(nsteps,nsteps_remap).eq.0) then
      remap = .true.
-     print*,' REMAPPING...'
+     !print*,' REMAPPING...'
   endif
 
   select case(imhd)
@@ -80,7 +81,7 @@ subroutine conservative2primitive
      Bfield = Bevol
   case(20)  ! remapped B
      !--remap B_0 to current B
-     call get_B_eulerpots(4,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     call get_B_eulerpots(4,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap,remap_tol)
      if (remap) then
         !
         !--recompute B field with remapped potentials (if remap=.true. on first
@@ -97,7 +98,7 @@ subroutine conservative2primitive
      endif
   case(10)  ! remapped B/rho
      !--remap B/rho to current B/rho
-     call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap,remap_tol)
      do i=1,npart
         Bfield(:,i) = Bfield(:,i)*rho(i)
      enddo
@@ -177,7 +178,7 @@ subroutine conservative2primitive
      gradpsi(:,:) = 0.
   case(:-3) ! generalised Euler potentials
      write(iprint,*) 'getting B field from Generalised Euler Potentials... '
-     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap,remap_tol)
      print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
      !--add constant field component
      do i=1,npart
@@ -190,7 +191,9 @@ subroutine conservative2primitive
         !
         emagold = emag_calc(pmass,rho,Bfield,npart)
         print*,' magnetic energy before remapping = ',emagold
-        call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,.false.)
+        remap = .false.
+        call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+        remap = .true.
         emag = emag_calc(pmass,rho,Bfield,npart)
         print*,' magnetic energy after remapping = ',emag, ' change = ',(emag-emagold)/emagold
      endif

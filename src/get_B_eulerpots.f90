@@ -14,7 +14,7 @@ contains
 !  2: compute B = curl (alpha)
 !  3: compute B.grad x0 = Bevol (i.e, B/rho.grad X^0 = B/rho_0)
 !
-subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,remap)
+subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,remap,remap_tol)
  use dimen_mhd,    only:ndim,ndimV,idim
  use debug,        only:trace
  use loguns,       only:iprint
@@ -40,7 +40,8 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,re
  real, dimension(ndimV,idim), intent(inout) :: alphapot
  real, dimension(ndimV,idim), intent(inout)  :: x0
  real, dimension(ndimV,idim), intent(out) :: Bfield
- logical, intent(in) :: remap
+ logical, intent(inout) :: remap
+ real, intent(in), optional :: remap_tol
  real :: weight
 
  integer :: i,j,n,k,ierr
@@ -58,7 +59,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,re
  real, dimension(6) :: rmatrix
  real, dimension(3,3) :: dxdx0i
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
- real :: rho21i,rho21gradhi,denom,ddenom
+ real :: rho21i,rho21gradhi,denom,ddenom,detJmin
  real, dimension(ntotal) :: h1
  real, dimension(ndimV,ndimV,ntotal) :: gradalpha, gradx0
 !
@@ -183,105 +184,129 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,re
     
  enddo loop_over_cells
 
+!
+!--finalise the gradient terms
+!  (we need to do this in a separate loop because we use the determinant
+!   as a criterion for whether or not to remap the potentials)
+!
+ detJmin = huge(detJmin)
+ do i=1,npart
+    if (iuse_exact_derivs.gt.0) then
+       call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
+       !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
+       if (abs(denom).gt.epsilon(denom)) then
+          if (denom.lt.0.) print*,'WARNING: determinant < 0 in exact derivs particle ',i
+          ddenom = 1./denom
+          do k=1,ndimV
+             call exactlinear(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
+             call exactlinear(gradx0(:,k,i),gradx0(:,k,i),rmatrix,ddenom)
+          enddo
+          !print*,i,' exact derivs, gradalpha^z = ',gradalpha(:,3,i)
+       else
+          print*,'WARNING: denominator collapsed in exact linear deriv = ',denom
+          gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
+          gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
+       endif
+       !read*
+    else
+       gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
+       gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
+    endif
+    detJ1 = det(gradx0(:,:,i))
+    
+    detJmin = min(detJ1,detJmin)
+ enddo
+
+ if (present(remap_tol)) then
+    remap = .false.
+    if (detJmin < remap_tol) then
+       print*,' minimum det(J) = ',detJmin, ': REMAPPING...'
+       remap = .true.
+    else
+       print*,' minimum det(J) = ',detJmin
+    endif
+ endif
+
+ !--determine whether or not to remap the particles
  errtot = 0.
  errmax = 0.
  ierrmax = 0
  detJmax = 0.
  iJmax = 0
  do i=1,npart
+    !
+    !--determinant of 3x3 matrix dx0/dx
+    !
+    detJ1 = det(gradx0(:,:,i))
     select case(iderivtype)
-    case default
-       if (iuse_exact_derivs.gt.0) then
-          call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
-          !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
-          if (abs(denom).gt.epsilon(denom)) then
-             if (denom.lt.0.) print*,'WARNING: determinant < 0 in exact derivs particle ',i
-             ddenom = 1./denom
-             do k=1,ndimV
-                call exactlinear(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
-                call exactlinear(gradx0(:,k,i),gradx0(:,k,i),rmatrix,ddenom)
-             enddo
-             !print*,i,' exact derivs, gradalpha^z = ',gradalpha(:,3,i)
-          else
-             print*,'WARNING: denominator collapsed in exact linear deriv = ',denom
-             gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
-             gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
-          endif
-          !read*
-       else
-          gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
-          gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
+    case(3,4)
+       !--remapping of B/rho
+       !  (alphapot is B/rho_0, send out B/rho new as Bfield)
+       alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
+       call matrixinvert3D(gradx0(:,:,i),dxdx0i,ierr)
+       !print*,'matrix inverse = ',matmul(gradx0(:,:,i),dxdx0i)
+       if (ierr.ne.0) then ! NB, this is non-fatal (just means B = 0)
+          print*,'WARNING: could not invert matrix in remapping, det = ',detJ1
        endif
-
-       if (iderivtype.eq.3 .or. iderivtype.eq.4) then
-          !--remapping of B/rho
-          !  (alphapot is B/rho_0, send out B/rho new as Bfield)
-          alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
-          call matrixinvert3D(gradx0(:,:,i),dxdx0i,ierr)
-          !print*,'matrix inverse = ',matmul(gradx0(:,:,i),dxdx0i)
-          detJ1 = det(gradx0(:,:,i))
-          if (ierr.ne.0) then ! NB, this is non-fatal (just means B = 0)
-             print*,'WARNING: could not invert matrix in remapping, det = ',detJ1
-          endif
 !          if (detJ1.le.0.) then
 !             print*,'ERROR: determinant collapsed in remapping, particle ',i
 !             print*,'J = ',detJ1, 'should be rho0/rho = ',rho0(i)/rho(i)
 !          endif                
-          detJ2 = rho(i)/rho0(i)
-          err = abs(detJ1-detJ2)
-          errtot = errtot + err
-          if (err.gt.errmax) then             
-             errmax = err
-             ierrmax = i
-          endif
-          if (detJ1.gt.detJmax) then
-             detJmax = detJ1
-             iJmax = i
-          endif
-             !print*,' abs error in J vs rho0/rho = ',abs(detJ1-detJ2)
+       detJ2 = rho(i)/rho0(i)
+       err = abs(detJ1-detJ2)
+       errtot = errtot + err
+       if (err.gt.errmax) then             
+          errmax = err
+          ierrmax = i
+       endif
+       if (detJ1.gt.detJmax) then
+          detJmax = detJ1
+          iJmax = i
+       endif
+          !print*,' abs error in J vs rho0/rho = ',abs(detJ1-detJ2)
 !          print*,'J = det(dx/dx0) = ',detJ1,' rho_0/rho = ',detJ2
 
-          if (iderivtype.eq.4) then
-             Bfield(:,i) = matmul(alphapoti,dxdx0i)*detJ1  ! this is B (new)
-          else
-             Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
-          endif
+       if (iderivtype.eq.4) then
+          Bfield(:,i) = matmul(alphapoti,dxdx0i)*detJ1  ! this is B (new)
+       else
+          Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
+       endif
 !          do k=1,ndimV
 !             Bfield(k,i) = dot_product(alphapoti(:),dxdx0i(:,k))
 !          enddo
-          if (remap) then
-             alphapot(:,i) = Bfield(:,i)
-             x0(1:ndim,i) = x(1:ndim,i)
-             rho0(i) = rho(i)
-          endif
-       elseif (iderivtype.eq.2) then
-          !--compute B = curl alpha (i.e., eps_ijk grad^j alpha^k)
-          call curl3D_epsijk(gradalpha(:,:,i),Bfield(:,i))
-          !print*,i,'Bfield from curl A= ',Bk(:)
-       else
-          Bfield(:,i) = 0.
-          !--compute B = grad alpha x grad x0
+       if (remap) then
+          alphapot(:,i) = Bfield(:,i)
+          x0(1:ndim,i) = x(1:ndim,i)
+          rho0(i) = rho(i)
+       endif
+    case(2)
+       !--compute B = curl alpha (i.e., eps_ijk grad^j alpha^k)
+       call curl3D_epsijk(gradalpha(:,:,i),Bfield(:,i))
+       !print*,i,'Bfield from curl A= ',Bk(:)
+    case default
+       Bfield(:,i) = 0.
+       !--compute B = grad alpha x grad x0
+       do k=1,ndimV
+          call cross_product3D(gradalpha(:,k,i),gradx0(:,k,i),Bk)
+          !print*,i,' B = B + ',Bk(:)
+          Bfield(:,i) = Bfield(:,i) + Bk(:)
+       enddo
+       !print*,i,' Bfield from grad alpha x grad x0 = ',Bfield(:,i)
+       !read*
+       !--remap to a new set of potentials
+       if (remap) then
+          !print*,i,' old vector potential = ',alphapot(:,i)
+          alphapoti(:) = 0.
           do k=1,ndimV
-             call cross_product3D(gradalpha(:,k,i),gradx0(:,k,i),Bk)
-             !print*,i,' B = B + ',Bk(:)
-             Bfield(:,i) = Bfield(:,i) + Bk(:)
+             alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradx0(:,k,i)
           enddo
-          !print*,i,' Bfield from grad alpha x grad x0 = ',Bfield(:,i)
-          !read*
-          !--remap to a new set of potentials
-          if (remap) then
-             !print*,i,' old vector potential = ',alphapot(:,i)
-             alphapoti(:) = 0.
-             do k=1,ndimV
-                alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradx0(:,k,i)
-             enddo
-             !print*,i,' new vector potential = ',alphapoti(:)
-             alphapot(:,i) = alphapoti(:)
-             x0(1:ndim,i) = x(1:ndim,i)
-          endif
+          !print*,i,' new vector potential = ',alphapoti(:)
+          alphapot(:,i) = alphapoti(:)
+          x0(1:ndim,i) = x(1:ndim,i)
        endif
     end select
  enddo
+
  if (iderivtype.eq.3 .or. iderivtype.eq.4) then
     print*,' remapping errors, max = ',errmax,' mean = ',errtot/real(npart)
     print*,' worst on particle ',ierrmax,'   J = ',det(gradx0(:,:,ierrmax)),&
