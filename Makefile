@@ -11,16 +11,12 @@ intro:
 	echo "specify number of dimensions, e.g. 'make 1D' or try 'make install'"
 
 install: 
-	echo 'Making copies of useful scripts...'
-	cd scripts; ./copyscripts.tcsh
 	echo 'Compiling 1D code'
 	cd src;  make 1D
 	#cd src; make clean; make 2D
 	#cd src; make clean; make 25D
 	#cd src; make clean; make 3D
 all:	
-	echo 'Making copies of useful scripts...'
-	cd scripts; ./copyscripts.tcsh
 	echo 'Compiling plotting utility...'
 	cd plot; make dansph; make mrbsph	
 	echo 'Compiling .ev plotting utility...'
