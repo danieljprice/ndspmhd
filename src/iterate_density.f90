@@ -77,7 +77,7 @@ subroutine iterate_density
      enddo
   endif
   if (any(pmass(1:npart).ne.pmass(1))) then
-     rhomin = 0. !!minval(rho(1:npart))
+     rhomin = minval(rho(1:npart))
   else
      rhomin = 0.
   endif
@@ -124,12 +124,12 @@ subroutine iterate_density
            i = redolistprev(j)
 
            if (itype(i).ne.1) then
-              if (rho(i).le.1.e-3) then
+              if (rho(i).le.1.e-6) then
                  if (rho(i).le.0.) then
                     write(iprint,*) 'rho: rho -ve, dying rho(',i,') = ',rho(i),hh(i),pmass(i)
                     call quit
                  else
-                    write(iprint,*) 'Warning : rho < 1e-3 '
+                    write(iprint,*) 'Warning : rho < 1e-6 '
                  endif
               endif
               
