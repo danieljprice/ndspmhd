@@ -13,7 +13,7 @@ contains
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
+subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,adjustbound,offset,perturb)
 !
 !--include relevant global variables
 !
@@ -33,14 +33,14 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
  real, dimension(ndim), intent(inout) :: xmin, xmax
  real, intent(in) :: psep
  real, intent(in), optional :: perturb
- logical, intent(in), optional :: offset,fill
+ logical, intent(in), optional :: offset,fill,adjustbound
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  integer :: idist
- real :: xstart,ystart,deltax,deltay
+ real :: xstart,ystart,deltax,deltay,deltaz
  real :: psepx,psepy
  real :: ran1,ampl
- real, dimension(ndim) :: xran,xcentre,xlength
+ real, dimension(ndim) :: xran,xcentre
  logical :: adjustdeltas
 !
 !--allow for tracing flow
@@ -90,9 +90,13 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
 !
 !--or adjust the boundaries appropriately
 !
-!    xmax(2) = xmin(2) + nparty*deltay
-!    print*,' adjusted y boundary : ymax  = ',xmax(2)
-
+    if (present(adjustbound)) then
+       if (adjustbound) then
+          xmax(2) = xmin(2) + nparty*deltay
+          print*,' adjusted y boundary : ymax  = ',xmax(2)
+       endif
+    endif
+    
     if (present(offset)) then
        if (offset) then
           xcentre(:) = 0.5*(xmin + xmax)
@@ -239,22 +243,33 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
 !
 !--determine number of particles
 ! 
-    npartx = int((xmax(1)-xmin(1))/psep)    
+    deltax = psep
+    deltay = psep
+    deltaz = psep
+    npartx = int((xmax(1)-xmin(1))/deltax)    
     if (ndim.ge.2) then
-       nparty = int((xmax(2)-xmin(2))/psep)    
+       nparty = int((xmax(2)-xmin(2))/deltay)    
     else
        nparty = 1
     endif
     if (ndim.ge.3) then
-       npartz = int((xmax(3)-xmin(3))/psep)    
+       npartz = int((xmax(3)-xmin(3))/deltaz)    
     else
        npartz = 1    
     endif
-!    if (offset) then
-!       npartx = npartx + 1
-!       if (ndim.ge.2) nparty = nparty + 1
-!       if (ndim.ge.3) npartz = npartz + 1
-!    endif
+!
+!--adjust psep so that particles fill the volume
+!
+    print*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
+    print*,' delta x,y initial  = ',deltax,deltay
+    if (present(fill)) then
+       if (fill) then
+          deltax = (xmax(1)-xmin(1))/(float(npartx))
+          if (ndim.ge.2) deltay = (xmax(2)-xmin(2))/(float(nparty))
+          if (ndim.ge.3) deltaz = (xmax(3)-xmin(3))/(float(npartz))
+          print*,' delta x,y adjusted = ',deltax,deltay
+       endif
+    endif
 !
 !--allocate memory here
 !
@@ -270,11 +285,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,fill,offset,perturb)
        do i=1,npartx
           do j = 1,nparty
              ipart = ipart + 1   !(k-1)*nparty + (j-1)*npartx + i
-             x(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
+             x(1,ipart) = xmin(1) + (i-1)*deltax + 0.5*deltax
              if (ndim.ge.2) then
-                x(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
+                x(2,ipart) = xmin(2) + (j-1)*deltay + 0.5*deltay
                 if (ndim.ge.3) then
-                   x(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
+                   x(3,ipart) = xmin(3) + (k-1)*deltaz + 0.5*deltaz
                 endif
              endif
 !           print*,'new particle ',ipart,'x =', x(:,ipart)
@@ -329,7 +344,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred,trim)
  use debug
  use loguns
  use part
- use setup_params, only:hfact, psep
+ use setup_params, only:psep
 !
 !--define local variables
 !            
