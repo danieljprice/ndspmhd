@@ -18,7 +18,6 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
  USE loguns
 
  USE part
- USE part_in
  USE random	! random number generator
  USE setup_params
 !
@@ -86,8 +85,8 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
           IF (MOD(j,2).EQ.0) xstart = xstart + 0.5*deltax
           DO i = 1,npartx
              ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
-             xin(1,ipart) = xmin(1) + (i-1)*deltax + xstart
-             IF (ndim.GE.2) xin(2,ipart) = xmin(2) + (j-1)*deltay + ystart
+             x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
+             IF (ndim.GE.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
           ENDDO
        ENDDO
     ENDDO 
@@ -116,8 +115,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
        DO j=1,ndim
           xran(j) = ran1(iseed)
        ENDDO
-       xin(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
-!       PRINT*,i,' xin = ,',xin(:,i),xran(:)
+       x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
     ENDDO
 
  CASE DEFAULT
@@ -158,14 +156,14 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
        DO j=1,nparty
           DO i = 1,npartx
              ipart = ipart + 1	!(k-1)*nparty + (j-1)*npartx + i
-             xin(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
+             x(1,ipart) = xmin(1) + (i-1)*psep + 0.5*psep
              IF (ndim.GE.2) THEN
-	        xin(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
+	        x(2,ipart) = xmin(2) + (j-1)*psep + 0.5*psep
 	        IF (ndim.GE.3) THEN
-		   xin(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
+		   x(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
 		ENDIF
 	     ENDIF
-!	        print*,'new particle ',ipart,'x =', xin(:,ipart)
+!	        print*,'new particle ',ipart,'x =', x(:,ipart)
 
 	  ENDDO
        ENDDO
