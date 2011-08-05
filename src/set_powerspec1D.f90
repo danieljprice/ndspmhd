@@ -7,53 +7,49 @@
 !!  Power spectrum is normalised according to the total specific          !!
 !!  kinetic energy of the particles.                                      !!
 !!                                                                        !!
+!!  Input  : x(npart)   : particle positions
+!!           npart      : number of particles
+!!           xmin, xmax : box dimensions
+!!           pindex     : index of power spectrum
+!!           nfreq      : number of frequencies to set
+!!
+!!  Output : vel(npart) 1D velocity field (note this is NOT normalised)
 !!------------------------------------------------------------------------!!
 
-SUBROUTINE set_vperp(xmin,xmax,ekin_in)
+SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq)
 !
 !--global variables
 !
- USE dimen_mhd
  USE debug
  USE loguns
- 
- USE part
- USE random	! random number generators
 !
 !--local variables
 ! 
  IMPLICIT NONE
- REAL, INTENT(IN), DIMENSION(ndim) :: xmin,xmax
- REAL, INTENT(IN) :: ekin_in
  REAL, PARAMETER :: pi=3.1415926536
- INTEGER, PARAMETER :: ngrid = 32	! size of grid
- INTEGER, PARAMETER :: nfreq = ngrid 	! number of frequencies
+ INTEGER, INTENT(IN) :: npart, nfreq
+ REAL, INTENT(IN), DIMENSION(npart) :: x
+ REAL, INTENT(OUT), DIMENSION(npart) :: vel
+ REAL, INTENT(IN) :: xmin,xmax,pindex
  INTEGER :: i,j,iseed,iseed2,igrid,ifreq
- REAL, DIMENSION(ngrid) :: xgrid	! fixed grid to calculate vperp on
  REAL, DIMENSION(nfreq) :: amplk,phase	! amplitude, phase for each frequency
- REAL, DIMENSION(ngrid) :: vperp 	! velocity field on grid
  REAL :: dxx,dvel 
  REAL :: amplin			! normalisation factor
  REAL :: pindex			! index of power spectrum
  REAL :: sigma			! dispersion of Gaussian
  REAL :: wk,wk_min,wkmod,wkdotx	! wave number
- REAL :: dxgrid,Lbox,twopi
+ REAL :: Lbox,twopi
  REAL :: ekin
+ REAL :: ran1,rayleigh_deviate
 !
 !--allow for tracing flow
 ! 
- IF (trace) WRITE(iprint,*) 'Entering subroutine set_vperp'
-!
-!--check number of dimensions and other settings are OK
-! 
- IF (ndim.GT.1) STOP 'set_vperp not yet implemented for > 1D'
+ IF (trace) WRITE(iprint,*) 'Entering subroutine set_powerspec1D'
 !
 !--set parameters of the turbulent velocity field
 !
- pindex = -2		! index of power spectrum
- Lbox = xmax(1)-xmin(1)		! assumes cube in > 1D
+ Lbox = xmax-xmin		! assumes cube in > 1D
  amplin = 1.0			! normalisation factor of power spectrum
- dxgrid = Lbox/REAL(ngrid)	! separation of grid points
 !
 !--set random seed for random number generator
 !  (same seed gives same random number sequence each time)
@@ -62,10 +58,9 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
  iseed2 = -2394 	! seed for amplitudes
 !
 !--work out the amplitude of the perturbation at each wavenumber (frequency)
-!  do this for wavenumbers from kmin = 2*pi/L to kmax = 32*(2*pi/L)
+!  do this for wavenumbers from kmin = 2*pi/L to kmax = nfreq*(2*pi/L)
 !  The amplitude is a random number drawn from a Gaussian distribution,
-!  so that we have e^(-ampl^2/sigma^2) = random, where sigma is the 
-!  dispersion of the power spectrum and is proportional to the wavenumber to 
+!  where sigma is the dispersion of the power spectrum and is proportional to the wavenumber to 
 !  some power.
 !
  twopi = 2.*pi
@@ -83,8 +78,10 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
     phase(ifreq) = -pi + twopi*ran1(iseed)
 !
 !--then choose a random amplitude from a gaussian with dispersion sigma
+!  (since we are drawing the modulus of the amplitude, 
+!   this comes from a Rayleigh distribution)
 !
-    amplk(ifreq) = sigma*SQRT(-log(ran1(iseed2)))
+    amplk(ifreq) = sigma*rayleigh_deviate(iseed2)
     PRINT*,ifreq,amplk(ifreq),sigma,phase(ifreq)
 
  ENDDO
@@ -108,20 +105,20 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
     DO ifreq=1,nfreq
        wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
-       wkdotx = wk*(x(1,i)-xmin(1))
-       vel(2,i) = vel(2,i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
+       wkdotx = wk*(x(i)-xmin)
+       vel(i) = vel(i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
     ENDDO
 
-    ekin = ekin + 0.5*vel(2,i)**2   
+    ekin = ekin + 0.5*vel(i)**2   
  
  ENDDO
  
- WRITE(iprint,*) ' Kinetic energy = ',ekin,ekin_in
+ WRITE(iprint,*) ' Kinetic energy = ',ekin
 !
 !--lastly, normalise the power spectrum using the kinetic energy
 ! 
- vel(2,:) = vel(2,:)*SQRT(ekin_in/ekin)
+! vel(:) = vel(:)*SQRT(ekin_in/ekin)
  
- IF (trace) WRITE(iprint,*) 'Exiting subroutine set_vperp'
+ IF (trace) WRITE(iprint,*) 'Exiting subroutine set_powerspec1D'
  RETURN
-END SUBROUTINE set_vperp
+END SUBROUTINE set_powerspec1D

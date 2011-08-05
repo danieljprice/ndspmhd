@@ -18,7 +18,6 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  USE loguns
 
  USE part
- USE random	! random number generator
 !
 !--define local variables
 !  (note we read boundaries of region as input, so that more than one region
@@ -34,6 +33,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  INTEGER :: idist
  REAL :: gam1,const,xstart,ystart,deltax,deltay
  REAL :: psepx,psepy,ampl
+ REAL :: ran1
  REAL, DIMENSION(ndim) :: xran
 !
 !--allow for tracing flow
