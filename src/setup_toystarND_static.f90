@@ -87,8 +87,8 @@ subroutine setup
  massp = totmass/real(npart)
  volpart  = totvol/real(npart)
  print*,' volpart = ',volpart
- volpart = psep**2
- print*,' new one = ',volpart
+! volpart = psep**2
+! print*,' new one = ',volpart
  uuzero = 0.1
  write(iprint,10) denscentre,totmass
 10 format(/,' Toy star static solution ',/, &
@@ -134,6 +134,7 @@ subroutine modify_dump
  use toystar2D_utils
  use geometry
  use timestep, only:time
+ use setup_params, only:pi
  implicit none
  integer :: i,jmode,smode
  real :: rr,H,C,A,scalefac,sigma2,sigma,rstar,denscentre,gamm1
@@ -144,8 +145,8 @@ subroutine modify_dump
 
  time = 0.
 
- jmode = 0
- smode = 2
+ jmode = 2
+ smode = 0
  
  write(iprint,*) 'MODIFYING INITIAL SETUP with toystar oscillations'
 
@@ -186,7 +187,7 @@ subroutine modify_dump
  scalefac = polyk*gamma/(sigma*gamm1)
  rstar = sqrt((2.*polyk*gamma*denscentre**gamm1)/gamm1)
  
- write(iprint,*) 'polyk = ',polyk,' rstar = ',rstar,' sigma = ',sigma
+ write(iprint,*) 'polyk = ',polyk,' rstar = ',rstar,' period = ',2.*pi/sigma
  cs2centre = gamma*polyk*denscentre**gamm1
  write(iprint,*) 'denscentre = ',denscentre,' cs_0 = ',sqrt(cs2centre)
 
@@ -206,7 +207,10 @@ subroutine modify_dump
     !!print*,'v_phi = ',velcyl(2),xcyl(2),etar(jmode,smode,xcyl(1)/rstar,gamma)
     !--now transform back to get vx, vy
     call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
-    
+    if (xcyl(1).lt.1.e-5) then
+       print*,' r = 0 on particle ',i,' xcyl(1) = ',xcyl(1), &
+              ' v_cyl = ',velcyl,' v_cart = ',dvel
+    endif
     !--now perturb v with appropriate amplitude
     vel(1:ndim,i) = dvel(1:ndim)
     ekin = ekin + 0.5*pmass(i)*dot_product(vel(1:ndim,i),vel(1:ndim,i))

@@ -30,7 +30,7 @@ subroutine iterate_density
 !
   implicit none
   integer :: i,j,itsdensitymax
-  integer :: ncalc,ncalcprev,ncalctotal,isize
+  integer :: ncalc,ncalcprev,ncalctotal
   integer, dimension(npart) :: redolist, redolistprev
   real :: tol,hnew,htemp,func,dfdh,deltarho
   real :: rhoi,dhdrhoi,omegai
@@ -52,7 +52,7 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-3
+  tol = 1.e-2
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.

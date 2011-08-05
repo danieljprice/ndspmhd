@@ -154,7 +154,7 @@ SUBROUTINE initialise
 !
 !--change coordinate systems if necessary
 !
- !!if (ifile.ge.0) call modify_dump
+ if (ifile.ge.0) call modify_dump
  print*,'igeom = ',igeomsetup,igeom
  if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
  
@@ -177,7 +177,7 @@ SUBROUTINE initialise
 !  and density iterations
 !
  if (any(pmass(1:npart).ne.pmass(1)) .and. icty.eq.0 .and. ikernav.eq.3) then
-    rhomin = 1.e-2
+    rhomin = 0.05
  else
     rhomin = 0.
  endif
