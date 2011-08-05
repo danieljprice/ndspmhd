@@ -79,7 +79,7 @@ subroutine alloc(newsizein,sortlist)
     stop
  endif
 !
-!--set new size (add 10% if using ghosts so don't have to do this too often)
+!--set new size (add 5% if using ghosts so don't have to do this too often)
 !
  if (any(ibound.ge.1) .and. newsizein.gt.ioldsize) then
     newsize = int(1.1*newsizein)
