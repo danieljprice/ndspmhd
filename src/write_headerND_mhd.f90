@@ -16,6 +16,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
  USE bound
  USE eos
  USE options
+ USE setup_params
  USE part
  USE timestep
  USE versn
@@ -94,9 +95,10 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
       6x,' Pressure term    : ',i2,5x,' Artificial viscosity :',i2,/,	&
       6x,' Magnetic fields  : ',i2,/)
 
-    WRITE (iprint,99010) ihvar, ikernav
+    WRITE (iprint,99010) ihvar, ikernav, hfact, ndim
 99010 FORMAT(' Variable smoothing length: ',/,				&
-      6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/)
+      6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
+      6x,' h = ',f4.2,'*m/rho**(1/',i1,')',/)
 
     IF (imhd.NE.0) THEN
        WRITE (iprint,99011) imagforce,idivBzero,ianticlump,eps,neps
@@ -119,6 +121,13 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !     
     WRITE (iprint, 99013) gamma
 99013 FORMAT(' Equation of state: ',/,6x,' gamma = ',f10.6,/)
+
+!
+!--timestepping
+!     
+    WRITE (iprint, 99014) C_cour,C_force
+99014 FORMAT(' Timestepping conditions : ',/, &
+        6x,' C_courant = ',f4.2,5x,' C_force = ',f4.2,/)
 
 
     WRITE (iprint, 99015)
@@ -164,8 +173,8 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !
 !--write header for timestep table
 !      
-    WRITE (iprint, 99014)
-99014 FORMAT (76('_'))       
+    WRITE (iprint, 99020)
+99020 FORMAT (76('_'))       
 
  ENDIF
       
