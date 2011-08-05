@@ -32,9 +32,10 @@ subroutine setup
  integer :: i,j,ntot,npartx,nparty,ipart
  real :: denszero,densdisk,przero,vzero,ftaper
  real :: pri,rdisk,rbuffer,radius
- real :: totmass,gam1,massp,const
- real, dimension(ndim) :: xorigin, dx
- real, dimension(ndimv) :: bzero
+ real :: totmass,gam1,massp,const,psepdisk,totvol
+ real, dimension(ndim) :: xorigin, dx, xmintemp, xmaxtemp
+ real, dimension(ndimv) :: Bzero
+ logical :: equalmass
 !
 !--check number of dimensions is right
 !
@@ -42,24 +43,25 @@ subroutine setup
  if (ndimv.ne.2) write(iprint,*) ' warning: best if ndimv=2 for this problem'
 !
 !--set boundaries
-!            	    
- ibound = 2	! reflective ghosts (boundaries not important in this problem)
- nbpts = 0	! no fixed particles
- xmin(:) = -0.5	! unit square
+!                        
+ ibound = 3        ! reflective ghosts (boundaries not important in this problem)
+ nbpts = 0        ! no fixed particles
+ xmin(:) = -0.5        ! unit square
  xmax(:) = 0.5
  const = sqrt(4.*pi) 
 !
 !--setup parameters for the problem
 ! 
- xorigin(:) = 0.0	! co-ordinates of the centre of the initial blast
- rdisk = 0.1		! radius of the initial disk
- rbuffer = 0.115	! radius of the smoothed front
- vzero = 2.0		! rotation speed of initial disk
- bzero(:) = 0.
- if (imhd.ne.0) bzero(1) = 5.0/const	! uniform field in bx direction
- przero = 1.0		! initial pressure
- denszero = 1.0		! ambient density
- densdisk = 10.0		! density of rotating disk
+ equalmass = .true.
+ xorigin(:) = 0.0        ! co-ordinates of the centre of the initial blast
+ rdisk = 0.1             ! radius of the initial disk
+ rbuffer = 0. !!115      ! radius of the smoothed front
+ vzero = 2.0             ! rotation speed of initial disk
+ Bzero(:) = 0.
+ if (imhd.ne.0) Bzero(1) = 5.0/const        ! uniform field in bx direction
+ przero = 1.0              ! initial pressure
+ denszero = 1.0            ! ambient density
+ densdisk = 10.0           ! density of rotating disk
  
  gam1 = gamma - 1.
 
@@ -71,14 +73,28 @@ subroutine setup
 !--setup uniform density grid of particles (2d) 
 !  (determines particle number and allocates memory)
 !
- call set_uniform_cartesian(1,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
-
+ psepdisk = psep*(denszero/densdisk)**(1./ndim)
+ write(iprint,*) 'psep in disk = ',psepdisk
+ if (equalmass) then
+    call set_uniform_cartesian(2,psep,xmin,xmax,rmin=rdisk)
+    xmintemp = -rdisk
+    xmaxtemp = rdisk
+    call set_uniform_cartesian(2,psepdisk,xmintemp,xmaxtemp,rmax=rdisk)
+ else
+    call set_uniform_cartesian(2,psep,xmin,xmax)  ! 2 = close packed arrangement
+ endif
  ntotal = npart
 !
 !--determine particle mass in ambient medium
 !
- totmass = denszero*product(xmax(:)-xmin(:))
- massp = totmass/float(ntotal) ! average particle mass
+ if (equalmass) then
+    totvol = product(xmax(:)-xmin(:)) - pi*rdisk**2
+    totmass = denszero*totvol + densdisk*pi*rdisk**2
+    massp = totmass/float(ntotal)
+ else
+    totmass = denszero*product(xmax(:)-xmin(:))
+    massp = totmass/float(ntotal) ! average particle mass
+ endif
 !
 !--now assign particle properties
 ! 
@@ -87,10 +103,14 @@ subroutine setup
     radius = sqrt(dot_product(dx,dx))
     if (radius.le.rdisk) then
        dens(ipart) = densdisk
-       pmass(ipart) = massp*densdisk/denszero
+       if (equalmass) then
+          pmass(ipart) = massp
+       else
+          pmass(ipart) = massp*densdisk/denszero
+       endif
        vel(1,ipart) = -vzero*(x(2,ipart)-xorigin(2))/rdisk
        vel(2,ipart) = vzero*(x(1,ipart)-xorigin(1))/rdisk
-    elseif (radius.le.rbuffer) then	! smooth edge with taper function (toth)
+    elseif (radius.le.rbuffer) then        ! smooth edge with taper function (toth)
        ftaper = (rbuffer-radius)/(rbuffer - rdisk)
        dens(ipart) = denszero + (densdisk-denszero)*ftaper
        pmass(ipart) = massp*dens(ipart)/denszero
@@ -102,9 +122,18 @@ subroutine setup
        vel(:,ipart) = 0.
     endif  
     pri = przero 
-    uu(ipart) = pri/(gam1*denszero)
-    bfield(:,ipart) = bzero(:)
+    Bfield(:,ipart) = Bzero(:)
+    uu(ipart) = przero/(gam1*dens(ipart))
  enddo
+!
+!--make sure it is *really* in pressure equilibrium
+!
+ call primitive2conservative
+ do ipart=1,ntotal   
+    uu(ipart) = przero/(gam1*rho(ipart))
+ enddo
+ 
+ Bconst(:) = Bzero(:)
 !
 !--allow for tracing flow
 !
