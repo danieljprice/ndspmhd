@@ -25,17 +25,22 @@ subroutine check_setup
 !--check for negative densities/thermal energies
 !
      if (dens(i).le.0.) then
-        write(iprint,20) 'density <= 0 ', dens(i)
+        write(iprint,20) 'density <= 0 ',dens(i),i
         stop
      endif
+     if (pmass(i).le.0.) then
+        write(iprint,20) 'pmass <= 0 ',pmass(i),i
+        stop
+     endif     
      if (uu(i).le.0.) then
-        write(iprint,20) 'uu <= 0', uu(i)
+        write(iprint,20) 'uu <= 0 ',uu(i),i
         stop
      endif
+     
   enddo
 
-10 format(/,'ERROR IN PARTICLE SETUP:',a,/)
-20 format(/,'ERROR IN PARTICLE SETUP:',a,1pe10.3,/)
+10 format(/,' ERROR IN PARTICLE SETUP: ',a,/)
+20 format(/,' ERROR IN PARTICLE SETUP: ',a,1pe10.3,' particle ',i5,/)
 
    write(iprint,*) 'OK'
 
