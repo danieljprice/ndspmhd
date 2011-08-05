@@ -84,7 +84,6 @@ SUBROUTINE initialise
  
  CALL setkern      ! setup kernel tables
  npart = 0
- itype = 0
  CALL setup          ! setup particles, allocation of memory is called
           ! could replace this with a call to read_dump
  CALL check_setup       ! check for errors in the particle setup
