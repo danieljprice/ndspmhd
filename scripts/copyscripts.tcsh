@@ -1,7 +1,8 @@
-#!/usr/bin/tcsh
+#!/bin/tcsh
 # makes copies of scripts in main directory
 #
 cd ..
+rm run1D run2D run3D splitdat makemovie mergedat domulti doparallel1D doparallel2D
 ln -s ./scripts/run1D.tcsh run1D
 ln -s ./scripts/run2D.tcsh run2D
 ln -s ./scripts/run3D.tcsh run3D
