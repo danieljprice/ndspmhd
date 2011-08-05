@@ -74,8 +74,8 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     starttime = starttime(1:2)//':'//starttime(3:4)//':'//starttime(5:)
     WRITE(iprint,"(' Run started on ',a,' at ',a)") startdate,starttime
     
-    WRITE(iprint, 20) infile,evfile,logfile
-    IF (iprint.NE.6) WRITE(*, 20) infile,evfile,logfile
+    WRITE(iprint, 20) trim(infile),trim(evfile),trim(logfile)
+    IF (iprint.NE.6) WRITE(*, 20) trim(infile),trim(evfile),trim(logfile)
 20 FORMAT(/,                                &
       ' Read input from   : ',a,/,        &
       ' Writing energy to : ',a,/,        &
