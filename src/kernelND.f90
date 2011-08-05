@@ -1020,8 +1020,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
           potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
           fsoft(i) = 8./3.*q - 3.*q2 + 1.2*q2*q - q4/6. - 1./(15.*q2)
           dphidh(i) = -4.*q2 + 4.*q2*q - 1.5*q4 + 0.2*q4*q + 1.6
-          wkern(i) = 0.25*(2.-q)**3.
-          grwkern(i) = -0.75*(2.-q)**2.
+          wkern(i) = 0.25*(2.-q)**3
+          grwkern(i) = -0.75*(2.-q)**2
           grgrwkern(i) = 1.5*(2.-q)
        else
           potensoft(i) = -1./q
@@ -1276,5 +1276,45 @@ subroutine interpolate_kernel_soft(q2,w,gradw,dphidhi)
  dphidhi = (dphidh(index) + dpotdx*dxx)
  
 end subroutine interpolate_kernel_soft
+
+!!----------------------------------------------------------------------
+!! function to interpolate linearly from kernel tables
+!! returns kernel and second derivative given q^2 = (r_a-r_b)^2/h^2
+!! (required in the new densityiterate routine)
+!!
+!! must then divide returned w, grad grad w by h^ndim, h^ndim+2 respectively
+!!----------------------------------------------------------------------
+
+subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w,gradw,gradgradw
+ real :: dxx,dwdx,dgrwdx,dgrgrwdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw
+! 
+ dwdx =  (wij(index1)-wij(index))*ddq2table
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
+ dgrgrwdx =  (grgrwij(index1)-grgrwij(index))*ddq2table
+!
+!--interpolate for kernel and derivative
+!
+ w = (wij(index)+ dwdx*dxx)
+ gradw = (grwij(index)+ dgrwdx*dxx)
+ gradgradw = (grgrwij(index)+ dgrgrwdx*dxx)
+ 
+end subroutine interpolate_kernel_dens
 
 end module kernels
