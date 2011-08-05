@@ -15,7 +15,7 @@ module eos
 
 contains
 
-subroutine equation_of_state(pr,vsound,uu,rho)
+subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
 !
@@ -26,6 +26,7 @@ subroutine equation_of_state(pr,vsound,uu,rho)
  real, intent(in), dimension(:) :: rho
  real, intent(out), dimension(size(rho)) :: pr
  real, intent(inout), dimension(size(rho)) :: uu,vsound
+ real, intent(in), dimension(size(rho)), optional :: gammai
  real :: gamma1
  
  isize = size(rho)
@@ -58,16 +59,23 @@ subroutine equation_of_state(pr,vsound,uu,rho)
        end where
     endif   
  else      ! adiabatic
-    where (rho > 0.)
-      pr = gamma1*uu*rho
-      vsound = sqrt(gamma*pr/rho)
-    end where
+    if (present(gammai)) then
+       where (rho > 0.)
+         pr = (gammai-1)*uu*rho
+         vsound = sqrt(gammai*pr/rho)
+       end where    
+    else
+       where (rho > 0.)
+         pr = gamma1*uu*rho
+         vsound = sqrt(gamma*pr/rho)
+       end where
+    endif
  endif
       
  return
 end subroutine equation_of_state
 
-subroutine equation_of_state1(pr,vsound,uu,rho)
+subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
 !
@@ -78,6 +86,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho)
  real, intent(in) :: rho
  real, intent(out) :: pr
  real, intent(inout) :: uu,vsound
+ real, intent(in), optional :: gammai
  real :: gamma1
  
  gamma1 = gamma - 1.
@@ -103,9 +112,16 @@ subroutine equation_of_state1(pr,vsound,uu,rho)
        endif
     endif   
  else      ! adiabatic
-    if (rho > 0.) then
-      pr = gamma1*uu*rho
-      vsound = sqrt(gamma*pr/rho)
+    if (present(gammai)) then
+       if (rho > 0.) then
+         pr = (gammai-1.)*uu*rho
+         vsound = sqrt(gammai*pr/rho)
+       endif
+    else
+       if (rho > 0.) then
+         pr = gamma1*uu*rho
+         vsound = sqrt(gamma*pr/rho)
+       endif
     endif
     !print *,'here ',uu,rho
  endif
