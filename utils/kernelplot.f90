@@ -3,7 +3,7 @@ program kernelplot
  use pagesetup, only:setpage2
  use legends, only:legend
  implicit none
- integer :: i,j,ikernel,ndim,ierr
+ integer :: i,j,ikernel,ndim,ierr,ierr2
  integer :: nkernels,nacross,ndown,nepszero,ipos,i1,i2
  integer, dimension(10) :: iplotorder
  real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi,delsqrhoi
@@ -11,8 +11,8 @@ program kernelplot
  logical :: samepage,plotstability,plotkernel,plotgaussian
 !! character(len=50) :: text
 
- data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
- !data iplotorder /0, 3, 30, 31, 32, 65, 13, 16, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 4
  ianticlump = 0
@@ -21,20 +21,20 @@ program kernelplot
  samepage = .false.
  plotkernel = .true.
  plotstability = .true.
- plotgaussian  = .true.
- nacross = 4
- ndown = 1
+ plotgaussian  = .false.
+ nacross = 2
+ ndown = 2
  xmin = 0.0
  xmax = 3.3
 !! ymin = 0.01
  ymin = -3.5  !!3.5
  ymax = 2.4
 ! ymax = 3.99
- ymax = 1.5
+ ymax = 1.7
  !ymax = 0.7 ! use for 3D
  
  ymin = -2.2
- ymax = 1.4
+ ymax = 2.29
  ipos = 1
  ndim = 1
 
@@ -51,7 +51,7 @@ program kernelplot
     !!call pglabel('r/h',' ',' ')
     !!call pglabel('r/h','W, \(2266)W ',' ')
  else
-    call pgpap(8.5,0.5)
+    call pgpap(6.,1.)
     call pgbegin(0,'?',1,1) 
 !    call pgpap(5.85,2./sqrt(2.))
  endif
@@ -118,7 +118,7 @@ program kernelplot
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
        
     else
-       call pgsch(2.0)
+       !call pgsch(2.0)
        if (mod(j,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
        !!ymax = maxval(wij(1:ikern))*1.5
@@ -129,7 +129,7 @@ program kernelplot
        call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','f(q)', &
                      trim(kernelname),0,1,&
                      0.,0.,0.,0.,0.,0.,.false.,.true.)
-       call pgmtxt('t',-2.0,0.93,1.0,trim(kernelname))
+       call pgmtxt('t',-2.0,0.96,1.0,trim(kernelname))
 !       call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
 !                      'r/h',' ',TRIM(kernelname),0,1)
 !!       call pgwnad(0.0,3.0,-3.5,1.7) ! pgwnad or pgswin
@@ -264,7 +264,8 @@ program kernelplot
 !	  endif
           eps = eps + 0.4
        endif
-       call setkern(iplotorder(j),ndim,ierr)
+!       call setkern(iplotorder(j),ndim,ierr)
+       call setkernels(iplotorder(j),iplotorder(j),ndim,ierr,ierr2)
        print*,trim(kernelname)
        call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo

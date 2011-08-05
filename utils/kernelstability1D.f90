@@ -34,8 +34,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--set various options
 !  
-  contours = .false.     ! plot whole dispersion relation or just kx=0
-  negstress = .false.    ! plot vs h or R
+  contours = .true.     ! plot whole dispersion relation or just kx=0
+  negstress = .true.    ! plot vs h or R
   normplot = .false.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
@@ -74,7 +74,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !     ymin = 0.5*psep
 !     ymax = 5.0*psep
      ymin = 1.0*psep
-     ymax = 3.3*psep
+     ymax = 6.3*psep
      labely = 'h / \Deltap'
   endif
 !
@@ -204,13 +204,13 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--kernel normalisation
      call pgsls(1)
      call pgsci(1)
-    ! call pgline(ny,yaxis(1:ny),Wnorm(1:ny))
-    ! if (iplotpos.eq.3) call legend(ipos,'W',hpos,vpos)
+     call pgline(ny,yaxis(1:ny),Wnorm(1:ny))
+     if (iplotpos.eq.3) call legend(ipos,'W',hpos,vpos)
 !--first derivative normalisation term
      call pgsls(2) !sci(2)
      call pgsci(2)
-   !  call pgline(ny,yaxis(1:ny),grWnorm(1:ny))
-    ! if (iplotpos.eq.3) call legend(ipos,'dW/dx',hpos,vpos)
+     call pgline(ny,yaxis(1:ny),grWnorm(1:ny))
+     if (iplotpos.eq.3) call legend(ipos,'dW/dx',hpos,vpos)
      print*,' gradWnorm = ',grWnorm(1:10),ny
 !--second derivative normalisation term
      call pgsls(3)
@@ -231,6 +231,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      !!if (iplotpos.eq.1) call pgpage
      datmin = 0.75  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
      datmax = 1.15  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
+     !datmax = 16
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
 
      call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'norm', &
@@ -251,12 +252,12 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call pgsls(2) !sci(2)
      call pgsci(2)
 !--second derivative normalisation term
-     call pgline(ny,yaxis(1:ny),0.5*tterm1(1:ny))
-     print*,' tterm = ',0.5*tterm1(1:10),ny
-     if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
+     !call pgline(ny,yaxis(1:ny),0.5*tterm1(1:ny))
+     !print*,' tterm = ',0.5*tterm1(1:10),ny
+     !if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
      call pgsls(3)
-     call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
-     if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
+     !call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
+     !if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
 !     call pgsls(4)
 !     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
 !     if (iplotpos.eq.1) call legend(ipos,'aniso dW',hpos,vpos)

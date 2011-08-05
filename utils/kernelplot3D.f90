@@ -12,9 +12,9 @@ program kernelplot3D
  real    :: psep,dx,dy,dz,wsum,wabi,gradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
  real    :: dwdhi,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi
- logical :: samepage,plotall
+ logical :: samepage,plotall,plot_moments, plot_kernels
 !! character(len=50) :: text
- integer, parameter :: npts = 241 !76 !51
+ integer, parameter :: npts = 101 !241 !76 !51
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
  integer, parameter :: nx = 32
  integer :: np,ipt
@@ -23,28 +23,31 @@ program kernelplot3D
  real, dimension(10) :: sums
 
  !data iplotorder /0, 3, 51, 52, 53, 59, 64, 65, 14, 13/   ! order in which kernels are plotted
- data iplotorder /0, 60, 32, 65, 64, 59, 64, 65, 14, 13/   ! order in which kernels are plotted
+ data iplotorder /0, 3, 42, 43, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- plotall = .true.
+ plotall = .false.
+ plot_moments = .true. ! either plot kernel moments or density/normalisation conditions
+ plot_kernels = .false.
 
  if (plotall) then
     nkernels = 70
  else
-    nkernels = 10
+    nkernels = 1
  endif
  samepage = .false.
- nacross = 3
+ nacross = 2
  ndown = 2
  ndim = 3
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
- 
+
  if (samepage) then
     call pgbegin(0,'?',1,1) 
     if (nacross.eq.2 .and. ndown.eq.1) call pgpap(11.7,0.6/sqrt(2.))  ! change paper size
     call pgsch(1.)
  else
+    call pgpap(6.,1.)
     !call pgpap(11.5,0.75)
     call pgbegin(0,'?',1,1)
  endif
@@ -52,10 +55,23 @@ program kernelplot3D
 
  psep = 1./real(nx)
  rhoi = 1.
- hmin = 0.8*psep
- hmax = 2.*psep
+ hmin = 1.0*psep
+ hmax = 1.8*psep
  dh   = (hmax-hmin)/real(npts - 1)
  ipt = 0
+ 
+ if (plot_kernels) then
+    do i=1,npts
+       hi = hmin + (i-1)*dh
+       xplot(i) = hi/psep
+    enddo
+    do j=1,nkernels
+       if (j.gt.0 .and. j.le.size(iplotorder)) ikernel = iplotorder(j)
+       call setkern(ikernel,ndim,ierr)
+       print*,'plotting ',ikernel,': '//trim(kernelname)//' kernel, r^2 = ',radkern2
+       call plot_kernel(j,xplot)
+    enddo
+ endif
  
  do j=0,nkernels
     if (plotall) then
@@ -82,9 +98,9 @@ program kernelplot3D
        !print*,' using particle ',ipart,' x,y,z = ',xi,yi,zi
     else
        maxiterations = 1
-       !xi = (nx/2 - 1)*psep + 0.25*psep
-       !print*,' xi = ',xi
-       xi = 0.5
+       xi = (nx/2 - 1)*psep + 0.25*psep
+       print*,' xi = ',xi
+       !xi = 0.5
        yi = xi
        zi = xi
     endif
@@ -148,28 +164,30 @@ program kernelplot3D
           erri = abs(wsum - 1.)
           
           hi = hi - func/dfdh
+          sums(:) = ndim*sums(:)
           if (isetup.eq.1) then
-             sums(:) = ndim*sums(:)
              yplot(i) = wsum 
              !yplot(i) = log10(erri)
              if (ikernel.eq.0) cubic1(i) = yplot(i)
+             !yplot(i) = sums(2)
           endif
           if (isetup.eq.2) then
              yplot2(i) = wsum
              !yplot2(i) = log10(erri)
+             !yplot2(i) = sums(2)
              if (ikernel.eq.0) cubic2(i) = yplot2(i)
           endif
           if (ikernel.eq.65 .and. i.eq.ipt) print*,'hfact = ',hfact,': iteration ',iteration,' hi = ',hi,' rho = ',5.*wsum     
-!       yplot(i) = sums(2)
+          !yplot2(i) = sums(2)
        enddo its
        
        if (erri.lt.errmin .and. xplot(i).gt.0.8 .and. xplot(i).lt.1.1) then
           imin = i
           errmin = erri
        endif
-       !print*,i,' h = ',xplot(i),' wsum= ',yplot(i),wsum,' moments=',sums(1:3),' nneigh = ',nneigh,4./3.*pi*(radkern*hi)**3/mi
+       print*,i,' h = ',xplot(i),' wsum= ',wsum,' moments=',sums(1:3),' nneigh = ',nneigh,4./3.*pi*(radkern*hi)**3/mi
     enddo
-    if (errmin.lt.0.1) print*,' best eta for this kernel (lattice ',isetup,') at ',xplot(imin),' err = ',errmin
+    if (errmin.lt.0.1) print*,' best eta for '//trim(kernelname)//' (lattice ',isetup,') at ',xplot(imin),' err = ',errmin
     
     if (ipt.gt.1) write(isetup,*) ikernel,abs(yplot(ipt)-1.)
 
@@ -185,47 +203,108 @@ program kernelplot3D
          endif
          print*,' wsum (cubic,closep) = ',5.*yplot(ipt),5.*yplot2(ipt),' for cubic spline = ',5.*cubic1(ipt),5.*cubic2(ipt)
        endif
-       call plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
+       if (plot_kernels) then
+          call plotit(nkernels+j,xplot,yplot,yplot2,cubic1,cubic2)
+       else
+          call plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
+       endif
        !read*
     endif
  enddo
-
+ call pgend
  read*
 
 contains
+
+subroutine plot_kernel(j,xplot)
+ implicit none
+ integer, intent(in) :: j
+ real(kind=4), dimension(:), intent(in) :: xplot
+ real(kind=4) :: xmin,xmax,ymin,ymax,q
+ integer :: i
+ real(kind=4), dimension(0:ikern) :: dqkern
+ character(len=20) :: ylabel
+
+ xmin = 0. !minval(xplot)
+ xmax = 3. !maxval(xplot)
+ ymin = -2.2
+ ymax = 1.4
+ ylabel = 'W(norm)'
+!
+!--setup x axis
+!
+ dq2table = radkern2/real(ikern)
+ do i=0,ikern
+    q2 = i*dq2table
+    q = sqrt(q2)
+    dqkern(i) = q
+ enddo
+ print*,'xmin,max = ',xmin,xmax
+ call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',trim(ylabel), &
+               trim(kernelname),0,1,&
+               0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
+ call pgmtxt('t',-2.0_4,0.93_4,1.0_4,trim(kernelname))
+ !--kernel function
+ call pgsci(1)
+ call pgsls(1)
+ call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern)) 
+ !--gradient
+ call pgsls(2)
+ call pgsci(2)
+ call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern)) 
+ !--2nd deriv
+ call pgsci(3)
+ call pgsls(3)
+ call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+ !--restore settings
+ call pgsci(1)
+ call pgsls(1)
+
+end subroutine plot_kernel
 
 subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
  implicit none
  integer, intent(in) :: j
  real(kind=4), dimension(:), intent(in) :: xplot,yplot,yplot2,cubic1,cubic2
  real(kind=4) :: xmin,xmax,ymin,ymax
+ character(len=20) :: ylabel
 
- xmin = minval(xplot)
- xmax = maxval(xplot)
- if (j.eq.1) then
- ymin = 0.98 !minval(yplot) - 0.005
- ymax = 1.02 !maxval(yplot) + 0.005
- endif
- call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','W(norm)', &
+ xmin = 1. !minval(xplot)
+ xmax = 1.4 !maxval(xplot)
+ !ymin = -0.08
+ !ymax = 0.12
+ !ymin = minval(yplot2) - 0.005
+ !ymax = maxval(yplot2) + 0.005
+ !if (j.eq.1) then
+ ymin = 0.997
+ ymax = 1.001
+ !endif
+ ylabel = 'W(norm)'
+ ylabel = 'R_{xy}'
+
+ call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/r',trim(ylabel), &
                trim(kernelname),0,1,&
                0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
- call pgmtxt('t',-2.0_4,0.93_4,1.0_4,trim(kernelname))
+ call pgmtxt('t',-2.0_4,0.96_4,1.0_4,trim(kernelname))
 !--cubic spline
- call pgsci(1)
- call pgsls(4)
- call pgline(size(xplot),xplot,cubic1)
+ call pgsci(2)
+! call pgsls(4)
+! call pgline(size(xplot),xplot,cubic1)
 !--current kernel 
  call pgsls(1)
  call pgline(size(xplot),xplot,yplot)
 
  call pgsci(2)
 !--cubic spline
- call pgsls(4)
- call pgline(size(xplot),xplot,cubic2)
+! call pgsls(4)
+! call pgline(size(xplot),xplot,cubic2)
 !--current kernel 
- call pgsls(1)
+ call pgsls(2)
  call pgline(size(xplot),xplot,yplot2)
+
+
  call pgsci(1)
+ call pgsls(1)
  
 end subroutine plotit
 
@@ -313,8 +392,18 @@ subroutine setpart(ilattice,nx,n,xyzpart,ipart,ymax,zmax)
        imin = i
     endif
  enddo
- !print*,' particle ',imin,' at ',xyzpart(:,imin)
- ipart = imin
+ 
+!
+!--ipart is the particle location to be used in the density calculation
+!  (if ipart=0 another position is chosen, not necessarily corresponding
+!   to a particle in the setup)
+!
+ if (plot_moments) then
+    ipart = 0
+ else
+    print*,' particle ',imin,' at ',xyzpart(:,imin)
+    ipart = imin
+ endif
 
 end subroutine setpart
 
