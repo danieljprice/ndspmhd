@@ -108,7 +108,7 @@ subroutine iterate_density
         call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
 !!        call output(0.0,1)
      else
-        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart,ncalc,redolist)
+        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
      
      ncalctotal = ncalctotal + ncalc

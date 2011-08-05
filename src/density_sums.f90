@@ -353,7 +353,7 @@ contains
 !!------------------------------------------------------------------------
   
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
-                             gradh,gradhn,gradsoft,gradgradh,npart,nlist,ipartlist)
+                             gradh,gradhn,gradsoft,gradgradh,ntotal,nlist,ipartlist)
     use dimen_mhd, only:ndim,ndimV
     use debug, only:trace
     use loguns, only:iprint
@@ -362,14 +362,14 @@ contains
     use linklist, only:iamincell,numneigh
     use options, only:igravity,imhd,ikernel,ikernelalt,iprterm
     !use matrixcorr
-    use part, only:Bfield,ntotal,uu,psi
+    use part, only:Bfield,uu,psi
     use rates, only:dBevoldt
     use setup_params, only:hfact
 !
 !--define local variables
 !
     implicit none
-    integer, intent(in) :: npart
+    integer, intent(in) :: ntotal
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
