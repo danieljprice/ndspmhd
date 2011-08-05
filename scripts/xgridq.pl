@@ -12,6 +12,7 @@ if ( $machtype eq 'i386' ) {
    $gid = 1;
    print "--- INTEL MACS (grid id = $gid) ---\n";
 } else {
+   $gid = 2;
    print "--- POWERPC MACS (grid id = $gid) ---\n";
 }
 my $xgridauth="-hostname cytosine.ex.ac.uk -auth Kerberos -gid $gid";
@@ -23,6 +24,7 @@ printf $formath,'ID','Script name','Status','Date Submitted','Date Started','Dat
 my $nrun = 0;
 my $nfinished = 0;
 my $npending = 0;
+if ( $#joblist gt 0 ) {
 foreach (@joblist) {
    my ($jobid) = m/(\d+)/;  
    my $attributes = `xgrid $xgridauth -job attributes -id $jobid`;
@@ -41,5 +43,6 @@ foreach (@joblist) {
    }
 #   print "$attributes \n";
    printf $format, $jobid, $name, $status, $submitted, $started, $stopped;
+}
 }
 print " $nrun jobs running; $npending jobs pending; $nfinished jobs finished\n";
