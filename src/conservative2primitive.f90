@@ -52,7 +52,7 @@ subroutine conservative2primitive
   case(11:) ! if using B as conserved variable
      Bfield = Bevol
   case(10)  ! remapped B/rho
-     remap = .false.
+     remap = .true.
      !--set x0 correctly on ghost particles
      if (any(ibound.gt.1)) then  ! ghost particles
         dxbound(:) = xmax(:) - xmin(:)
@@ -391,6 +391,7 @@ subroutine primitive2conservative
 !
 !--calculate conserved variable from the magnetic flux density B
 !  
+  remap = .false.
   select case(imhd)
   case(11:)    ! if using B as conserved variable
      Bevol = Bfield
@@ -399,9 +400,10 @@ subroutine primitive2conservative
      x0 = x
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
+        !if (i.le.10) print*,i,' B/rho (before) = ',Bevol(:,i)
      enddo
      !--check that remapping at time zero does nothing
-     !call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bevol,remap)
+     !call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bevol,remap=.true.)
      !do i=1,10
      !   print*,i,'B/rho (after) = ',Bevol(:,i)
      !enddo
