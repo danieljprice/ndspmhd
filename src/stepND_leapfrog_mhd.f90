@@ -37,13 +37,13 @@ subroutine step
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine step'
+ if (trace) write(iprint,*) ' Entering subroutine step'
 !
 !--set initial quantities
 !
  hdt = 0.5*dt
  
- DO i=1,npart
+ do i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
     Bevolin(:,i) = Bevol(:,i)
