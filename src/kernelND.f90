@@ -4,11 +4,12 @@
 !!
 !! Default kernel is the cubic spline, however several alternatives
 !! are given, namely:
-!!  1) cubic spline with constant gradient for r/h < 2/3
-!!  2) quintic spline (max r/h = 3)
-!!  3) squashed quintic (max r/h = 2)
-!!  4) another squashed quintic (max r/h = 2)
-!!  5) a general class of quintic splines (max r/h = 2)
+!!  1) cubic spline
+!!  2) cubic spline with constant gradient for r/h < 2/3
+!!  3) quintic spline (max r/h = 3)
+!!  4) squashed quintic (max r/h = 2)
+!!  5) another squashed quintic (max r/h = 2)
+!!  6) a general class of quintic splines (max r/h = 2)
 !!
 !!  Note in the ND case, the normalisation constants are right
 !!  only for the cubic and quintic splines in > 1D.
@@ -213,9 +214,9 @@ SUBROUTINE setkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-   gamma = 0.5
-   beta = 1.0	!2./3.
-   alpha = 1.5	!4./3.
+    gamma = 0.
+    beta = 0.8		!2./3.
+    alpha = 1.95	!4./3.
     C =0.
 !   A = -6.
 !   B = 25.
