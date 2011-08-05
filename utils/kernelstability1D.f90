@@ -1,19 +1,20 @@
 subroutine kernelstability1D
   use kernel
   implicit none
-  integer, parameter :: nh = 100, nkx = 100, npart = 20, ncont = 40
+  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
   integer :: i,j,ipart,mm,pp,nc,icall
   real, parameter :: pi = 3.1415926536
-  real, dimension(nh,nkx) :: dat
-  real, dimension(nh) :: harray
+  real, dimension(nkx,ny) :: dat
+  real, dimension(ny) :: yaxis
   real, dimension(nkx) :: kxarray
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
   real, dimension(6) :: trans
-  real :: xmin, psep, pmass, rhozero, cs2
-  real :: hmin, hmax, dh, dkx, kxmin, kxmax, h, kx
+  real :: xmin, psep, pmass, rhozero, cs2, R
+  real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
-  character(len=5) :: string
+  character(len=5) :: string,labely
+  logical :: negstress
   save icall
   
   icall = icall + 1
@@ -22,6 +23,9 @@ subroutine kernelstability1D
   rhozero = 1.0
   psep = 1.0
   pmass = rhozero*psep
+  negstress = .false.    ! plot vs h or R
+  R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
+  h = 1.2*psep   ! value of smoothing length
 !
 !--set up an array of particle positions to sum over
 !
@@ -31,13 +35,23 @@ subroutine kernelstability1D
   enddo
   ipart = npart/2
 !
-!--set up an array of smoothing length values
+!--set up an array of smoothing length values for the y axis
 !
-  hmin = 0.5
-  hmax = 2.0
-  dh = (hmax - hmin)/REAL(nh)
-  do i=1,nh
-     harray(i) = hmin + (i-1)*dh
+  if (negstress) then   ! y axis is negative stress parameter R
+     ymin = -1.
+     ymax = 1.
+     labely = 'R'
+  else                  ! y axis is h
+     ymin = 0.5*psep
+     ymax = 2.0*psep
+     labely = 'h'
+  endif
+!
+!--set up y axis
+!
+  dy = (ymax - ymin)/REAL(ny)
+  do i=1,ny
+     yaxis(i) = (ymin + (i-1)*dy)
   enddo 
 !
 !--set up an array of wavenumber values
@@ -51,64 +65,66 @@ subroutine kernelstability1D
 !
 !--calculates the 1D dispersion relation for SPH (no av)
 !  
-  do j=1,nh
-     h = harray(j)*psep
+  do j=1,ny
+     if (negstress) then  ! y axis is R
+	R = yaxis(j)
+     else                 ! y axis is h
+        h = yaxis(j)
+     endif
      do i=1,nkx
         kx = kxarray(i)/psep
-	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,x,npart,ipart)
-        dat(i,j) = 0.5*omegasq/(kx**2*cs2)
-!       print*,i,j,' kx = ',kx,' h = ',harray(j),h,' dat = ',dat(i,j)
+	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,R,x,npart,ipart)
+        dat(i,j) = omegasq/(kx**2*cs2)
+!!       print*,i,j,' kx = ',kx,' h = ',h,' R = ',R,' dat = ',dat(i,j)
      enddo
   enddo
 !
 !--now plot this using PGPLOT
 !
 !!  call pgbegin(0,'?',1,1)
-!  call pgsch(1.2)
-  call danpgtile(icall,3,2,kxmin,kxmax,hmin,hmax-0.001,'kx','h',TRIM(kernelname),0)
-!  call pgenv(kxmin,kxmax,hmin,hmax,0,1)
-!  call pglabel('kx','h',TRIM(kernelname))
-  call pgsci(1)
+!!  call pgsch(1.2)
+  call danpgtile(icall,3,2,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
+                 'kx',TRIM(labely),TRIM(kernelname),0,0)
+!  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
+!  call pglabel('kx',TRIM(labely),TRIM(kernelname)) ! use this for movie
+
   trans(1) = kxmin - 0.5*dkx               ! this is for the pgimag call
   trans(2) = dkx                  ! see help for pgimag/pggray/pgcont
   trans(3) = 0.0
-  trans(4) = hmin - 0.5*dh
+  trans(4) = ymin - 0.5*dy
   trans(5) = 0.0
-  trans(6) = dh
+  trans(6) = dy
 !
 !--set contour levels
 ! 
-  datmin = 0.0  !!minval(dat)
-  datmax = int(maxval(dat)) + 1
-  !!print*,'datmax = ',datmax,maxval(dat)*100,nint(maxval(dat)*100)
+  datmin = minval(dat)
+  datmax = maxval(dat)
+  print*,'datmax = ',datmax,datmin  !!maxval(dat)*100,nint(maxval(dat)*100)
   dcont = (datmax-datmin)/real(ncont)   ! even contour levels
   do i=1,ncont
      levels(i) = datmin + real(i)*dcont
   enddo
-  call pgcons(dat,nkx,nh,1,nkx,1,nh,levels,ncont,trans)
+  call pgcont(dat,nkx,ny,1,nkx,1,ny,levels,ncont,trans)
 !
 !--label levels
 !
   do i=1,ncont
-
-     MM=nint(levels(i)*100)
-     PP=nint(log10(levels(i))-log10(levels(i)*100))
-     call pgnumb(MM,PP,1,string,nc)
-     !!print*,'level = ',levels(i),string(1:nc)
+     write(string,"(f5.2)") levels(i)
+     !!print*,'level = ',levels(i),string
      call pgsch(0.5) ! character height
-     call pgconl(dat,nkx,nh,1,nkx,1,nh,levels(i),trans,string(1:nc),35,20)
+     call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,20)
      call pgsch(0.6)
   enddo
 !!  call pgend
 
 end subroutine kernelstability1D
 
-real function omegasq1D(hh,kx,cs2,pmass,rhozero,x,npart,ipart)
+real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,x,npart,ipart)
   use kernel
   implicit none
   integer :: i,index,index1, ipart, npart
   real, dimension(npart) :: x
-  real :: hh,kx,cs2,pmass,rhozero
+  real :: hh,kx,cs2,pmass,rhozero,RR
   real :: sum1, sum2
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: dx, q2
@@ -117,7 +133,7 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,x,npart,ipart)
   sum2 = 0.
 
   do i=1,npart
-     dx = x(i) - x(ipart)
+     dx = abs(x(i) - x(ipart))
 !
 !--find nearest index in kernel table
 ! 
@@ -135,6 +151,6 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,x,npart,ipart)
      sum1 = sum1 + (1. - COS(kx*dx))*gradgradW  ! times unit vector in x dir (=1)
      sum2 = sum2 + SIN(kx*dx)*gradW
   enddo
-  omegasq1D = (2.*cs2*pmass/rhozero)*sum1 - cs2*(pmass/rhozero*sum2)**2
+  omegasq1D = (2.*cs2*pmass/rhozero)*RR*sum1 + (1.-2.*RR)*cs2*(pmass/rhozero*sum2)**2
 
 end function omegasq1D
