@@ -94,6 +94,7 @@ subroutine get_rates
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
  real :: gradhi,gradhni
+ real :: grkernalti,grkernaltj,grgrkernalti,grgrkernaltj
 !
 !  (time step criteria)
 !      
@@ -137,8 +138,12 @@ subroutine get_rates
   dendt(i) = 0.0
   dBevoldt(:,i) = 0.0
   daldt(:,i) = 0.0
-  dpsidt(i) = 0.0
-  gradpsi(:,i) = 0.0
+  if (imhd.lt.0) then
+     dpsidt(i) = dot_product(Bfield(:,i),gradpsi(:,i))
+  else
+     dpsidt(i) = 0.0
+     gradpsi(:,i) = 0.0
+  endif
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -158,14 +163,19 @@ subroutine get_rates
 !--calculate maximum neg stress for instability correction
 !  
  stressmax = 0.
- if (imhd.ne.0 .and. imagforce.eq.2) then
+ if (imhd.ne.0 .and. (imagforce.eq.2 .or. imagforce.eq.7)) then
     do i=1,ntotal
        call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
        B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
-!       stressterm = max(0.5*B2i - pr(i),0.)
-!       stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
+       if (imagforce.eq.7) then ! vec potential force
+          !stressterm = max(1.5*B2i - pr(i),0.)
+          !stressmax = max(stressterm,stressmax)
+       else
+          !stressterm = max(0.5*B2i - pr(i),0.)
+          !stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
+       endif
     enddo
- !   if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
+    if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
  endif
 !
 !--set MHD quantities to zero if mhd not set
@@ -459,13 +469,19 @@ subroutine get_rates
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2
        endif
-    elseif (imhd.lt.0) then ! vector potential evolution
+    elseif (imhd.eq.-1) then ! vector potential evolution
        !
        !--add the v x Bext term
        !
        !call cross_product3D(vel(:,i),Bconst(:),curlBi)
        call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
+    elseif (imhd.eq.-2) then ! vector potential evolution
+       !
+       !--add the v x Bext term
+       !
+       !call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       dBevoldt(:,i) = 0. !dBevoldt(:,i)*rho1i + curlBi(:)
     else
        dBevoldt(:,i) = 0.
     endif
@@ -632,7 +648,7 @@ contains
     real :: dvsigdtc
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
-    real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
+    real :: wabalti,wabaltj,wabalt
     real :: vidotdS,vjdotdS,altrhoi,altrhoj,gammastar,vperp2
 
    pmassj = pmass(j)
@@ -653,19 +669,21 @@ contains
       grkernj = grkern
    else
       !  (using hi)
-      call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)
+      call interpolate_kernels(q2i,wabi,grkerni,grkernalti,grgrkernalti)
       wabi = wabi*hfacwabi
-      wabalti = wabalti*hfacwabi
+      wabalti = wabi !wabalti*hfacwabi
       grkerni = grkerni*hfacgrkerni
       grkernalti = grkernalti*hfacgrkerni
+      grgrkernalti = grgrkernalti*hfacgrkerni*hi1
       !  (using hj)
       hfacwabj = hj1**ndim
       hfacgrkernj = hfacwabj*hj1
-      call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
+      call interpolate_kernels(q2j,wabj,grkernj,grkernaltj,grgrkernaltj)
       wabj = wabj*hfacwabj
-      wabaltj = wabaltj*hfacwabj
+      wabaltj = wabj !wabaltj*hfacwabj
       grkernj = grkernj*hfacgrkernj
       grkernaltj = grkernaltj*hfacgrkernj
+      grgrkernaltj = grgrkernaltj*hfacgrkernj*hj1
       !  (calculate average)              
       wab = 0.5*(wabi + wabj)
       wabalt = 0.5*(wabalti + wabaltj)
@@ -1010,7 +1028,7 @@ contains
     real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
-    real :: vissv,vissB,vissu,vissrho
+    real :: vissv,vissB,vissu
     real :: term,dpmomdotr
     real :: termnonlin,termu
     !
@@ -1296,6 +1314,8 @@ contains
     implicit none
     real :: dalphaterm,termi,termj
     real, dimension(ndimV) :: dBdtvisc
+    real :: dwdxdxi,dwdxdyi,dwdydyi
+    real :: dwdxdxj,dwdxdyj,dwdydyj,rij1
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1326,6 +1346,33 @@ contains
                          - gdiagi(:)*Bi(:)*projBi*sqrtgi)/rhoij
        fmagi(:) = faniso(:) - fiso*dr(:)
        
+    case(7)
+!--vector potential force
+       rij1 = 1./rij
+       fiso = -1.5*(Brho2i*grkerni*sqrtgi + Brho2j*grkernj*sqrtgj)
+       
+       !--add gradh contribution to isotropic force term
+       fiso = fiso + (dpsidt(i)*gradhi*grkernalti + dpsidt(j)*gradh(j)*grkernaltj)
+       
+       dwdxdxi = dr(1)*dr(1)*grgrkernalti + (1. - dr(1)*dr(1))*rij1*grkernalti
+       dwdxdyi = dr(1)*dr(2)*grgrkernalti - dr(1)*dr(2)*rij1*grkernalti
+       dwdydyi = dr(2)*dr(2)*grgrkernalti + (1. - dr(2)*dr(2))*rij1*grkernalti
+
+       dwdxdxj = dr(1)*dr(1)*grgrkernaltj + (1. - dr(1)*dr(1))*rij1*grkernaltj
+       dwdxdyj = dr(1)*dr(2)*grgrkernaltj - dr(1)*dr(2)*rij1*grkernaltj
+       dwdydyj = dr(2)*dr(2)*grgrkernaltj + (1. - dr(2)*dr(2))*rij1*grkernaltj
+
+       faniso(1) = -dBevol(3)*(Brhoi(2)*dwdxdxi*gradhi*rho1i + Brhoj(2)*dwdxdxj*gradh(j)*rho1j &
+                             -(Brhoi(1)*dwdxdyi*gradhi*rho1i + Brhoj(1)*dwdxdyj*gradh(j)*rho1j))
+
+       faniso(2) = -dBevol(3)*(Brhoi(2)*dwdxdyi*gradhi*rho1i + Brhoj(2)*dwdxdyj*gradh(j)*rho1j &
+                             -(Brhoi(1)*dwdydyi*gradhi*rho1i + Brhoj(1)*dwdydyj*gradh(j)*rho1j))
+       faniso(3) = 0.
+       !--correct with anticlumping term       
+       !faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
+
+       fmagi(:) = faniso(:) - fiso*dr(:)
+    
     case(0)
        faniso(:) = 0.
        fiso = 0.
@@ -1449,6 +1496,11 @@ contains
        dBevoldti(:) = dBevoldti(:) - termi*dBevol(:)
        termj = pmassi*projvj*grkernj
        dBevoldt(:,j) = dBevoldt(:,j) - termj*dBevol(:)
+    case(-2) ! vector potential evolution
+       !termi = pmassj*projvi*grkerni
+       dBevoldti(:) = 0. !dBevoldti(:) - termi*dBevol(:)
+       !termj = pmassi*projvj*grkernj
+       !dBevoldt(:,j) = 0. !dBevoldt(:,j) - termj*dBevol(:)
     end select
 
     !--------------------------------------------
