@@ -132,7 +132,8 @@ subroutine evolve
 !
 !--print out total energy and momentum conservation
 !
- if (abs(momtotin).lt.1.e-6)  momtotin = 1.0
+ if (abs(momtotin).lt.tiny(momtotin))  momtotin = 1.0
+ if (abs(etotin).lt.tiny(etotin)) etotin = 1.0
  write(iprint,20) detot/etotin,dmomtot/momtotin
 20 format(/,' Max energy error   : ',1pe10.2,3x,' Max momentum error : ',1pe10.2)
 !
