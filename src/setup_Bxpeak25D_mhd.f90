@@ -46,7 +46,7 @@ subroutine setup
 !--setup parameters for the problem
 ! 
  xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
- rbump = 0.125        ! radius of the initial bump
+ rbump = 0.0005        ! radius of the initial bump
  Bzero(:) = 0.
  if (imhd.ne.0) Bzero(3) = 1.0/const        ! uniform field in bz direction
  przero = 6.0                ! initial pressure
@@ -78,7 +78,7 @@ subroutine setup
     rr = dot_product(dx,dx)
     Bfield(:,ipart) = bzero(:)
     if (rr.le.rbump) then
-       Bfield(1,ipart) = (4096.*rr**4 - 128.*rr**2 + 1.)/const
+       Bfield(1,ipart) = ((rr/rbump)**4 - 2.*(rr/rbump)**2 + 1.)/const
     endif  
     pmass(ipart) = massp
     dens(ipart) = denszero
