@@ -55,10 +55,10 @@ SETUP1D = setup_shockND.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
-SETUP2D = setup_unifsphND.f90
+#SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-#SETUP2D = setup_toystarND_static.f90
+SETUP2D = setup_toystarND_static.f90
 #SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
@@ -86,7 +86,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
 	 defaults.f90 \
          get_neighbour_lists.f90 \
          density_sums.f90 \
-	 eos.f90 evolve.f90 evwrite_mhd.f90 \
+	 eos.f90 evolve.f90 \
 	 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90\
@@ -101,11 +101,11 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
 	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_mhd.f90
+SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
 
 # these files are for the gr version of the code
 SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
-	    stepND_mhd_gr.f90
+	    stepND_mhd_gr.f90 evwrite_mhd_gr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
