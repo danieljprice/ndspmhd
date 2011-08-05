@@ -482,24 +482,25 @@ subroutine get_rates
 !
 !--if evolving B instead of B/rho, add the extra term from the continuity eqn
 !  (note that the dBevoldt term should be divided by rho)
-!  
-    if (imhd.ge.11) then  ! evolving B
+!
+    select case(imhd)
+    case(11:) ! evolving B
        dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i
        endif
-    elseif (imhd.gt.0) then ! evolving B/rho
+    case(1:10) ! evolving B/rho
        dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2
        endif
-    elseif (imhd.eq.-1) then ! vector potential evolution, crap gauge
+    case(-1) ! vector potential evolution, crap gauge
        !
        !--add the v x B term
        !
        call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
-    elseif (imhd.eq.-2) then ! vector potential evolution, Axel gauge
+    case(-2) ! vector potential evolution, Axel gauge
        !
        !--get v x Bext
        !
@@ -533,9 +534,11 @@ subroutine get_rates
           !
           dudt(i) = dudt(i) + etai*curr2/rho(i)
        endif
-    else
+    case(-3) ! Generalised Euler Potentials evolution
        dBevoldt(:,i) = 0.
-    endif
+    case default
+       dBevoldt(:,i) = 0.
+    end select
 !
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)

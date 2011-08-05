@@ -44,13 +44,14 @@ subroutine conservative2primitive
 !
 !--calculate magnetic flux density B from the conserved variable
 !  
-  if (imhd.ge.11) then    ! if using B as conserved variable
+  select case(imhd)
+  case(11:) ! if using B as conserved variable
      Bfield = Bevol
-  elseif (imhd.gt.0) then ! if using B/rho as conserved variable
+  case(1:10) ! if using B/rho as conserved variable
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
-  elseif (imhd.lt.0) then ! if using vector potential
+  case(-1,-2) ! if using vector potential
      !write(iprint,*) 'getting B field from vector potential...'
      if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
      gradpsi(:,:) = 0.
@@ -100,7 +101,15 @@ subroutine conservative2primitive
 
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
-  endif
+  case(:-3) ! generalised Euler potentials
+     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     do i=1,npart
+        Binti(:) = Bfield(:,i)
+        Bfieldi(:) = Binti(:) + Bconst(:)
+     enddo
+  case default
+     !--no magnetic field
+  end select
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
@@ -286,13 +295,14 @@ subroutine primitive2conservative
 !
 !--calculate conserved variable from the magnetic flux density B
 !  
-  if (imhd.ge.11) then    ! if using B as conserved variable
+  select case(imhd)
+  case(11:)    ! if using B as conserved variable
      Bevol = Bfield
-  elseif (imhd.gt.0) then ! if using B/rho as conserved variable
+  case(1:10)   ! if using B/rho as conserved variable
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
-  elseif (imhd.lt.0) then ! if using vector potential
+  case(-1,-2) ! if using vector potential
      if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
      write(iprint,*) 'getting B field from vector potential (init)...'
      call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
@@ -331,7 +341,15 @@ subroutine primitive2conservative
      endif
      call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
      !print*,' curlB(100) = ',curlB(:,100)
-  endif
+  case(-3) ! Generalised Euler potentials
+     !--setup the beta term
+     Bevol(ndim+1:2*ndim,:) = x(1:ndim,:)
+     !call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     
+     !--compute B = \nabla alpha_k x \nabla \beta^k
+     write(iprint,*) 'getting B field from Generalised Euler Potentials (init)...'
+
+  end select
 !
 !--calculate conserved energy (or entropy) from the thermal energy
 !
