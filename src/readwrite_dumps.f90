@@ -184,6 +184,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     if (copysetup) then
        gamma = gammafile
        hfact = hfactfile
+       igeom = igeomfile
     endif
  endif
 !
