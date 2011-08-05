@@ -54,7 +54,7 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
- dsmooth = 0. 
+ dsmooth = 0. !!20. 
  densleft = 1.0
  densright = 1.0
  prleft = 1000.0
@@ -140,32 +140,34 @@ SUBROUTINE setup
     ENDIF 
  ENDDO
  
-! j = 2     
+ j = 2     
  npart = npartleft + npartright
- DO j=1,npart
-    if (j.le.npartleft) then
-       x(1,j) = xcentre - (npartleft-j-1)*psepleft - 0.5*psepleft
-    else
-       x(1,j) = xcentre + (j-npartleft-1)*psep + 1.5*psep
-    endif
+ DO WHILE (j.LT.npart)
+! DO j=1,npart
+!    if (j.le.npartleft) then
+!       x(1,j) = xcentre - (npartleft-j-1)*psepleft - 0.5*psepleft
+!    else
+!       x(1,j) = xcentre + (j-npartleft-1)*psep + 1.5*psep
+!    endif
     dx0 = massp/dens(j)
-!    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
-!    delta = xhalf/psep
-!    j = j + 1 
-!    IF (delta.lt.-dsmooth) THEN
-!       denshalf = densleft
-!    ELSEIF (delta.gt.dsmooth) THEN
-!       denshalf = densright
-!    ELSE
-!       exx = exp(delta)
-!       denshalf = (densleft+ densright*exx)/(1+exx)
-!    ENDIF
+    xhalf = x(1,j) + 0.5*dx0  !x at the mid point
+    delta = xhalf/psep
+    j = j + 1 
+    IF (delta.lt.-dsmooth) THEN
+       denshalf = densleft
+    ELSEIF (delta.gt.dsmooth) THEN
+       denshalf = densright
+    ELSE
+       exx = exp(delta)
+       denshalf = (densleft+ densright*exx)/(1+exx)
+    ENDIF
 !---------------------------------------------------	    
 !     calculate half steps then final step
 !---------------------------------------------------	    
-!    dxhalf = massp/denshalf
-!    dx1 = 2.*dxhalf - dx0
-!    x(1,j) = xhalf + 0.5*dx1
+    dxhalf = massp/denshalf
+    dx1 = 2.*dxhalf - dx0
+    x(1,j) = xhalf + 0.5*dx1
+
     delta = (x(1,j)-xcentre)/psep
     IF (delta.lt.-dsmooth) THEN
        dens(j) = densleft
@@ -206,7 +208,16 @@ SUBROUTINE setup
 !
  Bconst(:) = 0.
  Bconst(1) = Bxinit
-
+!
+!--setup vector potential if necessary
+!
+ if (imhd.lt.0) then
+    do i=1,npart
+       Bevol(:,i) = 0.
+       Bevol(3,i) = -Bfield(2,i)*x(1,i)
+       Bevol(2,i) = Bfield(3,i)*x(1,i)
+    enddo
+ endif
  !npart = j-1
  ntotal = npart
  print*,'end of setup, npart = ',npart
