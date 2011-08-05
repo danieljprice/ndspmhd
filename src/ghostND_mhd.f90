@@ -198,14 +198,9 @@ subroutine set_ghost_particles
    
   enddo over_part
 !
-!--copy particle quantities to the ghost particles (conservative only)
-!  (nb: the conservative quantities have not been set in the first call to ghosts)
+!--set type of ghost particles to zero
 !
-  do i=npart+1,ntotal
-     call copy_particle(i,ireal(i))
-     itype(i) = 0
-!    IF (ireal(i).EQ.jtemp) PRINT*,' ghost ',i
-  enddo
+  itype(npart+1:ntotal) = 0
 !
 !--set unused elements of the array to zero (can cause errors in eos)
 ! 
@@ -225,7 +220,6 @@ end subroutine set_ghost_particles
 subroutine makeghost(jpart,xghost,ireflect)
   use dimen_mhd
   use bound
-  ! USE derivB
   use loguns
   use part
   implicit none
@@ -248,29 +242,17 @@ subroutine makeghost(jpart,xghost,ireflect)
   x(:,ipart) = xghost(:)
  !!print*,ipart,' ghost of ',jpart,' x = ',x(:,ipart),x(:,jpart)
 !
-!--copy velocities
+!--copy particle properties
 !
-  if (ireflect) then     ! reflecting
-     vel(:,ipart) = -vel(:,jpart) ! should reflect all vels
-  else     ! periodic/fixed
-     vel(:,ipart) = vel(:,jpart)
-  endif
+  call copy_particle(ipart,jpart)
+!
+!--overwrite velocities if reflecting
+!
+  if (ireflect) vel(:,ipart) = -vel(:,jpart) ! should reflect all vels
 !
 !--ireal for ghosts refers to the real particle of which they are ghosts
 !  
   ireal(ipart) = jpart  
-!
-!--copy particle properties
-!
-! pmass(ipart) = pmass(jpart)
-! rho(ipart) = rho(jpart)
-! uu(ipart) = uu(jpart)
-! en(ipart) = en(jpart)
-! hh(ipart) = hh(jpart)
-! alpha(ipart) = alpha(jpart)
-! psi(ipart) = psi(jpart)
-! Bcons(:,ipart) = Bcons(:,jpart)
-! divB(ipart) = divB(jpart)
 
 ! PRINT*,'copying  old particle x(',jpart,'),vel,rho =', &
 !        x(:,jpart),vel(:,jpart),rho(jpart)
