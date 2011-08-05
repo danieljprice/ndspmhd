@@ -13,7 +13,7 @@ else
    echo $1':'
    echo '	cd ~/ndspmhd/; make '$1'; cd -; cp ~/ndspmhd/'$1'SPMHD .'
    echo 'plot:'
-   echo '	cd ~/ndspmhd/plot; make dansph'
+   echo '	cd ~/ndspmhd/plot; make ndspmhd'
    echo 'plotc:'
    echo '	cd ~/ndspmhd/plot; make clean'
    echo 'aplot:'
