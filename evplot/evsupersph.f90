@@ -4,9 +4,9 @@
 !  uses PGPLOT subroutines
 !
 program plotmeagraph
-  !!use f90_unix
   use transforms
   use prompting
+  use system_commands
   implicit none
   integer :: ncol
   integer, parameter :: maxfile=10
@@ -57,13 +57,13 @@ program plotmeagraph
   iprev = 1
   i = 1
   nfiles = 0
-  nfiles = iargc()
+  call get_number_arguments(nfiles)
   if (nfiles.gt.maxfile) then
      print "(a,i4)",'WARNING: number of files >= array size: setting nfiles = ',maxfile
      nfiles = maxfile
   endif
   do i=1,nfiles
-     call getarg(i,rootname(i))
+     call get_argument(i,rootname(i))
   enddo
   print*,' number of files = ',nfiles
 
@@ -366,10 +366,10 @@ program plotmeagraph
         isameYaxis = .false.
      endif
   else
-     !nacross = 1
-     !ndown = nplots/nacross
-     ndown = nplots/2
-     nacross = nplots/ndown
+     nacross = 1
+     ndown = nplots/nacross
+     !ndown = nplots/2
+     !nacross = nplots/ndown
      if (isameXaxis .and. isameYaxis) then
         call PGBEGIN(0,'?',1,1) ! uses pgtile
         call PGSCH(1.0)
