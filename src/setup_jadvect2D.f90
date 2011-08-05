@@ -79,15 +79,19 @@ subroutine setup
     dens(ipart) = denszero
     pmass(ipart) = massp
     uu(ipart) = uuzero
+    rr = sqrt(dot_product(x(:,ipart),x(:,ipart)))
     if (imhd.ge.1) then
-       Bfield(1,ipart) = 0.
-       Bfield(2,ipart) = 0.
+       if (rr.lt.rzero) then
+          Bfield(1,ipart) = Azero*(-x(2,ipart)/rr)
+          Bfield(2,ipart) = Azero*(x(1,ipart)/rr)
+       else
+          Bfield(:,ipart) = 0.
+       endif
        if (ndimv.eq.3) Bfield(3,ipart) = 0.0
     elseif (imhd.lt.0) then
 !--vector potential setup
        Bevol(:,ipart) = 0.
        if (ndimV.lt.3) stop 'ndimV too small in setup_jadvect'
-       rr = sqrt(dot_product(x(:,ipart),x(:,ipart)))
        Bevol(3,ipart) = MAX(Azero*(rzero-rr),0.)
     else
        Bfield(:,ipart) = 0.
