@@ -14,7 +14,8 @@ This is a fairly crap user guide so far but maybe I'll get around to writing a
 proper one some day. 
 
 \subsection{What is it?}
-NDSPMHD is a 1, 2 and 3 dimensional code which solves the equations of fluid
+NDSPMHD is a 1, 2 and 3 dimensional code which solves the equations of
+compressible gas
 dynamics numerically using the Smoothed Particle Hydrodynamics (SPH) method. It
 is written entirely in FORTRAN 90.
 
@@ -34,20 +35,39 @@ Inconsistency between equation sets can also lead to subtle errors in SPH
 approximations. All of the equation sets in this code have been derived
 self-consistently from variational principles, leading to good conservation
 properties and good accuracy.
+\item Lots of options, but sensible defaults. By default the code will just run,
+and run well. However, there are lots of times in SPH when something might not
+work as well as it should for the specific problem you are trying to run, so
+there are lots of other ways of doing things. Or you might want to compare
+results with someone else's code and so you want the settings to be the same to
+see where your simulation differs. For example this code can be run either
+evolving the thermal energy, the total energy (default) or the entropy.
+Similarly the magnetic field variable can be either $\mathbf{B}$ or
+$\mathbf{B}/\rho$ (default). By default correction terms for a variable smoothing length
+are calculated self-consistently, but it is also possible to use the old method
+of using an average smoothing length between particle pairs, or the average of
+the kernels. The equations implement the most general form of the momentum
+equation possible, so that many different forms of the momentum equation can be
+used (however, this code ensures that the continuity and energy equations are
+consistent with any alternative formulation of the momentum equation). 
 \item Setup tools. Setting up complicated particle arrangements is made a lot
 easier with a whole lot of setup tools which can be called by the user, to
 arrange particles in cartesian, cylindrical and spherical geometries,
 particularly where there are strange density setups.
+\item Plotting tools. I supply a number of plotting tools specifically tailored
+for the analysis of SPH data. These include rendering utilities which
+interpolate from the particles to an array of pixels to give beautifully
+rendered movies.
 \end{itemize}
 
 \subsubsection{What you don't get.}
 \begin{itemize}
-\item A tree code. At least not yet anyway. Which means no gravity.
+\item A tree code. At least not yet anyway. Which means no self-gravity.
 \end{itemize}
 
 \section{Getting started}
 
-\subsection{Obtaining and compiling the code}
+\subsection{Obtaining and installing the code}
 The code can be obtained by email request to: dprice@ast.cam.ac.uk. You
 should obtain a single, gzipped tar archive. To install the code, type
 \begin{verbatim}
@@ -68,28 +88,72 @@ src/ crap/ crap/
 \end{verbatim}
 The actual code is located in the src/ directory. The other
 directories are:
+\begin{table}[!h]
 \begin{tabular}{ll}
-docs & contains the code documentation (such as this document) \\
-src & source directory (actual code)\\
-multi & tools for running multiple jobs\\
-scripts & shell scripts to perform various tasks\\
-plot & visualisation tool for particle plots using PGPLOT \\
-evplot & visualisation tool for evolution plots (energy vs time etc) using
-PGPLOT
+\hline
+docs/ & contains the code documentation (such as this document) \\
+src/ & source directory (actual code)\\
+multi/ & tools for running multiple jobs\\
+scripts/ & shell scripts to perform various tasks\\
+plot/ & visualisation tool for particle plots using PGPLOT \\
+evplot/ & visualisation tool for evolution plots (energy vs time etc) using
+PGPLOT \\
+\hline
 \end{tabular}
-Type
+\end{table}
+
+\noindent Type
 \begin{verbatim}
 make install
 \end{verbatim}
 or simply `make' to compile the whole
 code. 
 
+\subsection{Compiling the code: makefile options}
+For an introduction to Makefiles in general, see for example the GNU make manual
+at: \textbf{http://www.gnu.org/software/make/manual/make.html}. The Makefile in
+the root directory has
+the following options:
+\begin{table}[!h]
+\begin{tabular}{ll}
+\hline
+make install & compiles 1,2 and 3D code and utilities \\
+make 1D & compiles the code in 1D \\
+make 2D & compiles the code in 2D \\
+make 25D & compiles the code in 2.5D \\
+make 3D & compiles the code in 3D \\
+make plotsph & compiles the particle plotting utility \\
+make plotev & compiles the evolution file plotting utility \\
+make multirun & compiles the utility for doing multiple runs \\
+make clean & removes all .o and .mod files from the source directory \\
+make edit1D & edits the current 1D setup file \\
+make edit2D & edits the current 2D setup file \\
+make edit25D & edits the current 2.5D setup file \\
+make edit3D & edits the current 3D setup file \\
+make scripts & makes symbolic links to useful scripts in root directory \\
+make make &  edits the Makefile in the source directory \\
+make save & saves a version of the code \\
+\hline
+\end{tabular}
+\end{table}
+
+Files are edited using the application specified by the current value of the
+EDITOR variable in the Makefile. For example, to use xemacs instead of emacs, change the line in
+the Makefile to read
+\begin{verbatim}
+EDITOR = xemacs
+\end{verbatim}
+
+ The compilation of the code uses the Makefile in the source directory
+(ndspmhd/src/Makefile). This is where the compiler options and setup files can
+be changed.
+
 \subsection{Running a job}
 \subsubsection{Creating an input file}
 
 \subsubsection{Rerunning a job from the last position}
 
-\subsection{Input options}
+\subsection{Code options}
 
 \subsection{Test problems}
  A suite of test problems

@@ -5,6 +5,7 @@
 ##-------------------------------------------------------------------##
 
 SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
+EDITOR = nedit
 
 install: 
 	cd src;  make 1D
@@ -54,13 +55,13 @@ edit3D:
 	cd src; make edit3D
 
 editev:
-	cd evplot; nedit evsupersph.f &
+	cd evplot; $(EDITOR) evsupersph.f &
 
 scripts:	## makes symbolic links to scripts
 	ln -s run2D ./scripts/run2D.tcsh
 	ln -s run3D ./scripts/run3D.tcsh
 make:
-	cd src; nedit Makefile &
+	cd src; $(EDITOR) Makefile &
 
 tag:
 	cvs -q tag `cat version`_`date +%d_%m_%Y`

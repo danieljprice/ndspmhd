@@ -75,7 +75,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + dt*dhdtin(i)
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + dt*dendtin(i)
-       IF (iavlim.EQ.1) alpha(i) = alphain(i) + dt*daldtin(i)	   
+       IF (iavlim.NE.0) alpha(i) = alphain(i) + dt*daldtin(i)	   
     ENDIF
  ENDDO
 !
@@ -102,7 +102,7 @@ SUBROUTINE step
     				Bfield(:,i),Bcons(:,i),ierr)
     IF (ierr.EQ.1) THEN ! negative thermal energy
        WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-       uu(i) = 0.		!uuin(i) + hdt*dudt(i)
+       uu(i) = 0.	!uuin(i) + dt*dudt(i)
     ENDIF
 !
 !--calculate the pressure using the equation of state
@@ -147,7 +147,7 @@ SUBROUTINE step
 	  ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))	   
+       IF (iavlim.NE.0) alpha(i) = alphain(i) + hdt*(daldt(i)+daldtin(i))	   
     ENDIF 
 	      
  ENDDO
