@@ -75,7 +75,7 @@ subroutine setup
 !
 !--setup uniform density grid of particles (2d) with sinusoidal field/velocity
 !  determines particle number and allocates memory
- call set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed arrangement
+ call set_uniform_cartesian(2,psep,xmin,xmax)	! 2 = close packed arrangement
 
  ntotal = npart
 !
