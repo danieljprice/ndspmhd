@@ -142,6 +142,7 @@ program plotmeagraph
      print*,'opening ',trim(rootname(1))//'.freq for output'
      open(unit=8,file=trim(rootname(1))//'.freq',status='replace')
   endif
+  title = ' '
 
 !------------------------------------------      
 !  menu
@@ -187,7 +188,6 @@ program plotmeagraph
         label(i) = transform_label(label(i),itrans(i))
      enddo
   endif
-  title = ' '
 !
 !--print data menu (in two columns)
 !  
@@ -209,8 +209,9 @@ program plotmeagraph
      print 14,'d','Read new data'
      print 14,'t','Change number of timesteps read'
      print 14,'f','Get frequencies'
-     print 14,'g','Adjust legend position'
+     print 14,'g','Adjust legend / title options'
      print 14,'l','Adjust plot limits'
+     print 14,'p','Set plot title'
      print 14,'a','Do auto update'          
      print 14,'h','toggle help'
      print 14,'s','Save settings'
@@ -294,6 +295,7 @@ program plotmeagraph
      call prompt('Enter horizontal position as fraction of x axis:',hpos,0.0,1.0)
      call prompt('Enter vertical offset from top of graph in character heights:',vpos)
      call prompt('Enter number of plot on page to place legend ',iongraph,1)
+     call prompt('Enter plot title ',title)
      cycle menuloop
   case('l','L')
      ichange = 0
@@ -354,17 +356,23 @@ program plotmeagraph
 ! ------------------------------------------------------------------------
 ! initialise PGPLOT
 !
+  isameXaxis = all(iplotx(1:nplots).eq.iplotx(1))
+  isameYaxis = all(iploty(1:nplots).eq.iploty(1))
+
   if (nplots.eq.1) then
      if (nfiles.gt.1) then
         call PGBEGIN(0,'?',1,1)
         call PGSCH(1.0)
+        nacross = 1
+        ndown = 1
      else
         call PGBEGIN(0,'?',1,2)
         call PGSCH(2.0)
+        nacross = 1
+        ndown = 2
+        isameYaxis = .false.
      endif
   else
-     isameXaxis = all(iplotx(1:nplots).eq.iplotx(1))
-     isameYaxis = all(iploty(1:nplots).eq.iploty(1))
      !nacross = 1
      !ndown = nplots/nacross
      ndown = nplots/2
@@ -416,14 +424,19 @@ program plotmeagraph
         !
         !--setup plotting page
         !
-        if (nplots.gt.1 .and. isameXaxis .and. isameYaxis) then
+        if (nplots.ge.1 .and. isameXaxis .and. isameYaxis) then
            !
            !--tiled plots
            !
            call pgsls(1)
            call danpgtile(i,nacross,ndown,  &
                xmin,xmax,ymin,ymax, &
-               label(iplotx(i)),label(iploty(i)),title,0,0)
+               label(iplotx(i)),label(iploty(i)),' ',0,0)
+           !
+           ! plot the title inside the plot boundaries
+           !
+           call pgmtxt('T',-1.5,0.2,1.0,title)
+
         else
            !
            !--non-tiled plots
