@@ -66,21 +66,21 @@ subroutine boundary
     do i=1,npart
        if (x(1,i).gt.xmax(1)) then
 	  x(1,i) = x(1,i) - (xmax(1)-xmin(1))
-          x(2,i) = x(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))*time
+          x(2,i) = x(2,i) !+ domegadr*Omega0*(xmax(1)-xmin(1))*time
           x(2,i) = xmodbound(x(2,i),xmin(2),xmax(2),0.)
 !          if (x(2,i).gt.xmax(2)) then
 !             x(2,i) = xmin(2) + (x(2,i)-xmax(2))
 !          endif
-          vel(2,i) = vel(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+          vel(3,i) = vel(3,i) + domegadr*Omega0*(xmax(1)-xmin(1))
           ncross = ncross + 1
        elseif(x(1,i).lt.xmin(1)) then
           x(1,i) = x(1,i) + (xmax(1) - xmin(1))
-          x(2,i) = x(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))*time
+          x(2,i) = x(2,i) !- domegadr*Omega0*(xmax(1)-xmin(1))*time
           x(2,i) = xmodbound(x(2,i),xmin(2),xmax(2),0.)
 !          if (x(2,i).lt.xmin(2)) then
 !             x(2,i) = xmax(2) - (xmin(2) - x(2,i))
 !          endif
-          vel(2,i) = vel(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+          vel(3,i) = vel(3,i) - domegadr*Omega0*(xmax(1)-xmin(1))
           ncross = ncross + 1
        endif
     enddo
