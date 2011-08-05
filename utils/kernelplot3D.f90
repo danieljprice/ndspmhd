@@ -12,7 +12,7 @@ program kernelplot3D
  real    :: psep,dx,dy,dz,wsum,wabi,gradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
  real    :: dwdhi,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi
- logical :: samepage,plotall,plot_moments, plot_kernels
+ logical :: samepage,plotall,plot_moments, plot_kernels,plot_gradw
 !! character(len=50) :: text
  integer, parameter :: npts = 101 !241 !76 !51
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
@@ -26,13 +26,14 @@ program kernelplot3D
  data iplotorder /0, 3, 42, 43, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
- plot_moments = .true. ! either plot kernel moments or density/normalisation conditions
+ plot_moments = .false. ! either plot kernel moments or density/normalisation conditions
  plot_kernels = .false.
+ plot_gradw = .true.
 
  if (plotall) then
     nkernels = 70
  else
-    nkernels = 1
+    nkernels = 10
  endif
  samepage = .false.
  nacross = 2
@@ -148,6 +149,9 @@ program kernelplot3D
                    sums(1) = sums(1) + mi/rhoi*wabi*dx*dx/rij2
                    sums(2) = sums(2) + mi/rhoi*wabi*dx*dy/rij2
                    sums(3) = sums(3) + mi/rhoi*wabi*dx*dz/rij2
+                   sums(4) = sums(4) - mi/rhoi*gradwi*dx*dx*rij1
+                   sums(5) = sums(5) - mi/rhoi*gradwi*dx*dy*rij1
+                   sums(6) = sums(6) - mi/rhoi*gradwi*dx*dz*rij1
                 endif
              endif
           enddo
@@ -164,10 +168,11 @@ program kernelplot3D
           erri = abs(wsum - 1.)
           
           hi = hi - func/dfdh
-          sums(:) = ndim*sums(:)
+          sums(1:3) = ndim*sums(1:3)
           if (isetup.eq.1) then
              yplot(i) = wsum 
              !yplot(i) = log10(erri)
+             if (plot_gradw) yplot(i) = sums(4)
              if (ikernel.eq.0) cubic1(i) = yplot(i)
              !yplot(i) = sums(2)
           endif
@@ -175,6 +180,7 @@ program kernelplot3D
              yplot2(i) = wsum
              !yplot2(i) = log10(erri)
              !yplot2(i) = sums(2)
+             if (plot_gradw) yplot2(i) = sums(4)
              if (ikernel.eq.0) cubic2(i) = yplot2(i)
           endif
           if (ikernel.eq.65 .and. i.eq.ipt) print*,'hfact = ',hfact,': iteration ',iteration,' hi = ',hi,' rho = ',5.*wsum     
@@ -185,7 +191,8 @@ program kernelplot3D
           imin = i
           errmin = erri
        endif
-       print*,i,' h = ',xplot(i),' wsum= ',wsum,' moments=',sums(1:3),' nneigh = ',nneigh,4./3.*pi*(radkern*hi)**3/mi
+       !print*,i,' h = ',xplot(i),' wsum= ',wsum,' moments=',sums(1:3),' gradw = ',sums(4:6),&
+       !         ' nneigh = ',nneigh,4./3.*pi*(radkern*hi)**3/mi
     enddo
     if (errmin.lt.0.1) print*,' best eta for '//trim(kernelname)//' (lattice ',isetup,') at ',xplot(imin),' err = ',errmin
     
@@ -212,7 +219,7 @@ program kernelplot3D
     endif
  enddo
  call pgend
- read*
+ !read*
 
 contains
 
@@ -269,18 +276,24 @@ subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
  real(kind=4) :: xmin,xmax,ymin,ymax
  character(len=20) :: ylabel
 
- xmin = 1. !minval(xplot)
- xmax = 1.4 !maxval(xplot)
+ xmin = minval(xplot)
+ xmax = maxval(xplot)
  !ymin = -0.08
  !ymax = 0.12
  !ymin = minval(yplot2) - 0.005
  !ymax = maxval(yplot2) + 0.005
  !if (j.eq.1) then
+ if (plot_gradw) then
+    ymin = 0.97
+    ymax = 1.03 
+    ylabel = '\nabla W_{norm}'
+ else
  ymin = 0.997
  ymax = 1.001
- !endif
  ylabel = 'W(norm)'
  ylabel = 'R_{xy}'
+ endif
+ !endif
 
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/r',trim(ylabel), &
                trim(kernelname),0,1,&
@@ -288,16 +301,16 @@ subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
  call pgmtxt('t',-2.0_4,0.96_4,1.0_4,trim(kernelname))
 !--cubic spline
  call pgsci(2)
-! call pgsls(4)
-! call pgline(size(xplot),xplot,cubic1)
+ call pgsls(4)
+ call pgline(size(xplot),xplot,cubic1)
 !--current kernel 
  call pgsls(1)
  call pgline(size(xplot),xplot,yplot)
 
- call pgsci(2)
+ call pgsci(3)
 !--cubic spline
-! call pgsls(4)
-! call pgline(size(xplot),xplot,cubic2)
+ call pgsls(4)
+ call pgline(size(xplot),xplot,cubic2)
 !--current kernel 
  call pgsls(2)
  call pgline(size(xplot),xplot,yplot2)
