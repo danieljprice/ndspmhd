@@ -15,16 +15,16 @@ contains
 
   subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                      gradh,gradhn,gradsoft,gradgradh,npart)
-    use dimen_mhd,  only:ndim,ndimV
-    use debug,      only:trace
-    use loguns,     only:iprint
-    use kernels,    only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
-    use linklist,   only:ll,ifirstincell,numneigh,ncellsloop
-    use options,    only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    use matrixcorr, only:dxdx,idxdx,jdxdx,ndxdx
-    use part, only:Bfield,ntotal,uu,psi
+    use dimen_mhd,    only:ndim,ndimV
+    use debug,        only:trace
+    use loguns,       only:iprint
+    use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
+    use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
+    use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
+    use matrixcorr,   only:dxdx,idxdx,jdxdx,ndxdx
+    use part,         only:Bfield,ntotal,uu,psi
     use setup_params, only:hfact
-    use rates, only:dBevoldt
+    use rates,        only:dBevoldt
 !
 !--define local variables
 !
