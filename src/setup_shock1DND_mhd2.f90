@@ -58,9 +58,9 @@ SUBROUTINE setup
  alphamax = 0.5
  dsmooth = 20. 
  rholeft = 1.0
- rhoright = 0.125
- prleft = 1.0
- prright = 0.1
+ rhoright = 1.0
+ prleft = 1000.0
+ prright = 0.01
  vleft(1) = 0.
  vright(1) = 0.
  vleft(2) = 0.
@@ -81,18 +81,18 @@ SUBROUTINE setup
 !
 !-- ...or read shock parameters from the .shk file
 !
- shkfile = rootname(1:LEN_TRIM(rootname))//'.shk'
- 
- OPEN (UNIT=ireadf, FILE=shkfile,STATUS='old',FORM='formatted')
-  READ(ireadf,*) rholeft,rhoright
-  READ(ireadf,*) prleft,prright
-  READ(ireadf,*) vleft(1),vright(1)
-  READ(ireadf,*) vleft(2),vright(2)
-  READ(ireadf,*) vleft(3),vright(3)
-  READ(ireadf,*) Bxinit
-  READ(ireadf,*) Byleft,Byright
-  READ(ireadf,*) Bzleft,Bzright
- CLOSE (UNIT=ireadf)
+! shkfile = rootname(1:LEN_TRIM(rootname))//'.shk'
+! 
+! OPEN (UNIT=ireadf, FILE=shkfile,STATUS='old',FORM='formatted')
+!  READ(ireadf,*) rholeft,rhoright
+!  READ(ireadf,*) prleft,prright
+!  READ(ireadf,*) vleft(1),vright(1)
+!  READ(ireadf,*) vleft(2),vright(2)
+!  READ(ireadf,*) vleft(3),vright(3)
+!  READ(ireadf,*) Bxinit
+!  READ(ireadf,*) Byleft,Byright
+!  READ(ireadf,*) Bzleft,Bzright
+! CLOSE (UNIT=ireadf)
  WRITE(iprint,10) rholeft,rhoright,prleft,prright,vleft(1),vright(1),   &
                   vleft(2),vright(2),vleft(3),vright(3),		&
 		  Bxinit,Byleft,Byright,Bzleft,Bzright
