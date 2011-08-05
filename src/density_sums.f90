@@ -445,7 +445,7 @@ contains
        hi1 = 1./hi
        hi21 = hi1*hi1
        unityi = 0.
-       
+
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
        xi = x(:,i)
@@ -490,7 +490,7 @@ contains
              grkernalti = grkernalti*hfacgrkerni
 !
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
-!             
+!
              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
              dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
 
@@ -533,7 +533,7 @@ contains
 
              if (i.ne.j) then
                 dxdx(:,i) = dxdx(:,i) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkerni
-             endif       
+             endif
           endif
           
        enddo loop_over_neighbours
