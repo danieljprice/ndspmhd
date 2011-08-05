@@ -460,7 +460,7 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)          
+          dpsidt(i) = -vsig2max*divB(i) - psi(i)*vsigmax/psidecayfact         
        case DEFAULT
           dpsidt(i) = 0.
     end select
