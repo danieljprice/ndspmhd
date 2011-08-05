@@ -60,6 +60,16 @@ subroutine conservative2primitive
  call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
                         rho(1:npart),gamma,polyk,npart)
 !
+!--make fixed particles exact replicas of their closest particle
+!
+  if (any(ibound.eq.1)) then
+     do i=1,npart
+        if (itype(i).eq.1) then
+           call copy_particle(i,ireal(i))
+        endif
+     enddo
+  endif
+!
 !--copy the primitive variables onto the ghost particles
 ! 
   if (any(ibound.gt.1)) then
@@ -70,16 +80,6 @@ subroutine conservative2primitive
         spsound(i) = spsound(j)
         pr(i) = pr(j)
         Bfield(:,i) = Bfield(:,j)
-     enddo
-  endif
-!
-!--make fixed particles exact replicas of their closest particle
-!
-  if (any(ibound.eq.1)) then
-     do i=1,npart
-        if (itype(i).eq.1) then
-           call copy_particle(i,ireal(i))
-        endif
      enddo
   endif
   
