@@ -76,14 +76,14 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--adjust psep so that particles fill the volume
 !
     PRINT*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
-    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
-    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
-    PRINT*,' adjusted ',deltax,deltay
+!    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
+!    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
+!    PRINT*,' adjusted ',deltax,deltay
 !
 !--or adjust the boundaries appropriately
 !
-!    xmax(2) = xmin(2) + nparty*deltay
-!    PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
+    xmax(2) = xmin(2) + nparty*deltay
+    PRINT*,' adjusted y boundary : ymax  = ',xmax(2)
 !
 !--allocate memory here
 !

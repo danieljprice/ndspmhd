@@ -17,10 +17,10 @@ program kernelplot
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 1
+ nkernels = 3
  iprint = 6   ! make sure output from kernel setup goes to screen
- ianticlump = 2
- epszero = 0.4
+ ianticlump = 1
+ epszero = 0.0
  nepszero = 4
  hfact = 1.5
  samepage = .true.
@@ -53,7 +53,7 @@ program kernelplot
 
  do j=1,nkernels
     if (ianticlump.ne.0) then !! .and. j.lt.7) then
-       eps = eps + 0.2
+       eps = eps + 0.4
        print*,'eps = ',eps, ' neps = ',neps
 !    else
 !       if (j.eq.7) eps = 0.2
@@ -174,7 +174,7 @@ program kernelplot
 !	     hfact = 1.2
 !	     call pgsls(2)
 !	  endif
-          eps = eps + 0.2
+          eps = eps + 0.4
        endif
        ikernel = iplotorder(j)
        call setkern
