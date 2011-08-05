@@ -89,12 +89,10 @@ subroutine get_rates
  real :: q2,q2i,q2j
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
-
 !
 !  (joe's mhd fix)
 !
- real :: wabjoe_fixed,wabjoe,wabjoei,wabjoej,grkernjoe
- real :: Rjoe, Rjoei, Rjoej, q2joe
+ real :: wabaniso,wabanisoi,wabanisoj,grkernaniso,grkernanisoi,grkernanisoj
 !
 !  (time step criteria)
 !      
@@ -102,7 +100,7 @@ subroutine get_rates
 !
 !  (variable smoothing length terms)
 !
- real :: gradhi,gradhj
+ real :: gradhi,gradhj,gradhanisoi,gradhanisoj
  integer :: ierr
 !
 !  (gravity)
@@ -185,19 +183,6 @@ subroutine get_rates
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
- !
- !--calculate kernel for the MHD anticlumping term
- !
- if (ianticlump.eq.1) then
-!  if (ikernav.eq.3) then
-!     q2joe = (1./hfact)**2      ! 1/hfact is initial particle spacing in units of h 
-!  else
-     q2joe = (1./1.5)**2
-!  endif
-  call interpolate_kernel(q2joe,wabjoe_fixed,grkernjoe)
- endif
- ! print*,'wabjoe = ',wabjoe_fixed
- 
 !
 !--Loop over all the link-list cells
 !
@@ -246,6 +231,7 @@ subroutine get_rates
           alphaBi = alpha(3,i)
        endif
        gradhi = 1./(1. - gradh(i))
+       gradhanisoi = 1./(1.-gradhaniso(i))
        !if (gradhi.le.0.5) then
        !   write(iprint,*) 'Error in grad h terms, part ',i,gradhi
        !endif
@@ -495,48 +481,85 @@ contains
   subroutine rates_core
 !!    use unityfunc
     implicit none
-!!    real :: grkerncorri,grkerncorrj
 !
-!--use either average h, average kernel gradient or Springel/Hernquist type
+!--calculate both kernels if using anticlumping kernel
 !
-    if (ikernav.eq.1) then
-       call interpolate_kernel(q2,wab,grkern)
-       wab = wab*hfacwab
-       grkern = grkern*hfacgrkern
-       grkerni = grkern
-       grkernj = grkern
-    else
-!  (using hi)
-       call interpolate_kernel(q2i,wabi,grkerni)
-       wabi = wabi*hfacwabi
-       grkerni = grkerni*hfacgrkerni
-!  (using hj)
-       call interpolate_kernel(q2j,wabj,grkernj)
-       wabj = wabj*hfacwabj
-       grkernj = grkernj*hfacgrkernj
-!  (calculate average)              
-       grkern = 0.5*(grkerni + grkernj)
-       wab = 0.5*(wabi + wabj)
-!  (grad h terms)  
-       if (ikernav.eq.3) then  ! if using grad h correction
-          gradhj = 1./(1. - gradh(j))
-          grkerni = grkerni*gradhi
-          grkernj = grkernj*gradhj
-       else  ! if not using grad h correction               
-          grkerni = grkern
-          grkernj = grkern
-       endif
+   if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1) then
+      if (ikernav.eq.1) then
+         call interpolate_kernels(q2,wab,grkern,wabaniso,grkernaniso)
+         wab = wab*hfacwab
+         grkern = grkern*hfacgrkern
+         grkernaniso = grkernaniso*hfacgrkern
+         grkerni = grkern
+         grkernj = grkern
+         grkernanisoi = grkernaniso
+         grkernanisoj = grkernaniso
+      else
+         !  (using hi)
+         call interpolate_kernels(q2i,wabi,grkerni,wabanisoi,grkernanisoi)
+         wabi = wabi*hfacwabi
+         grkerni = grkerni*hfacgrkerni
+         grkernanisoi = grkernanisoi*hfacgrkerni
+         !  (using hj)
+         call interpolate_kernels(q2j,wabj,grkernj,wabanisoj,grkernanisoj)
+         wabj = wabj*hfacwabj
+         grkernj = grkernj*hfacgrkernj
+         grkernanisoj = grkernanisoj*hfacgrkernj
+         !  (calculate average)              
+         wab = 0.5*(wabi + wabj)  ! wab only used in XSPH term
+         !  (grad h terms)  
+         if (ikernav.eq.3) then  ! if using grad h correction
+            gradhj = 1./(1. - gradh(j))
+            grkerni = grkerni*gradhi
+            grkernj = grkernj*gradhj
+            grkern = 0.5*(grkerni + grkernj)
+            gradhanisoj = 1./(1. - gradhaniso(j))
+            grkernanisoi = grkernanisoi*gradhanisoi
+            grkernanisoj = grkernanisoj*gradhanisoj
+            !!grkernaniso = 0.5*(grkernanisoi + grkernanisoj)	  
+         else  ! if not using grad h correction               
+            grkern = 0.5*(grkerni + grkernj)
+            grkerni = grkern
+            grkernj = grkern
+            grkernaniso = 0.5*(grkernanisoi + grkernanisoj)
+            grkernanisoi = grkernaniso
+            grkernanisoj = grkernaniso
+         endif
+      endif
+   else
 !
-!--correct kernel gradient using correction terms (if calculated)
-!       
-!       if (iunity.ne.0) then
-!          grkerni = grkerni/unity(i)
-!	  grkernj = grkernj/unity(j)
-!	  grkerncorri = wabi/unity(i)**2
-!	  grkerncorrj = wabj/unity(j)**2
-!       endif
-       
-    endif
+!--or just calculate the usual kernel
+!
+      if (ikernav.eq.1) then
+         call interpolate_kernel(q2,wab,grkern)
+         wab = wab*hfacwab
+         grkern = grkern*hfacgrkern
+         grkerni = grkern
+         grkernj = grkern
+      else
+         !  (using hi)
+         call interpolate_kernel(q2i,wabi,grkerni)
+         wabi = wabi*hfacwabi
+         grkerni = grkerni*hfacgrkerni
+         !  (using hj)
+         call interpolate_kernel(q2j,wabj,grkernj)
+         wabj = wabj*hfacwabj
+         grkernj = grkernj*hfacgrkernj
+         !  (calculate average)              
+         wab = 0.5*(wabi + wabj)
+         !  (grad h terms)  
+         if (ikernav.eq.3) then  ! if using grad h correction
+            gradhj = 1./(1. - gradh(j))
+            grkerni = grkerni*gradhi
+            grkernj = grkernj*gradhj
+            grkern = 0.5*(grkerni + grkernj)
+         else  ! if not using grad h correction               
+            grkern = 0.5*(grkerni + grkernj)
+            grkerni = grkern
+            grkernj = grkern
+         endif
+      endif
+   endif
 !
 !--define local copies of quantities
 !
@@ -821,7 +844,6 @@ contains
   subroutine mhd_terms
     implicit none
     real :: divBonrho
-
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -856,24 +878,8 @@ contains
        !   in 1D we only do this in the x-direction
        !
        if (ianticlump.eq.1) then
-          wabjoe = wabjoe_fixed*hfacwab
-          wabjoei = wabjoe_fixed*hfacwabi
-          wabjoej = wabjoe_fixed*hfacwabj
-          Rjoei = 0.5*eps*(wabi/wabjoei)**neps
-          Rjoej = 0.5*eps*(wabj/wabjoej)**neps
-          if (ikernav.eq.2) then
-             Rjoe = 0.5*(Rjoei + Rjoej)
-             Rjoei = Rjoe
-             Rjoej = Rjoe
-          elseif (ikernav.eq.1) then
-             Rjoe = 0.5*eps*(wab/wabjoe)**neps
-             Rjoei = Rjoe
-             Rjoej = Rjoe
-          endif   
-          !!if (Rjoei.gt.0.1) print*,'Rjoei,Rjoej = ',Rjoei,Rjoej,wabi/wabjoei,wabj/wabjoej
-
-          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni*(1.-Rjoei)  &
-                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj*(1.-Rjoej)               
+          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkernanisoi  &
+                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernanisoj               
           
 !          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni  &
 !                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj
@@ -971,7 +977,7 @@ contains
        dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
         
-       if (imhd.eq.12) then
+       if (imhd.eq.12) then ! add v div B term
         dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
         dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(-velj(:)*projdB)*grkernj
        endif
@@ -994,7 +1000,7 @@ contains
   subroutine energy_equation
     implicit none
     real, dimension(ndimV) :: prvterm
-    real :: Brhoidotvj, Brhoidotvi, Brhojdotvj, Brhojdotvi
+    real :: Brhoidotvj,Brhojdotvi,Brhoidotdv, Brhojdotdv
     real :: prvaniso, projprv, prvanisoi, prvanisoj
              
     Brhoidotvj = dot_product(Brhoi,velj)
@@ -1008,31 +1014,30 @@ contains
     !
     ! (anisotropic stress)
     !
-    prvaniso =  - Brhoidotvj*projBrhoi*phii_on_phij*grkerni      & 
-                - Brhojdotvi*projBrhoj*phij_on_phii*grkernj
-    !
-    ! (add source term for anticlumping term)               
-    !
     if (imhd.ne.0 .and. ianticlump.eq.1 .and. imagforce.eq.2) then
-       ! prvaniso = prvaniso - Rjoe*prvaniso
-       ! (if applied in x-direction only)
-       Brhoidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
-       Brhojdotvi = dot_product(Brhoj(1:ndim),veli(1:ndim))
-       
-       Brhoidotvj = dot_product(Brhoi(1:ndim),velj(1:ndim))
-       Brhojdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
-       
-       prvanisoi = Brhoidotvi*projBrhoi*phii_on_phij*grkerni*Rjoei &
-                 + Brhojdotvi*projBrhoj*phij_on_phii*grkernj*Rjoej
-       prvanisoj = Brhoidotvj*projBrhoi*phii_on_phij*grkerni*Rjoei &
-                 + Brhojdotvj*projBrhoj*phij_on_phii*grkernj*Rjoej
+       !
+       !  with anticlumping term must add contribution from anisotropic term 
+       !  explicitly and subtract contribution from B/rho version of induction equation
+       !  (some of these terms cancel if the kernels are the same)
+       !
+       Brhoidotdv = dot_product(Brhoi,dvel) ! these terms are from the B/rho induction eq.
+       Brhojdotdv = -dot_product(Brhoj,dvel) ! -ve so velj-veli instead of veli-velj
+
+       prvanisoi = -(dot_product(veli,faniso) - Brhoidotdv*projBrhoi*phii_on_phij*grkerni)
+       prvanisoj = -(dot_product(velj,faniso) - Brhojdotdv*projBrhoj*phij_on_phii*grkernj)
+
     else
-       prvanisoi = 0.
-       prvanisoj = 0.
+       !
+       !  without anticlumping term
+       !
+       prvaniso =  - Brhoidotvj*projBrhoi*phii_on_phij*grkerni      & 
+                   - Brhojdotvi*projBrhoj*phij_on_phii*grkernj
+       prvanisoi = prvaniso
+       prvanisoj = prvaniso
     endif
        
-    dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
-    dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj)
+    dendt(i) = dendt(i) - pmassj*(projprv+prvanisoi)
+    dendt(j) = dendt(j) + pmassi*(projprv+prvanisoj)
     !
     ! (source term for hyperbolic divergence correction)            
     !

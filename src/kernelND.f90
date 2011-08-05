@@ -64,17 +64,17 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.0.5) THEN
-          wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4)
-          grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
-          grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
+          wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4
+          grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
+          grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
        ELSEIF (q.LT.1.5) THEN
-          wij(i) = cnormk*((2.5-q)**4 - 5.*(1.5-q)**4)
-          grwij(i) = -cnormk*4.*((2.5-q)**3 - 5.*(1.5-q)**3)
-          grgrwij(i) = cnormk*12.*((2.5-q)**2 - 5.*(1.5-q)**2)       
+          wij(i) = (2.5-q)**4 - 5.*(1.5-q)**4
+          grwij(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3)
+          grgrwij(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2)   
        ELSEIF (q.LT.2.5) THEN
-          wij(i) = cnormk*((2.5-q)**4)
-          grwij(i) = -cnormk*4.*((2.5-q)**3)
-          grgrwij(i) = cnormk*12.*((2.5-q)**2)
+          wij(i) = (2.5-q)**4
+          grwij(i) = -4.*((2.5-q)**3)
+          grgrwij(i) = 12.*((2.5-q)**2)
        ELSE
           wij(i) = 0.
           grwij(i) = 0.
@@ -104,58 +104,17 @@ SUBROUTINE setkern
        q = SQRT(q2)
        term1 = -5.*(3.-q)**4.
        IF (q.LT.1.0) THEN
-          wij(i) = cnormk*(66.-60.*q2 + 30.*q4 - 10.*q4*q)
-          grwij(i) = cnormk*(term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.)
-          grgrwij(i) = cnormk*(20.*(3.-q)**3. - 120.*(2.-q)**3.   &
-                      + 300.*(1.-q)**3.)
+          wij(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
+          grwij(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
+          grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
        ELSEIF ((q.GE.1.0).AND.(q.LT.2.0)) THEN
-          wij(i) = cnormk*((3.-q)**5. - 6.*(2.-q)**5.)
-          grwij(i) = cnormk*(term1 + 30*(2.-q)**4.)
-          grgrwij(i) = cnormk*(20.*(3.-q)**3. - 120.*(2.-q)**3.)
+          wij(i) = (3.-q)**5. - 6.*(2.-q)**5.
+          grwij(i) = term1 + 30*(2.-q)**4.
+          grgrwij(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
        ELSEIF ((q.GE.2.0).AND.(q.LE.3.0)) THEN
-          wij(i) = cnormk*((3.-q)**5.)
-          grwij(i) = cnormk*(term1)
-          grgrwij(i) = cnormk*(20.*(3.-q)**3.)
-       ELSE
-          wij(i) = 0.0
-          grwij(i) = 0.0
-          grgrwij(i) = 0.
-       ENDIF
-    ENDDO
-
-  CASE(4)
-!
-!--this is my squashed quintic spline (quintic rescaled to radius 2)
-!
-    kernelname = 'Rescaled quintic'  
-    radkern = 2.0
-    radkern2 = radkern*radkern
-    dq2table = radkern2/REAL(ikern)
-    SELECT CASE(ndim)
-      CASE(1)
-       cnormk = 0.5/1280.
-      CASE DEFAULT
-       write(iprint,666)
-       stop
-    END SELECT
-    DO i=0,ikern         
-       q2 = i*dq2table
-       q4 = q2*q2
-       q = SQRT(q2)
-       term1 = -15.*(6.-3.*q)**4.
-       IF (q.LT.2./3.) THEN
-          wij(i) = cnormk*((6.-3.*q)**5. - 6.*(4.-3.*q)**5. + 15.*(2.-3.*q)**5.)
-          grwij(i) = cnormk*(term1 + 90*(4.-3.*q)**4. - 225.*(2.-3.*q)**4.)
-          grgrwij(i) = cnormk*(180.*(6.-3.*q)**3. - 1080.*(4.-3.*q)**3.   &
-                      + 2700.*(2.-3.*q)**3.)
-       ELSEIF ((q.GE.2./3.).AND.(q.LT.4./3.)) THEN
-          wij(i) = cnormk*((6.-3.*q)**5. - 6.*(4.-3.*q)**5.)
-          grwij(i) = cnormk*(term1 + 90*(4.-3.*q)**4.)
-          grgrwij(i) = cnormk*(180.*(6.-3.*q)**3. - 1080.*(4.-3.*q)**3.)
-       ELSEIF ((q.GE.4./3.).AND.(q.LE.2.0)) THEN
-          wij(i) = cnormk*((6.-3.*q)**5.)
-          grwij(i) = cnormk*(term1)
-          grgrwij(i) = cnormk*(180.*(6.-3.*q)**3.)
+          wij(i) = (3.-q)**5.
+          grwij(i) = term1
+          grgrwij(i) = 20.*(3.-q)**3.
        ELSE
           wij(i) = 0.0
           grwij(i) = 0.0
@@ -229,21 +188,21 @@ SUBROUTINE setkern
       ddterm3 = 20*(beta-q)**3
       ddterm4 = 20*(gamma-q)**3
       IF (q.LT.gamma) THEN
-         wij(i) = cnormk*(term1 + A*term2  + B*term3 + C*term4)
-         grwij(i) = cnormk*(dterm1 + A*dterm2 + B*dterm3 + C*dterm4)
-         grgrwij(i) = cnormk*(ddterm1 + A*ddterm2 + B*ddterm3 + C*ddterm4)    
+         wij(i) = term1 + A*term2  + B*term3 + C*term4
+         grwij(i) = dterm1 + A*dterm2 + B*dterm3 + C*dterm4
+         grgrwij(i) = ddterm1 + A*ddterm2 + B*ddterm3 + C*ddterm4   
       ELSEIF ((q.GE.gamma).AND.(q.LT.beta)) THEN
-         wij(i) = cnormk*(term1 + A*term2  + B*term3)
-         grwij(i) = cnormk*(dterm1 + A*dterm2 + B*dterm3)
-         grgrwij(i) = cnormk*(ddterm1 + A*ddterm2 + B*ddterm3)          
+         wij(i) = term1 + A*term2  + B*term3
+         grwij(i) = dterm1 + A*dterm2 + B*dterm3
+         grgrwij(i) = ddterm1 + A*ddterm2 + B*ddterm3       
       ELSEIF ((q.GE.beta).AND.(q.LT.alpha)) THEN
-         wij(i) = cnormk*(term1 + A*term2)
-         grwij(i) = cnormk*(dterm1 + A*dterm2)
-         grgrwij(i) = cnormk*(ddterm1 + A*ddterm2)
+         wij(i) = term1 + A*term2
+         grwij(i) = dterm1 + A*dterm2
+         grgrwij(i) = ddterm1 + A*ddterm2
       ELSEIF ((q.GE.alpha).AND.(q.LT.radkern)) THEN
-         wij(i) = cnormk*term1
-         grwij(i) = cnormk*dterm1
-         grgrwij(i) = cnormk*ddterm1
+         wij(i) = term1
+         grwij(i) = dterm1
+         grgrwij(i) = ddterm1
       ELSE
          wij(i) = 0.0
          grwij(i) = 0.0
@@ -292,9 +251,9 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
-          wij(i) = cnormk*(radkern**2-q2)**npower
-          grwij(i) = -cnormk*2.*npower*q*(radkern**2-q2)**(npower-1)
-          grgrwij(i) = cnormk*(4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
+          wij(i) = (radkern**2-q2)**npower
+          grwij(i) = -2.*npower*q*(radkern**2-q2)**(npower-1)
+          grgrwij(i) = (4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
                       - 2.*npower*(radkern**2-q2)**(npower-1))
        ELSE
           wij(i) = 0.
@@ -323,9 +282,9 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
-          wij(i) = cnormk*(radkern-q)**npower
-          grwij(i) = -cnormk*npower*(radkern-q)**(npower-1)
-          grgrwij(i) = cnormk*(npower*(npower-1)*(radkern-q)**(npower-2))
+          wij(i) = (radkern-q)**npower
+          grwij(i) = -npower*(radkern-q)**(npower-1)
+          grgrwij(i) = npower*(npower-1)*(radkern-q)**(npower-2)
        ELSE
           wij(i) = 0.
           grwij(i) = 0.
@@ -354,7 +313,7 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
-          wij(i) = cnormk*exp(-q2)
+          wij(i) = exp(-q2)
           grwij(i) = -2.*q*wij(i)
           grgrwij(i) = -2.*q*grwij(i) - 2.*wij(i)
        ELSE
@@ -386,18 +345,18 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.1.0) THEN
-          wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
+          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
           IF (q.LT.2./3.) THEN
-             grwij(i) = -cnormk
-        grgrwij(i) = 0.
+             grwij(i) = -1.
+             grgrwij(i) = 0.
           ELSE
-             grwij(i) = cnormk*(-3.*q+ 2.25*q2)
-             grgrwij(i) = cnormk*(-3. + 4.5*q)
+             grwij(i) = -3.*q+ 2.25*q2
+             grgrwij(i) = -3. + 4.5*q
           ENDIF
        ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-          wij(i) = cnormk*(0.25*(2.-q)**3.)
-          grwij(i) = cnormk*(-0.75*(2.-q)**2.)
-          grgrwij(i) = cnormk*(1.5*(2.-q))
+          wij(i) = 0.25*(2.-q)**3.
+          grwij(i) = -0.75*(2.-q)**2.
+          grgrwij(i) = 1.5*(2.-q)
        ELSE
           wij(i) = 0.0
           grwij(i) = 0.0
@@ -425,13 +384,13 @@ SUBROUTINE setkern
       q2 = i*dq2table
       q = SQRT(q2)
       IF (q.LT.1.0) THEN
-         wij(i) = cnormk*((2.-q)**5 - 16.*(1.-q)**5)
-         grwij(i) = cnormk*(-5.*(2.-q)**4 + 80.*(1.-q)**4.)
-         grgrwij(i) = cnormk*(20.*(2.-q)**3 - 320.*(1.-q)**3.)
+         wij(i) = (2.-q)**5 - 16.*(1.-q)**5
+         grwij(i) = -5.*(2.-q)**4 + 80.*(1.-q)**4.
+         grgrwij(i) = 20.*(2.-q)**3 - 320.*(1.-q)**3.
       ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-         wij(i) = cnormk*(2.-q)**5
-         grwij(i) = cnormk*(-5.*(2.-q)**4)
-         grgrwij(i) = cnormk*(20.*(2.-q)**3)
+         wij(i) = (2.-q)**5
+         grwij(i) = -5.*(2.-q)**4
+         grgrwij(i) = 20.*(2.-q)**3
       ELSE
          wij(i) = 0.0
          grwij(i) = 0.0
@@ -459,9 +418,9 @@ SUBROUTINE setkern
       q2 = i*dq2table
       q = SQRT(q2)
       IF (q.LT.2.0) THEN
-         wij(i) = cnormk*(1.+0.5*q)*(1.-0.5*q)**3
-         grwij(i) = cnormk*(0.5*(1.-0.5*q)**3 - 1.5*(1.+0.5*q)*(1.-0.5*q)**2)
-         grgrwij(i) = cnormk*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+         wij(i) = (1.+0.5*q)*(1.-0.5*q)**3
+         grwij(i) = (0.5*(1.-0.5*q)**3 - 1.5*(1.+0.5*q)*(1.-0.5*q)**2)
+         grgrwij(i) = (-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
       ELSE
          wij(i) = 0.0
          grwij(i) = 0.0
@@ -493,13 +452,13 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.1.0) THEN
-          wij(i) = (1. - 1.5*q2 + 0.75*q*q2)
-          grwij(i) = (-3.*q+ 2.25*q2)
-          grgrwij(i) = (-3. + 4.5*q)
+          wij(i) = 1. - 1.5*q2 + 0.75*q*q2
+          grwij(i) = -3.*q+ 2.25*q2
+          grgrwij(i) = -3. + 4.5*q
        ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-          wij(i) = (0.25*(2.-q)**3.)
-          grwij(i) = (-0.75*(2.-q)**2.)
-          grgrwij(i) = (1.5*(2.-q))
+          wij(i) = 0.25*(2.-q)**3.
+          grwij(i) = -0.75*(2.-q)**2.
+          grgrwij(i) = 1.5*(2.-q)
        ELSE
           wij(i) = 0.0
           grwij(i) = 0.0
@@ -510,11 +469,14 @@ SUBROUTINE setkern
  END SELECT
 
 !
-!--this is to see what effect the anticlumping term has on the kernel
+!--calculate modified kernel to use on anisotropic forces
 !
- IF (idivBzero.EQ.5) THEN
-    j = NINT((1./hfact)**2/dq2table)
-    !!j = NINT((1./1.5)**2/dq2table)
+ IF (ianticlump.eq.1) THEN
+!
+!--this is Joe's standard anticlumping term
+!
+    !!j = NINT((1./hfact)**2/dq2table)
+    j = NINT((1./1.5)**2/dq2table)
     wdenom = wij(j)
 
     SELECT CASE(neps) ! integral of W^{n+1} dV
@@ -540,9 +502,12 @@ SUBROUTINE setkern
     ENDDO
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname=TRIM(kernelname)//' with anti-clumping term' 
+    kernelname=TRIM(kernelname)//' & anti-clumping cubic spline' 
  
- ELSEIF (idivBzero.EQ.6) THEN
+ ELSEIF (ianticlump.eq.2) THEN
+!
+!--this is a modified version of the cubic spline
+!
     beta = eps
     print*,'enter beta (0.6-0.99) , currently = ',beta
     !!read*,beta
@@ -573,7 +538,7 @@ SUBROUTINE setkern
     ENDDO
 
     print*,'cnormk = ',cnormkaniso,eps,neps
-    kernelname='modified '//TRIM(kernelname)   
+    kernelname=TRIM(kernelname)//' & modified cubic spline'   
  
  ENDIF
 !

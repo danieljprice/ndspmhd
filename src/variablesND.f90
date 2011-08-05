@@ -82,7 +82,7 @@ END MODULE gravity
 MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
- REAL, DIMENSION(:), ALLOCATABLE :: gradh
+ REAL, DIMENSION(:), ALLOCATABLE :: gradh, gradhaniso
 END MODULE
 
 !-------------------------------------------------------------------
@@ -92,7 +92,7 @@ END MODULE
 MODULE kernel
  IMPLICIT NONE
  INTEGER, PARAMETER :: ikern=4000    ! dimensions of kernel table
- REAL, DIMENSION(0:ikern) :: wij,grwij
+ REAL, DIMENSION(0:ikern) :: wij,grwij,wijaniso,grwijaniso
  REAL :: dq2table,ddq2table,radkern2,radkern
 END MODULE
 
@@ -103,7 +103,7 @@ END MODULE
 MODULE kernelextra
  USE kernel
  IMPLICIT NONE
- REAL, DIMENSION(0:ikern) :: grgrwij,wijaniso,grwijaniso,grgrwijaniso
+ REAL, DIMENSION(0:ikern) :: grgrwij,grgrwijaniso
  CHARACTER(LEN=100) :: kernelname
 END MODULE kernelextra
 
