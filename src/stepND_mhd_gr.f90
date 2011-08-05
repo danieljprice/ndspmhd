@@ -115,7 +115,7 @@ subroutine step
           rho(i) = rhoin(i) + dt*drhodt(i)
           if (rho(i).LE.0.) then
              write(iprint,*) 'step: rho -ve ',i,rho(i)
-                 call quit
+             call quit
           endif
        endif
        if (ANY(iavlim.NE.0)) alpha(:,i) = min(alphain(:,i) + dt*daldt(:,i),1.0)
