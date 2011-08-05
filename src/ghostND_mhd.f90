@@ -23,17 +23,17 @@ SUBROUTINE set_ghost_particles
 !--define local variables
 !
  IMPLICIT NONE
+ INTEGER, PARAMETER :: maxbound = 2	! maximum no. of boundaries in each dim.
+ INTEGER, DIMENSION(ndim) :: nbound	! number of boundaries in each dim.
  INTEGER :: i,j,ighostprev,istart,ighostx
  INTEGER :: imaxmin,imaxminprev,imaxminprevprev
  INTEGER :: idimen,idimenprev,idimenprevprev
  INTEGER :: ipart,jpart,jprev
- REAL :: dx,dxshift,xbound,xperbound
- REAL, DIMENSION(ndim) :: dxbound
- INTEGER, PARAMETER :: maxbound = 2	! maximum no. of boundaries in each dim.
- INTEGER, DIMENSION(ndim) :: nbound	! number of boundaries in each dim.
- REAL, DIMENSION(ndim) :: xpart
- LOGICAL, DIMENSION(ndim,maxbound) :: imakeghost
+ REAL, DIMENSION(ndim) :: dxbound,xpart
  REAL, DIMENSION(ndim,maxbound) :: xnew
+ REAL :: dx,dxshift,xbound,xperbound
+ LOGICAL, DIMENSION(ndim,maxbound) :: imakeghost
+ LOGICAL :: ireflect
 !
 !--allow for tracing flow
 !      
@@ -66,6 +66,7 @@ SUBROUTINE set_ghost_particles
 !  (for efficiency in this case should use max h of all particles near boundary)
 !
     WHERE (ibound.EQ.2) dxbound(:) = radkern*hh(jpart)
+    ireflect = .false.
     
     over_dimen: DO idimen = 1, ndim		! over spatial dimensions
       
@@ -104,6 +105,7 @@ SUBROUTINE set_ghost_particles
 	     IF (ibound(idimen).EQ.3) THEN	! periodic
 	        xnew(idimen,imaxmin) = xperbound + dxshift
 	     ELSEIF (ibound(idimen).EQ.2) THEN	! reflective
+	        ireflect = .true.
 	        xnew(idimen,imaxmin) = xbound - dxshift
 	     ENDIF
 !
@@ -113,7 +115,7 @@ SUBROUTINE set_ghost_particles
 !
 !--make the ghost particle at this position
 !
-	     CALL makeghost(jpart,xpart)
+	     CALL makeghost(jpart,xpart,ireflect)
 !
 !--make additional ghost(s) if near an edge/corner	     
 !
@@ -136,7 +138,7 @@ SUBROUTINE set_ghost_particles
 !
 !--make the ghost particle at this position
 !
-		      CALL makeghost(jpart,xpart)
+		      CALL makeghost(jpart,xpart,ireflect)
 !
 !--make a corner ghost if ghosts set in both previous dimensions
 !  (could be up to 8 corner reflections of this particle in 3D
@@ -153,7 +155,7 @@ SUBROUTINE set_ghost_particles
 !
 !--make the ghost particle at this position
 !
-		              CALL makeghost(jpart,xpart)
+		              CALL makeghost(jpart,xpart,ireflect)
 			   ENDIF	! made ghost in previous dimension
 			ENDDO	! over boundaries
 		      ENDIF	! if > 2D
@@ -205,17 +207,17 @@ END SUBROUTINE set_ghost_particles
 !
 ! subroutine to make a ghost particle
 !
-SUBROUTINE makeghost(jpart,xghost)
+SUBROUTINE makeghost(jpart,xghost,ireflect)
  USE dimen_mhd
  USE bound
- USE derivB
+! USE derivB
  USE loguns
- USE options
  USE part
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: jpart	! index of particle to be ghosted
- REAL, INTENT(IN), DIMENSION(ndim) :: xghost ! position of ghost particle
  INTEGER :: ipart
+ REAL, INTENT(IN), DIMENSION(ndim) :: xghost ! position of ghost particle
+ LOGICAL, INTENT(IN) :: ireflect
 !
 !--create new particle and reallocate memory if needed
 ! 
@@ -232,11 +234,11 @@ SUBROUTINE makeghost(jpart,xghost)
 !
 !--copy velocities
 !
- WHERE (ibound.EQ.2) 	 		! reflecting
+ IF (ireflect) THEN 	 		! reflecting
     vel(:,ipart) = -vel(:,jpart)	! should reflect all vels
- ELSEWHERE (ibound.EQ.3)		! periodic / fixed particles
+ ELSE					! periodic/fixed
     vel(:,ipart) = vel(:,jpart)
- END WHERE
+ ENDIF
 !
 !--ireal for ghosts refers to the real particle of which they are ghosts
 !  
