@@ -7,9 +7,9 @@
 
 .KEEP_STATE:
 
-F90C =  f95
-F90FLAGS =  -O ##-C
-LDFLAGS =  -L/usr/X11R6/lib -lX11 ###-L/star/lib `pgplot_link` ##-lpgplot  ###-lpng -lg2c
+F90C =  g95
+F90FLAGS =  -O
+LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -25,7 +25,7 @@ SOURCES= evsupersph.f90
 OBJECTS = prompting.o transforms.o danpgtile.o int_from_string.o $(SOURCES:.f90=.o)
 
 ../evsupersph: $(OBJECTS)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) /h/neil/software/pgplot95/libpgplot.a
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
 danpgtile.o :
 	$(F90C) -c $(F90FLAGS) ../plot/danpgtile.f -o $@ 

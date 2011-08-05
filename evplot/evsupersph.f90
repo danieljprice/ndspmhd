@@ -4,15 +4,15 @@
 !  uses PGPLOT subroutines
 !
 program plotmeagraph
-  use f90_unix
+  !!use f90_unix
   use transforms
   use prompting
   implicit none
   integer :: ncol
   integer, parameter :: maxfile=101
-  integer, parameter :: maxstep=30000
+  integer, parameter :: maxstep=3000
   integer, parameter :: maxcol=21        ! (6)21 (non)MHD        maximum number of columns
-  integer :: i,iprev,nfiles,ifile,ifilesteps
+  integer :: i,iprev,nfiles,ifile,ifilesteps, iargc
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,int_from_string
   integer :: ichange, iongraph, ipt
@@ -37,7 +37,7 @@ program plotmeagraph
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
-  ncol = 21
+  ncol = 6
   icycle = .false.
   hpos = 0.4
   vpos = 8.0
@@ -563,34 +563,58 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   integer, intent(inout) :: nsteps
   real, dimension(nsteps,ncols), intent(out) :: evdata
   character(len=*), intent(in) :: rootname
-  character(len=len_trim(rootname)) :: evname
-  logical iexist
+  character(len=len_trim(rootname)) :: evname,dummy
+  logical :: iexist,redo
+  integer :: ierr,j,nskip
   
   evname = trim(rootname)
   inquire (file=evname, exist=iexist)
   if (.not.iexist) then
-     print*,evname,': file does not exist, exiting'
+     print*,'***ERROR ',trim(evname),': file does not exist'
      stop
   endif
   open(unit=11,file=evname,status='old',form='formatted')
-  do i=1,nsteps
-     read(11,*,end=98) evdata(i,1:ncols)
-     !         print*,'t = ',evdata(i,1)
+  
+  redo = .true.
+  nskip = 0
+  
+  do while (redo)
+     ierr = 0
+     i = 1
+     do while (i.le.nsteps .and. ierr.eq.0)
+        read(11,*,iostat=ierr) evdata(i,1:ncols)
+        if (nskip.gt.0) then
+           do j=1,nskip
+              read(11,*,iostat=ierr) dummy
+           enddo
+        endif
+        i = i + 1
+     enddo
+
+     if (i.ge.nsteps) then
+        print*,'** WARNING: number of steps > array limits, resampling...'
+        rewind(11)
+        nskip = nskip + 1
+        print*,'re-reading only every ',nskip+1,' steps'
+     else
+        i = i - 1
+        if (ierr.gt.0) then
+           write(*,"(a)",advance="no") '>> ERROR IN FILE '
+        else
+           write(*,"(a)",advance="no") '>> end of file:'
+        endif
+        redo = .false.
+     endif
+  
   enddo
   close(unit=11)
   
-  print*,' WARNING: number of steps > array limits'
-  goto 99 
-98 continue
-  close(unit=11)
-  write(*,"(a)",advance="no") '>> end of file:'
   if (i.gt.1) then
      print*,' t=',evdata(i-1,1),' nsteps = ',i-1 
   else
-     stop ' file empty!! no timesteps'
+     print*,'** WARNING: file empty!! no timesteps'
   endif
   nsteps = i-1     
-99 continue
   
   return
 end subroutine readev
