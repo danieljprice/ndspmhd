@@ -128,10 +128,10 @@ subroutine setup
 !
 !--set boundaries
 !                        
- if ((abs(vxleft).gt.1.e-4).or.(abs(vxright).gt.1.e-4)) then
+ if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright))) then
     ibound(1) = 1               ! fixed x particles
  else
-    ibound(1) = 2                ! reflecting in x
+    ibound(1) = 1                ! reflecting in x
  endif
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
@@ -146,12 +146,12 @@ subroutine setup
 !
 !--extend boundaries if inflow
 !
- if (vxleft.gt.0.) then
+ if (vxleft.gt.tiny(vxleft)) then
     xmin(1) = xmin(1) - vxleft*tmax - 6.*psep
  else
     xmin(1) = xmin(1) - 6.*psep
  endif
- if (vxright.lt.0.) then
+ if (vxright.lt.-tiny(vxright)) then
     xmax(1) = xmax(1) - vxright*tmax + 6.*psep
  else
     xmax(1) = xmax(1) + 6.*psep
@@ -176,7 +176,7 @@ subroutine setup
  psepright = psep*(densleft/densright)**(1./ndim)
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
-    if (stretchx) then
+    if (stretchx .and. ndim.ge.2) then
        !--this makes the density jump by stretching in the x direction only
        psepleftx = psep
        pseprightx = psep*(densleft/densright)
@@ -227,7 +227,9 @@ subroutine setup
 !--if using moving boundaries, fix the particles near the boundaries
 !
  nbpts = 0
+ print*,'itype = ',itype
  if (ibound(1).eq.1) then
+       print*,xmin(1),xmax(1)
     do i=1,npart
        if ((x(1,i).lt.(xmin(1) + 4.*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - 4.*psepright))) then
@@ -236,6 +238,7 @@ subroutine setup
        endif
     enddo
  endif   
+ print*,'itype = ',itype
 !
 !--now set particle properties
 !
@@ -314,14 +317,15 @@ subroutine setup
 !--if no smoothing applied, get rho from a sum and then set u to give a
 !  smooth pressure jump (no spikes)
 !
- if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
+! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
+ if (.false.) then
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
     do i=1,npart
        if (x(1,i).le.xshock) then
-          uu(i) = prleft/(gam1*rho(i))
+          uu(i) = prleft/(gam1*dens(i))
        else
-          uu(i) = prright/(gam1*rho(i))
+          uu(i) = prright/(gam1*dens(i))
        endif
     enddo
  endif 
