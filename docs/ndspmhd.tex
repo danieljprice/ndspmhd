@@ -1,0 +1,116 @@
+\documentclass[a4paper,12pt]{article}
+
+\title{NDSPMHD user guide - v1.0}
+\author{Daniel Price}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+ Hello and welcome to NDSPMHD! (I'll think of a better name soon). I hope you
+enjoy using this code and that it may bring you many happy hours of research.
+This is a fairly crap user guide so far but maybe I'll get around to writing a
+proper one some day. 
+
+\subsection{What is it?}
+NDSPMHD is a 1, 2 and 3 dimensional code which solves the equations of fluid
+dynamics numerically using the Smoothed Particle Hydrodynamics (SPH) method. It
+is written entirely in FORTRAN 90.
+
+\subsection{Code features}
+ So what is so unique about this code? A number of things:
+\begin{itemize}
+\item The same code can be compiled to run in 1, 2 or 3 dimensions. Big whoops,
+you say, but this means that (for example) all the SPH bits of the 3D code can be thoroughly tested
+on simple one dimensional problems. Whenever new physics is implemented, this
+means that it can be thoroughly tested in 1D and then generalised in the blink
+of a compiler to become a full performance, 3D code.
+\item Lots of physics. The main thing you get in this code is an implementation
+of Magnetohydrodynamics and hopefully, eventually, general relativity.
+\item High accuracy. Many SPH codes are, well, kind of crap. The viscosity can
+be way too high which means that the results are always really smoothed out.
+Inconsistency between equation sets can also lead to subtle errors in SPH
+approximations. All of the equation sets in this code have been derived
+self-consistently from variational principles, leading to good conservation
+properties and good accuracy.
+\item Setup tools. Setting up complicated particle arrangements is made a lot
+easier with a whole lot of setup tools which can be called by the user, to
+arrange particles in cartesian, cylindrical and spherical geometries,
+particularly where there are strange density setups.
+\end{itemize}
+
+\subsubsection{What you don't get.}
+\begin{itemize}
+\item A tree code. At least not yet anyway. Which means no gravity.
+\end{itemize}
+
+\section{Getting started}
+
+\subsection{Obtaining and compiling the code}
+The code can be obtained by email request to: dprice@ast.cam.ac.uk. You
+should obtain a single, gzipped tar archive. To install the code, type
+\begin{verbatim}
+gunzip ndspmhd.tar.gz
+tar xvf ndspmhd.tar
+\end{verbatim}
+Now move into the code directory:
+\begin{verbatim}
+cd ndspmhd
+\end{verbatim}
+and have a look. Typing
+\begin{verbatim}
+ls
+\end{verbatim}
+ you should see something like the following:
+\begin{verbatim}
+src/ crap/ crap/
+\end{verbatim}
+The actual code is located in the src/ directory. The other
+directories are:
+\begin{tabular}{ll}
+docs & contains the code documentation (such as this document) \\
+src & source directory (actual code)\\
+multi & tools for running multiple jobs\\
+scripts & shell scripts to perform various tasks\\
+plot & visualisation tool for particle plots\\
+evplot & visualisation tool for evolution plots (energy vs time etc)
+\end{tabular}
+Type
+\begin{verbatim}
+make install
+\end{verbatim}
+or simply `make' to compile the whole
+code. 
+
+\subsection{Running a job}
+\subsubsection{Creating an input file}
+
+\subsubsection{Rerunning a job from the last position}
+
+\subsection{Input options}
+
+\subsection{Test problems}
+ A suite of test problems
+
+\section{Setting up a simulation}
+
+\subsection{Using the interactive setup}
+
+\subsection{Writing your own particle setup}
+
+\section{The Gory details}
+
+\subsection{Neighbour finding}
+
+\subsection{Time stepping}
+
+\section{Common errors}
+
+\section{Visualisation using supersphplot}
+
+\section{Wishlist for future improvements}
+
+\section*{Acknowledgements}
+
+\end{document}
