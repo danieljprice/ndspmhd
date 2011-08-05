@@ -71,8 +71,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   else                  ! y axis is h
 !     ymin = 0.5*psep
 !     ymax = 5.0*psep
-     ymin = 1.0*psep
-     ymax = 2.0*psep
+     ymin = 0.1*psep
+     ymax = 10.0*psep
      labely = 'h'
   endif
 !
@@ -184,8 +184,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      !!call pgsch(1.2)
      call pgsch(1.0)
      !!if (iplotpos.eq.1) call pgpage
-     datmin = 0.5  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
-     datmax = 1.5  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
+     datmin = 0.75  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
+     datmax = 1.15  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
 
      call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'norm', &

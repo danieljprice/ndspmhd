@@ -16,10 +16,13 @@ F90FLAGS =  -O3 -Wall -fbounds-check
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L${PGPLOT_DIR} -lpgplot -lpng
 DBLFLAGS = -r8
+ifndef SPLASH_DIR
+SPLASH_DIR=$(HOME)/splash/src
+endif
 
 .SUFFIXES:
 .SUFFIXES:.f .f90 .o
-VPATH = ../src:../plot
+VPATH=../src $(SPLASH_DIR)
 # Fortran flags same as F90
 FC = $(F90C)
 FFLAGS = $(F90FLAGS)
@@ -75,10 +78,6 @@ dimen3D.o :
 
 variablesND.o :
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/variablesND.f90 -o $@
-
-
-#setpage.o :
-#	$(F90C) -c $(F90FLAGS) ../plot/setpage.f90 -o $@
 
 allocateND.o : variablesND.o
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/allocateND.f90 -o $@

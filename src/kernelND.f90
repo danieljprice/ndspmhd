@@ -97,7 +97,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--quartic spline
 !  
-    kernellabel = 'quartic spline'    
+    kernellabel = 'M_5 quartic'    
 
     radkern = 2.5
     radkern2 = radkern*radkern
@@ -136,7 +136,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
 !
-    kernellabel = 'quintic spline'  
+    kernellabel = 'M_6 quintic'  
     radkern = 3.0
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
@@ -1443,7 +1443,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernellabel = 'Cubic spline'    
+    kernellabel = 'M_4 cubic'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
