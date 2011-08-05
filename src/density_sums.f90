@@ -18,7 +18,7 @@ contains
     use dimen_mhd, only:ndim
     use debug, only:trace
     use loguns, only:iprint
-    use kernels, only:radkern2,interpolate_kernel,interpolate_kernel_soft
+    use kernels, only:radkern2,interpolate_kernel,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:ll,ifirstincell,numneigh,ncellsloop
     use options, only:ikernav,igravity
     !use matrixcorr
@@ -48,9 +48,9 @@ contains
 !  (kernel quantities)
 !
     real :: q2,q2i,q2j      
-    real :: wab,wabi,wabj,weight
-    real :: grkern,grkerni,grkernj
-    real :: dwdhi,dwdhj,dphidhi,dphidhj ! grad h terms
+    real :: wab,wabi,wabj,weight,wabalti,wabaltj
+    real :: grkern,grkerni,grkernj,grkernalti,grkernaltj
+    real :: dwdhi,dwdhj,dwaltdhi,dwaltdhj,dphidhi,dphidhj ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -62,6 +62,8 @@ contains
     numneigh = 0
     dwdhi = 0.
     dwdhj = 0.
+    dwaltdhi = 0.
+    dwaltdhj = 0.
 
     do i=1,npart
        rho(i) = 0.
@@ -161,16 +163,20 @@ contains
                       call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
                       gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj/hj2
                    else
-                      call interpolate_kernel(q2i,wabi,grkerni)             
-                      call interpolate_kernel(q2j,wabj,grkernj)
+                      call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
+                      call interpolate_kernels(q2j,wabj,grkernj,wabaltj,grkernaltj)
                    endif
               !  (using hi)
                    wabi = wabi*hfacwabi
+                   wabalti = wabalti*hfacwabi
                    grkerni = grkerni*hfacwabi*hi1
+                   grkernalti = grkernalti*hfacwabi*hi1
               !  (using hj)
                    wabj = wabj*hfacwabj
+                   wabaltj = wabaltj*hfacwabj
                    grkernj = grkernj*hfacwabj*hj1
-              !  (calculate average)                
+                   grkernaltj = grkernaltj*hfacwabj*hj1
+              !  (calculate average)
                    if (ikernav.eq.2) then
                       wab = 0.5*(wabi + wabj)
                       wabi = wab
@@ -184,6 +190,8 @@ contains
               !              
                    dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
                    dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
+                   dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
+                   dwaltdhj = -rij*grkernaltj*hj1 - ndim*wabaltj*hj1
                                               
                 endif
 !
@@ -191,8 +199,8 @@ contains
 !
                 rho(i) = rho(i) + pmassj*wabi*weight
                 rho(j) = rho(j) + pmassi*wabj*weight
-                densn(i) = densn(i) + wabi*weight
-                densn(j) = densn(j) + wabj*weight
+                densn(i) = densn(i) + wabalti*weight
+                densn(j) = densn(j) + wabaltj*weight
 !
 !--drhodt, dndt
 !
@@ -201,8 +209,8 @@ contains
                    dvdotr = dot_product(dvel,dx)/rij
                    drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
                    drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
-                   dndt(i) = dndt(i) + dvdotr*grkerni
-                   dndt(j) = dndt(j) + dvdotr*grkernj
+                   dndt(i) = dndt(i) + dvdotr*grkernalti
+                   dndt(j) = dndt(j) + dvdotr*grkernaltj
                 endif
 
                 if (ikernav.EQ.3) then
@@ -214,8 +222,8 @@ contains
 
                    gradh(i) = gradh(i) + weight*pmassj*dwdhi
                    gradh(j) = gradh(j) + weight*pmassi*dwdhj
-                   gradhn(i) = gradhn(i) + weight*dwdhi
-                   gradhn(j) = gradhn(j) + weight*dwdhj
+                   gradhn(i) = gradhn(i) + weight*dwaltdhi
+                   gradhn(j) = gradhn(j) + weight*dwaltdhj
                 endif
                 
                 !if (i.ne.j) then
@@ -270,7 +278,7 @@ contains
     use debug, only:trace
     use loguns, only:iprint
  
-    use kernels, only:radkern2,interpolate_kernel,interpolate_kernel_soft
+    use kernels, only:radkern2,interpolate_kernels,interpolate_kernel_soft
     use linklist, only:iamincell,numneigh
     use options, only:igravity
     !use matrixcorr
@@ -301,8 +309,8 @@ contains
 !  (kernel quantities)
 !
     real :: q2i      
-    real :: wabi,grkerni    
-    real :: dwdhi,dphidhi ! grad h terms
+    real :: wabi,wabalti,grkerni,grkernalti 
+    real :: dwdhi,dwaltdhi,dphidhi ! grad h terms
 !
 !--allow for tracing flow
 !      
@@ -379,19 +387,22 @@ contains
                 call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
                 gradsoft(i) = gradsoft(i) + pmassj*dphidhi/hi2
              else
-                call interpolate_kernel(q2i,wabi,grkerni)             
+                call interpolate_kernels(q2i,wabi,grkerni,wabalti,grkernalti)             
              endif
              wabi = wabi*hfacwabi
+             wabalti = wabalti*hfacwabi
              grkerni = grkerni*hfacgrkerni
+             grkernalti = grkernalti*hfacgrkerni
 !
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
 !             
              dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
+             dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
 !
 !--calculate density and number density
 !
              rho(i) = rho(i) + pmassj*wabi
-             densn(i) = densn(i) + wabi
+             densn(i) = densn(i) + wabalti
 !
 !--drhodt, dndt
 !
@@ -399,7 +410,7 @@ contains
                 dvel(1:ndim) = veli(1:ndim) - vel(1:ndim,j)
                 dvdotr = dot_product(dvel,dx)/rij
                 drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
-                dndt(i) = dndt(i) + dvdotr*grkerni
+                dndt(i) = dndt(i) + dvdotr*grkernalti
              endif
 !
 !--correction term for variable smoothing lengths
@@ -407,7 +418,7 @@ contains
 !  need to divide by rho once rho is known
 
              gradh(i) = gradh(i) + pmassj*dwdhi
-             gradhn(i) = gradhn(i) + dwdhi
+             gradhn(i) = gradhn(i) + dwaltdhi
           
              !do idim=1,ndim
              !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &

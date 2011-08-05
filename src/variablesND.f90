@@ -122,7 +122,7 @@ MODULE options
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
  INTEGER :: iexternal_force,ixsph
- INTEGER :: igravity,ikernel
+ INTEGER :: igravity,ikernel,ikernelalt
  INTEGER :: igeom,maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
