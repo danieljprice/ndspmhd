@@ -15,21 +15,25 @@ subroutine setup
  use debug
  use loguns
  
+ use bound
  use eos
  use options
  use part
  use setup_params
  
+ use geometry
  use uniform_distributions
 !
 !--define local variables
 !      
  implicit none
- integer :: i,j
+ integer :: i,j,igeomsetup
  real :: rmax,totmass,totvol
  real :: denszero,uuzero,massp,denscentre
+ real, dimension(ndim) :: xnew
 
  write(iprint,*) 'uniform spherical distribution (for toy star)'
+ igeomsetup = 2
 !
 !--set bounds of initial setup
 !                   
@@ -46,7 +50,22 @@ subroutine setup
 !
 !--setup a uniform sphere of particles
 ! 
- call set_uniform_spherical(11,rmax)        ! 4 = random
+ if (igeomsetup.eq.2) then
+    xmin(1) = 2.*psep
+    xmax(1) = 1.0
+    if (ndim.ge.2) then 
+       ibound(2) = 3 ! periodic in phi
+       xmin(2) = -pi ! phi min
+       xmax(2) = pi ! phi max
+    endif
+    call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
+    do i=1,npart
+       call coord_transform(x(:,i),ndim,2,xnew(:),ndim,1)
+       x(:,i) = xnew(:)
+    enddo
+ else
+    call set_uniform_spherical(11,rmax)        ! 4 = random
+ endif
 !
 !--set particle properties
 ! 
@@ -73,6 +92,7 @@ subroutine setup
  uu(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
+ 
  
  return
 end subroutine setup

@@ -807,7 +807,7 @@ contains
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
     real :: vissv,vissB,vissu
-    real :: term,rhoav1
+    real :: term,rhoav1,dpmomdotr
     !
     !--definitions
     !      
@@ -815,6 +815,7 @@ contains
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
     rhoav1 = 2./(rhoi + rhoj)
+    dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
     term = 0.5*vsig*rhoav1*grkern
 
     !----------------------------------------------------------------
@@ -823,7 +824,7 @@ contains
     !----------------------------------------------------------------
     
     if (dvdotr.lt.0 .and. iav.le.2) then            
-       visc = alphaav*term*viss     ! viss=abs(dvdotr) defined in rates
+       visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        force(:,i) = force(:,i) - pmassj*visc*dr(:)
        force(:,j) = force(:,j) + pmassi*visc*dr(:)
     elseif (iav.ge.3) then ! using total energy, for approaching and receding
