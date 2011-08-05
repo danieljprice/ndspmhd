@@ -217,6 +217,8 @@ module timestep
 !
  real :: dtforce, dtcourant, C_force, C_cour, C_rho, dtrho
  real :: dtav
+ logical, parameter :: dtfixed = .false.
+
 end module timestep
 
 !-------------------------------------------------------------------

@@ -39,6 +39,7 @@ subroutine evolve
     Omega0 = Omega0 + pmass(i)*(uu(i) + epoti)
  enddo
  dt0 = min(C_cour*dtcourant,C_force*dtforce)
+ if (dtfixed) dt = dt0
  w0 = 1./Omega0
  dtscale = 1.0
  dtrho = huge(dtrho)
@@ -92,7 +93,7 @@ subroutine evolve
 !
 !--write log every step in 2D/3D
 !
-    if (ndim.ge.2) then
+    if (ndim.ge.1) then
        if (C_force*dtforce.lt.C_cour*dtcourant) then
           write(iprint,10) time,C_force*dtforce     
        else
@@ -141,11 +142,12 @@ subroutine evolve
        call evwrite(time,etot,momtot)
        detot = max(detot,abs(etot-etotin))
        dmomtot = max(dmomtot,abs(momtot-momtotin))
+       write(1,*) time,abs(etot-etotin)/etotin 
     endif
 !
 !--reach tprint exactly. must take this out for integrator to be symplectic
 !
-    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+    if (.not.dtfixed .and. dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
  enddo timestepping
 
