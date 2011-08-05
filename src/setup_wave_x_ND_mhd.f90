@@ -31,7 +31,7 @@ SUBROUTINE setup
  REAL :: ampl,wk,xlambda,dxmax,denom
  REAL :: dxi,dxprev,xmassfrac,func,fderiv
  REAL :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
- REAL :: vfast,vslow,vcrap,vwave,term,rhoin1
+ REAL :: vfast,vslow,vcrap,vwave,term,rho1
  REAL :: rhozero,uuzero,przero
 !
 !--allow for tracing flow
@@ -84,14 +84,14 @@ SUBROUTINE setup
 !--setup uniform density grid of particles
 ! 
  DO i=1,npart
-!    xin(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
-    velin(:,i) = 0.
-    rhoin(i) = rhozero
+!    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
+    vel(:,i) = 0.
+    rho(i) = rhozero
     pmass(i) = massp
-    uuin(i) = uuzero
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	 ! ie constant everywhere
+    uu(i) = uuzero
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(:,i) = Bzero
+       Bfield(:,i) = Bzero
     ENDIF 
  ENDDO
 
@@ -104,15 +104,15 @@ SUBROUTINE setup
 !
 !--work out MHD wave speeds
 !
- rhoin1 = 1./rhozero
+ rho1 = 1./rhozero
  
- valfven2i = DOT_PRODUCT(Bzero,Bzero)*rhoin1
+ valfven2i = DOT_PRODUCT(Bzero,Bzero)*rho1
  vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  + SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bzero(1))**2*rhoin1)))
+                 - 4.*(spsoundi*Bzero(1))**2*rho1)))
  vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  - SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bzero(1))**2*rhoin1)))
+                 - 4.*(spsoundi*Bzero(1))**2*rho1)))
  vcrap = SQRT(spsoundi**2 + valfven2i)
 
 !----------------------------
@@ -134,7 +134,7 @@ SUBROUTINE setup
 !
  DO i=1,npart
     
-    dxi = xin(1,i)-xmin(1)
+    dxi = x(1,i)-xmin(1)
     dxprev = dxmax*2.
     xmassfrac = dxi/dxmax	! current mass fraction(for uniform density)
 				! determines where particle should be
@@ -159,39 +159,39 @@ SUBROUTINE setup
     ENDIF
 	  
 !    IF (idebug(1:5).EQ.'sound') THEN
-!       WRITE(*,99002) i,its,dxi-dxprev,xin(1,i),xmin(1)+dxi
+!       WRITE(*,99002) i,its,dxi-dxprev,x(1,i),xmin(1)+dxi
 !99002  FORMAT('Particle',i5,' converged in ',i4,	&
 !       ' iterations, error in x =',1(1pe10.2,1x),/,	&
 !       'previous x = ',1(0pf8.5,1x),			&
 !       'moved to x = ',1(0pf8.5,1x)) 
 !    ENDIF
-    xin(1,i) = xmin(1)+dxi
+    x(1,i) = xmin(1)+dxi
 
 !
 !--multiply by appropriate wave speed
 !
-    term = vwave**2 - Bin(1,i)**2/rhoin(i)
+    term = vwave**2 - Bfield(1,i)**2/rho(i)
     vamplx = vwave*ampl
-    vamply = -vamplx*Bin(1,i)*Bin(2,i)/(rhoin(i)*term)
-    vamplz = -vamplx*Bin(1,i)*Bin(3,i)/(rhoin(i)*term)
+    vamply = -vamplx*Bfield(1,i)*Bfield(2,i)/(rho(i)*term)
+    vamplz = -vamplx*Bfield(1,i)*Bfield(3,i)/(rho(i)*term)
     
-    velin(1,i) = vamplx*SIN(wk*dxi)
-    velin(2,i) = vamply*SIN(wk*dxi)
-    velin(3,i) = vamplz*SIN(wk*dxi)
+    vel(1,i) = vamplx*SIN(wk*dxi)
+    vel(2,i) = vamply*SIN(wk*dxi)
+    vel(3,i) = vamplz*SIN(wk*dxi)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uuin(i) = uuin(i) + przero/rhoin(i)*ampl*SIN(wk*dxi)	! if not polytropic
+   uu(i) = uu(i) + przero/rho(i)*ampl*SIN(wk*dxi)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
-    Bin(2,i) = Bin(2,i) + vwave*Bin(2,i)*vamplx/term*SIN(wk*dxi)
-    Bin(3,i) = Bin(3,i) + vwave*Bin(3,i)*vamplx/term*SIN(wk*dxi)
-    rhoin(i) = rhoin(i)*(1.+ampl*SIN(wk*dxi))
+    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
+    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
+    rho(i) = rho(i)*(1.+ampl*SIN(wk*dxi))
 
     IF (ihvar.NE.0) THEN
-       hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	! if variable smoothing length
+       hh(i) = hfact*(pmass(i)/rho(i))**hpower	! if variable smoothing length
     ENDIF
 
  ENDDO

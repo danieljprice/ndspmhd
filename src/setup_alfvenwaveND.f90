@@ -97,31 +97,31 @@ SUBROUTINE setup
  PRINT*,'npart,massp = ',npart,massp
  
  DO i=1,npart        
-    perturb_sin = SIN(wk*DOT_PRODUCT(xin(:,i),runit))
-    perturb_cos = COS(wk*DOT_PRODUCT(xin(:,i),runit))
+    perturb_sin = SIN(wk*DOT_PRODUCT(x(:,i),runit))
+    perturb_cos = COS(wk*DOT_PRODUCT(x(:,i),runit))
     vperp = vperp0*perturb_sin
     vz = vz0*perturb_cos
     Bperp = Bperp0*perturb_sin
     Bz = Bz0*perturb_cos
     
     
-    velin(1,i) = vparallel*runit(1) - vperp*runit(2)
-    velin(2,i) = vparallel*runit(2) + vperp*runit(1)
-    velin(3,i) = vz
+    vel(1,i) = vparallel*runit(1) - vperp*runit(2)
+    vel(2,i) = vparallel*runit(2) + vperp*runit(1)
+    vel(3,i) = vz
     
-    rhoin(i) = rhozero
+    rho(i) = rhozero
     pmass(i) = massp
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-    uuin(i) = uuzero !+ pri/rhoin(i)*ampl*SIN(wk*ri)	! if not polytropic
+    uu(i) = uuzero !+ pri/rho(i)*ampl*SIN(wk*ri)	! if not polytropic
 
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	 ! ie constant everywhere
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(1,i) = Bparallel*runit(1) - Bperp*runit(2)
-       Bin(2,i) = Bparallel*runit(2) + Bperp*runit(1)
-       Bin(3,i) = Bz
+       Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)
+       Bfield(2,i) = Bparallel*runit(2) + Bperp*runit(1)
+       Bfield(3,i) = Bz
     ENDIF 
  ENDDO
 

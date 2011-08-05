@@ -142,34 +142,34 @@ subroutine setup
  endif
 
  do i=1,npart
-    delta = (xin(1,i) - xshock)/psep
+    delta = (x(1,i) - xshock)/psep
     if (delta.GT.dsmooth) then
-       rhoin(i) = rhoright
-       uuin(i) = uuright 
-       velin(:,i) = vright(:) 
-       Bin(2,i) = Byright
-       Bin(3,i) = Bzright
+       rho(i) = rhoright
+       uu(i) = uuright 
+       vel(:,i) = vright(:) 
+       Bfield(2,i) = Byright
+       Bfield(3,i) = Bzright
     elseif (delta.LT.-dsmooth) then
-       rhoin(i) = rholeft
-       uuin(i) = uuleft
-       velin(:,i) = vleft(:)
-       Bin(2,i) = Byleft
-       Bin(3,i) = Bzleft
+       rho(i) = rholeft
+       uu(i) = uuleft
+       vel(:,i) = vleft(:)
+       Bfield(2,i) = Byleft
+       Bfield(3,i) = Bzleft
     else
        exx = exp(delta)       
-       rhoin(i) = (rholeft + rhoright*exx)/(1.0 +exx)
-!       uuin(i) = (uuleft + uuright*exx)/(1.0 + exx)
-       uuin(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*rhoin(i))
+       rho(i) = (rholeft + rhoright*exx)/(1.0 +exx)
+!       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
+       uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
        if (delta.GT.0.) THEN
-          velin(:,i) = vright(:)
+          vel(:,i) = vright(:)
        else
-          velin(:,i) = vleft(:)
+          vel(:,i) = vleft(:)
        endif
-       Bin(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
-       Bin(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
+       Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
+       Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif       
     pmass(i) = massp    
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower    
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower    
  enddo
  
  return

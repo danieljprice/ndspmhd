@@ -4,8 +4,6 @@
 !!
 !! for ND case only periodic boundaries implemented
 !!
-!! Changes log:
-!! 17/10/03 - bug fix in inflow boundaries - forces/drhodt etc copied
 !!-------------------------------------------------------------------------
 	 
 SUBROUTINE boundary
@@ -71,6 +69,7 @@ SUBROUTINE boundary
        ENDIF	  
        DO i=npart,1,-1		! relabel particles
 !          print*,' particle ',i+1,' = ',i
+!--copy both primitive and conservative variables
 	  x(1,i+1) = x(1,i)		! (must copy all particle properties)
 	  vel(:,i+1) = vel(:,i)
 	  rho(i+1) = rho(i)
@@ -78,6 +77,7 @@ SUBROUTINE boundary
 	  uu(i+1) = uu(i)
 	  en(i+1) = en(i)
 	  Bfield(:,i+1) = Bfield(:,i)
+	  Bcons(:,i+1) = Bcons(:,i)
 	  alpha(i+1) = alpha(i)
 	  pmass(i+1) = pmass(i)
         
@@ -85,7 +85,7 @@ SUBROUTINE boundary
           drhodt(i+1) = drhodt(i)
           dudt(i+1) = dudt(i)
           dendt(i+1) = dendt(i)
-          dBfielddt(:,i+1) = dBfielddt(:,i)
+          dBconsdt(:,i+1) = dBconsdt(:,i)
 	  dhdt(i+1) = dhdt(i)
 	  daldt(i+1) = daldt(i)
           xsphterm(:,i+1) = xsphterm(:,i)	! after here not crucial
@@ -104,6 +104,7 @@ SUBROUTINE boundary
        hh(1) = hh(2)
        uu(1) = uu(2)
        en(1) = en(2)
+       Bcons(:,1) = Bcons(:,2)
        Bfield(:,1) = Bfield(:,2)
        alpha(1) = alpha(2)
        pmass(1) = pmass(2)
@@ -124,6 +125,7 @@ SUBROUTINE boundary
 	  hh(i) = hh(i+nsub)
 	  uu(i) = uu(i+nsub)
 	  en(i) = en(i+nsub)
+	  Bcons(:,i) = Bcons(:,i+nsub)
 	  Bfield(:,i) = Bfield(:,i+nsub)
 	  alpha(i) = alpha(i+nsub)
 	  pmass(i) = pmass(i+nsub)
@@ -132,7 +134,7 @@ SUBROUTINE boundary
           drhodt(i) = drhodt(i+nsub)
           dudt(i) = dudt(i+nsub)
           dendt(i) = dendt(i+nsub)	  
-          dBfielddt(:,i) = dBfielddt(:,i+nsub)
+          dBconsdt(:,i) = dBconsdt(:,i+nsub)
 	  dhdt(i) = dhdt(i+nsub)
 	  daldt(i) = daldt(i+nsub)
           xsphterm(:,i) = xsphterm(:,i+nsub)	! after here not crucial
@@ -182,6 +184,7 @@ SUBROUTINE boundary
        hh(npart) = hh(npart-1)
        uu(npart) = uu(npart-1)
        en(npart) = en(npart-1)
+       Bcons(:,npart) = Bcons(:,npart-1)
        Bfield(:,npart) = Bfield(:,npart-1)
        alpha(npart) = alpha(npart-1)         
     ENDIF
@@ -196,9 +199,8 @@ SUBROUTINE boundary
        velin(:,i) = vel(:,i)
        rhoin(i) = rho(i)
        hhin(i) = hh(i)
-       uuin(i) = uu(i)
        enin(i) = en(i)
-       Bfieldin(:,i) = Bfield(:,i)
+       Bconsin(:,i) = Bcons(:,i)
        alphain(i) = alpha(i)
 !
 !--check to see if particles are ordered left to right

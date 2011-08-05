@@ -64,7 +64,8 @@ SETUP3D = setup_shockND.f90
 # these files are common to all dimensions
 
 SOURCES = variablesND.f90 sphND_mhd.f90   \
-         allocateND.f90 boundaryND_1D.f90 densityND.f90 \
+         allocateND.f90 boundaryND_1D.f90 \
+	 conservative2primitive.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
 	 eos.f90 evwrite_mhd.f90 get_neighbour_listND.f90 \

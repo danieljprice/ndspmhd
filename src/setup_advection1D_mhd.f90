@@ -69,57 +69,57 @@ SUBROUTINE setup
  CALL alloc(ntot)
 
 ! i = 1
- xin(1,1) = xmin(1) + 0.5*psep
- xin(1,2) = xmin(1) + psep + 0.5*psep
- rhoin(1:2) = rhozero
- uuin(1:2) = uuzero
+ x(1,1) = xmin(1) + 0.5*psep
+ x(1,2) = xmin(1) + psep + 0.5*psep
+ rho(1:2) = rhozero
+ uu(1:2) = uuzero
  pmass(1:2) = massp
- velin(:,1:2) = 0.
- velin(1,1:2) = velzero
+ vel(:,1:2) = 0.
+ vel(1,1:2) = velzero
  
- Bin(:,1:2) = 0.
- hhin(1:2) = hfact*massp/rhozero
+ Bfield(:,1:2) = 0.
+ hh(1:2) = hfact*massp/rhozero
 
  i = 1
- DO WHILE (xin(1,i).lt.xmax(1))  
+ DO WHILE (x(1,i).lt.xmax(1))  
     i = i + 1
 !   npart = npart + 1
-    xin(1,i) = xmin(1) + (i-1)*psep + 0.5*psep
-    deltaleft = (xin(1,i) - xpulseleft)/dist
-    deltaright = (xin(1,i) - xpulseright)/dist
+    x(1,i) = xmin(1) + (i-1)*psep + 0.5*psep
+    deltaleft = (x(1,i) - xpulseleft)/dist
+    deltaright = (x(1,i) - xpulseright)/dist
 	
-    Bin(:,i) = 0.		! initially zero, reset later
-    velin(:,i) = 0.	 
-    velin(1,i) = velzero
-    rhoin(i) = rhozero
+    Bfield(:,i) = 0.		! initially zero, reset later
+    vel(:,i) = 0.	 
+    vel(1,i) = velzero
+    rho(i) = rhozero
 
     IF ((deltaleft.gt.dsmooth).AND.(deltaright.le.-dsmooth)) THEN
-       Bin(2,i) = Bypulse
-       velin(1,i) = velpulse
-!      rhoin(i) = rhopulse
+       Bfield(2,i) = Bypulse
+       vel(1,i) = velpulse
+!      rho(i) = rhopulse
     ELSEIF (deltaleft.le.-dsmooth) THEN
-       Bin(2,i) = 0.
-!      velin(1,i) = velzero
-       rhoin(i) = rhozero
+       Bfield(2,i) = 0.
+!      vel(1,i) = velzero
+       rho(i) = rhozero
     ELSEIF ((deltaleft.gt.-dsmooth).AND.(deltaleft.le.dsmooth)) THEN
        exx = exp(deltaleft)
-       Bin(2,i) = (Bypulse*exx)/(1 + exx)
-!      velin(1,i) = (velpulse*exx)/(1+exx)
-!      rhoin(i) = (rhozero + rhopulse*exx)/(1+exx)
+       Bfield(2,i) = (Bypulse*exx)/(1 + exx)
+!      vel(1,i) = (velpulse*exx)/(1+exx)
+!      rho(i) = (rhozero + rhopulse*exx)/(1+exx)
     ELSEIF ((deltaright.gt.-dsmooth).AND.(deltaright.le.dsmooth)) THEN
        exx = exp(deltaright)
-       Bin(2,i) = Bypulse - (Bypulse*exx)/(1 + exx)
-!      velin(1,i) = velpulse - (velpulse*exx)/(1+exx)
-!      rhoin(i) = rhopulse - ((rhopulse-rhozero)*exx)/(1+exx)
+       Bfield(2,i) = Bypulse - (Bypulse*exx)/(1 + exx)
+!      vel(1,i) = velpulse - (velpulse*exx)/(1+exx)
+!      rho(i) = rhopulse - ((rhopulse-rhozero)*exx)/(1+exx)
     ELSE
-       Bin(2,i) = 0.  
-       rhoin(i) = rhozero
-!      velin(1,i) = velzero
+       Bfield(2,i) = 0.  
+       rho(i) = rhozero
+!      vel(1,i) = velzero
     ENDIF
 
-!   xin(1,i) = xin(1,i-2) + 2.*massp/rhoin(i-1)	 
-    hhin(i) = hfact*massp/rhoin(i)
-    uuin(i) = uuzero
+!   x(1,i) = x(1,i-2) + 2.*massp/rho(i-1)	 
+    hh(i) = hfact*massp/rho(i)
+    uu(i) = uuzero
     pmass(i) = massp
  ENDDO
  

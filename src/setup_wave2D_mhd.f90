@@ -37,7 +37,7 @@ SUBROUTINE setup
  REAL :: vparallel,vperp,vz
  REAL :: Bparallel,Bperp,Bz
  REAL :: Bamplx,Bamply,Bamplz,Bampl_perp
- REAL :: vfast,vslow,vcrap,vwave,term,rhoin1
+ REAL :: vfast,vslow,vcrap,vwave,term,rho1
 !
 !--allow for tracing flow
 !
@@ -115,13 +115,13 @@ SUBROUTINE setup
  PRINT*,'npart,massp = ',npart,massp
  
  DO i=1,npart
-    velin(:,i) = velzero
-    rhoin(i) = rhozero
+    vel(:,i) = velzero
+    rho(i) = rhozero
     pmass(i) = massp
-    uuin(i) = uuzero
-    hhin(i) = hfact*(pmass(i)/rhozero)**hpower	 ! ie constant everywhere
+    uu(i) = uuzero
+    hh(i) = hfact*(pmass(i)/rhozero)**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(:,i) = Bzero
+       Bfield(:,i) = Bzero
     ENDIF 
  ENDDO
 
@@ -138,15 +138,15 @@ SUBROUTINE setup
 !
 !--work out MHD wave speeds
 !
- rhoin1 = 1./rhozero
+ rho1 = 1./rhozero
  
- valfven2i = Bparallel**2*rhoin1
+ valfven2i = Bparallel**2*rho1
  vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  + SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*rhoin1)))
+                 - 4.*(spsoundi*Bparallel)**2*rho1)))
  vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  - SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*rhoin1)))
+                 - 4.*(spsoundi*Bparallel)**2*rho1)))
  vcrap = SQRT(spsoundi**2 + valfven2i)
 
 !----------------------------
@@ -162,7 +162,7 @@ SUBROUTINE setup
 !    
  DO i=1,npart
  
-    dxi(:) = xin(:,i) - xmin(:)
+    dxi(:) = x(:,i) - xmin(:)
     ri = DOT_PRODUCT(dxi,runit)
 
     rprev = 2.*rmax
@@ -189,33 +189,33 @@ SUBROUTINE setup
     ENDIF
 	  
 !    IF (idebug(1:5).EQ.'sound') THEN
-!       WRITE(*,99002) i,its,ri-rprev,xin(1,i),xmin(1)+ri*runit(1)
+!       WRITE(*,99002) i,its,ri-rprev,x(1,i),xmin(1)+ri*runit(1)
 99002  FORMAT('Particle',i5,' converged in ',i4,	&
        ' iterations, error in x =',1(1pe10.2,1x),/,	&
        'previous r = ',1(0pf8.5,1x),			&
        'moved to r = ',1(0pf8.5,1x)) 
 !    ENDIF
-    xin(:,i) = xmin(:) + ri*runit(:)
+    x(:,i) = xmin(:) + ri*runit(:)
 !
 !--multiply by the appropriate amplitudes
 !
-    rhoin1 = 1./rhoin(i)
-    term = 1./(vwave**2 - Bparallel**2*rhoin1)
+    rho1 = 1./rho(i)
+    term = 1./(vwave**2 - Bparallel**2*rho1)
     vampl_par = vwave*ampl
-    vampl_perp = -vampl_par*Bparallel*Bperp*rhoin1*term
-    vamplz = -vampl_par*Bparallel*Bin(3,i)*rhoin1*term
+    vampl_perp = -vampl_par*Bparallel*Bperp*rho1*term
+    vamplz = -vampl_par*Bparallel*Bfield(3,i)*rho1*term
     
     vamplx = vampl_par*runit(1) - vampl_perp*runit(2)
     vamply = vampl_par*runit(2) + vampl_perp*runit(1)
 
-    velin(1,i) = vamplx*SIN(wk*ri)
-    velin(2,i) = vamply*SIN(wk*ri)
-    velin(3,i) = vamplz*SIN(wk*ri)
+    vel(1,i) = vamplx*SIN(wk*ri)
+    vel(2,i) = vamply*SIN(wk*ri)
+    vel(3,i) = vamplz*SIN(wk*ri)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uuin(i) = uuin(i) + pri/rhoin(i)*ampl*SIN(wk*ri)	! if not polytropic
+   uu(i) = uu(i) + pri/rho(i)*ampl*SIN(wk*ri)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
@@ -225,13 +225,13 @@ SUBROUTINE setup
     Bamplx = -Bampl_perp*runit(2)
     Bamply = Bampl_perp*runit(1)
     
-    Bin(1,i) = Bzero(1) + Bamplx*SIN(wk*ri)
-    Bin(2,i) = Bzero(2) + Bamply*SIN(wk*ri)
-    Bin(3,i) = Bzero(3) + Bamplz*SIN(wk*ri)
-    rhoin(i) = rhoin(i)*(1.+ampl*SIN(wk*ri))
+    Bfield(1,i) = Bzero(1) + Bamplx*SIN(wk*ri)
+    Bfield(2,i) = Bzero(2) + Bamply*SIN(wk*ri)
+    Bfield(3,i) = Bzero(3) + Bamplz*SIN(wk*ri)
+    rho(i) = rho(i)*(1.+ampl*SIN(wk*ri))
 
     IF (ihvar.NE.0) THEN
-       hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	! if variable smoothing length
+       hh(i) = hfact*(pmass(i)/rho(i))**hpower	! if variable smoothing length
     ENDIF
 
  ENDDO

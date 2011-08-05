@@ -22,8 +22,8 @@ SUBROUTINE step
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev
- REAL :: fhmax, fonh, forcemag,v2i,B2i,frac
+ INTEGER :: i,j,jdim,ikernavprev,ierr
+ REAL :: fhmax, fonh, forcemag,frac
 !
 !--allow for tracing flow
 !      
@@ -31,32 +31,19 @@ SUBROUTINE step
 !
 !--Mid-point Predictor step
 !      
- B2i = 0.
- v2i = 0.
       
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
        rho(i) = rhoin(i)
-       Bfield(:,i) = Bfieldin(:,i)	     
-       IF (iener.EQ.3) THEN		! choice of energy equation
-          en(i) = enin(i)
-          IF (imhd.GE.11) THEN		! B 
-              B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-	  ELSEIF (imhd.NE.0) THEN		! B/rho
-              B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-	  ENDIF
-	  v2i = DOT_PRODUCT(velin(:,i),velin(:,i))		
-          uu(i) = en(i) - 0.5*v2i - 0.5*B2i
-       ELSE
-	  uu(i) = uuin(i)
-       ENDIF
+       Bcons(:,i) = Bconsin(:,i)	     
+       IF (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(i) = alphain(i)
     ELSE
        vel(:,i) = velin(:,i) + hdt*force(:,i)
-       IF (imhd.NE.0) Bfield(:,i) = Bfieldin(:,i) + hdt*dBfielddt(:,i)
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        IF (ihvar.EQ.1) THEN
 !	   hh(i) = hfact(pmass(i)/rho(i))**hpower	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
@@ -64,25 +51,7 @@ SUBROUTINE step
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
-       IF (iener.EQ.3) THEN
-	  en(i) = enin(i) + hdt*dendt(i)
-          IF (imhd.GE.11) THEN		! B 
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-	  ELSEIF (imhd.NE.0) THEN		! B/rho
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-	  ENDIF		
-	  v2i = DOT_PRODUCT(vel(:,i),vel(:,i))		
-	  uu(i) = en(i) - 0.5*v2i - 0.5*B2i
-!
-!--if negative thermal energy, update using thermal energy eq. instead
-!	  
-	  IF (uu(i).LT.0.) THEN
-	     WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-	     uu(i) = 0.		!uuin(i) + hdt*dudt(i)
-	  ENDIF
-       ELSEIF (iener.GE.1) THEN
-  	  uu(i) = uuin(i) + hdt*dudt(i)
-       ENDIF
+       IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	   
     ENDIF
@@ -120,7 +89,7 @@ SUBROUTINE step
  IF (icty.LE.0) THEN
     CALL iterate_density
     IF (ANY(ibound.GT.1)) THEN
-       DO i=npart+1,ntotal		! update ghosts
+       DO i=npart+1,ntotal		! update density on ghosts
           j = ireal(i)
           rho(i) = rho(j)
           hh(i) = hh(j)
@@ -132,11 +101,34 @@ SUBROUTINE step
 	  hh(:) = hhin(:)
        END WHERE	  
     ENDIF   
- ENDIF   
+ ENDIF
+
+ DO i=1,npart
 !
-!--set pressure using equation of state
+!--calculate primitive variables from conservative variables
+!   
+    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
+    				Bfield(:,i),Bcons(:,i),ierr)
+    IF (ierr.EQ.1) THEN ! negative thermal energy
+       WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
+       uu(i) = 0.		!uuin(i) + hdt*dudt(i)
+    ENDIF
 !
- CALL equation_of_state(pr,spsound,uu,rho,gamma,SIZE(rho))
+!--calculate the pressure using the equation of state
+!
+    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
+ ENDDO
+!
+!--copy these quantities onto the ghost particles
+! 
+ IF (ANY(ibound.GT.1)) THEN
+    DO i=npart+1,ntotal
+       j = ireal(i)
+       uu(i) = uu(j)
+       pr(i) = pr(j)
+       Bfield(:,i) = Bfield(:,j)
+    ENDDO
+ ENDIF
 !
 !--calculate forces/rates of change using predicted quantities
 !	 
@@ -148,19 +140,8 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
        rho(i) = rhoin(i)
-       Bfield(:,i) = Bfieldin(:,i)
-       IF (iener.EQ.3) THEN		! choice of energy equation
-          en(i) = enin(i)
-          IF (imhd.GE.11) THEN		! B 
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-          ELSEIF (imhd.NE.0) THEN		! B/rho
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-          ENDIF
-          v2i = DOT_PRODUCT(vel(:,i),vel(:,i))	       
-	  uu(i) = en(i) - 0.5*v2i - 0.5*B2i
-       ELSE
-          uu(i) = uuin(i)
-       ENDIF
+       Bcons(:,i) = Bconsin(:,i)
+       IF (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(i) = alphain(i)
        hh(i) = hhin(i)
@@ -181,13 +162,9 @@ SUBROUTINE step
     	     CALL quit
           ENDIF
        ENDIF
-       IF (iener.EQ.3) THEN
-           en(i) = enin(i) + hdt*dendt(i)
-       ELSEIF (iener.GE.1) THEN
-           uu(i) = uuin(i) + hdt*dudt(i)
-       ENDIF
+       IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        IF (iavlim.EQ.1) alpha(i) = alphain(i) + hdt*daldt(i)	   
-       IF (imhd.NE.0) Bfield(:,i) = Bfieldin(:,i) + hdt*dBfielddt(:,i)
+       IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        
 !       IF (i.eq.itemp) THEN
 !         PRINT*,'hdt = ',hdt
@@ -231,28 +208,16 @@ SUBROUTINE step
     ENDIF
 	   
     DO i=1,npart
-!       hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
-!	hhin(i) = hh(i)
        rhoin(i) = rho(i)
        velin(:,i) = 2.*vel(:,i)-velin(:,i)
        vel(:,i) = velin(:,i)
        IF (imhd.NE.0) THEN
-          Bfieldin(:,i) = 2.*Bfield(:,i) - Bfieldin(:,i)
-          Bfield(:,i) = Bfieldin(:,i)
+          Bconsin(:,i) = 2.*Bcons(:,i) - Bconsin(:,i)
+          Bcons(:,i) = Bconsin(:,i)
        ENDIF	     
-       IF (iener.EQ.3) THEN
+       IF (iener.NE.0) THEN
 	  enin(i) = 2.*en(i) - enin(i)
-	  en(i) = enin(i)                
-          IF (imhd.GE.11) THEN		! B 
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-	  ELSEIF (imhd.NE.0) THEN		! B/rho
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-	  ENDIF
-	  v2i = DOT_PRODUCT(vel(:,i),vel(:,i))		
-	  uu(i) = en(i) - 0.5*v2i - 0.5*B2i
-       ELSEIF (iener.GE.1) THEN
-	  uuin(i) = 2.*uu(i) - uuin(i)
-	  uu(i) = uuin(i)
+	  en(i) = enin(i)
        ENDIF
        IF (iavlim.EQ.1) THEN
 	  alphain(i) = 2.*alpha(i) - alphain(i)
@@ -261,6 +226,8 @@ SUBROUTINE step
        IF (ihvar.EQ.2) THEN
 	  hhin(i) = 2.*hh(i) - hhin(i)
    	  hh(i) = hhin(i)
+!         hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
+!	  hhin(i) = hh(i)
        ENDIF	     
        hhin(i) = hh(i)
     ENDDO
@@ -270,53 +237,37 @@ SUBROUTINE step
     DO i=1,npart
        xin(:,i) = 2.*x(:,i) - xin(:,i)
        x(:,i) = xin(:,i)
+       velin(:,i) = 2.*vel(:,i) - velin(:,i)
+       vel(:,i) = velin(:,i)
+       IF (icty.GE.1) THEN		
+          rhoin(i) = 2.*rho(i) - rhoin(i)
+	  rho(i) = rhoin(i)
+       ELSE
+	  rhoin(i) = rho(i) 	 
+       ENDIF
        IF (ihvar.EQ.1) THEN		! Joe's version
           hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
        ELSEIF (ihvar.EQ.2) THEN
           hhin(i) = 2.*hh(i) - hhin(i)
           hh(i) = hhin(i)
+          IF (hh(i).LE.0.) THEN
+	     WRITE(iprint,*) 'step: corrector: hh -ve ',i,hh(i)
+	     CALL quit
+          ENDIF       
        ENDIF
        hhin(i) = hh(i)	        
-       IF (hh(i).LE.0.) THEN
-	  WRITE(iprint,*) 'step: corrector: hh -ve ',i,hh(i)
-	  CALL quit
-       ENDIF
-
-
-       IF (icty.GE.1) THEN		
-           rhoin(i) = 2.*rho(i) - rhoin(i)
-	   rho(i) = rhoin(i)
-!	   IF (ihvar.NE.0) THEN		! my version
-!	      hh(i) = hfact*(pmass(i)/rho(i))**hpower
-!	   ENDIF
-!	   hhin(i) = hh(i)
-       ELSE
-	  rhoin(i) = rho(i) 	 
-       ENDIF   	    
-       velin(:,i) = 2.*vel(:,i) - velin(:,i)
-       vel(:,i) = velin(:,i)
-       IF (imhd.NE.0) THEN
-          Bfieldin(:,i) = 2.*Bfield(:,i) - Bfieldin(:,i)
-          Bfield(:,i) = Bfieldin(:,i)
-       ENDIF	     
-       IF (iener.EQ.3) THEN
-          enin(i) = 2.*en(i) - enin(i)
-          en(i) = enin(i)
-          IF (imhd.GE.11) THEN		! B 
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
-	  ELSEIF (imhd.NE.0) THEN		! B/rho
-             B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))*rho(i)
-	  ENDIF
-	  v2i = DOT_PRODUCT(vel(:,i),vel(:,i))		
-	  uu(i) = en(i) - 0.5*v2i - 0.5*B2i
-       ELSE
-	  uuin(i) = 2.*uu(i) - uuin(i)
-	  uu(i) = uuin(i)
-       ENDIF
        IF (iavlim.EQ.1) THEN
 	  alphain(i) = 2.*alpha(i) - alphain(i)
 	  alpha(i) = alphain(i)
        ENDIF	     
+       IF (imhd.NE.0) THEN
+          Bconsin(:,i) = 2.*Bcons(:,i) - Bconsin(:,i)
+          Bcons(:,i) = Bconsin(:,i)
+       ENDIF	     
+       IF (iener.NE.0) THEN
+          enin(i) = 2.*en(i) - enin(i)
+          en(i) = enin(i)
+       ENDIF
     ENDDO
     
  ENDIF

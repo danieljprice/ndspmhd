@@ -95,62 +95,62 @@ SUBROUTINE setup
 !--start at centre
 !
  ipart = 1
- xin(1,ipart) = 0.
- rhoin(ipart) = (H - C*(xin(1,ipart))**2)**dgam1
+ x(1,ipart) = 0.
+ rho(ipart) = (H - C*(x(1,ipart))**2)**dgam1
 !
 !--setup particles x > 0 with 1-x^2 density profile
 !
  i = ipart
- DO WHILE (xin(1,i).LT.radstar)
+ DO WHILE (x(1,i).LT.radstar)
     i = i + 1
-    xin(1,i) = xin(1,i-1) + massp/rhoin(i-1)
-    rhozero = H - C*xin(1,i)**2
-    IF (rhozero.GE.0) rhoin(i) = rhozero**dgam1
-!   print*,i,xin(1,i),rhoin(i),uuin(i),pmass(i),xin(1,i)-xin(1,i-1)
+    x(1,i) = x(1,i-1) + massp/rho(i-1)
+    rhozero = H - C*x(1,i)**2
+    IF (rhozero.GE.0) rho(i) = rhozero**dgam1
+!   print*,i,x(1,i),rho(i),uu(i),pmass(i),x(1,i)-x(1,i-1)
  ENDDO
  ipart = i-1
- IF (rhoin(ipart).LT.0.01) ipart = ipart-1
+ IF (rho(ipart).LT.0.01) ipart = ipart-1
  npart = 2*(ipart - 1) + 1
 !
 !--copy these values to second half of domain (x > 0)
 !
  DO i = ipart+1,npart
     j = i - ipart + 1   ! particle to copy from
-    xin(1,i) = xin(1,j)
-    rhoin(i) = rhoin(j)
+    x(1,i) = x(1,j)
+    rho(i) = rho(j)
  ENDDO 
 !
 !--copy these values to first half of domain (x > 0)
 !
  DO i = 1,ipart-1
     j = npart - i + 1	! particle to copy from
-    xin(1,i) = -xin(1,j)
-    rhoin(i) = rhoin(j)
+    x(1,i) = -x(1,j)
+    rho(i) = rho(j)
  ENDDO 
 !
 !--write over central particle
 !
- xin(1,ipart) = 0.
- rhoin(ipart) = (H - C*(xin(1,ipart))**2)**dgam1 
+ x(1,ipart) = 0.
+ rho(ipart) = (H - C*(x(1,ipart))**2)**dgam1 
 !
 !--set particle properties
 !
  DO i=1,npart
     IF (oscills) THEN
-       velin(1,i) = A*Gn(xin(1,i),norder)
+       vel(1,i) = A*Gn(x(1,i),norder)
     ELSE
-       velin(1,i) = A*xin(1,i)
+       vel(1,i) = A*x(1,i)
     ENDIF 
-    IF (ndimV.GT.1) velin(2:3,i) = 0.
+    IF (ndimV.GT.1) vel(2:3,i) = 0.
     pmass(i) = massp
-    uuin(i) = polyk*rhoin(i)**(gam1)/gam1
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	 ! ie constant everywhere
+    uu(i) = polyk*rho(i)**(gam1)/gam1
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
-       Bin(1,i) = 0.0	!SQRT(1.5)
-       Bin(2,i) = rhoin(i)*sigma
-       Bin(3,i) = 0.0	
+       Bfield(1,i) = 0.0	!SQRT(1.5)
+       Bfield(2,i) = rho(i)*sigma
+       Bfield(3,i) = 0.0	
     ELSE
-       Bin(:,i) = 0.
+       Bfield(:,i) = 0.
     ENDIF 
  ENDDO
   

@@ -46,24 +46,24 @@ SUBROUTINE setup
  CALL alloc(imax)
  
  DO i=1,imax
-    xin(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
-    velin(:,i) = 0.
-    IF (xin(1,i).LT.0.) THEN
-       rhoin(i) = 10.0
+    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
+    vel(:,i) = 0.
+    IF (x(1,i).LT.0.) THEN
+       rho(i) = 10.0
        pmass(i) = 10.0*massp
     ELSE
-       rhoin(i) = 1.0
+       rho(i) = 1.0
        pmass(i) = massp
     ENDIF
     pri = 1.0
-    uuin(i) = pri/((gamma-1.)*rhoin(i))
-    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	 ! ie constant everywhere
+    uu(i) = pri/((gamma-1.)*rho(i))
+    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
     IF (imhd.NE.0) THEN 
-       Bin(1,i) = 0.
-       Bin(2,i) = sigma*rhoin(i)
-       Bin(3,i) = 0.
+       Bfield(1,i) = 0.
+       Bfield(2,i) = sigma*rho(i)
+       Bfield(3,i) = 0.
     ENDIF 
-!   print*,i,xin(i),rhoin(i),uuin(i),pmass(i),xin(i)-xin(i-1)
+!   print*,i,x(i),rho(i),uu(i),pmass(i),x(i)-x(i-1)
  ENDDO
   
  npart = imax

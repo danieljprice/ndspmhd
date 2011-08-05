@@ -88,20 +88,20 @@ SUBROUTINE setup
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
-    velin(:,ipart) = 0.
+    vel(:,ipart) = 0.
 !--uniform density and smoothing length
-    rhoin(ipart) = rhozero
+    rho(ipart) = rhozero
     pmass(ipart) = massp
-    hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
+    hh(ipart) = hfact*(massp/rho(ipart))**hpower	 ! ie constant everywhere
 
-    dblast(:) = xin(:,ipart)-xblast(:) 
+    dblast(:) = x(:,ipart)-xblast(:) 
     radius = SQRT(DOT_PRODUCT(dblast,dblast))
 !
 !--smooth energy injection using the SPH kernel
 !    
-    q2 = radius**2/(hhin(ipart))**2
+    q2 = radius**2/(hh(ipart))**2
     CALL interpolate_kernel(q2,wab,grkern)
-    uui = enblast*wab/(hhin(ipart))**ndim
+    uui = enblast*wab/(hh(ipart))**ndim
 !    IF (radius.LT.rblast) THEN
 !       pri = prblast
 !       uui = enblast
@@ -113,8 +113,8 @@ SUBROUTINE setup
 !       pri = przero
 !       uui = enzero
 !    ENDIF   
-    uuin(ipart) = uui	!pri/(gam1*rhozero)
-    Bin(:,ipart) = Bzero(:)
+    uu(ipart) = uui	!pri/(gam1*rhozero)
+    Bfield(:,ipart) = Bzero(:)
  ENDDO
 !
 !--allow for tracing flow

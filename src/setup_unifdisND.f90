@@ -48,12 +48,12 @@ SUBROUTINE setup
 !--now assign particle properties
 ! 
  DO i=1,ntotal
-    velin(:,i) = 0.
-    rhoin(i) = rhozero
+    vel(:,i) = 0.
+    rho(i) = rhozero
     pmass(i) = massp
-    uuin(i) = 1.0	! isothermal
-    hhin(i) = hfact*(massp/rhoin(i))**hpower	 ! ie constant everywhere
-    Bin(:,i) = 0.
+    uu(i) = 1.0	! isothermal
+    hh(i) = hfact*(massp/rho(i))**hpower	 ! ie constant everywhere
+    Bfield(:,i) = 0.
  ENDDO 
 !
 !--allow for tracing flow

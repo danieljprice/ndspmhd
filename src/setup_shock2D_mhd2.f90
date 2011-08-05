@@ -94,54 +94,54 @@ SUBROUTINE setup
     xcentre = (xmax(1) + xmin(1))/2.0		! this specifies the location of the 
     					! discontinuity in x at this y
 
-    xin(1,ipart) = xmin(1) + xstart    
-    xin(1,ipart + 1) = xmin(1) + psep*rhoright/rholeft + xstart
+    x(1,ipart) = xmin(1) + xstart    
+    x(1,ipart + 1) = xmin(1) + psep*rhoright/rholeft + xstart
 
     DO i=ipart,ipart+1
-       xin(2,i) = xmin(2) + (j-1)*psep	+ ystart! y position
-       rhoin(i) = rholeft
-       uuin(i) = uuleft
+       x(2,i) = xmin(2) + (j-1)*psep	+ ystart! y position
+       rho(i) = rholeft
+       uu(i) = uuleft
        enin(i) = enleft
        pmass(i) = massp
-       velin(:,i) = vleft(:)	! overwrite vx
-       hhin(i) = hfact*(pmass(i)/rholeft)**hpower
+       vel(:,i) = vleft(:)	! overwrite vx
+       hh(i) = hfact*(pmass(i)/rholeft)**hpower
        IF (imhd.NE.0) THEN
-          Bin(1,i) = Bxinit
-          Bin(2,i) = Byleft
-          Bin(3,i) = Bzleft
+          Bfield(1,i) = Bxinit
+          Bfield(2,i) = Byleft
+          Bfield(3,i) = Bzleft
        ENDIF      
     ENDDO
 
     ipart = ipart + 1   ! already made second particle on the left
-    DO WHILE (xin(1,ipart).LT.xmax(1))
+    DO WHILE (x(1,ipart).LT.xmax(1))
        ipart = ipart + 1         
-       delta = (xin(1,ipart-1) - xcentre)/psep
+       delta = (x(1,ipart-1) - xcentre)/psep
        IF (delta.GT.dsmooth) THEN
-          rhoin(ipart) = rhoright
-          uuin(ipart) = uuright 
-          velin(:,ipart) = vright(:) 
-          Bin(2,ipart) = Byright
-          Bin(3,ipart) = Bzright
+          rho(ipart) = rhoright
+          uu(ipart) = uuright 
+          vel(:,ipart) = vright(:) 
+          Bfield(2,ipart) = Byright
+          Bfield(3,ipart) = Bzright
        ELSEIF (delta.LT.-dsmooth) THEN
-          rhoin(ipart) = rholeft
-          uuin(ipart) = uuleft
-          velin(:,ipart) = vleft(:)
-          Bin(2,ipart) = Byleft
-          Bin(3,ipart) = Bzleft
+          rho(ipart) = rholeft
+          uu(ipart) = uuleft
+          vel(:,ipart) = vleft(:)
+          Bfield(2,ipart) = Byleft
+          Bfield(3,ipart) = Bzleft
        ELSE
           exx = exp(delta)
-          rhoin(ipart) = (rholeft + rhoright*exx)/(1.0 +exx)
-!         uuin(ipart) = (uuleft + uuright*exx)/(1.0 + exx)
-          uuin(ipart) = (prleft + prright*exx)/((1.0 + exx)*gam1*rhoin(i))
-          velin(:,ipart) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
-          Bin(2,ipart) = (Byleft + Byright*exx)/(1.0 + exx)
-          Bin(3,ipart) = (Bzleft + Bzright*exx)/(1.0 + exx)
+          rho(ipart) = (rholeft + rhoright*exx)/(1.0 +exx)
+!         uu(ipart) = (uuleft + uuright*exx)/(1.0 + exx)
+          uu(ipart) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
+          vel(:,ipart) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
+          Bfield(2,ipart) = (Byleft + Byright*exx)/(1.0 + exx)
+          Bfield(3,ipart) = (Bzleft + Bzright*exx)/(1.0 + exx)
        ENDIF
-       xin(1,ipart) = xin(1,ipart-2) + 2.*(massp/rhoin(ipart-1))**hpower
-       xin(2,ipart) = xmin(2) + (j-1)*psep + ystart
+       x(1,ipart) = x(1,ipart-2) + 2.*(massp/rho(ipart-1))**hpower
+       x(2,ipart) = xmin(2) + (j-1)*psep + ystart
        pmass(ipart) = massp
-       hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower
-       Bin(1,ipart) = Bxinit
+       hh(ipart) = hfact*(massp/rho(ipart))**hpower
+       Bfield(1,ipart) = Bxinit
     ENDDO
     ipart = ipart - 1      ! remove the one that is over the xmax boundary
 

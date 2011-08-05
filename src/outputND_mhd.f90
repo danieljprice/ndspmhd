@@ -23,7 +23,7 @@ SUBROUTINE output(t,nstep)
 ! REAL, PARAMETER :: pi=3.1415926536
  INTEGER, INTENT(IN) :: nstep
  INTEGER :: nprint,ndata
- INTEGER :: i,ierr(3)
+ INTEGER :: i,ierr(3),istat
  INTEGER, EXTERNAL :: flush
 !
 !--allow for tracing flow
@@ -46,9 +46,9 @@ SUBROUTINE output(t,nstep)
 !--write header line to this data block in data file
 !
  IF (imhd.NE.0) THEN
-    ndata = ndim + 11 + 2*ndimB + ndimV	! number of columns apart from co-ords
+    ndata = ndim + 7 + 2*ndimB + ndimV	! number of columns apart from co-ords
  ELSE
-    ndata = ndim + 8 + ndimV
+    ndata = ndim + 6 + ndimV
  ENDIF
  WRITE(idatfile,*) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
 !
@@ -56,29 +56,23 @@ SUBROUTINE output(t,nstep)
 !      
 ! scale = MAXVAL(Bfield(2,:)) 
  DO i=1,nprint
-    angle = 30.*pi/180.
-
-    IF (imhd.GE.11) THEN	! if Bfield is B
-
-       vpar = vel(2,i)*SIN(angle) + vel(1,i)*COS(angle)
-       vperp = vel(2,i)*COS(angle) - vel(1,i)*SIN(angle)
-       Bpar = Bfield(2,i)*SIN(angle) + Bfield(1,i)*COS(angle)
-       Bperp = Bfield(2,i)*COS(angle) - Bfield(1,i)*SIN(angle)
+!
+!--calculate the primitive variables from the conservative variables
+!
+    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
+                                Bfield(:,i),Bcons(:,i),istat)
+!
+!--write the data (primitive variables) to the .dat file
+!
+    IF (imhd.NE.0) THEN	! MHD
 
        WRITE(idatfile,30) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &
-        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i),	      &
-	vpar,vperp,Bpar,Bperp
-
-    ELSEIF (imhd.GT.0) THEN	! if Bfield is B/rho
-
-       WRITE(idatfile,30) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
-        pmass(i),alpha(i),Bfield(:,i)*rho(i),divB(i),curlB(:,i),      &
-	vpar,vperp,Bpar,Bperp
+        pmass(i),alpha(i),Bfield(:,i),divB(i),curlB(:,i)
 
     ELSE   ! non-MHD
 
        WRITE(idatfile,30) x(:,i),vel(:,i),rho(i),pr(i),uu(i),hh(i),   &                        
-        pmass(i),alpha(i),vpar,vperp
+        pmass(i),alpha(i)
 
     ENDIF
 
