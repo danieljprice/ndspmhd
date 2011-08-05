@@ -19,11 +19,12 @@ subroutine conservative2primitive
   use eos
   use part
   implicit none
-  integer :: i,j
+  integer :: i,j,nerr
   real :: B2i, v2i
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
+  nerr = 0
   sqrtg = 1.
   dens = rho
 !
@@ -45,10 +46,11 @@ subroutine conservative2primitive
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
         uu(i) = en(i) - 0.5*v2i - 0.5*B2i
         if (uu(i).lt.0.) then
-           !write(iprint,*) 'Warning: utherm -ve, particle ',i
+           nerr = nerr + 1
            uu(i) = 0.
         endif
      enddo
+     if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
   else		 ! en = thermal energy
      uu = en
   endif
