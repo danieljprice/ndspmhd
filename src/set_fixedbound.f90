@@ -63,6 +63,7 @@ subroutine set_fixedbound
                  endif
               endif
            enddo
+           if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
      enddo

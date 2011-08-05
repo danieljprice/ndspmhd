@@ -75,7 +75,8 @@ SUBROUTINE step
           j = ireal(i)
           x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)       
        else
-          stop 'step: error: ireal not set for fixed parts'
+          write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
+          stop
        endif
        vel(:,i) = velin(:,i)
        Bevol(:,i) = Bevolin(:,i)	     
