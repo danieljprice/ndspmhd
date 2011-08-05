@@ -426,9 +426,11 @@ subroutine get_rates
           curlB(:,i) = curlB(:,i)*rho1i
        endif
        divB(i) = divB(i)*rho1i
-       divBsym(i) = divBsym(i)*rhoi
-       
-       divB(i) = divBsym(i)
+
+       if (allocated(divBsym)) then
+          divBsym(i) = divBsym(i)*rhoi
+          divB(i) = divBsym(i)
+       endif
     endif
 !
 !--add external (body) forces
