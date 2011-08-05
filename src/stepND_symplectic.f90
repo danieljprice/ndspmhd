@@ -115,7 +115,9 @@ SUBROUTINE step
 !  1/dt_1/2 = 1/2 ( 1/dt_0 + 1/dt_1 ) -> use this to get dt_1 given dt_1/2 and dt_0
 !
  dthalf = min(C_force*dtforce,C_cour*dtcourant)
- dt1 = 1./(2./dthalf - 1./dt0)!!! 2.*dthalf - dt0   !!
+ dt1 = dthalf**2/dt0
+ 
+ !!dt1 = 1./(2./dthalf - 1./dt0)!!! 2.*dthalf - dt0   !!
  IF (dt1.GT.dtcourant) THEN
     WRITE(iprint,*) 'WARNING: dt1>dtcourant, re-syncing steps ',dt1,dtcourant
     dt1 = dthalf
