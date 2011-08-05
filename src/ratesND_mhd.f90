@@ -697,7 +697,7 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
-    real :: vidotdS,vjdotdS,altrhoi,altrhoj,gammastar,vperp2
+    real :: altrhoi,altrhoj,gammastar,vperp2
     real :: enthalpi,enthalpj,term
 
    pmassj = pmass(j)
