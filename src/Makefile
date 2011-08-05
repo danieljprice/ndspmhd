@@ -202,14 +202,15 @@ MODDUMPSRC2D = moddump_tstar2D.f90
 MODDUMPSRC3D = moddump_tstar2D.f90
 ######################################################################
 
+CONS2PRIM = conservative2primitive.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
+SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
          get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND.f90 check_setup.f90 \
+         boundaryND.f90 check_setup.f90 get_curl.f90 smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
@@ -223,18 +224,18 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          outputND_mhd.f90\
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
-	 set_fixedbound.f90 smooth.f90 \
+	 set_fixedbound.f90 \
 	 sort_particles.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
-	 get_divB.f90 get_curl.f90 divBcorrect.f90 get_divBgradpsi.f90 \
+	 get_divB.f90 divBcorrect.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 
+SOURCES2 = stepND_mhd.f90 evwrite_mhd.f90 
 
-# these files are for the gr version of the code
-SOURCESGR = conservative2primitive_gr.f90 \
-	    stepND_mhd_gr.f90 evwrite_mhd_gr.f90
+# these files are for the sr/gr version of the code
+SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
+CONS2PRIMGR = conservative2primitive_sr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
@@ -242,11 +243,14 @@ OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o)  $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)  \
 	    $(SETUP3D:.f90=.o)
-OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o)\
+            
+SOURCES1GR = $(SOURCES:${CONS2PRIM}=${CONS2PRIMGR})
+
+OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o)\
 	    $(SETUP1D:.f90=.o)
-OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
+OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
+OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES1GR:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
 
 crap:
