@@ -212,7 +212,7 @@ SUBROUTINE setup
 !
 !--if using ghosts adjust outer boundary to lie half a particle spacing away
 !
- IF (ibound.GT.1) THEN
+ IF (ibound(1).GT.1) THEN
     xmax(1) = xin(1,npart) + 0.5*(xin(1,npart)-xin(1,npart-1))
  ENDIF
 
