@@ -30,7 +30,6 @@ contains
     integer :: nneighcell,ipart,ncellsxy
     integer :: i,j,k
     logical :: debugging
-    logical :: leftmost,rightmost,bottomrow,toprow,endblock
 !
 !--allow for tracing flow (removed for speed)
 !      
@@ -63,6 +62,7 @@ contains
        neighcell(nneighcell) = icell + ncellsx(1) + 1   ! above, right
     endif
     if (ndim.ge.3) then  ! next block
+       ncellsxy = ncellsx(1)*ncellsx(2)
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell + ncellsxy - 1    ! next block, left
        nneighcell = nneighcell + 1
@@ -161,9 +161,8 @@ contains
     integer, intent(OUT) :: nneigh
     integer, dimension(3**ndim) :: neighcell
     integer :: nneighcell,ipart,ncellsxy
-    integer :: i,j,k, n2d, n3d,ineighcell
+    integer :: i,j,k
     logical :: debugging
-    logical :: leftmost,rightmost,bottomrow,toprow,endblock,firstblock
 !
 !--allow for tracing flow (removed for speed)
 !      
@@ -200,6 +199,7 @@ contains
        nneighcell = nneighcell + 1
        neighcell(nneighcell) = icell - ncellsx(1) + 1
        if (ndim.ge.3) then
+          ncellsxy = ncellsx(1)*ncellsx(2)
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsxy + ncellsx(1) - 1
           nneighcell = nneighcell + 1
