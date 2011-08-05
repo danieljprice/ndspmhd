@@ -164,7 +164,7 @@ subroutine setup
     print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
     print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
 !!    massp = (psep**ndim)*densright
-    call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,.false.)  ! set left half
+    call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,.false.)  ! set left half
     xmin = xminleft
     volume = PRODUCT(xmaxleft-xminleft)
     total_mass = volume*densleft
@@ -172,10 +172,10 @@ subroutine setup
     masspleft = massp
     masspright = massp
  
-    call set_uniform_cartesian(1,psepright,xminright,xmaxright,.false.) ! set right half
+    call set_uniform_cartesian(2,psepright,xminright,xmaxright,.false.) ! set right half
     xmax = xmaxright
  else  ! set all of volume if densities are equal
-    call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+    call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
     masspleft = densleft*volume/REAL(npart)
