@@ -5,6 +5,7 @@
 module plummer_setup
  implicit none
  real :: mass1,mass2,rsoft,rsoft2,xdist2
+ integer :: npart1,npart2
  
 end module plummer_setup
 
@@ -29,7 +30,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,iseed,idist,j,npart1,npart2
+ integer :: i,iseed,idist,j
  real :: massp,totmass,ran2,massratio
  real :: rr,rmass
  real, dimension(ndim) :: xpos
@@ -372,8 +373,8 @@ subroutine force_error_densityprofiles(iprofile,npart,xpts,force,residual,errL2,
     !
     print*,'fmax = ',fmax
     if (fmax.gt.tiny(fmax)) then
-       errL1 = errL1/(npart*fmax)
-       errL2 = errL2/(npart*fmax**2)
+       errL1 = errL1/(npart) !!*fmax)
+       errL2 = errL2/(npart) !!*fmax**2))
     else
        stop 'error normalising errors'
     endif

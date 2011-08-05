@@ -16,6 +16,7 @@ subroutine evolve
  use errors, only:calculate_errors
  use rates, only:force,poten
  use kernels, only:radkern
+ use plummer_setup, only:npart1,npart2
 !
 !--define local variables
 !
@@ -29,6 +30,7 @@ subroutine evolve
  real, dimension(npart) :: rr,fmag,residual
  real, dimension(2) :: msphere,rsoft
  real :: errL1,errL2,errLinf,toterrL2,toterrLinf,xmin,xmax,dxexact,t1,t2
+ real :: errL2_1,errL2_2,toterrL2_1,toterrL2_2
 !
 !--allow for tracing flow
 !      
@@ -66,6 +68,8 @@ subroutine evolve
  call cpu_time(t_start)
  toterrL2 = 0.
  toterrLinf = 0.
+ toterrL2_1 = 0.
+ toterrL2_2 = 0.
  open(unit=423,file=trim(rootname)//'.err',status='replace',form='formatted')
  print*,'opening ',trim(rootname)//'.err',' for output'
 !
@@ -119,6 +123,23 @@ subroutine evolve
     print*,nsteps,' L2 error = ',errL2,' mean = ',toterrL2/real(nsteps), &
         ' Linf = ',errLinf,' mean = ',toterrLinf/real(nsteps)
     write(423,*) nsteps,errL2,toterrL2/real(nsteps),toterrLinf/real(nsteps)
+!
+!--print errors in each component
+!
+    call force_error_densityprofiles(1,npart1,x(1:ndim,1:npart1),force(1:ndim,1:npart1), &
+                                    poten(1:npart1),errL2_1,errL1,ierr)
+!--this is contribution of 1st component to total MASE, *NOT* MASE for 1st component
+    errL2_1 = errL2_1*npart1/real(npart)
+    toterrL2_1 = toterrL2_1 + errL2_2
+    print*,nsteps,' L2 err (1) = ',errL2_1,' mean (1) = ',toterrL2_1/real(nsteps), &
+        ' Linf (1) = ',errLinf
+    call force_error_densityprofiles(1,npart2,x(1:ndim,npart1+1:npart2),force(1:ndim,npart1+1:npart2), &
+                                    poten(npart1+1:npart2),errL2_2,errL1,ierr)
+!--same here, but for second component
+    errL2_2 = errL2_2*npart2/real(npart)
+    toterrL2_2 = toterrL2_2 + errL2_2
+    print*,nsteps,' L2 err (2) = ',errL2_2,' mean (2) = ',toterrL2_2/real(nsteps), &
+        ' Linf (2) = ',errLinf
 !
 !--calculate errors
 !
