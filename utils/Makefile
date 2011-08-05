@@ -11,9 +11,10 @@
 .KEEP_STATE:
 
 ## Compiler flags
-F90C =  g95
-F90FLAGS =  -O3 -Wall
-LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+F90C =  gfortran
+F90FLAGS =  -O3 -Wall -fbounds-check
+#LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
+LDFLAGS =  -L/usr/X11R6/lib -lX11 -L${PGPLOT_DIR} -lpgplot -lpng
 DBLFLAGS = -r8
 
 .SUFFIXES:
@@ -31,7 +32,7 @@ CC = $(F90C)
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS = kernelND.o kernelplot.o kernelstability1D.o danpgtile.o
+OBJECTS = setpage.o kernelND.o legend.o kernelplot.o kernelstability1D.o
 
 OBJSPHDERIV = kernelND.o sphderiv.o
 
@@ -77,8 +78,8 @@ variablesND.o :
 kernelND.o : ../src/kernelND.f90
 	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
-danpgtile.o :
-	$(F90C) -c $(F90FLAGS) ../plot/danpgtile.f -o $@
+#setpage.o :
+#	$(F90C) -c $(F90FLAGS) ../plot/setpage.f90 -o $@
 
 interpolate_kernel.o :
 	$(F90C) -c $(F90FLAGS) ../src/interpolate_kernel.f90 -o $@

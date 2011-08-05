@@ -23,14 +23,21 @@ program plotfreq
  freq3 = 1.
  
  open(1,file=filename,status='old',form='formatted')
+ jmode = 0
+ mmode = 2
  do i=1,max
-    read(1,*,end=10,iostat=ierr) freq(i),freq2(i),freq3(i)
+    !!read(1,*,end=10,iostat=ierr) freq(i),freq2(i),freq3(i)
+    read(1,*,end=10,iostat=ierr) freq2(i)
     !!freq(i) = 1./(freq(i)*period(i))
-    rmode(i) = real(i)*2
+    
+    jmode = jmode + 2
+    if (jmode.eq.20) then
+       jmode = 2
+       mmode = mmode + 2
+    endif
+    rmode(i) = real(jmode)
 
     omegasq = 1.0
-    mmode = int(rmode(i))
-    jmode = 0
     gamm1 = 1.0
     sigma2 = 0.5*omegasq*(gamm1)*((jmode+mmode)*(jmode+mmode + 2./gamm1) - mmode**2)
     freqexact(i) = sqrt(sigma2)/(2.*pi)
@@ -45,65 +52,62 @@ program plotfreq
  call pgslw(2)
  
  nacross = 1
- ndown = 2
- call danpgtile(1,nacross,ndown,  &
-                0.,maxval(rmode(1:npts))+2.,0.,maxval(freqexact(1:npts)), &
-                'radial mode (j)','frequency',' ',0,1)
+ ndown = 1
+! call danpgtile(1,nacross,ndown,  &
+!                0.,maxval(rmode(1:npts))+2.,0.,maxval(freqexact(1:npts)), &
+!                'radial mode (j)','frequency',' ',0,1)
  !!call pglab(' radial mode ',' frequency ',' ')
  !!call pgpt(npts,rmode(1:npts),freq(1:npts),17)
- call pgpt(npts,rmode(1:npts),freqexact(1:npts),2)
+! call pgpt(npts,rmode(1:npts),freqexact(1:npts),2)
 
  call pgsls(1)
- call pgline(npts,rmode(1:npts),freqexact(1:npts))
+! call pgline(npts,rmode(1:npts),freqexact(1:npts))
  !!call pgsci(2)
- call pgpt(npts,rmode(1:npts),0.5*freq2(1:npts),4)
- call pgpt(npts,rmode(1:npts),0.5*freq3(1:npts),17)
+! call pgpt(npts,rmode(1:npts),0.5*freq2(1:npts),4)
+! call pgpt(npts,rmode(1:npts),0.5*freq3(1:npts),17)
 
  call pgsls(4)
- call pgline(npts,rmode(1:npts),0.5*freq2(1:npts))
- call pgsls(2)
- call pgline(npts,rmode(1:npts),0.5*freq3(1:npts))
+! call pgline(npts,rmode(1:npts),0.5*freq2(1:npts))
+! call pgsls(2)
+! call pgline(npts,rmode(1:npts),0.5*freq3(1:npts))
 
 !
 !--plot legend
 ! 
- call pgqcs(4,xch,ych)
- xpos = rmode(1)
- ypos = freqexact(npts-1) - 0.5*ych
+! call pgqcs(4,xch,ych)
+! xpos = rmode(1)
+! ypos = freqexact(npts-1) - 0.5*ych
 
 !--exact
- call pgpt1(xpos,ypos+0.25*ych,2)
- call pgtext(xpos+xch,ypos,'exact')
+! call pgpt1(xpos,ypos+0.25*ych,2)
+! call pgtext(xpos+xch,ypos,'exact')
 
- ypos = ypos - 1.25*ych
- call pgpt1(xpos,ypos+0.25*ych,4)
- call pgtext(xpos+xch,ypos,'equal mass particles ')
+! ypos = ypos - 1.25*ych
+! call pgpt1(xpos,ypos+0.25*ych,4)
+! call pgtext(xpos+xch,ypos,'equal mass particles ')
 
- ypos = ypos - 1.25*ych
- call pgpt1(xpos,ypos+0.25*ych,17)
- call pgtext(xpos+xch,ypos,'variable particle masses')
+! ypos = ypos - 1.25*ych
+! call pgpt1(xpos,ypos+0.25*ych,17)
+! call pgtext(xpos+xch,ypos,'variable particle masses')
 
 !
 !--residuals
 !
 !! call pgpanl(2,1)
  call pgsls(1)
- call danpgtile(2,nacross,ndown,  &
+ call danpgtile(1,nacross,ndown,  &
                 0.,maxval(rmode(1:npts))+2.,-0.15,0.15, &
-                'phi mode (s)','(frequency-exact)/exact',' ',0,1)
-
-! call pgenv(0.,maxval(rmode(1:npts))+2.,-0.15,0.15,0,1)
-! call pglab(' radial mode ',' (frequency-exact)/exact ',' ')
+                'radial mode (j)','(frequency-exact)/exact',' ',0,1)
 
  freq(1:npts) = (0.5*freq2(1:npts) - freqexact(1:npts))/freqexact(1:npts)
  call pgpt(npts,rmode(1:npts),freq(1:npts),4)
  call pgsls(4)
- call pgline(npts,rmode(1:npts),freq(1:npts))
+! call pgline(npts,rmode(1:npts),freq(1:npts))
 
- freq(1:npts) = (0.5*freq3(1:npts) - freqexact(1:npts))/freqexact(1:npts)
- call pgpt(npts,rmode(1:npts),freq(1:npts),17)
- call pgsls(2)
- call pgline(npts,rmode(1:npts),freq(1:npts))
+! freq(1:npts) = (0.5*freq3(1:npts) - freqexact(1:npts))/freqexact(1:npts)
+! call pgpt(npts,rmode(1:npts),freq(1:npts),17)
+! call pgsls(2)
+! call pgline(npts,rmode(1:npts),freq(1:npts))
  call pgsls(1)
 
  call pgend
