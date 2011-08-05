@@ -432,7 +432,44 @@ SUBROUTINE setkern
          grgrwij(i) = 0.
       ENDIF
     ENDDO
-        
+  CASE(21)
+!
+!--cubic spline with vanishing second moment (from Fulk & Quinn 1996)
+!
+    kernelname = 'High order cubic spline'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+       cnormk = 1./18.
+      CASE(2)
+       cnormk = 1/(pi)  !wrong
+      CASE(3)
+       cnormk = 105/(16.*pi)
+      CASE DEFAULT
+       write(iprint,666)
+       STOP
+    END SELECT
+    DO i=0,ikern
+      q2 = i*dq2table
+      q = SQRT(q2)
+      IF (q.LT.1.0) THEN
+         wij(i) = 17.- 147./4.*q2 + 18./4.*q2*q
+         grwij(i) = -147./2.*q + 3.*18./4.*q2 
+      ELSEIF (q.LT.2.0) THEN
+         wij(i) = 0.25*(2.-q)**2*(49.-47.*q)
+         grwij(i) = -0.5*(2-q)*(49.-47.*q) - 47.*0.25*(2-q)**2
+         !--note second deriv is wrong
+         !!grgrwij(i) = 6666*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+      ELSE
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      ENDIF
+    ENDDO
+      
   CASE DEFAULT  
 !
 !--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
