@@ -25,8 +25,8 @@ system "mkdir $rootname";
 system "cp multirun.in ./$rootname";
 system "cp $ndim$SPMHD ./$rootname";
 system "cp defaults ./$rootname";
-system "ln -s ./plot/supersphplot ./$rootname/supersphplot";
-system "ln -s ./evsupersph ./$rootname/evsupersph";
+system "cd $rootname; ln -s ../supersphplot ./supersphplot";
+system "cd $rootname; ln -s ../evsupersph ./evsupersph";
 
 # call the multirun program to generate the input files
 system "cd $rootname; ../multi/multirun $rootname $nruns";
