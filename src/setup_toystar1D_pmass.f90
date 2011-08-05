@@ -86,7 +86,7 @@ SUBROUTINE setup
 !
 !--allocate memory here
 !
- CALL alloc(imax,1)
+ CALL alloc(imax)
  
  WRITE(iprint,*) ' Toy star : total mass      = ',totmass
  WRITE(iprint,*) '            toy star radius = ',radstar

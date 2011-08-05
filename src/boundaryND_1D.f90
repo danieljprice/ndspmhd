@@ -43,7 +43,7 @@ SUBROUTINE boundary
  IF (ibound.EQ.1) THEN
 
     IF (ndim.GT.1) THEN    
-       WRITE(iprint,*) ' inflow/outflow not implemented in ND'
+!       WRITE(iprint,*) 'warning: inflow/outflow not implemented in ND'
     ELSE
 !
 !--this is just pulled straight from the 1D code - needs to be

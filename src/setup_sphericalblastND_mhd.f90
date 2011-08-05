@@ -37,8 +37,8 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound = 2	! reflective ghosts
- nbpts = 0	! must use fixed particles if inflow/outflow at boundaries
+ ibound = 1	! fixed ghosts
+ nbpts = 0
  xmin(:) = -0.5		! same xmin in all dimensions
  xmax(:) = 0.5
  const = 1./SQRT(4.*pi) 
@@ -62,7 +62,7 @@ SUBROUTINE setup
  WRITE(iprint,10) ndim
  WRITE(iprint,20) prblast,rblast,rhozero,przero
  WRITE(iprint,30) Bzero
-10 FORMAT(/,1x,i1,'-dimensional adiabatic MHD blast wave problem'
+10 FORMAT(/,1x,i1,'-dimensional adiabatic MHD blast wave problem')
 20 FORMAT(/,' Central pressure  = ',f10.3,', blast radius = ',f6.3,/, &
             ' density = ',f6.3,', pressure = ',f6.3,/)
 30 FORMAT(' Initial B   = ',3(f6.3,1x))

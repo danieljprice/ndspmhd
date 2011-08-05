@@ -75,7 +75,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     ntot = 2*npartx*nparty
     WRITE(iprint,*) 'Close packed distribution, npart = ',ntot
     
-    CALL alloc(ntot,1)
+    CALL alloc(ntot)
     npart = ntot
 
     ystart = 0.5*deltay		!psepy
@@ -105,7 +105,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     ntot = PRODUCT((xmax(:)-xmin(:))/psep)
     npart = ntot
     WRITE(iprint,*) 'Random particle distribution, npart = ',ntot 
-    CALL alloc(ntot,1)
+    CALL alloc(ntot)
 !
 !--initialise random number generator
 !    
@@ -150,7 +150,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
     ntot = npartx*nparty*npartz
     WRITE(iprint,*) 'Cubic lattice, npart = ',ntot
 
-    CALL alloc(ntot,1)
+    CALL alloc(ntot)
     npart = ntot
 
     ipart = 0

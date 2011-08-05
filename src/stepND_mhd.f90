@@ -35,7 +35,7 @@ SUBROUTINE step
  v2i = 0.
       
  DO i=1,npart
-    IF ((i.LE.nbpts).OR.(i.GT.npart-nbpts)) THEN
+    IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
        rho(i) = rhoin(i)
        Bfield(:,i) = Bfieldin(:,i)	     
@@ -98,7 +98,7 @@ SUBROUTINE step
  ENDDO
 
 !
-!--set ghost particles if boundaries are used
+!--set ghost particles if ghost boundaries are used
 !	 
  IF (ibound.GE.2) CALL set_ghost_particles
 !
@@ -118,14 +118,10 @@ SUBROUTINE step
           gradh(i) = gradh(j)       
        ENDDO
     ELSEIF (ibound.EQ.1) THEN           ! rewrite over fixed particles
-       DO i=1,nbpts
-          rho(i) = rhoin(i)
-	  hh(i) = hhin(i)
-       ENDDO
-       DO i=npart-nbpts+1,npart
-          rho(i) = rhoin(i)
-	  hh(i) = hhin(i)
-       ENDDO
+       WHERE (itype(:) .EQ. 1)
+          rho(:) = rhoin(:)
+	  hh(:) = hhin(:)
+       END WHERE	  
     ENDIF   
  ENDIF   
 !
@@ -140,7 +136,7 @@ SUBROUTINE step
 !--Mid-point Corrector step
 !
  DO i=1,npart
-    IF ((i.LE.nbpts).OR.(i.GT.npart-nbpts)) THEN
+    IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
        rho(i) = rhoin(i)
        Bfield(:,i) = Bfieldin(:,i)
@@ -219,14 +215,10 @@ SUBROUTINE step
           gradh(i) = gradh(j)       
        ENDDO
     ELSEIF (ibound.EQ.1) THEN           ! rewrite over fixed particles
-       DO i=1,nbpts
-          rho(i) = rhoin(i)
-	  hh(i) = hhin(i)
-       ENDDO
-       DO i=npart-nbpts+1,npart
-          rho(i) = rhoin(i)
-	  hh(i) = hhin(i)
-       ENDDO
+       WHERE (itype(:) .EQ. 1)
+          rho(:) = rhoin(:)
+	  hh(:) = hhin(:)
+       END WHERE	  
     ENDIF
 	   
     DO i=1,npart

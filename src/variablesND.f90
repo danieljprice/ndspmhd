@@ -140,6 +140,7 @@ END MODULE
 MODULE part
  IMPLICIT NONE
  INTEGER :: npart,nbpts,ntotal
+ INTEGER, DIMENSION(:), ALLOCATABLE :: itype
  REAL, DIMENSION(:), ALLOCATABLE :: pmass
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
  REAL, DIMENSION(:), ALLOCATABLE :: rho,pr,uu,en,hh,alpha

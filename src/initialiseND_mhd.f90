@@ -27,8 +27,9 @@ SUBROUTINE initialise
  CHARACTER(LEN=20) :: infile,evfile
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
  INTEGER :: ntot
- INTEGER :: i,j,iktemp
+ INTEGER :: i,j,iktemp,npart1
  REAL :: B2i,v2i
+ LOGICAL :: set_fixed_particles
 !
 !--try reading rootname from the command line
 !
@@ -133,9 +134,19 @@ SUBROUTINE initialise
     gradh(i) = 0.
  ENDDO
 !
-!--set ghost particles initially
+!--set ghost particles initially - set if normal ghosts are used
+!  or if using fixed particle boundaries and no fixed particles have been set
 !
- IF (ibound.GT.1) CALL set_ghost_particles
+ set_fixed_particles = (ibound.EQ.1 .AND. ALL(itype.EQ.0)  &
+                        .AND..NOT.(ndim.EQ.1 .AND. nbpts.GT.0) )
+ IF (set_fixed_particles) WRITE(iprint,*) 'setting up fixed particles'
+ IF (ibound.GT.1 .OR. set_fixed_particles) CALL set_ghost_particles
+!  in 1D setup can just specify the number of particles to hold fixed
+!  this is for backwards compatibility of the code
+ IF (ibound.EQ.1 .AND. ndim.EQ.1 .AND. nbpts.GT.0) THEN
+    itype(1:nbpts) = 1
+    itype((npart-nbpts):ntotal) = 1
+ ENDIF
 !
 !--If using direct sum for density, compute initial density from direct sum
 !  also do this if using cty equation but doing a direct sum every so often
@@ -154,16 +165,17 @@ SUBROUTINE initialise
 !--set initial pressure, vsound from eos (also u if polytropic)
 !      
  DO i=1,npart	! not ghosts
-    IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
-       rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
-       hh(i) = hh(nbpts+1)
-       gradh(i) = gradh(nbpts+1)
-    ELSEIF (i.GT.(npart-nbpts)) THEN
-       rho(i) = rho(npart-nbpts)
-       hh(i) = hh(npart-nbpts)
-       gradh(i) = gradh(npart-nbpts)
-    ENDIF 
-    
+    IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
+       IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
+          rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
+          hh(i) = hh(nbpts+1)
+          gradh(i) = gradh(nbpts+1)
+       ELSEIF (i.GT.(npart-nbpts)) THEN
+          rho(i) = rho(npart-nbpts)
+          hh(i) = hh(npart-nbpts)
+          gradh(i) = gradh(npart-nbpts)
+       ENDIF 
+    ENDIF
     rhoin(i) = rho(i)		! set initial rho and h equal to values calculated  
     hhin(i) = hh(i)
     CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma,1)
@@ -185,7 +197,7 @@ SUBROUTINE initialise
 !
 !--make sure ghost particle quantities are the same
 !
- IF (ibound.GT.1) THEN
+ IF (ibound.GT.1 .OR. set_fixed_particles) THEN
     DO i=npart+1,ntotal	
        j = ireal(i)
        rho(i) = rho(j)
@@ -196,6 +208,12 @@ SUBROUTINE initialise
        uu(i) = uu(j)
        Bfield(:,i) = Bfield(:,j)
     ENDDO
+    IF (set_fixed_particles) THEN
+       ! fix the ghost particles that have been set
+       npart1 = npart + 1
+       itype(npart1:ntotal) = 1	! set all these particles to be fixed
+       npart = ntotal		! no ghosts
+    ENDIF
  ENDIF                      
 !
 !--Set derivatives to zero until calculated
@@ -208,8 +226,17 @@ SUBROUTINE initialise
     daldt(i) = 0.
     dhdt(i) = 0.
     dBfielddt(:,i) = 0.
+!
+!--also make sure that initial quantities are equal to main quantities
+!
+    xin(:,i) = x(:,i)
+    velin(:,i) = vel(:,i)
+    rhoin(i) = rho(i)
+    uuin(i) = uu(i)
     Bfieldin(:,i) = Bfield(:,i)	! if using midpoint
     enin(i) = en(i)		! " " and not set in setup
+    hhin(i) = hh(i)
+    alphain(i) = alpha(i)
  ENDDO
 !
 !--write second header to logfile/screen

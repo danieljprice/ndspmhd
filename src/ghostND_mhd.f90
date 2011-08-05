@@ -221,7 +221,7 @@ SUBROUTINE makeghost(jpart,xghost)
  ipart = ntotal + 1
  IF (ipart.GT.SIZE(rho)) THEN
     WRITE(iprint,*) 'ghost: ntotal > array size, re-allocating... '
-    CALL alloc(ipart,2)
+    CALL alloc(SIZE(rho))
  ENDIF 
  ntotal = ipart
 !
