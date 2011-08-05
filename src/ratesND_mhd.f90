@@ -454,8 +454,10 @@ SUBROUTINE get_rates
 !
 !--pressure term (generalised form)
 !
-       	        prterm = phii_on_phij*Prho2i*grkerni 		&
+       	        IF (ialtform.GE.0) THEN
+                prterm = phii_on_phij*Prho2i*grkerni 		&
      		       + phij_on_phii*Prho2j*grkernj	   	   
+                ENDIF
 !
 !--add pressure and viscosity terms to force (equation of motion)
 !
