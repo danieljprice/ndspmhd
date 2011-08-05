@@ -3,11 +3,12 @@
 !! Computes external (body) forces on a particle given its co-ordinates
 !!
 !!-----------------------------------------------------------------------
-subroutine external_forces(iexternal_force,xpart,fext,ndim,vphi)
+subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
   use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega,Omega2
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
+  real, dimension(ndimV), intent(in) :: vpart
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
   real, intent(in) :: vphi
@@ -59,23 +60,10 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,vphi)
 
   case(5)
 !
-!--external forces for the 2D MRI problem (ie. central point mass, centrifugal forces)
+!--this is for the 2D cartesian shearing box
 !
-!
-!--1/r^2 force from central point mass (r is relative to grid centre)
-!
-!     rr = Rcentre + xpart(1)
-!     fext(1) = -1./rr**2
-!
-!--add centrifugal force (assume keplerian rotation)
-!
-!     fext(1) = 1./Rcentre**2
-!
-!--coriolis force (vphi should be set such that the forces balance initially)
-!
-     fext(1) = 3.*Omega2*xpart(1) + 2.*Omega*vphi
-     fext(:) = 0.
-
+     fext(1) = 3.*Omega2*xpart(1) + 2.*Omega*vpart(2)
+     fext(2) = -2.*Omega*vpart(1)
   case(6)
      fext(:) = 0.
 !
@@ -113,11 +101,12 @@ end subroutine external_forces
 !!
 !!-----------------------------------------------------------------------
 
-subroutine external_potentials(iexternal_force,xpart,epot,ndim)
+subroutine external_potentials(iexternal_force,xpart,epot,ndim,ndimV,vpart)
  implicit none
- integer, intent(in) :: iexternal_force,ndim
+ integer, intent(in) :: iexternal_force,ndim,ndimV
  real, dimension(ndim), intent(in) :: xpart
  real, intent(out) :: epot
+ real, dimension(ndimV), intent(in) :: vpartc
  
  select case(iexternal_force)
  case(1) ! toy star force (x^2 potential)
@@ -126,6 +115,8 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
     epot = -1./SQRT(DOT_PRODUCT(xpart,xpart))
  case(3) ! potential from n point masses
     epot = 0.
+ case(5)
+    epot = 3.*Omega2*xpart(1)*vpart(1)
  case default
     epot = 0.
  end select
