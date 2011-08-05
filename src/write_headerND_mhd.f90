@@ -161,7 +161,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--number of particles
 !     
-    WRITE (iprint,"(/,' Number of particles = ',i6,/)") npart
+    WRITE (iprint,"(/,' Number of particles = ',i9,/)") npart
 !
 !--boundary options
 !
