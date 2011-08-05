@@ -28,13 +28,14 @@ subroutine setup
 !      
  implicit none
  integer :: i,j
- real :: rmax,totmass,totvol
- real :: denszero,uuzero,massp,denscentre
+ real :: rmax,totmass,totvol,gamm1,rr2
+ real :: denszero,uuzero,massp,denscentre,volpart
  real, dimension(ndim) :: xnew
- logical :: iuserings
+ logical :: iuserings,iequalmass
 
  write(iprint,*) 'uniform spherical distribution (for toy star)'
  iuserings = .false.
+ iequalmass = .false.
 !
 !--set bounds of initial setup
 !                   
@@ -42,16 +43,17 @@ subroutine setup
 !
 !--reset polyk to give r = 1
 !
- polyk = (gamma - 1.)/(2.*gamma*denscentre**(gamma-1.))
+ gamm1 = gamma - 1.
+ polyk = gamm1/(2.*gamma*denscentre**gamm1)
  write(iprint,*) 'resetting polyk = ',polyk
  rmax = 1.0
- totmass = pi*rmax**2*(gamma-1.)/gamma
+ totmass = pi*rmax**2*gamm1/gamma
  ibound = 0        ! no boundaries 
  iexternal_force = 1        ! use toy star force
 !
 !--setup a uniform sphere of particles
 ! 
- if (iuserings) then
+ if (iuserings .and. iequalmass) then
     xmin(1) = 2.*psep
     xmax(1) = 1.0
     if (ndim.ge.2) then 
@@ -64,8 +66,10 @@ subroutine setup
        call coord_transform(x(:,i),ndim,2,xnew(:),ndim,1)
        x(:,i) = xnew(:)
     enddo
- else
+ elseif (iequalmass) then
     call set_uniform_spherical(1,rmax,perturb=0.5)        ! 4 = random
+ else
+    call set_uniform_spherical(2,rmax) 
  endif
 !
 !--set particle properties
@@ -81,6 +85,7 @@ subroutine setup
 
  denszero = totmass/totvol        ! initial density
  massp = totmass/real(npart)
+ volpart  = totvol/real(npart)
  uuzero = 0.1
  write(iprint,10) denscentre,totmass
 10 format(/,' Toy star static solution ',/, &
@@ -91,7 +96,16 @@ subroutine setup
  vel(:,:) = 0.
  dens(:) = denszero
  uu(:) = uuzero
- pmass(:) = massp
+ if (iequalmass) then
+    pmass(:) = massp
+ else
+    !--assign variable masses (assumes uniform distribution)
+    do i=1,npart
+       rr2 = dot_product(x(:,i),x(:,i))
+       dens(i) = denscentre*(1.-rr2)**(1./gamm1)
+       pmass(i) = dens(i)*volpart
+    enddo
+ endif
  Bfield(:,:) = 0.
 !
 !--reset centre of mass to zero
@@ -116,49 +130,91 @@ subroutine modify_dump
  use part
  use toystar2D_utils
  use geometry
+ use timestep, only:time
  implicit none
  integer :: i,jmode,smode
- real :: rr,A,cs,scalefac,sigma2,sigma
+ real :: rr,H,C,A,scalefac,sigma2,sigma,rstar,denscentre,gamm1
+ real :: omegasq,cs2centre,ekin,ekin_norm
  real, dimension(ndim) :: xcyl,velcyl,dvel
+ character(len=len(rootname)+6) :: tstarfile
+ logical :: oscills
 
- jmode = 1
- smode = 0
+ time = 0.
+
+ jmode = 0
+ smode = 2
  
  write(iprint,*) 'MODIFYING INITIAL SETUP with toystar oscillations'
+
+!
+!--read parameters from file
+!  
+ tstarfile = rootname(1:len_trim(rootname))//'.tstar'
+ open(unit=ireadf,err=11,file=tstarfile,status='old',form='formatted')
+!!    read(ireadf,*,err=12) H,C,A
+    read(ireadf,*,err=12) jmode,smode
+ close(unit=ireadf)
+ oscills = .true.
+   goto 13
+11 continue
+   write(iprint,*) tstarfile,' not found, using default options '
+   goto 13
+12 continue
+   write(iprint,*) ' error reading ',tstarfile
+13 continue   
+   if (jmode.lt.0) oscills = .false.
+
  write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
  
- sigma2 = (gamma - 1.)*((jmode+smode)*(jmode+smode + 2./(gamma-1.)) - smode**2)
+ gamm1 = gamma - 1.
+ if (gamm1.lt.1.e-5) then
+    stop 'error: gamma - 1 <= 0'
+ endif
+
+ omegasq = 1.0
+ sigma2 = 0.5*omegasq*(gamm1)*((jmode+smode)*(jmode+smode + 2./gamm1) - smode**2)
  if (sigma2.lt.1.e-5) then
     print*,'ERROR sigma2 < 0 in perturbation'
  else
     sigma = sqrt(sigma2)
  endif
- scalefac = polyk*gamma/(sigma*(gamma-1.))
+
+ denscentre = 1.0
+ scalefac = polyk*gamma/(sigma*gamm1)
+ rstar = sqrt((2.*polyk*gamma*denscentre**gamm1)/gamm1)
+ 
+ write(iprint,*) 'polyk = ',polyk,' rstar = ',rstar,' sigma = ',sigma
+ cs2centre = gamma*polyk*denscentre**gamm1
+ write(iprint,*) 'denscentre = ',denscentre,' cs_0 = ',sqrt(cs2centre)
+
 !
 !--work out frequency of oscillation
 !
+ ekin = 0.
+ ekin_norm = 0.
  do i=1,npart
     !--get r,theta
     call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
     
     !--set v_r
-    velcyl(1) = detadr(jmode,smode,xcyl(1),gamma)*COS(smode*xcyl(2))
+    velcyl(1) = scalefac*detadr(jmode,smode,xcyl(1)/rstar,gamma)*COS(smode*xcyl(2))
     !--set theta_dot
-    velcyl(2) = -etar(jmode,smode,xcyl(1),gamma)*smode*SIN(smode*xcyl(2))/xcyl(1)**2
-    
+    velcyl(2) = -scalefac*etar(jmode,smode,xcyl(1)/rstar,gamma)*smode*SIN(smode*xcyl(2))/xcyl(1)**2
+    !!print*,'v_phi = ',velcyl(2),xcyl(2),etar(jmode,smode,xcyl(1)/rstar,gamma)
     !--now transform back to get vx, vy
     call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
     
     !--now perturb v with appropriate amplitude
-    cs = sqrt(gamma*(gamma-1.)*uu(i))
-    vel(1:ndim,i) = 0.05*cs*dvel(1:ndim)
-    
+    vel(1:ndim,i) = dvel(1:ndim)
+    ekin = ekin + 0.5*pmass(i)*dot_product(vel(1:ndim,i),vel(1:ndim,i))
+    ekin_norm = ekin_norm + 0.5*pmass(i)
  enddo
 !
-!--add velocity perturbation
+!--normalise the amplitude
 !
- do i=1,npart
- enddo
+ ekin_norm = (0.05)**2*cs2centre*ekin_norm
+ print*,' ekin = ',ekin, ' ekin_norm = ',ekin_norm
+ vel = vel*sqrt(ekin_norm/ekin)
 
  return
 end subroutine modify_dump
