@@ -189,11 +189,11 @@ subroutine get_rates
  !--calculate kernel for the MHD anticlumping term
  !
  if (ianticlump.eq.1) then
-  if (ikernav.eq.3) then
-     q2joe = (1./hfact)**2      ! 1/hfact is initial particle spacing in units of h 
-  else
+!  if (ikernav.eq.3) then
+!     q2joe = (1./hfact)**2      ! 1/hfact is initial particle spacing in units of h 
+!  else
      q2joe = (1./1.5)**2
-  endif
+!  endif
   call interpolate_kernel(q2joe,wabjoe_fixed,grkernjoe)
  endif
  ! print*,'wabjoe = ',wabjoe_fixed
@@ -820,6 +820,7 @@ contains
 !----------------------------------------------------------------
   subroutine mhd_terms
     implicit none
+    real :: divBonrho
 
     !----------------------------------------------------------------------------            
     !  Lorentz force
@@ -874,6 +875,11 @@ contains
           faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni*(1.-Rjoei)  &
                          + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj*(1.-Rjoej)               
           
+!          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni  &
+!                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj
+!	  divBonrho =  projBrhoi*rho1i*grkerni + &
+!	               projBrhoj*rho1j*grkernj
+	  
           if (ndimV.gt.ndim) then
              faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
                                   + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
@@ -893,6 +899,7 @@ contains
        
        rhoij = rhoi*rhoj
        fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+!--note that I have tried faniso with grkerni and grkernj but much worse on mshk2
        faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
        fmagi(:) = faniso(:) - fiso*dr(:)              
        
@@ -921,10 +928,10 @@ contains
        force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
        force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
     else       ! symmetric forces fmagxi = -fmagxj
-       fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)
-       fmag(:,j) = fmag(:,j) - pmassi*fmagi(:)
-       force(:,i) = force(:,i) + pmassj*fmagi(:)
-       force(:,j) = force(:,j) - pmassi*fmagi(:) 
+       fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
+       fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
+       force(:,i) = force(:,i) + pmassj*(fmagi(:))
+       force(:,j) = force(:,j) - pmassi*(fmagi(:))
     endif
     
     !--------------------------------------------------------------------------------
