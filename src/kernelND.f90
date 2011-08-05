@@ -1195,14 +1195,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     radkern = 10.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
-    select case(ndim)
-      case(1)
-        cnormk = 2./sqrt(pi)
-      case(2)
-        cnormk = 1./pi
-      case(3)
-        cnormk = 2./(3.*pi**1.5)
-    end select
+    cnormk = 2./real(ndim)*pi**(-ndim/2.)
 !
 !--setup kernel table
 !   
