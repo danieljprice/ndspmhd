@@ -207,6 +207,7 @@ SUBROUTINE set_ghost_particles
     en(i) = en(j)
     Bcons(:,i) = Bcons(:,j)
     divB(i) = divB(j)
+    itype(i) = 0
 !    IF (j.EQ.jtemp) PRINT*,' ghost ',i
  ENDDO
 !
