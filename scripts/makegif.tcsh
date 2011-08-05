@@ -6,7 +6,7 @@
 if $# != 1 then
    echo Usage: $0 runname
 else
-   set newdir=/home/dprice/ndspmhd/GIFS/$1
+   set newdir=/home/dprice/ndspmhd/MOVIES/$1
    echo making directory $newdir
    mkdir $newdir
    echo moving files...
