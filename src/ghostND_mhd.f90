@@ -223,6 +223,7 @@ subroutine makeghost(jpart,xghost,ireflect)
   use loguns
   use part
   use options, only:geom,ibound
+  use mem_allocation, only:alloc
   implicit none
   integer, intent(in) :: jpart ! index of particle to be ghosted
   real, intent(in), dimension(ndim) :: xghost ! position of ghost particle
@@ -235,7 +236,7 @@ subroutine makeghost(jpart,xghost,ireflect)
   ipart = ntotal + 1
   if (ipart.gt.size(rho)) then
      write(iprint,*) 'ghost: ntotal > array size, re-allocating... '
-     call alloc(size(rho))
+     call alloc(size(rho)+1)
   endif
   ntotal = ipart
 !
