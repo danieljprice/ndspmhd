@@ -54,10 +54,13 @@ SUBROUTINE setup
  beta = 0.5*beta_gammie	! this is the usual beta (ratio of pressures)
 
  denszero = 1.0		! initial density
+ velzero(:) = 0.
  velzero(1) = 0.	! initial velocities
  przero = 1.0		! initial pressure 
  spsound2 = przero/denszero
+ Bzero(:) = 0.
  Bzero(1) = SQRT(przero/beta)
+ Bconst(:) = Bzero(:)
  
  Ewave = 100*denszero*length*spsound2		! initial wave energy
  Ekin = 0.5*Ewave				! initial kinetic energy
@@ -89,7 +92,6 @@ SUBROUTINE setup
     pmass(ipart) = massp
     uu(ipart) = 1.0	! isothermal
     Bfield(:,ipart) = Bzero(:)
-    Bconst(1,ipart) = Bzero(1)
  ENDDO
 !
 !--now call routine to set up the velocity field

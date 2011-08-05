@@ -35,7 +35,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
- REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin,dumBconst
+ REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin
  REAL, DIMENSION(ndimV,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
  REAL, DIMENSION(ndimV,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
 !--gr terms
@@ -70,8 +70,8 @@ SUBROUTINE alloc(newsizein)
 
  IF (reallocate) THEN
     WRITE(iprint,*) 'Reallocating memory for all arrays, old, new =',SIZE(rho),newsize
- ELSEIF (trace) THEN
-    WRITE(iprint,*) 'Allocating memory for all arrays',newsize
+ ELSE
+    WRITE(iprint,*) 'Allocating memory for all arrays, maxpart = ',newsize
  ENDIF
  
  IF (reallocate) THEN
@@ -89,7 +89,6 @@ SUBROUTINE alloc(newsizein)
     dumxin(:,1:idumsize) = xin(:,1:idumsize)
     dumvelin(:,1:idumsize) = velin(:,1:idumsize)
     dumBevolin(:,1:idumsize) = Bevolin(:,1:idumsize)
-    dumBconst(:,1:idumsize) = Bconst(:,1:idumsize)
     
     dumx(:,1:idumsize) = x(:,1:idumsize)
     dumvel(:,1:idumsize) = vel(:,1:idumsize)
@@ -143,7 +142,6 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
     IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
-    IF (ALLOCATED(Bconst)) DEALLOCATE(Bconst)
     IF (ALLOCATED(gradpsi)) DEALLOCATE(gradpsi)
 !
 !--equation of state
@@ -205,7 +203,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(psi(newsize),dpsidt(newsize))
     ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize))
     ALLOCATE(pr(newsize))
-    ALLOCATE(Bevol(ndimB,newsize),Bconst(ndimB,newsize))
+    ALLOCATE(Bevol(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))  ! mag field
     ALLOCATE(gradpsi(ndimB,newsize))
 !
@@ -260,7 +258,6 @@ SUBROUTINE alloc(newsizein)
     vel(:,1:idumsize) = dumvel(:,1:idumsize)
     force(:,1:idumsize) = dumforce(:,1:idumsize)
     Bfield(:,1:idumsize) = dumBfield(:,1:idumsize)
-    Bconst(:,1:idumsize) = dumBconst(:,1:idumsize)
     Bevol(:,1:idumsize) = dumBevol(:,1:idumsize)
     dBevoldt(:,1:idumsize) = dumdBevoldt(:,1:idumsize)
     gradpsi(:,1:idumsize) = dumgradpsi(:,1:idumsize)

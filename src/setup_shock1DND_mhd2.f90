@@ -133,7 +133,6 @@ SUBROUTINE setup
        Bfield(1,i) = Bxinit
        Bfield(2,i) = Byleft
        Bfield(3,i) = Bzleft
-       Bconst(1,i) = Bxinit
     ENDIF 
  ENDDO
  
@@ -190,8 +189,13 @@ SUBROUTINE setup
     ENDIF
     pmass(j) = massp
     Bfield(1,j) = Bxinit
-    Bconst(1,j) = Bxinit
  ENDDO
+
+!
+!--constant component of force for subtraction 
+!
+ Bconst(:) = 0.
+ Bconst(1) = Bxinit
 
  npart = j-1
  ntotal = npart
