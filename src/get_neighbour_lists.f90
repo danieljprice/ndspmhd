@@ -252,7 +252,7 @@ contains
     j=0
     do k = 1,nneighcell      ! construct list of neighbours
        if (neighcell(k).GT.ncells) then
-          print*,' k, neighcell = ',k,neighcell(1:nneighcell),ncells
+          print*,' k=',k,' neighcell = ',neighcell(1:nneighcell),'ncells=',ncells
           stop 'get_neighbour_list: error: cell > ncells'      
        endif
        ipart = ifirstincell(neighcell(k))
@@ -261,7 +261,10 @@ contains
           do while (ll(ipart).NE.-1)          
              j = j + 1
              if (j.GT.size(listneigh)) then   ! should reallocate array here
-                write(iprint,*) 'getneigh: # neighbours > array size:',size(listneigh)
+                write(iprint,*) 'getneighpartial: # neighbours > array size:',size(listneigh)
+                write(iprint,*) 'icell = ',icell,' ncells = ',nneighcell,'=',neighcell(1:nneighcell)
+                write(iprint,*) 'neighbouring cell = ',neighcell(k)
+                write(iprint,*) 'listneigh = ',listneigh(:)
                 write(iprint,*) 'ipart = ',ipart
                 call quit
              endif
