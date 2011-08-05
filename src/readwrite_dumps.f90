@@ -48,6 +48,7 @@ subroutine write_dump(t,dumpfile)
  if (imhd.ne.0) then
     ncolumns = ncolumns + 8 + 2*ndimV ! number of columns
     iformat = 2
+    if (imhd.lt.0) ncolumns = ncolumns + ndimV
  else
     ncolumns = ncolumns + 5
     iformat = 1
@@ -104,6 +105,11 @@ subroutine write_dump(t,dumpfile)
      do i=1,ndimV
         write(idatfile) force(i,1:nprint)
      enddo
+     if (imhd.lt.0) then
+        do i=1,ndimV
+           write(idatfile) Bevol(i,1:nprint)
+        enddo
+     endif
   else
      do i=1,2
         write(idatfile) alpha(i,1:nprint)
@@ -229,8 +235,10 @@ subroutine read_dump(dumpfile,tfile,copysetup)
 
  if (imhd.eq.0 .and. (iformat.eq.2 .or. iformat.eq.4)) then
     write(iprint,*) 'warning: mhd input file, but MHD is off'
- elseif (imhd.gt.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
+ elseif (imhd.ne.0 .and. (iformat.ne.2 .and. iformat.ne.4)) then
     write(iprint,*) 'WARNING: non-mhd infile but MHD is on (Bfield set to 0)'
+ elseif (imhd.lt.0) then
+    write(iprint,*) 'ERROR: cannot yet re-start using vector potential'
  endif
 !
 !--switch current geometry to that of the file if not convertible
