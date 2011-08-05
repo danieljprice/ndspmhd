@@ -9,33 +9,37 @@ program kernelplot
  implicit none
  integer :: i,j,nkernels,nacross,ndown,ilinestyle
  integer, dimension(10) :: iplotorder
- real :: q,q2
+ real :: q,q2,xmin,xmax,ymin,ymax
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
  character(len=50) :: string
 
- data iplotorder /0, 0, 4, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
- iplotorder = 0 ! override if all the same kernel
- nkernels = 8
+ data iplotorder /0, 3, 10, 7, 5, 6, 4, 9, 0, 0/   ! order in which kernels are plotted
+ !!iplotorder = 0 ! override data statement if all the same kernel
+ nkernels = 6
  iprint = 6   ! make sure output from kernel setup goes to screen
  idivBzero = 0
  eps = 0.4
  neps = 2
  hfact = 1.5
- samepage = .true.
+ samepage = .false.
  trace = .true.
- nacross = 2
- ndown = 1
+ nacross = 3
+ ndown = 2
+ xmin = 0.0
+ xmax = 3.2
+ ymin = -3.5
+ ymax = 1.7
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
 
  if (samepage) then
     call pgbegin(0,'?',1,1) 
-    call pgpap(11.7,0.6/sqrt(2.))
-    !!call pgenv(0.0,3.0,-3.5,1.7,0,1)
+    !!call pgpap(11.7,0.6/sqrt(2.))  ! change paper size
+    !!call pgenv(xmin,xmax,ymin,ymax,0,1)
     call pgsch(1.5)
-    !!call pgenv(0.0,2.0,-1.0,2.0,0,1)
+    !!call pgenv(xmin,xmax,ymin,ymax,0,1)
     !!if (nkernels.gt.1) call pglabel('r/h',' ','Smoothing kernels')
     !!call pglabel('r/h',' ',' ')
     !!call pglabel('r/h','W, \(2266)W ',' ')
@@ -44,21 +48,6 @@ program kernelplot
  endif
 
  do j=1,nkernels
-    !if (idivBzero.eq.5) then
-    if (j.ge.6) then
-       idivBzero = 5
-       eps = 2.*eps
-    elseif (j.eq.5) then
-       idivBzero = 0
-       eps = 0.1
-       neps = 4   
-    elseif (j.ge.2) then
-       idivBzero = 5 
-       hfact = 1.5
-       eps = 0.4
-       neps = neps + 1
-    endif
-    !endif
     ikernel = iplotorder(j)
     call setkern
 !
@@ -71,20 +60,12 @@ program kernelplot
        dqkern(i) = q
     enddo
     if (samepage) then
-!       call pgsci(j)
-       !!call pgsch(0.8)
-       if (j.le.4) then
-       call danpgtile(1,nacross,ndown,0.0,2.1,-1.0,2.1,  &
-                      'r/h',' ',' ',0,1)
-       else
-       call danpgtile(2,nacross,ndown,0.0,2.1,-1.0,2.1,  &
-                      'r/h',' ',' ',0,1)       
-       endif
-       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
+       call danpgtile(1,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
+!!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
     else
        call pgsch(0.6)
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
-       call danpgtile(j,nacross,ndown,0.0,3.2,-3.5,1.8,  &
+       call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
                       'r/h',' ',TRIM(kernelname),1,1)
 !!       call pgwnad(0.0,3.0,-3.5,1.7) ! pgwnad or pgswin
 !!       call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
@@ -92,7 +73,6 @@ program kernelplot
        call pgsci(1)
     endif
 
-    call pgsls(1)
 !
 !--BEWARE! program will crash here if compiled incorrectly. This can happen
 !  if compiled in double precision - e.g. if kernelND.f90 has been
@@ -100,31 +80,30 @@ program kernelplot
 !  this program.
 !    
     print*,'   plotting kernel...(will crash here if double precision)'
-    if (j.eq.1 .or. j.eq.5) call legend(1,'W (cubic spline)',0.4,3.0)    
+!
+!--plot kernel
+!
+    call pgsls(1)
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
-    write(string,"(a,f3.1,a,i1)") '\(2266)W, \ge = ',eps,', n = ',neps
-    if (j.eq.1 .or. j.eq.5) then
-       call pgsls(2)
-       call legend(2,'\(2266)W (cubic spline)',0.4,3.0)  
-    elseif (j.gt.5) then
-       call pgsls(j+1-4)
-       call legend(j+1-4,trim(string),0.4,3.0)
-    else
-       call pgsls(j+1)
-       call legend(j+1,trim(string),0.4,3.0)
-    endif
+!
+!--kernel gradient
+!    
+    call pgsls(2)
     call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
-
+!
+!--second derivative
+!
     call pgsls(3)
-!    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
     call pgsci(1)
     call pgsls(1)
 !
 !--calculate dispersion relation for this kernel
 !
     if (nkernels.eq.1) then
+       read*    
        if (samepage) call pgpage
-       call kernelstability1D
+       call kernelstability1D(1,nacross,ndown)
     endif
 
  enddo
@@ -147,7 +126,7 @@ program kernelplot
           q = sqrt(q2)
           dqkern(i) = q
        enddo
-       call kernelstability1D
+       call kernelstability1D(j,nacross,ndown)
     enddo
  endif
 
