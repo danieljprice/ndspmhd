@@ -184,14 +184,14 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D= setup_taylorcouette2D.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
-SETUP2D = setup_tearingmode2D.f90
+#SETUP2D = setup_tearingmode2D.f90
 
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
-SETUP3D = setup_shockND.f90
+#SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
@@ -219,7 +219,9 @@ SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
          get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND.f90 check_setup.f90 get_curl.f90 smooth.f90 ${CONS2PRIM} \
+         boundaryND.f90 check_setup.f90 \
+         get_curl.f90 get_B_eulerpots.f90 \
+         smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
@@ -240,7 +242,7 @@ SOURCES= sphND_mhd.f90 geometry.f90 convert_gr.f90 eos.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = stepND_mhd.f90 evwrite_mhd.f90 
+SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90 
 
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90

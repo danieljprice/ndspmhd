@@ -26,8 +26,9 @@ subroutine conservative2primitive
   use eos
   use part
   use getcurl, only:get_curl
+  use getBeulerpots, only:get_B_eulerpots
   use smooth, only:smooth_variable
-  use rates, only:gradpsi
+  use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   implicit none
@@ -102,7 +103,8 @@ subroutine conservative2primitive
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   case(:-3) ! generalised Euler potentials
-     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     write(iprint,*) 'getting B field from Generalised Euler Potentials... '
+     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.true.)
      do i=1,npart
         Binti(:) = Bfield(:,i)
         Bfieldi(:) = Binti(:) + Bconst(:)
@@ -225,13 +227,15 @@ subroutine primitive2conservative
   use setup_params
   use timestep
   use getcurl
+  use getBeulerpots, only:get_B_eulerpots
   use rates, only:gradpsi
   use derivB, only:curlB
   implicit none
-  integer :: i,j,iktemp
-  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
+  integer :: i,j,iktemp,iremap
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi, emag, emagi, emagold
   real, dimension(ndimV) :: Binti
   logical :: isetpolyk
+  real, dimension(:), allocatable :: emagpart
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
@@ -342,12 +346,41 @@ subroutine primitive2conservative
      call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
      !print*,' curlB(100) = ',curlB(:,100)
   case(-3) ! Generalised Euler potentials
-     !--setup the beta term
-     Bevol(ndim+1:2*ndim,:) = x(1:ndim,:)
-     !call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
-     
+     x0 = x  ! setup beta term (Jacobian map) for all particles
+
      !--compute B = \nabla alpha_k x \nabla \beta^k
-     write(iprint,*) 'getting B field from Generalised Euler Potentials (init)...'
+     allocate(emagpart(npart))
+     emagold = 0.
+     do iremap=1,10
+     write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... ',iremap
+     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.true.)
+     
+     if (any(ibound.gt.1)) then
+        do i=npart+1,ntotal
+           j = ireal(i)
+           Bfield(:,i) = Bfield(:,j)
+           Bevol(:,i) = Bevol(:,j)
+        enddo
+     endif
+     emag = 0.
+     do i=1,npart
+        B2i = dot_product(Bfield(:,i),Bfield(:,i))
+        emagi = pmass(i)*0.5*B2i/rho(i)
+        emag = emag + emagi
+        if (iremap.gt.1 .and. abs(emagi-emagpart(i)).gt.0.1*emagi) then
+           print*,' particle ',i,' emag(old) = ',emagpart(i),' emag(new) = ',sqrt(B2i)
+        endif
+        emagpart(i) = emagi
+     enddo
+     if (iremap.gt.1) then
+        print*,' emag = ',emag,' cumulative error = ',abs(emag-emagold)/emagold
+     else
+        emagold = emag
+        print*,' emag = ',emag     
+     endif
+     enddo
+     
+     deallocate(emagpart)
 
   end select
 !
