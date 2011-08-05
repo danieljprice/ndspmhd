@@ -67,9 +67,9 @@ subroutine setup
        x(:,i) = xnew(:)
     enddo
  elseif (iequalmass) then
-    call set_uniform_spherical(1,2*rmax,perturb=0.5)        ! 4 = random
+    call set_uniform_spherical(4,2*rmax) !!!,perturb=0.5)        ! 4 = random
  else
-    call set_uniform_spherical(2,rmax,centred=.true.,trim=0.25*psep) 
+    call set_uniform_spherical(2,rmax,centred=.true.) 
  endif
 !
 !--set particle properties
@@ -81,7 +81,7 @@ subroutine setup
     if (iequalmass) then
        totvol = pi*rmax**2
     else
-       totvol = pi*(rmax-0.25*psep)**2
+       totvol = pi*(rmax)**2
     endif
   case(3)
     totvol = 4./3.*pi*rmax**3
