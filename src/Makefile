@@ -60,12 +60,13 @@ SETUP1D = setup_toystar1D.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 
-SETUP2D = setup_orszagtang2D_mhd.f90
+#SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
+SETUP2D = setup_unifsphND.f90
 
 SETUP25D = setup_alfvenwaveND.f90
 
@@ -82,8 +83,9 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 conservative2primitive.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 direct_sum_grav.f90 \
-	 eos.f90 evwrite_mhd.f90 get_neighbour_listND.f90 \
-	 get_neighbour_listND_partial.f90 \
+	 eos.f90 evwrite_mhd.f90 \
+	 external_forces.f90 \
+	 get_neighbour_listND.f90 get_neighbour_listND_partial.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90 \
 	 iterate_density.f90 kernelND.f90 \

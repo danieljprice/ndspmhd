@@ -694,12 +694,9 @@ SUBROUTINE get_rates
 !
 !--subtract external forces
 !
-    SELECT CASE(itoystar)	! change this variable to more general external force
-       CASE(1)		! toy star (linear in co-ordinates)
-          force(1:ndim,i) = force(1:ndim,i) - x(1:ndim,i)
-    END SELECT
+    IF (itoystar.NE.0) CALL external_forces(i,itoystar)
 !
-!--add gravitational force
+!--add self-gravity force
 !
     IF (igravity.NE.0) force(1:ndim,i) = force(1:ndim,i) + fgrav(:,i)
 !
