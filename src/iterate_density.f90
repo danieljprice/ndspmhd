@@ -235,7 +235,7 @@ subroutine iterate_density
            dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
            dhdt(i) = dhdrhoi*drhodt(i)
         enddo  
-        write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
+        if (ndim.gt.1) write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
                         ' max nneigh = ',maxval(numneigh(1:npart))
      else ! if ihvar = 0
 !
