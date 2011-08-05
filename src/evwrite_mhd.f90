@@ -16,7 +16,7 @@ SUBROUTINE evwrite(t)
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j
+ INTEGER :: i,j,ierr
  REAL, INTENT(IN) :: t
  REAL :: ekin,etherm,emag,epot,etot,momtot
  REAL :: pmassi,rhoi
@@ -70,6 +70,13 @@ SUBROUTINE evwrite(t)
  ENDIF 
       
  DO i=1,npart
+!
+!--should really recalculate the thermal energy from the total energy here
+!  (otherwise uu is from the half time step and same with Bfield)
+! 
+    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
+                                Bfield(:,i),Bcons(:,i),ierr)
+
     pmassi = pmass(i)
     rhoi = rho(i)
     veli(:) = vel(:,i)	 
@@ -92,7 +99,7 @@ SUBROUTINE evwrite(t)
 !
     IF (imhd.NE.0) THEN
        IF (imhd.GE.11) THEN
-	  Bi(:) = Bfield(:,i)
+	  Bi(:) = Bcons(:,i)
 	  Brhoi(:) = Bi(:)/rhoi
        ELSE
           Brhoi(:) = Bcons(:,i)
@@ -189,6 +196,8 @@ SUBROUTINE evwrite(t)
     divBav = divBav/FLOAT(npart)
     fdotBav = fdotBav/FLOAT(npart)
     force_err_av = force_err_av/FLOAT(npart)
+
+    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag,	&
           crosshel,betamhdmin,betamhdav,betamhdmax,			&
