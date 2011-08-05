@@ -11,7 +11,8 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,vphi)
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
   real, intent(in) :: vphi
-  real :: rr,rr2,drr2
+  real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,drcyl(2)
+  real, parameter :: Rtorus = 1.0, dfac = 1.1
 
   select case(iexternal_force)
   case(1)
@@ -74,6 +75,28 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,vphi)
 !
      fext(1) = 3.*Omega2*xpart(1) + 2.*Omega*vphi
      fext(:) = 0.
+
+  case(6)
+     fext(:) = 0.
+!
+!--effective potential for equilibrium torus (Stone, Pringle, Begelman)
+!  centripedal force balances pressure gradient and gravity of central point mass 
+!
+     rcyl2 = DOT_PRODUCT(xpart(1:2),xpart(1:2))
+     rcyl = SQRT(rcyl2)
+     if (ndim.eq.3) then
+        rsph = sqrt(rcyl2 + xpart(3)*xpart(3))
+     else
+        rsph = rcyl
+     endif
+     v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl))
+     fext(1:2) = v2onr*xpart(1:2)/rcyl
+!
+!--for 3D need to add vertical component of gravity
+!
+     if (ndim.eq.3) then
+        fext(3) = -xpart(3)/rsph**3
+     endif
   case default
      
      fext(:) = 0.
