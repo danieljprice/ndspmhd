@@ -71,7 +71,7 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj,vsigav
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin,vsigu
 !! real :: vsigii,vsigjj
 !
 !  (av switch)
@@ -202,6 +202,14 @@ subroutine get_rates
        phi(1:ntotal) = sqrt(pr(1:ntotal))/rho(1:ntotal)    
     case(3)
        phi(1:ntotal) = 1./rho(1:ntotal)       
+    case(4)
+       phi(1:ntotal) = 1./rho(1:ntotal)**gamma
+    case(5)
+       phi(1:ntotal) = rho(1:ntotal)**gamma
+    case(6)
+       phi(1:ntotal) = 1./en(1:ntotal)
+    case(7)
+       phi(1:ntotal) = 1./uu(1:ntotal)
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
@@ -512,6 +520,7 @@ subroutine get_rates
           !--this is using h*/sqrt(u)*(del^2 u) as the source
           if (uu(i).gt.epsilon(uu(i))) then
              sourceu = hh(i)*abs(del2u(i))/sqrt(uu(i))
+             !sourceu = sqrt(abs(del2u(i))) !!
           else
              sourceu = 0.
           endif
@@ -748,6 +757,7 @@ contains
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
     !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
     vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    vsigu = sqrt(abs(pri-prj)*rhoav1)
  
     ! vsigdtc is the signal velocity used in the timestep control
     vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
@@ -890,7 +900,7 @@ contains
     real :: qdiff
     real :: vissv,vissB,vissu,vissrho
     real :: term,dpmomdotr
-    real :: termnonlin
+    real :: termnonlin,termu
     !
     !--definitions
     !      
@@ -911,6 +921,11 @@ contains
 !    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
 !                (rhoi*vsigi*alphaBi*grkerni + rhoj*vsigj*alpha(3,j)*grkernj)
     !termnonlin = vsignonlin*rhoav1*grkern
+
+    termu = vsigu*rhoav1*grkern
+    !termu = vsig*rho1i*rho1j*grkern
+    !termu = vsig*rhoav1*grkern
+    
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
     ! (applied only for approaching particles)
@@ -1012,6 +1027,7 @@ contains
        if (iener.eq.1) then
           vissu = 0.
        else
+          !vissu = alphau*(pri - prj)
           vissu = alphau*(uu(i) - uu(j))        
        endif
        !
@@ -1032,20 +1048,20 @@ contains
        !
        !  add to thermal energy equation
        !
-       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termnonlin*vissu + termnonlin*(vissB))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv) - termnonlin*vissu + termnonlin*(vissB))
+       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
+       dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
        
        !--entropy dissipation
        if (iener.eq.1) then
           vissu = alphau*(en(i)-en(j))
-          dendt(i) = dendt(i) + pmassj*(term*(vissu))
-          dendt(j) = dendt(j) + pmassi*(term*(-vissu))      
+          dendt(i) = dendt(i) + pmassj*(termu*(vissu))
+          dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
        endif
-       if (icty.eq.1) then
-          vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
-          drhodt(i) = drhodt(i) + pmassj*(vissrho)
-          drhodt(j) = drhodt(j) + pmassi*(-vissrho)
-       endif
+       !if (icty.eq.1) then
+       !   vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
+       !   drhodt(i) = drhodt(i) + pmassj*(vissrho)
+       !   drhodt(j) = drhodt(j) + pmassi*(-vissrho)
+       !endif
     endif
     
     return
