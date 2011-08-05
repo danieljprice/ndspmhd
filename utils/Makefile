@@ -36,15 +36,18 @@ CC = $(F90C)
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS = setpage.o kernelND.o legend.o kernelplot.o kernelstability1D.o
+OBJECTS=setpage.o kernelND.o legend.o
 
 OBJSPHDERIV = kernelND.o sphderiv.o
 
 OBJMODDUMP = variablesND.o allocateND.o prompting.o \
              readwrite_dumps.o modifydump.o
 
-kernelplot : $(OBJECTS)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
+kernelplot: $(OBJECTS) kernelplot.o kernelstability1D.o
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $<
+
+kernelplot3D: $(OBJECTS) kernelplot3D.o
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot3D.o
 
 sametime : sametime.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ sametime.o
