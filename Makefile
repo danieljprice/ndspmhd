@@ -6,7 +6,7 @@
 
 SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 
-all: 
+install: 
 	cd src;  make 1D
 	cd src; make clean; make 2D
 	cd src; make clean; make 25D
@@ -15,6 +15,7 @@ all:
 	cd evplot; make
 	cd utils; make sametime
 	cd multi; make initial; make multirun
+	cd scripts; copyscripts.tcsh
 
 plotsph:
 	cd plot; make
