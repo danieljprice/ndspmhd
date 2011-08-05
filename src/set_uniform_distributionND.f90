@@ -18,13 +18,14 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--include relevant global variables
 !
- use dimen_mhd, only:ndim,ndimV
- use debug, only:trace
- use loguns, only:iprint
- use linklist, only:iamincell
- use bound, only:hhmax
+ use dimen_mhd,      only:ndim,ndimV
+ use debug,          only:trace
+ use loguns,         only:iprint
+ use linklist,       only:iamincell
+ use bound,          only:hhmax
  use get_neighbour_lists, only:get_neighbour_list_partial
  use mem_allocation, only:alloc
+ use penrosetile,    only:penrose
 
  use options
  use part
@@ -380,6 +381,21 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !        print*,i,xran(:),' x = ',x(:,i)
 !	read*
      enddo
+
+!
+!--Penrose tiling
+! 
+ case(6)
+     ipart = npartin
+     ntot = int(product((xmax(:)-xmin(:))/psep))
+     ipart = ipart + ntot
+     call alloc(ipart)
+     call penrose(ntot,x)
+     ipart = npartin + ntot
+     do i=1,ntot
+        x(:,i) = (x(:,i) + 10.)*(xmax(:) - xmin(:))/20.
+     enddo
+     write(iprint,*) 'penrose-tiled particle distribution, npart = ',ntot 
 
  case default
 !----------------------
