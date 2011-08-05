@@ -1,7 +1,7 @@
 !!-----------------------------------------------------------------------
 !! computes multiple infiles where one or several parameters are varied
 !!
-!! this one does Brio/Wu shock test, varying the stress parameters
+!! this one does Brio/Wu shock test, varying the div B cleaning parameters
 !!-----------------------------------------------------------------------
 PROGRAM multirun
  USE dimen_mhd
@@ -48,8 +48,7 @@ PROGRAM multirun
  iener_default = iener
  
  const = 1./SQRT(4.*pi)
- eps = 0.2	! start very low
- neps = 3
+ psidecayfact = -0.1
  
  DO i=1,nruns
     IF (i.GE.10) THEN
@@ -70,15 +69,9 @@ PROGRAM multirun
        gamma = 2.0
        tmax = 0.1
        tout = 0.05
-       
-       eps = eps + 0.1
-       IF (MOD(i,20).EQ.0) THEN
-          neps = neps + 1
-	  eps = 0.2
-       ENDIF
-
-       PRINT*,'neps = ',neps
-       PRINT*,'eps = ',eps
+       imhd = 1
+       idivBzero = 2
+       psidecayfact = psidecayfact + 0.1
 
        rholeft = 1.0
        rhoright = 0.125
