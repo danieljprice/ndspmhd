@@ -6,23 +6,23 @@ program kernelplot
  integer :: i,j,ikernel,ndim
  integer :: nkernels,nacross,ndown,nepszero,ipos,i1,i2
  integer, dimension(10) :: iplotorder
- real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi
+ real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi,delsqrhoi
  real, dimension(0:ikern) :: dqkern
  logical :: samepage,plotstability,plotkernel
 !! character(len=50) :: text
 
- !data iplotorder /0, 62, 63, 64, 65, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
- data iplotorder /68, 61, 67, 68, 31, 14, 13, 16, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 61, 62, 63, 64, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 61, 14, 15, 34, 11, 13, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 1
+ nkernels = 6
  ianticlump = 0
  epszero = 0.0
- nepszero = 4
+ nepszero = 0
  samepage = .false.
  plotkernel = .true.
- plotstability = .false.
- nacross = 1
- ndown = 1
+ plotstability = .true.
+ nacross = 3
+ ndown = 2
  xmin = 0.0
  xmax = 2.2
 !! ymin = 0.01
@@ -143,7 +143,8 @@ program kernelplot
       i1 = int((1./1.2)**2*ddq2table)
       i2 = int((2./1.2)**2*ddq2table)
       rhoi = (wij(0) + 2.*(wij(i1) + wij(i2)))/1.2
-      print*,'rhoi = ',rhoi
+      delsqrhoi = (grgrwij(0) + 2.*(grgrwij(i1) + grgrwij(i2)))/1.2**3
+      print*,'rhoi = ',rhoi,' delsqrhoi = ',delsqrhoi
    endif
 !
 !--BEWARE! program will crash here if compiled incorrectly. This can happen
