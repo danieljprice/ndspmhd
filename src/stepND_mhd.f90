@@ -196,10 +196,10 @@ SUBROUTINE step
           ENDIF
           Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        ENDIF
-       IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
+       rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (ihvar.EQ.1) THEN
 !           hh(i) = hfact(pmass(i)/rho(i))**dndim        ! my version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! Joe's           
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim    ! Joe's           
        ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
