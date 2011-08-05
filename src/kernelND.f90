@@ -21,16 +21,17 @@ SUBROUTINE setkern
  USE debug
  USE loguns
  USE kernel
+ USE kernelextra
  USE options
  USE setup_params   ! for hfact in my kernel
  USE anticlumping
  IMPLICIT NONE         !  define local variables
  INTEGER :: i,j,npower
- REAL :: q,q2,q4,cnormk
+ REAL :: q,q2,q4,cnormk,cnormkaniso
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
  REAL :: ddterm1,ddterm2,ddterm3,ddterm4
- REAL :: alpha,beta,gamma,A,B,C
+ REAL :: alpha,beta,gamma,A,B,C,wdenom,wint
 !
 !--allow for tracing flow
 !
@@ -492,13 +493,13 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.1.0) THEN
-          wij(i) = cnormk*(1. - 1.5*q2 + 0.75*q*q2)
-          grwij(i) = cnormk*(-3.*q+ 2.25*q2)
-          grgrwij(i) = cnormk*(-3. + 4.5*q)
+          wij(i) = (1. - 1.5*q2 + 0.75*q*q2)
+          grwij(i) = (-3.*q+ 2.25*q2)
+          grgrwij(i) = (-3. + 4.5*q)
        ELSEIF ((q.GE.1.0).AND.(q.LE.2.0)) THEN
-          wij(i) = cnormk*(0.25*(2.-q)**3.)
-          grwij(i) = cnormk*(-0.75*(2.-q)**2.)
-          grgrwij(i) = cnormk*(1.5*(2.-q))
+          wij(i) = (0.25*(2.-q)**3.)
+          grwij(i) = (-0.75*(2.-q)**2.)
+          grgrwij(i) = (1.5*(2.-q))
        ELSE
           wij(i) = 0.0
           grwij(i) = 0.0
@@ -512,15 +513,41 @@ SUBROUTINE setkern
 !--this is to see what effect the anticlumping term has on the kernel
 !
  IF (idivBzero.EQ.5) THEN
-    j = NINT((1./hfact)**2./dq2table)
+!!    j = NINT((1./hfact)**2/dq2table)
+    j = NINT((1./1.5)**2/dq2table)
+    wdenom = wij(j)
+
+    SELECT CASE(neps) ! integral of W^{n+1} dV
+    CASE(3)
+       wint = 122559./160160.
+    CASE(4)
+       wint = 200267./292864.
+    CASE(5)
+       wint = 825643615./1324331008.
+    END SELECT   
+    !!cnormkaniso = cnormk
+    cnormkaniso = 1./(1./cnormk + eps/(neps+1.)*wint/wdenom**neps)
+    
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (i.EQ.j) WRITE(iprint,*) ' j = ',j,q,q2,wij(j)
-       grwij(i) = grwij(i) + eps*(wij(i)/wij(j))**neps
+       grwijaniso(i) = cnormkaniso*grwij(i)*(1. - eps*(wij(i)/wdenom)**neps)
+       wijaniso(i) = cnormkaniso*wij(i)*(1. - eps/(neps+1.)*(wij(i)/wdenom)**neps) 
+       grgrwijaniso(i) = cnormkaniso*(grgrwij(i)*  &
+                  (1. - eps*(wij(i)/wdenom)**neps) &
+                 - eps*neps*wij(i)**(neps-1.)/wdenom**neps*grwij(i)*grwij(i))   
     ENDDO
+
+    print*,'cnormk = ',cnormkaniso,eps,neps
     kernelname=TRIM(kernelname)//' ...with anti-clumping term' 
- ENDIF   
+ ENDIF
+!
+!--normalise kernel
+!
+ wij = cnormk*wij
+ grwij = cnormk*grwij
+ grgrwij = cnormk*grgrwij
 
 666 FORMAT(/,'ERROR!!! Normalisation constant not defined in kernel',/)
 !
@@ -530,7 +557,7 @@ SUBROUTINE setkern
 10 FORMAT(/,' Smoothing kernel = ',a,/)
 !
 !--the variable ddq2table is used in interpolate_kernel
-! 
+!
  ddq2table = 1./dq2table 
-      
+
 END SUBROUTINE setkern
