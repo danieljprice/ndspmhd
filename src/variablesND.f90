@@ -93,6 +93,7 @@ MODULE kernel
  INTEGER, PARAMETER :: ikern=4000	 ! dimensions of kernel table
  REAL, DIMENSION(0:ikern) :: wij,grwij
  REAL :: dq2table,ddq2table,radkern2,radkern
+ CHARACTER(LEN=100) :: kernelname
 END MODULE
 
 !-------------------------------------------------------------------
@@ -128,7 +129,7 @@ MODULE options
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
  INTEGER :: itoystar,ixsph,ianticlump
- INTEGER :: igravity
+ INTEGER :: igravity,ikernel
  REAL :: damp
 END MODULE
 

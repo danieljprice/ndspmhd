@@ -30,19 +30,6 @@ for ($n = $nstart;$n<=$nruns;$n++) {
 # call the sametime program to write simultaneous data steps
 system "utils/sametime $rootname $nruns $nsteps";
 
-# put the final timestep as the current plot file
-    $startnum = 1;
-    open(THISPLOT,"> thisplot") || die("can't open thisplot") ;
-    
-    if ($nsteps < 10) {
-       print ">>> writing filename = $rootname$startnum$ext$zero$nsteps to 'thisplot' \n";    
-       print THISPLOT "$rootname$startnum$ext$zero$nsteps";
-    }   
-    else {
-       print ">>> writing filename = $rootname$startnum$ext$nsteps to 'thisplot' \n";
-       print THISPLOT "$rootname$startnum$ext$nsteps";    
-    }
-    close(THISPLOT);
-
+print "finished $rootname";
 
 exit;

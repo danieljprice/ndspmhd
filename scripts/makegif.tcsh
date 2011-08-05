@@ -6,13 +6,13 @@
 if $# != 1 then
    echo Usage: $0 runname
 else
-   set newdir=./GIFS/$1
+   set newdir=/home/dprice/ndspmhd/GIFS/$1
    echo making directory $newdir
    mkdir $newdir
    echo moving files...
    mv pgplot.gif* $newdir
    cd $newdir
-   ../../scripts/fixgifs.bash		# bash script that renames the files
+   /home/dprice/ndspmhd/scripts/fixgifs.bash		# bash script that renames the files
 ## make an animated gif   
    gifmerge -5 pgplot.gif* > ../$1\.gif
 ## also make a .fli animation

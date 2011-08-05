@@ -26,7 +26,6 @@ SUBROUTINE setkern
  USE setup_params	! for hfact in my kernel
  USE anticlumping
  IMPLICIT NONE			!  define local variables
- INTEGER :: ikernel
  INTEGER :: i,j,iteration,iC
  REAL :: q,q2,q4,cnormk,term1
  REAL, DIMENSION(0:ikern) :: dqkern,grwijplot,grgrwij 	! only to plot kernel
@@ -42,8 +41,6 @@ SUBROUTINE setkern
 !
 !--set choice of kernel (this could be read in as a parameter)
 !
- ikernel = 0
-
  iplot = .false. 	! plot kernel using PGPLOT
 
  SELECT CASE(ikernel)
@@ -52,8 +49,7 @@ SUBROUTINE setkern
 !--this is the usual spline based kernel modified for r/h < 2/3 to
 !   prevent particles from clumping (see Thomas & Couchman '92)
 !      
-    WRITE(iprint,*) 'Using anti-clumping kernel'  
-
+    kernelname = 'Thomas & Couchman anti-clumping'
     radkern = 2.0		! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/REAL(ikern)
@@ -96,8 +92,7 @@ SUBROUTINE setkern
 !
 !--this is the quintic spline (see e.g. Morris 1996, PhD thesis)
 !
-    WRITE(iprint,*) 'Using quintic spline kernel'  
-  
+    kernelname = 'quintic spline'  
     radkern = 3.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
@@ -137,8 +132,7 @@ SUBROUTINE setkern
 !
 !--this is my squashed quintic spline (quintic rescaled to radius 2)
 !
-    WRITE(iprint,*) 'Using Dan''s squashed quintic spline kernel'    
-  
+    kernelname = 'Dan''s squashed quintic'  
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
@@ -178,7 +172,7 @@ SUBROUTINE setkern
 !
 !--this is the squashed quintic spline from Bonet & Kulesegaram
 !
-    WRITE(iprint,*) 'Using BK squashed quintic spline kernel'    
+    kernelname = 'BK squashed quintic spline'    
    
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -212,7 +206,7 @@ SUBROUTINE setkern
 !
 !--this is the Do-It-Yourself quintic kernel (general class of quintic splines)
 !
-    WRITE(iprint,*) 'Using the Do-It-Yourself quintic kernel'    
+    kernelname = 'Using the Do-It-Yourself quintic kernel'    
 
     radkern = 2.0
     radkern2 = radkern*radkern
@@ -274,11 +268,41 @@ SUBROUTINE setkern
       ENDIF
     ENDDO
     
+  CASE (6)
+!
+!--(1-r^2)^2
+!    
+    kernelname = '(1-r^2)^2'    
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+         cnormk = 112./15.
+      CASE(2)
+         cnormk = 32.*pi/3.
+      CASE(3)
+         cnormk = 0.
+    END SELECT  
+    DO i=0,ikern
+       q = i*dq2table
+       dqkern(i) = q
+       IF (q.LT.radkern) THEN
+          wij(i) = cnormk*(radkern-q**2)**2
+	  grwij(i) = -cnormk*4.*(radkern-q**2)*q
+	  grgrwij(i) = cnormk*(8.*q**2*(radkern-q**2)-4.*(radkern-q**2))
+       ELSE
+          wij(i) = 0.
+	  grwij(i) = 0.
+	  grgrwij(i) = 0.
+       ENDIF
+    ENDDO
   CASE DEFAULT  
 !
 !--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
 !   
-    WRITE(iprint,*) 'Using the cubic spline kernel'    
+    kernelname = 'cubic spline'    
   
     radkern = 2.0		! interaction radius of kernel
     radkern2 = radkern*radkern
@@ -327,8 +351,12 @@ SUBROUTINE setkern
        IF (i.EQ.j) WRITE(iprint,*) ' j = ',j,q,q2,wij(j)
        grwij(i) = grwij(i) + eps*(wij(i)/wij(j))**neps
     ENDDO
-    WRITE(iprint,*) ' ...modified with the anti-clumping term' 
+    kernelname=TRIM(kernelname)//' ...with anti-clumping term' 
  ENDIF	
+!
+!--write kernel name to log file
+!
+ WRITE(iprint,*) '(smoothing kernel = ',TRIM(kernelname),')'
 !
 !--the variable ddq2table is used in interpolate_kernel
 ! 
