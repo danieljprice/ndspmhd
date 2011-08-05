@@ -27,6 +27,7 @@ system "cp $ndim$SPMHD ./$rootname";
 system "cp defaults ./$rootname";
 system "cd $rootname; ln -s ../supersphplot ./supersphplot";
 system "cd $rootname; ln -s ../evsupersph ./evsupersph";
+system "cd $rootname; ../scripts/writemake.tcsh $ndim > Makefile";
 
 # call the multirun program to generate the input files
 system "cd $rootname; ../multi/multirun $rootname $nruns";
