@@ -12,9 +12,13 @@ else
    echo moving files...
    mv pgplot.gif* $newdir
    cd $newdir
-   ../fixgifs		# bash script that renames the files
+   ../../scripts/fixgifs.bash		# bash script that renames the files
+## make an animated gif   
    gifmerge -5 pgplot.gif* > ../$1\.gif
+## also make a .fli animation
+   ls pgplot.gif* > filelist
+   fbm2fli -rx 850 -ry 680 -ox 20 filelist ../$1\.fli
    cd ..
-   xanim $1\.gif &
+   xanim $1\.fli &
    echo "that's all folks"
 endif

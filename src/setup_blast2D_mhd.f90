@@ -68,8 +68,6 @@ SUBROUTINE setup
  prblast = 1000.0	! initial pressure within rblast
  
  gam1 = gamma - 1.
-! npartx = INT((xmax(1)-xmin(1))/psep)
-! nparty = INT((xmax(2)-xmin(2))/psep)
 
  WRITE(iprint,*) 'Two dimensional MHD blast wave problem '
  WRITE(iprint,10) prblast,rblast,Bzero,rhozero,przero
@@ -79,7 +77,7 @@ SUBROUTINE setup
 !--setup uniform density grid of particles (2D) 
 !  (determines particle number and allocates memory)
 !
- CALL set_uniform_cartesian(4,xmin,xmax,.true.)	! 2 = close packed arrangement
+ CALL set_uniform_cartesian(1,xmin,xmax,.false.)	! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -98,22 +96,19 @@ SUBROUTINE setup
     pmass(ipart) = massp
     dblast(:) = xin(:,ipart)-xblast(:) 
     radius = SQRT(DOT_PRODUCT(dblast,dblast))
-!    IF (radius.LT.rblast) THEN
-!       pri = prblast
-!    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
-!       exx = exp((radius-rblast)/(psep))
-!       PRINT*,exx,radius
-!       pri = (prblast + przero*exx)/(1.0+exx)
-!    ELSE
-       pri = przero
-!    ENDIF   
+    IF (radius.LT.rblast) THEN
+       pri = prblast
+    ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
+       exx = exp((radius-rblast)/(psep))
+       pri = (prblast + przero*exx)/(1.0+exx)
+    ELSE
+      pri = przero
+    ENDIF   
     uuin(ipart) = pri/(gam1*rhozero)
     hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
     Bin(1,ipart) = Bzero
     Bin(2,ipart) = 0.
     IF (ndimV.EQ.3) Bin(3,ipart) = 0.0	
-!       print*,ipart,xin(:,ipart),rhoin(ipart),uuin(ipart),pmass(ipart)
-!       IF (MOD(i,1000).EQ.0) read*
  ENDDO
 !
 !--allow for tracing flow

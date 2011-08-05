@@ -65,7 +65,7 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 !
     psepx = (xmax(1)-xmin(1))/(FLOAT(npartx)*SQRT(2.))
     psepy = (xmax(2)-xmin(2))/(FLOAT(nparty)*SQRT(2.))
-    PRINT*,'psep = ',psepx,psepy,psep
+!    PRINT*,'psep = ',psepx,psepy,psep
     deltax = SQRT(2.)*psepx
     deltay = 0.5*SQRT(2.)*psepy    
 !

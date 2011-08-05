@@ -61,8 +61,9 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-   version = 'SPMHD-ND-v3.7'
+   version = 'NDSPMHD-v4-0'	! make sure no . in version name
 !   *** versioning now done with CVS ***
+!   use 'make tag' to tag a working copy of the code in CVS
 !   version = 'SPMHD-ND-v3.6_22_10_2003'
 !   * bug fix in thermal conductivity in thermal energy equation
 !   * bug fix in source term for artificial stress in total energy equation

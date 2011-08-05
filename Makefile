@@ -4,7 +4,7 @@
 ##     Institute of Astronomy, Cambridge, UK, 2003	 	     ##
 ##-------------------------------------------------------------------##
 
-SAVEDIR = ../version_control/`more version`_`date +%d_%m_%Y`
+SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 
 all: 
 	cd src;  make 1D
@@ -47,6 +47,9 @@ edit25D:
 
 editev:
 	cd evplot; nedit evsupersph.f &
+
+tag:
+	cvs -q tag `cat version`_`date +%d_%m_%Y`
 	
 save:
 	mkdir $(SAVEDIR)

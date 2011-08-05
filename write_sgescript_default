@@ -34,4 +34,4 @@
 #
 # run my cpu-intensive job:
 
-$HOME/ndspmhd/1DSPMHD multirun
+$HOME/ndspmhd/2DSPMHD multirun
