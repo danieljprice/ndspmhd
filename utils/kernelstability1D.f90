@@ -188,14 +188,14 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      datmax = 1.5  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
 
-     call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'cs', &
+     call setpage2(iplotpos,nacross,ndown,ymin,ymax,datmin,datmax,labely,'norm', &
                    ' ',0,0,&
                    0.,0.,0.,0.,0.,0.,.false.,.true.)
 !     call danpgtile(iplotpos,nacross,ndown, &
 !          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
 !     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
-     call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
+     !call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
 !
 !--plot contributions from first and second derivatives
 !
@@ -204,11 +204,13 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      hpos = 0.1   ! horizontal position as % of viewport
      vpos = 1.5  ! vertical position in character heights from top
      call pgsls(2) !sci(2)
+     call pgsci(2)
      call pgline(ny,yaxis(1:ny),tterm1(1:ny)-1.0)
-     if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
-     call pgsls(3)
-     call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
-     if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
+     print*,' tterm = ',tterm1(1:10),yaxis(1:10),ny
+     !if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
+     !call pgsls(3)
+     !call pgline(ny,yaxis(1:ny),tterm2(1:ny)+2.0)
+     !if (iplotpos.eq.1) call legend(ipos,'grad W norm',hpos,vpos)
 !     call pgsls(4)
 !     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
 !     if (iplotpos.eq.1) call legend(ipos,'aniso dW',hpos,vpos)
@@ -221,9 +223,9 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--also plot density estimate
 !
      call pgsls(1)
-     call pgsci(2)
-     call pgline(ny,yaxis(1:ny),rhosum(1:ny))
-     if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
+     !call pgsci(2)
+     !call pgline(ny,yaxis(1:ny),rhosum(1:ny))
+     !if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
      call pgsci(1)
      read*
 
