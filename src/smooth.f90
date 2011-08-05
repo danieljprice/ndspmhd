@@ -6,10 +6,10 @@
 !!                                                                        !!
 !!   x_smooth(r_a) = sum_b m_b (x_b / rho_b) W(r-r_b,h_ab)                 !!
 !!                                                                        !!
-!!   where W is the SPH smoothing kernel 				  !!
-!!									  !!
+!!   where W is the SPH smoothing kernel                                   !!
+!!                                                                          !!
 !!  Needs to be preceded by a call to linklist to setup neighbour lists   !!
-!!  The density should also be previously known				  !!
+!!  The density should also be previously known                                  !!
 !!------------------------------------------------------------------------!!
 module smooth
  implicit none
@@ -63,7 +63,7 @@ subroutine smooth_variable(xinput,xsmooth,x,pmass,hh,rho)
 !
 !--loop over all the link-list cells
 !
- loop_over_cells: do icell=1,ncellsloop		! step through all cells
+ loop_over_cells: do icell=1,ncellsloop                ! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
@@ -73,10 +73,10 @@ subroutine smooth_variable(xinput,xsmooth,x,pmass,hh,rho)
 !--now loop over all particles in the current cell
 !
     i = ifirstincell(icell)
-    idone = -1	! note density summation includes current particle
+    idone = -1        ! note density summation includes current particle
     if (i.ne.-1) iprev = i
 
-    loop_over_cell_particles: do while (i.ne.-1)		! loop over home cell particles
+    loop_over_cell_particles: do while (i.ne.-1)                ! loop over home cell particles
 
 !       print*,'doing particle ',i,nneigh,' neighbours',pmass(i)
        idone = idone + 1
@@ -87,39 +87,39 @@ subroutine smooth_variable(xinput,xsmooth,x,pmass,hh,rho)
 !--for each particle in the current cell, loop over its neighbours
 !
        loop_over_neighbours: do n = idone+1,nneigh
-	  j = listneigh(n)
+          j = listneigh(n)
           if (.not.(i.gt.npart.and.j.gt.npart)) then
-	     dx(:) = x(:,i) - x(:,j)
-	     termj = pmass(j)*xinput(j)/(rho(j)*hh(j)**ndim)
-	     rij2 = dot_product(dx,dx)
-	     q2i = rij2*hi21
-	     q2j = rij2/hh(j)**2
-!	
+             dx(:) = x(:,i) - x(:,j)
+             termj = pmass(j)*xinput(j)/(rho(j)*hh(j)**ndim)
+             rij2 = dot_product(dx,dx)
+             q2i = rij2*hi21
+             q2j = rij2/hh(j)**2
+!        
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-	     weight = 1.0
-	     if (j.eq.i) weight = 0.5
+             weight = 1.0
+             if (j.eq.i) weight = 0.5
              if (q2i.lt.radkern2) then
-!	
+!        
 !--interpolate from kernel table (using hi and hj)
 !
                 call interpolate_kernel(q2i,wabi,grkerni)
                 xsmooth(i) = xsmooth(i) + termj*wabi*weight
              endif
              if (q2j.lt.radkern2) then
-!	
+!        
 !--interpolate from kernel table (using hi and hj)
 !
                 call interpolate_kernel(q2j,wabj,grkernj)
-   	        xsmooth(j) = xsmooth(j) + termi*wabj*weight
+                   xsmooth(j) = xsmooth(j) + termi*wabj*weight
              endif
-	 endif
-	    
+         endif
+            
        enddo loop_over_neighbours
-	    
+            
        iprev = i
-       if (iprev.ne.-1) i = ll(i)		! possibly should be only if (iprev.ne.-1)
+       if (iprev.ne.-1) i = ll(i)   ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
             
  enddo loop_over_cells
