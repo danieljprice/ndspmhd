@@ -2,7 +2,7 @@
 !! Calculate conserved quantities etc and write to .ev file
 !!--------------------------------------------------------------------
 	 
-SUBROUTINE evwrite(t)
+SUBROUTINE evwrite(t,etot,momtot)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -18,7 +18,8 @@ SUBROUTINE evwrite(t)
  IMPLICIT NONE
  INTEGER :: i,j,ierr
  REAL, INTENT(IN) :: t
- REAL :: ekin,etherm,emag,epot,etot,momtot
+ REAL, INTENT(OUT) :: etot,momtot
+ REAL :: ekin,etherm,emag,epot
  REAL :: pmassi,rhoi
  REAL, DIMENSION(ndimV) :: veli,mom
 !
