@@ -2,9 +2,6 @@
 !!                                                                        !!
 !!  Generic setup for the 2D Orszag-Tang vortex test in MHD               !!
 !!                                                                        !!
-!!  Gives particles a variable separation so the mass per SPH particle    !!
-!!  is constant. shock is smoothed slightly (simple smoothing).           !!
-!!                                                                        !!
 !!  Note for all MHD setups, only the magnetic field should be setup      !!
 !!  similarly the thermal energy is setup even if using total energy.     !!
 !!                                                                        !!
@@ -66,7 +63,7 @@ subroutine setup
 !--setup uniform density grid of particles (2D) with sinusoidal field/velocity
 !  determines particle number and allocates memory
 !
- call set_uniform_cartesian(2,psep,xmin,xmax)        ! 2 = close packed arrangement
+ call set_uniform_cartesian(22,psep,xmin,xmax)        ! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -91,7 +88,7 @@ subroutine setup
     elseif (imhd.lt.0) then
 !--vector potential setup
        Bevol(:,ipart) = 0.
-       Bevol(1,ipart) = -0.5/pi*Bzero*(cos(2.*pi*x(2,ipart)) + 0.5*cos(4.*pi*x(1,ipart)))
+       Bevol(1,ipart) = 0.5/pi*Bzero*(cos(2.*pi*x(2,ipart)) + 0.5*cos(4.*pi*x(1,ipart)))
     else
        Bfield(:,ipart) = 0.
     endif 
@@ -104,3 +101,39 @@ subroutine setup
             
  return
 end
+
+subroutine modify_dump
+ use loguns, only:iprint
+ use part
+ use options, only:imhd
+ use timestep, only:time
+ use setup_params, only:pi
+ implicit none
+ integer :: ipart
+ real :: const,vzero,bzero
+!
+!--now assign particle properties
+!
+ write(iprint,*) 'modifying dump with Orzsag-Tang velocities/B field'
+ vzero = 1.0
+ const = 4.*pi
+ bzero = 1.0/sqrt(const)
+ do ipart=1,ntotal
+    vel(1,ipart) = -vzero*sin(2.*pi*x(2,ipart))
+    vel(2,ipart) = vzero*sin(2.*pi*x(1,ipart))
+    if (ndimv.eq.3) vel(3,ipart) = 0.
+    if (imhd.ge.1) then
+       Bfield(1,ipart) = -Bzero*sin(2.*pi*x(2,ipart))
+       Bfield(2,ipart) = Bzero*sin(4.*pi*x(1,ipart))
+       if (ndimv.eq.3) Bfield(3,ipart) = 0.0
+    elseif (imhd.lt.0) then
+!--vector potential setup
+       Bevol(:,ipart) = 0.
+       Bevol(1,ipart) = 0.5/pi*Bzero*(cos(2.*pi*x(2,ipart)) + 0.5*cos(4.*pi*x(1,ipart)))
+    else
+       Bfield(:,ipart) = 0.
+    endif 
+ enddo
+ time = 0.
+ 
+end subroutine modify_dump
