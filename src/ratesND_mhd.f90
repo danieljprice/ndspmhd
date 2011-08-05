@@ -101,7 +101,7 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
-
+ real :: stressterm, stressmax, B2i
 !
 !--allow for tracing flow
 !      
@@ -137,6 +137,20 @@ subroutine get_rates
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
  enddo
+
+!
+!--calculate maximum neg stress for instability correction
+!  
+ stressmax = 0.
+ if (imhd.ne.0) then
+    do i=1,ntotal
+       B2i = sqrt(dot_product(Bfield(:,i),Bfield(:,i)))
+       stressterm = max(0.5*B2i - pr(i),0.)
+       stressmax = max(stressterm,stressmax)
+    enddo
+    if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
+ endif
+
 !
 !--set MHD quantities to zero if mhd not set
 !
@@ -291,12 +305,11 @@ subroutine get_rates
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
-! phi(1:ntotal) = 0.1 !!!hh(1:ntotal)
+
  if (igravity.ne.0) call direct_sum_poisson_soft( &
     x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),potengrav,force(1:ndim,1:npart),npart)
 ! if (igravity.ne.0) call direct_sum_poisson( &
 !    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),npart)
-! phi = 1.
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -1000,10 +1013,14 @@ contains
           endif
 
        else
+!          faniso(:) = (Brhoi(:)*projBrhoi &
+!                     - Bconst(:)*projBconst*rho21i)*phij_on_phii*grkerni &
+!                    + (Brhoj(:)*projBrhoj &
+!                     - Bconst(:)*projBconst*rho21j)*phii_on_phij*grkernj
           faniso(:) = (Brhoi(:)*projBrhoi &
-                     - Bconst(:)*projBconst*rho21i)*phij_on_phii*grkerni &
+                     - stressmax*dr(:)*rho21i)*phij_on_phii*grkerni &
                     + (Brhoj(:)*projBrhoj &
-                     - Bconst(:)*projBconst*rho21j)*phii_on_phij*grkernj
+                     - stressmax*dr(:)*rho21j)*phii_on_phij*grkernj
        endif
 
        !
