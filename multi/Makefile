@@ -24,7 +24,7 @@ FFLAGS = $(F90FLAGS)
 SOURCES= multirun.f90
  
 OBJECTS = dimen1D.o variablesND.o defaults.o \
-          readwrite_infile.o \
+          kernelND.o readwrite_infile.o \
 	  $(SOURCES:.f90=.o)
 
 multirun: $(OBJECTS)	
@@ -38,6 +38,9 @@ variablesND.o :
 
 defaults.o :
 	$(F90C) -c $(F90FLAGS) ../src/defaults.f90 -o $@
+
+kernelND.o :
+	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
 readwrite_infile.o :
 	$(F90C) -c $(F90FLAGS) ../src/readwrite_infile.f90 -o $@
