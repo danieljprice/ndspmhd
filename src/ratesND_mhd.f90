@@ -59,11 +59,11 @@ subroutine get_rates
 !     
  real, dimension(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
  real, dimension(ndimB) :: faniso,fmagi,fmagj
- real, dimension(ndimB) :: curlBi
+ real, dimension(ndimB) :: curlBi,Bconsti,Bconstj
  real :: fiso
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j
- real :: projBrhoi,projBrhoj,projBi,projBj,projdB
+ real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconsti,projBconstj
 !
 !  (artificial viscosity quantities)
 !      
@@ -229,6 +229,7 @@ subroutine get_rates
           Brho2i = dot_product(Brhoi,Brhoi)
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
+	  Bconsti(:) = Bconst(:,i)
        endif
        gradhi = 1./(1. - gradh(i))
        gradhanisoi = 1./(1.-gradhaniso(i))
@@ -597,6 +598,9 @@ contains
        projBrhoj = dot_product(Brhoj,dr)
        Brho2j = dot_product(Brhoj,Brhoj)
        valfven2j = Brho2j*rhoj
+       Bconstj(:) = Bconst(:,j)
+       projBconsti = dot_product(Bconsti,dr)
+       projBconstj = dot_product(Bconstj,dr)
     endif
         
     !--maximum velocity for timestep control
@@ -875,7 +879,7 @@ contains
        
        BidotdB = dot_product(Brhoi,dB)
        BjdotdB = dot_product(Brhoj,dB)
-       fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))              
+       fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))
        fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
        
     elseif (imagforce.eq.2) then      ! tensor formalism in generalised form
@@ -903,8 +907,10 @@ contains
           endif
 
        else
-          faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
-                    + Brhoj(:)*projBrhoj*phii_on_phij*grkernj               
+          faniso(:) = ((Bconsti(:)*projBrhoi + Brhoi(:)*projBconsti)*rho1i &
+	                + Brhoi(:)*projBrhoi)*phij_on_phii*grkerni         &
+                    + ((Bconstj(:)*projBrhoj + Brhoi(:)*projBconstj)*rho1j &
+		        + Brhoj(:)*projBrhoj)*phii_on_phij*grkernj
        endif
 
        !
@@ -1000,8 +1006,10 @@ contains
        !
     elseif (imhd.ge.11) then      ! note divided by rho later              
        
-       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
-       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
+       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*((Bi(:)+Bconsti(:))*dvdotr &
+                                       - dvel(:)*(projBi+projBconsti))*grkerni   
+       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*((Bj(:)+Bconstj(:))*dvdotr &
+                                       - dvel(:)*(projBj+projBconstj))*grkernj
         
        if (imhd.eq.12) then ! add v div B term
         dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   

@@ -160,7 +160,7 @@ MODULE part
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
  REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,psi
  REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms,alpha
- REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bevol
+ REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bevol, Bconst
 END MODULE part 
 
 !-------------------------------------------------------------------

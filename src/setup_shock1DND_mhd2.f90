@@ -188,7 +188,8 @@ SUBROUTINE setup
        Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
     pmass(j) = massp
-    Bfield(1,j) = Bxinit
+    Bfield(1,j) = 0.
+    Bconst(1,j) = Bxinit
  ENDDO
 
  npart = j-1
