@@ -17,9 +17,9 @@ program kernelplot
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
  iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 2
+ nkernels = 1
  iprint = 6   ! make sure output from kernel setup goes to screen
- idivBzero = 5
+ ianticlump = 2
  epszero = 0.4
  nepszero = 4
  hfact = 1.5
@@ -29,7 +29,7 @@ program kernelplot
  ndown = 1
  xmin = 0.0
  xmax = 3.2
- ymin = -1.0  !!3.5
+ ymin = -2.0  !!3.5
  ymax = 1.7
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
@@ -52,11 +52,12 @@ program kernelplot
  neps = nepszero
 
  do j=1,nkernels
-    if (idivBzero.eq.5 .and. j.lt.7) then
-       eps = eps+0.2
-    else
-       if (j.eq.7) eps = 0.2
+    if (ianticlump.ne.0) then !! .and. j.lt.7) then
        eps = eps + 0.2
+       print*,'eps = ',eps, ' neps = ',neps
+!    else
+!       if (j.eq.7) eps = 0.2
+!       eps = eps + 0.2
     endif
     
     ikernel = iplotorder(j)
@@ -73,33 +74,33 @@ program kernelplot
     if (samepage) then
        hpos = 0.7
        vpos = 3.0
-       if (j.lt.7) then
+!       if (j.lt.7) then
        call danpgtile(1,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
        !
        !--plot legend
        !
-        call legend(1,'W',hpos,vpos)
-        call pgsls(2)
-        call legend(2,'\(2266)W',hpos,vpos)
-        call pgsls(1)
-	call legend(0,'\ge = 0.0-1.0',hpos-0.125,vpos+4.5)      
-        write(text,"(a,i1)") 'n = ',neps
-        call legend(0,text,hpos-0.125,vpos+6.0)
+!        call legend(1,'W',hpos,vpos)
+!        call pgsls(2)
+!        call legend(2,'\(2266)W',hpos,vpos)
+!       call pgsls(1)
+!	call legend(0,'\ge = 0.0-1.0',hpos-0.125,vpos+4.5)      
+!        write(text,"(a,i1)") 'n = ',neps
+!        call legend(0,text,hpos-0.125,vpos+6.0)
 
-       else
-        call danpgtile(2,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
-       !
-       !--plot legend
-       !
-        call legend(1,'W',hpos,vpos)
-        call pgsls(2)
-        call legend(2,'\(2266)W',hpos,vpos)
-        call pgsls(1)       
-        write(text,"(a,f3.1)") '\ge = ',eps
-        call legend(0,text,hpos-0.125,vpos+4.5)
-	call legend(0,'n = 3-5',hpos-0.125,vpos+6.0)
+!       else
+!        call danpgtile(2,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',' ',' ',0,1)
+!       !
+!       !--plot legend
+!       !
+!        call legend(1,'W',hpos,vpos)
+!        call pgsls(2)
+!        call legend(2,'\(2266)W',hpos,vpos)
+!        call pgsls(1)       
+!        write(text,"(a,f3.1)") '\ge = ',eps
+!        call legend(0,text,hpos-0.125,vpos+4.5)
+!	call legend(0,'n = 3-5',hpos-0.125,vpos+6.0)
 
-       endif
+!       endif
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
        
     else
@@ -126,7 +127,7 @@ program kernelplot
 !
     call pgsls(1)
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
-    if (idivBzero.eq.5) then
+    if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
        call pgline(ikern+1,dqkern(0:ikern),wijaniso(0:ikern))
     endif
@@ -135,18 +136,20 @@ program kernelplot
 !    
     call pgsls(2)
     call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
-    if (idivBzero.eq.5) then
+   !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
+    if (ianticlump.ne.0) then
 !       call pgsls(j+2)
        !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
        !!call legend(j,text,0.5,3.0)
-       call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))    
+       call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))
+      !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijaniso(0:ikern))    
     endif
 !
 !--second derivative
 !
     call pgsls(3)
     call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-    if (idivBzero.eq.5) then
+    if (ianticlump.ne.0) then
        call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
     endif
     call pgsls(1)
@@ -165,13 +168,13 @@ program kernelplot
     eps = epszero
     neps = nepszero
     do j=1,nkernels
-       if (idivBzero.eq.5) then
-          if (j.eq.2) then
-	     eps = epszero
-	     hfact = 1.2
-	     call pgsls(2)
-	  endif
-          !eps = eps + 0.2
+       if (ianticlump.ne.0) then
+!          if (j.eq.2) then
+!	     eps = epszero
+!	     hfact = 1.2
+!	     call pgsls(2)
+!	  endif
+          eps = eps + 0.2
        endif
        ikernel = iplotorder(j)
        call setkern
@@ -211,11 +214,11 @@ subroutine legend(icall,text,hpos,vposin)
   xline(2) = xline(1) + 3.*xch
 
 !!--make up line style if > 5 calls (must match actual line drawn)
-   if (icall.eq.3) then
-     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
-     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
+!   if (icall.eq.3) then
+!     call pgpt(2,xline,yline,17) !mod(icall,5)+1)
+!     call pgpt(1,0.5*(xline(1)+xline(2)),yline(1),17) !mod(icall,5)+1)
 !     !!call pgline(2,xline,yline)            ! draw line segment
-   elseif (icall.gt.0) then
+   if (icall.gt.0) then
      call pgline(2,xline,yline)            ! draw line segment
    endif  
 !

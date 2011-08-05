@@ -5,11 +5,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
   integer, intent(in) :: iplot, nacrossin, ndownin, neps
   real, intent(in) :: eps
-  integer :: i,j,ipart,mm,pp,nc
+  integer :: i,j,ipart,mm,pp,nc,ikx
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
-  real, dimension(ny) :: yaxis
+  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4
   real, dimension(nkx) :: kxarray
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
@@ -17,10 +17,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   real :: xmin, psep, pmass, rhozero, przero, gamma, cs2, R
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
-  real :: charheight, hpos, vpos
+  real :: charheight, hpos, vpos, term1,term2,term3,term4
   character(len=5) :: string,labely
   character(len=50) :: filename, text,title
   logical :: negstress, contours
+  common /terms/ term1,term2,term3,term4
   
   cs2 = 1.0
   rhozero = 1.0
@@ -31,10 +32,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--set various options
 !  
-  contours = .false.     ! plot whole dispersion relation or just kx=0
+  contours = .true.     ! plot whole dispersion relation or just kx=0
   negstress = .true.    ! plot vs h or R
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
+  ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
   nplots = 1
   nacross = nacrossin
   ndown = ndownin
@@ -106,6 +108,12 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
         omegasq = omegasq1D(h,kxarray(i),cs2,gamma,pmass,rhozero,R,eps,neps,x,npart,ipart)
         dat(i,j) = omegasq/(kx**2*cs2)
 !!       print*,i,j,' kx = ',kx,' h = ',h,' R = ',R,' dat = ',dat(i,j)
+        if (i.eq.ikx) then
+	   tterm1(j) = term1/(kx**2*cs2)
+	   tterm2(j) = term2/(kx**2*cs2)
+	   tterm3(j) = term3/(kx**2*cs2)
+	   tterm4(j) = term4/(kx**2*cs2)
+	endif
      enddo
   enddo
 !
@@ -118,12 +126,15 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call danpgtile(iplotpos,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
                  'kx',TRIM(labely),' ',0,0)
 !
-! plot eps/neps on plot
+! plot eps/neps/other labels on plot
 !
      write(text,"(a,f3.1)") '\ge = ',eps
-     call pgmtxt('T',-1.5,0.96,1.0,trim(text))
+!     call pgmtxt('T',-1.5,0.96,1.0,trim(text))
      write(text,"(a,i1)") 'n = ',neps     
-     call pgmtxt('T',-3.0,0.96,1.0,trim(text))
+!     call pgmtxt('T',-3.0,0.96,1.0,trim(text))
+!!     call pgmtxt('T',-3.0,0.98,1.0,trim(kernelname))
+!!     call pgmtxt('T',-1.5,0.98,1.0,'Morris'' formalism')
+
 !  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
 !  call pglabel('kx',TRIM(labely),TRIM(kernelname)) ! use this for movie
 
@@ -161,25 +172,42 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--plot just the line along kx = 0
 !
-     call pgsch(1.2)
-     !!if (iplotpos.eq.1) call pgpage
-     datmin = 1.0
-     datmax = 5.5 !!sqrt(maxval(dat(1,1:ny)))
+     !!call pgsch(1.2)
+     call pgsch(1.0)
+     if (iplotpos.eq.1) call pgpage
+     datmin = -10. !!min(minval(tterm1),minval(tterm2),minval(tterm3),minval(tterm4)) !-2.0   !!1.0
+     datmax = 10. !!max(maxval(tterm1),maxval(tterm2),maxval(tterm3),maxval(tterm4))
+     !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
      call danpgtile(iplotpos,nacross,ndown, &
           ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
-     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(1,1:ny))))
-     
-     !
+!     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
+     call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
+
      !--set legend position
-     !
-     hpos = 0.45   ! horizontal position as % of viewport
-     vpos = 4.0  ! vertical position in character heights from top
+     hpos = 0.62   ! horizontal position as % of viewport
+     vpos = 1.5  ! vertical position in character heights from top
+     call pgsls(2) !sci(2)
+     call pgline(ny,yaxis(1:ny),tterm1(1:ny))
+     if (iplotpos.eq.1) call legend(1,'iso dW',hpos,vpos)
+     call pgsls(3)
+     call pgline(ny,yaxis(1:ny),tterm2(1:ny))
+     if (iplotpos.eq.1) call legend(2,'iso d\u2\dW',hpos,vpos)
+     call pgsls(4)
+     call pgline(ny,yaxis(1:ny),tterm3(1:ny))
+     if (iplotpos.eq.1) call legend(3,'aniso dW',hpos,vpos)
+     call pgsls(5)
+     call pgline(ny,yaxis(1:ny),tterm4(1:ny))
+     if (iplotpos.eq.1) call legend(4,'aniso d\u2\dW',hpos,vpos)
+     call pgsci(1)
+     call pgsls(1)
+     read*
+
      write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
      !if (nplots.gt.1) then
      !   call legend(iplot,trim(text),hpos,vpos)   
      !else
-        call legend(0,'cubic spline, h=1.2\gDp',hpos,vpos)  
+     !   call legend(0,'cubic spline, h=1.2\gDp',hpos,vpos)  
      !endif
      !
      !--plot line from file
@@ -236,7 +264,8 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   real :: sum1, sum2, sum3, sum4, sum5, sum6, sum7, sum8
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
-  real :: dx, dr, q2, eps, term
+  real :: dx, dr, q2, eps, term, term1,term2,term3,term4
+  common /terms/ term1,term2,term3,term4
 
   sum1 = 0.
   sum2 = 0.
@@ -314,10 +343,10 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
      sum3 = sum3 + (1. - COS(kx*dx))*gradgradWcorr
      sum4 = sum4 + SIN(kx*dx)*gradWcorr*dr
-     sum5 = sum5 + dx*gradW*dr
-     sum6 = sum6 + dx*gradWcorr*dr
-     sum7 = sum7 + 0.5*dx**2*gradgradW
-     sum8 = sum8 + 0.5*dx**2*gradgradWcorr
+!     sum5 = sum5 + dx*gradW*dr
+!     sum6 = sum6 + dx*gradWcorr*dr
+!     sum7 = sum7 + 0.5*dx**2*gradgradW
+!     sum8 = sum8 + 0.5*dx**2*gradgradWcorr
   enddo
 ! 
 !!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum1/sum7
@@ -334,15 +363,25 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
 !
 !--dispersion relation (adiabatic and isothermal)
 !  isotropic terms using normal kernel
-!  
-  omegasq1D = + (2.*pmass/rhozero)*(priso/rhozero)*sum1 &
-            - (pmass/rhozero)**2*(2.*priso/rhozero - cs2)*sum2**2
+!
+  term1 = (2.*pmass/rhozero)*(priso/rhozero)*sum1
+  term2 =  - (pmass/rhozero)**2*(2.*priso/rhozero - cs2)*sum2**2
+  
+  omegasq1D = term1 + term2
 !
 !--add anisotropic terms (using anticlumping kernel)
 !
-  omegasq1D = omegasq1D + (2.*pmass/rhozero)*praniso/rhozero*sum3  &
-            - (pmass/rhozero)**2*(2.*praniso/rhozero)*sum2*sum4
+  term3 = (2.*pmass/rhozero)*praniso/rhozero*sum3
+  term4 = - (pmass/rhozero)**2*(2.*praniso/rhozero)*sum2*sum4
+
+  omegasq1D = omegasq1D + term3 + term4
   
+!  if (hh.lt.) then
+!     print*,hh,kx,' terms = ',(2.*pmass/rhozero)*(priso/rhozero)*sum1, &
+ !            - (pmass/rhozero)**2*(2.*priso/rhozero - cs2)*sum2**2, & 
+!              + (2.*pmass/rhozero)*praniso/rhozero*sum3, &
+!	      - (pmass/rhozero)**2*(2.*praniso/rhozero)*sum2*sum4,omegasq1D
+!  endif
 end function omegasq1D
 
 !
