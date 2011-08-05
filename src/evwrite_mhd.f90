@@ -20,8 +20,10 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL, INTENT(IN) :: t
  REAL, INTENT(OUT) :: etot,momtot
  REAL :: ekin,etherm,emag,epot
- REAL :: pmassi,rhoi,epoti
+ REAL :: pmassi,rhoi,epoti,rr
+ REAL, DIMENSION(ndim) :: rhat
  REAL, DIMENSION(ndimV) :: veli,mom
+ REAL :: alphai,betai,alphatstarav,betatstarav
 !
 !--mhd
 !
@@ -47,6 +49,8 @@ SUBROUTINE evwrite(t,etot,momtot)
  epot = 0.0
  mom(:) = 0.0
  momtot = 0.0
+ alphatstarav = 0.
+ betatstarav = 0.
 !
 !--mhd parameters
 !     
@@ -89,6 +93,17 @@ SUBROUTINE evwrite(t,etot,momtot)
 !    
     CALL external_potentials(iexternal_force,x(:,i),epoti,ndim)
     epot = epot + pmassi*epoti
+    
+    rr = dot_product(x(1:ndim,i),x(1:ndim,i))
+    if (rr.gt.tiny(rr)) then
+       rhat(1:ndim) = x(1:ndim,i)/rr
+    else
+       rhat = 0.
+    endif
+    alphai = dot_product(vel(1:ndim,i),rhat(1:ndim))
+    betai = vel(2,i)*rhat(1) - vel(1,i)*rhat(2)
+    alphatstarav = alphatstarav + alphai
+    betatstarav = betatstarav + betai
 !
 !--mhd parameters
 !
@@ -178,7 +193,6 @@ SUBROUTINE evwrite(t,etot,momtot)
  
  etot = etherm + ekin + emag + epot
  momtot = SQRT(DOT_PRODUCT(mom,mom))
-
 !
 !--write line to .ev file
 !     
@@ -194,7 +208,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag, &
+    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,fluxtotmag, &
           crosshel,betamhdmin,betamhdav,betamhdmax,   &
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
@@ -202,10 +216,12 @@ SUBROUTINE evwrite(t,etot,momtot)
 30  FORMAT(20(1pe18.10,1x),1pe8.2)
       
  ELSE
+    alphatstarav = alphatstarav/FLOAT(npart)
+    betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,etot,momtot
-40  FORMAT(6(1pe18.10,1x))        
+    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,alphatstarav,betatstarav
+40  FORMAT(20(1pe18.10,1x))        
 
  ENDIF
 
