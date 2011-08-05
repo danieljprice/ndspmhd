@@ -37,11 +37,12 @@ subroutine get_rates
 !
  real :: rij,rij2
  real :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav1,rhoij
- real :: pmassi,pmassj
+ real :: pmassi,pmassj,projvi,projvj
  real :: Prho2i,Prho2j,prterm,pri,prj
  real :: hi,hi1,hj,hj1,hi21,hj21
  real :: hfacwabi,hfacgrkerni
- real, dimension(ndim) :: dx, fexternal  !!,dri,drj
+ real, dimension(ndim) :: xi, dx, fexternal  !!,dri,drj
+ real, dimension(ntotal) :: h1
 !
 !--gr terms
 !
@@ -57,8 +58,8 @@ subroutine get_rates
 !  (mhd)
 !     
  real, dimension(ndimB) :: Brhoi,Brhoj,Bi,Bj,dB
- real, dimension(ndimB) :: faniso,fmagi,fmagj
- real, dimension(ndimB) :: curlBi
+ real, dimension(ndimB) :: faniso,fmagi,fmagj,Bevoli,dBevol
+ real, dimension(ndimB) :: curlBi,forcei,forcej,dBevoldti
  real :: fiso,B2i,B2j
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j
@@ -139,6 +140,7 @@ subroutine get_rates
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
+  h1(i) = 1./hh(i)
  enddo
 
 !
@@ -217,6 +219,7 @@ subroutine get_rates
 
        !!print*,'Doing particle ',i,'of',npart,x(:,i),rho(i),hh(i)
        idone = idone + 1
+       xi(:) = x(:,i)
        rhoi = rho(i)
        rho2i = rhoi*rhoi
 !!       rhoi5 = sqrt(rhoi)
@@ -245,6 +248,7 @@ subroutine get_rates
           Brho2i = B2i*rho21i
           valfven2i = B2i*rho1i
           alphaBi = alpha(3,i)
+          if (imhd.lt.0) Bevoli(:) = Bevol(:,i)
        endif
        gradhi = gradh(i)
        gradhni = gradhn(i)
@@ -253,10 +257,12 @@ subroutine get_rates
           write(iprint,*) ' rates: h <= 0 particle',i,hi
         call quit
        endif
-       hi1 = 1./hi
+       hi1 = h1(i)
        hi21 = hi1*hi1
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
+       forcei(:) = 0.
+       dBevoldti(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -264,10 +270,10 @@ subroutine get_rates
        
            j = listneigh(n)
            if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
-           dx(:) = x(:,i) - x(:,j)
+           dx(:) = xi(:) - x(:,j)
            !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
            hj = hh(j)
-           hj1 = 1./hj
+           hj1 = h1(j) !!1./hj
            hj21 = hj1*hj1
      
            rij2 = dot_product(dx,dx)
@@ -296,10 +302,15 @@ subroutine get_rates
          endif            ! j.ne.i
         
         enddo loop_over_neighbours
+       !
+       !--add contributions to particle i from summation over j
+       !
+       force(:,i) = force(:,i) + forcei(:)
+       dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
 
        iprev = i
        if (iprev.ne.-1) i = ll(i)            ! possibly should be only IF (iprev.NE.-1)
-    
+       
     enddo loop_over_cell_particles
             
  enddo loop_over_cells
@@ -413,7 +424,8 @@ subroutine get_rates
        !
        !--add the v x Bext term
        !
-       call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       !call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
     else
        dBevoldt(:,i) = 0.
@@ -561,7 +573,7 @@ contains
     use kernels, only:interpolate_kernel,interpolate_kernels
     implicit none
     real :: prstar, vstar
-    real :: projvi, projvj, dvsigdtc
+    real :: dvsigdtc
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
@@ -648,16 +660,19 @@ contains
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
        
-!       if (geom(1:6).ne.'cartes') then
+       if (trim(geom).ne.'cartes') then
           call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
           B2j = dot_product_gr(Bj,Bj,gdiagj)
-!       else
-!          B2j = dot_product(Bj,Bj)
-!       endif
+          valfven2j = B2j/dens(j)
+       else
+          B2j = dot_product(Bj,Bj)
+          valfven2j = B2j*rho1j
+       endif
        Brho2j = B2j*rho21j
-       valfven2j = B2j/dens(j)
        projBconst = dot_product(Bconst,dr)
+       if (imhd.lt.0) dBevol(:) = Bevoli(:) - Bevol(:,j)
     endif
+    forcej(:) = 0.
         
     !--maximum velocity for timestep control
     !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
@@ -687,6 +702,7 @@ contains
        call quit 
     elseif (vsigprojj.lt.0.) then
        write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+       print*,j,'rho,dens = ',rho(j),dens(j)
        call quit  
     endif
     vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
@@ -736,13 +752,13 @@ contains
        !
        !--add pressure terms to force
        !
-       force(:,i) = force(:,i) - pmassj*prterm*dr(:)
-       force(:,j) = force(:,j) + pmassi*prterm*dr(:)
+       forcei(:) = forcei(:) - pmassj*prterm*dr(:)
+       forcej(:) = forcej(:) + pmassi*prterm*dr(:)
     endif
 
-!    force(:,i) = force(:,i) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
+!    forcei(:) = forcei(:) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
-!    force(:,j) = force(:,j) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
+!    forcej(:) = forcej(:) - pmassi*(pr(i)/rho(i)*dri(:)*grkerni &
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
 
 !------------------------------------------------------------------------
@@ -754,6 +770,11 @@ contains
 !------------------------------------------------------------------------
 
     if (imhd.ne.0) call mhd_terms
+!
+!   Add contributions to j from mhd terms and dissipation here
+!   to avoid repeated memory access
+!    
+    force(:,j) = force(:,j) + forcej(:)
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -835,12 +856,12 @@ contains
     
     if (dvdotr.lt.0 .and. iav.le.2) then            
        visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
-       force(:,i) = force(:,i) - pmassj*visc*dr(:)
-       force(:,j) = force(:,j) + pmassi*visc*dr(:)
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
     elseif (iav.ge.3) then ! using total energy, for approaching and receding
        visc = alphaav*term
-       force(:,i) = force(:,i) + pmassj*visc*dvel(:)
-       force(:,j) = force(:,j) - pmassi*visc*dvel(:)
+       forcei(:) = forcei(:) + pmassj*visc*dvel(:)
+       forcej(:) = forcej(:) - pmassi*visc*dvel(:)
     endif
     
     !--------------------------------------------
@@ -856,12 +877,12 @@ contains
        if (imhd.gt.0) then
           dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
        else !--vector potential resistivity
-          dBdtvisc(:) = alphaB*termnonlin*(Bevol(:,i) - Bevol(:,j))
+          dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
        endif
        !
        !--add to d(B/rho)/dt (converted to dB/dt later if required)
        !
-       dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
+       dBevoldti(:) = dBevoldti(:) + rhoi*pmassj*dBdtvisc(:)               
        dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
     endif
 
@@ -955,7 +976,7 @@ contains
 !----------------------------------------------------------------
   subroutine mhd_terms
     implicit none
-    real :: dalphaterm
+    real :: dalphaterm,termi,termj
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1051,23 +1072,23 @@ contains
        case(1)
           fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
           fmag(:,j) = fmag(:,j) + pmassi*fmagj(:)/rho2j
-          force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
-          force(:,j) = force(:,j) + pmassi*fmagj(:)/rho2j
+          forcei(:) = forcei(:) + pmassj*fmagi(:)/rho2i
+          forcej(:) = forcej(:) + pmassi*fmagj(:)/rho2j
        case(5)    ! Morris' Hybrid force
-          fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-          fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
-          force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-          force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
+!          fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
+!          fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
+          forcei(:) = forcei(:) + pmassj*(faniso(:)-fiso*dr(:))
+          forcej(:) = forcej(:) + pmassi*(faniso(:)+fiso*dr(:))                           
        case default      ! symmetric forces fmagxi = -fmagxj
-          fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
-          fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
-          force(:,i) = force(:,i) + pmassj*(fmagi(:))
-          force(:,j) = force(:,j) - pmassi*(fmagi(:))
+!          fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
+!          fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
+          forcei(:) = forcei(:) + pmassj*(fmagi(:))
+          forcej(:) = forcej(:) - pmassi*(fmagi(:))
           
           if (imagforce.eq.6) then
           !--subtract B(div B) term from magnetic force
-             force(:,i) = force(:,i) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
-             force(:,j) = force(:,j) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcej(:) = forcej(:) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
           endif
        end select
     endif
@@ -1080,25 +1101,30 @@ contains
     !---------------------------------------------------------------------------------
     select case(imhd)
     case(4,14)   ! conservative form (explicitly symmetric)
-       dBevoldt(:,i) = dBevoldt(:,i)            &
+       dBevoldti(:) = dBevoldti(:)            &
           + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
     case(3,13)   ! goes with imagforce = 3
-       dBevoldt(:,i) = dBevoldt(:,i)         &
+       dBevoldti(:) = dBevoldti(:)         &
           - pmassj*projBrhoj*dvel(:)*grkerni
        dBevoldt(:,j) = dBevoldt(:,j)         &
           - pmassi*projBrhoi*dvel(:)*grkernj
     case(2,12)   ! conservative form (no change for 1D)
-       dBevoldt(:,i) = dBevoldt(:,i)            &
+       dBevoldti(:) = dBevoldti(:)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
     case(1,11) ! surface flux-conservative (usual) form
-       dBevoldt(:,i) = dBevoldt(:,i)            &
+       dBevoldti(:) = dBevoldti(:)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
+    case(-1) ! vector potential evolution
+       termi = pmassj*projvi*grkerni
+       dBevoldti(:) = dBevoldti(:) - termi*dBevol(:)
+       termj = pmassi*projvj*grkernj
+       dBevoldt(:,j) = dBevoldt(:,j) - termj*dBevol(:)
     end select
        
     if (idivBzero.ge.2) then ! add hyperbolic correction term
