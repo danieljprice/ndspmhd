@@ -33,9 +33,10 @@ subroutine conservative2primitive
   use derivB, only:curlB
   implicit none
   integer :: i,j,nerr
-  real :: B2i, v2i, pri, dhdrhoi
+  real :: B2i, v2i, pri, dhdrhoi, emag, emagold
   real, dimension(ndimV) :: Binti,Bfieldi
   logical, parameter :: JincludesBext = .true.
+  logical :: remap
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -103,12 +104,58 @@ subroutine conservative2primitive
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   case(:-3) ! generalised Euler potentials
+     
+     remap = .true.
      write(iprint,*) 'getting B field from Generalised Euler Potentials... '
-     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.true.)
+     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     !--add constant field component
      do i=1,npart
-        Binti(:) = Bfield(:,i)
-        Bfieldi(:) = Binti(:) + Bconst(:)
+        Bfield(:,i) = Bfield(:,i) + Bconst(:)
      enddo
+
+     if (remap) then
+        !--copy remapped Bevol onto ghosts
+        if (any(ibound.eq.1)) then
+           do i=1,npart
+              if (itype(i).eq.1) then
+                 j = ireal(i)
+                 Bevol(:,i) = Bevol(:,j)
+                 x0(:,i) = x(:,i)
+              endif
+           enddo
+        endif
+        if (any(ibound.gt.1)) then
+           do i=npart+1,ntotal
+              j = ireal(i)
+              Bevol(:,i) = Bevol(:,j)
+              x0(:,i) = x(:,i)
+           enddo
+        endif
+        !
+        !--recompute B field with remapped potentials
+        !
+        emagold = emag_calc(pmass,rho,Bfield,npart)
+        print*,' magnetic energy before remapping = ',emagold
+        call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,.false.)
+        emag = emag_calc(pmass,rho,Bfield,npart)
+        print*,' magnetic energy after remapping = ',emag, ' change = ',abs(emag-emagold)/emagold
+     endif
+
+     !--copy Bfield onto ghosts
+     if (any(ibound.eq.1)) then
+        do i=1,npart
+           if (itype(i).eq.1) then
+              j = ireal(i)
+              Bfield(:,i) = Bfield(:,j)
+           endif
+        enddo
+     endif
+     if (any(ibound.gt.1)) then
+        do i=npart+1,ntotal
+           j = ireal(i)
+           Bfield(:,i) = Bfield(:,j)
+        enddo
+     endif
   case default
      !--no magnetic field
   end select
@@ -231,11 +278,10 @@ subroutine primitive2conservative
   use rates, only:gradpsi
   use derivB, only:curlB
   implicit none
-  integer :: i,j,iktemp,iremap
-  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi, emag, emagi, emagold
+  integer :: i,j,iktemp
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
   real, dimension(ndimV) :: Binti
   logical :: isetpolyk
-  real, dimension(:), allocatable :: emagpart
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
@@ -349,38 +395,24 @@ subroutine primitive2conservative
      x0 = x  ! setup beta term (Jacobian map) for all particles
 
      !--compute B = \nabla alpha_k x \nabla \beta^k
-     allocate(emagpart(npart))
-     emagold = 0.
-     do iremap=1,10
-     write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... ',iremap
-     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.true.)
+     write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... '
+     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.false.)
      
+     !--copy Bfield onto ghosts
+     if (any(ibound.eq.1)) then
+        do i=1,npart
+           if (itype(i).eq.1) then
+              j = ireal(i)
+              Bfield(:,i) = Bfield(:,j)
+           endif
+        enddo
+     endif
      if (any(ibound.gt.1)) then
         do i=npart+1,ntotal
            j = ireal(i)
            Bfield(:,i) = Bfield(:,j)
-           Bevol(:,i) = Bevol(:,j)
         enddo
      endif
-     emag = 0.
-     do i=1,npart
-        B2i = dot_product(Bfield(:,i),Bfield(:,i))
-        emagi = pmass(i)*0.5*B2i/rho(i)
-        emag = emag + emagi
-        if (iremap.gt.1 .and. abs(emagi-emagpart(i)).gt.0.1*emagi) then
-           print*,' particle ',i,' emag(old) = ',emagpart(i),' emag(new) = ',sqrt(B2i)
-        endif
-        emagpart(i) = emagi
-     enddo
-     if (iremap.gt.1) then
-        print*,' emag = ',emag,' cumulative error = ',abs(emag-emagold)/emagold
-     else
-        emagold = emag
-        print*,' emag = ',emag     
-     endif
-     enddo
-     
-     deallocate(emagpart)
 
   end select
 !
@@ -455,5 +487,22 @@ subroutine primitive2conservative
 
   return  
 end subroutine primitive2conservative
+
+real function emag_calc(pmass,rho,Bfield,npart)
+  implicit none
+  integer, intent(in) :: npart
+  real, dimension(:), intent(in) :: pmass,rho
+  real, dimension(:,:), intent(in) :: Bfield
+  real :: emag, B2i
+  integer :: i
+  
+  emag = 0.
+  do i=1,npart
+     B2i = dot_product(Bfield(:,i),Bfield(:,i))
+     emag = emag + pmass(i)*0.5*B2i/rho(i)
+  enddo
+  emag_calc = emag
+
+end function emag_calc
 
 end module cons2prim
