@@ -551,12 +551,19 @@ subroutine get_rates
        call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
     case(-2) ! vector potential evolution, Axel gauge
+       if (iuse_exact_derivs.gt.0) then
+          do k=1,ndim
+             dBevoldt(k,i) = -dot_product(Bevol(1:ndimV,i),dveldx(k,1:ndimV,i))
+          enddo
+       else
+          dBevoldt(:,i) = dBevoldt(:,i)*rho1i
+       endif
        !
        !--get v x Bext
        !
        call cross_product3D(vel(:,i),Bconst(:),curlBi)
        !--add v x Bext plus the existing term, which includes dissipation
-       dBevoldt(:,i) = curlBi(:) + dBevoldt(:,i)*rho1i
+       dBevoldt(:,i) = dBevoldt(:,i) + curlBi(:)
        !
        !--add dissipation for vector potential = -eta J
        !
