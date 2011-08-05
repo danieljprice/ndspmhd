@@ -94,18 +94,10 @@ SUBROUTINE density
          hj = hh(j)
          hj1 = 1./hj
          hj2 = hj*hj
-!
-!--calculate averages of smoothing length if using this averaging
-!                      
-         hav = 0.5*(hi + hj)
-         hav1 = 1./hav
-         h2 = hav*hav
-         hfacwab = hav1**ndim
          hfacwabj = hj1**ndim
          
          rij2 = DOT_PRODUCT(dx,dx)
          rij = SQRT(rij2)
-         q2 = rij2/h2
          q2i = rij2/hi2
          q2j = rij2/hj2       
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
@@ -113,7 +105,7 @@ SUBROUTINE density
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-        IF (((q2.LT.radkern2).OR.(q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
+        IF ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
             .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
 !       
 !--interpolate from kernel table              
@@ -121,20 +113,27 @@ SUBROUTINE density
 !
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
            IF (ikernav.EQ.1) THEN              
+!  (using average h)
+              hav = 0.5*(hi + hj)
+              hav1 = 1./hav
+	      hfacwab = hav1**ndim
+              q2 = rij2*hav1*hav1
               CALL interpolate_kernel(q2,wab,grkern)
               wab = wab*hfacwab
               grkern = grkern*hfacwab*hav1
-            ELSE
+	      wabi = wab
+	      wabj = wab
+           ELSE
 !  (using hi)
-               CALL interpolate_kernel(q2i,wabi,grkerni)
+              CALL interpolate_kernel(q2i,wabi,grkerni)
               wabi = wabi*hfacwabi
               grkerni = grkerni*hfacwabi*hi1
 !  (using hj)
               CALL interpolate_kernel(q2j,wabj,grkernj)
-               wabj = wabj*hfacwabj
+              wabj = wabj*hfacwabj
               grkernj = grkernj*hfacwabj*hj1
 !  (calculate average)                
-              wab = 0.5*(wabi + wabj)
+              !!wab = 0.5*(wabi + wabj)
 !
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
 !              
@@ -147,19 +146,17 @@ SUBROUTINE density
 !
            weight = 1.0
            IF (j.EQ.i) weight = 0.5
-           IF (ikernav.EQ.3) THEN
-              rho(i) = rho(i) + pmass(j)*wabi*weight
-              rho(j) = rho(j) + pmass(i)*wabj*weight
+           rho(i) = rho(i) + pmass(j)*wabi*weight
+           rho(j) = rho(j) + pmass(i)*wabj*weight
+	   
+	   IF (ikernav.EQ.3) THEN
 !
 !--correction term for variable smoothing lengths
 !  this is the small bit that should be 1-gradh
 !  need to divide by rho once rho is known
 
               gradh(i) = gradh(i) + dhdrhoi*pmass(j)*weight*dwdhi
-              gradh(j) = gradh(j) + dhdrhoj*pmass(i)*weight*dwdhj                
-           ELSE
-              rho(i) = rho(i) + pmass(j)*wab*weight              
-              rho(j) = rho(j) + pmass(i)*wab*weight
+              gradh(j) = gradh(j) + dhdrhoj*pmass(i)*weight*dwdhj
            ENDIF
 !        ELSE
 !           PRINT*,' r/h > 2 '      
