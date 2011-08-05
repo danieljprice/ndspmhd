@@ -301,7 +301,7 @@ contains
     use linklist, only:iamincell,numneigh
     use options, only:igravity,imhd
     !use matrixcorr
-    use part, only:Bfield
+    use part, only:Bfield,ntotal
     use rates, only:dBevoldt
 !
 !--define local variables
@@ -316,7 +316,7 @@ contains
 
     integer :: i,j,n
     integer :: icell,ipart,nneigh !!,minneigh,minpart
-    integer, dimension(npart) :: listneigh
+    integer, dimension(ntotal) :: listneigh
     integer :: icellprev
 !
 !  (particle properties - local copies)
