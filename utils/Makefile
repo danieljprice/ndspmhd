@@ -8,7 +8,7 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-F90C = lf95
+F90C = f90
 
 F90FLAGS = 
 LDFLAGS = 

@@ -26,17 +26,17 @@ EDITOR = nedit
 # -xtypemap=real:64,double:64,integer:32 for double precision
 # -ftrap = %all traps floating point exceptions
 #
-#FC = f90
-#F90C = f90
-#FFLAGS = -O4
-#F90FLAGS = -O4 ###-C -O4 -xtypemap=real:64,double:64,integer:32
+FC = f90
+F90C = f90
+FFLAGS = -O4
+F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
-FC = lf95
-F90C = lf95
-FFLAGS = -O ##--chk aesux --chkglobal  --warn
-F90FLAGS = -O ##--chk aesux --chkglobal --warn
+#FC = lf95
+#F90C = lf95
+#FFLAGS = -O ##--chk aesux --chkglobal  --warn
+#F90FLAGS = -O ##--chk aesux --chkglobal --warn
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Swinburne compiler (Intel fortran)

@@ -7,6 +7,9 @@
 SAVEDIR = ../version_control/`cat version`_`date +%d_%m_%Y`
 EDITOR = nedit
 
+intro:
+	echo 'try make install'
+
 install: 
 	echo 'Making copies of useful scripts...'
 	cd scripts; ./copyscripts.tcsh
@@ -72,6 +75,10 @@ scripts:	## makes symbolic links to scripts
 	ln -s run3D ./scripts/run3D.tcsh
 make:
 	cd src; $(EDITOR) Makefile &
+	
+makes:
+	$(EDITOR) ./src/Makefile ./evplot/Makefile ./plot/Makefile \
+	./utils/Makefile ./multi/Makefile &
 
 tag:
 	cvs -q tag `cat version`_`date +%d_%m_%Y`

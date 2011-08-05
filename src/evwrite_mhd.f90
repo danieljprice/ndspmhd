@@ -197,7 +197,7 @@ SUBROUTINE evwrite(t)
     fdotBav = fdotBav/FLOAT(npart)
     force_err_av = force_err_av/FLOAT(npart)
 
-    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
+!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag,	&
           crosshel,betamhdmin,betamhdav,betamhdmax,			&

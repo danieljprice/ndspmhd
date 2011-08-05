@@ -24,7 +24,7 @@ SUBROUTINE step
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev,ierr
+ INTEGER :: i,j,jdim,ikernavprev,ierr,nerror
  REAL, DIMENSION(ndimV,npart) :: forcein,dBconsdtin
  REAL, DIMENSION(npart) :: drhodtin,dhdtin,dendtin,daldtin 
  REAL :: hdt
@@ -100,11 +100,13 @@ SUBROUTINE step
 !
 !--calculate primitive variables (u,B) from conservative variables (en,B/rho)
 !   
+ nerror = 0
  DO i=1,npart
     CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
     				Bfield(:,i),Bcons(:,i),ierr)
     IF (ierr.EQ.1) THEN ! negative thermal energy
-       WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
+       nerror = nerror + 1
+       !WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
        uu(i) = 0.	!uuin(i) + dt*dudt(i)
     ENDIF
 !
@@ -112,6 +114,8 @@ SUBROUTINE step
 !
     CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
  ENDDO
+ IF (nerror.ne.0) WRITE(iprint,*) 'Warning: uu -ve on ',nerror,' particles'
+ 
 !
 !--copy these quantities onto the ghost particles
 ! 
