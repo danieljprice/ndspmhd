@@ -3,6 +3,7 @@
 #
 cd ..
 rm run splitdat makemovie mergedat domulti doparallel write_sgescript
+ln -s ./scripts/mvdat.sh mvdat
 ln -s ./scripts/run.tcsh run
 ln -s ./scripts/splitdat.pl splitdat
 ln -s ./scripts/makegif.tcsh makemovie

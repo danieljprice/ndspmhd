@@ -19,6 +19,7 @@ else
    cd $dirname
    ln -s ../supersphplot supersphplot
    ln -s ../evsupersph evsupersph
+   ln -s ../scripts/mvdat.sh mvdat
    echo 'writing a Makefile'
    ../scripts/writemake.tcsh $1 > Makefile
    echo 'writing sge script '$runname\.sge
