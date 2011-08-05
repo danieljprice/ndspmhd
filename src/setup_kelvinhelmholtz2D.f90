@@ -13,7 +13,7 @@ subroutine setup
  use bound
  use options
  use part
- use setup_params, only:psep
+ use setup_params, only:psep,pi
  use eos, only:gamma
  
  use uniform_distributions
@@ -25,7 +25,7 @@ subroutine setup
  real :: massp,volume,totmass,ran1
  real :: denszero,densmedium,przero,psepmedium
  real, dimension(ndim) :: xminregion,xmaxregion
- logical, parameter :: equalmass = .false.
+ logical, parameter :: equalmass = .true.
 !
 !--allow for tracing flow
 !
@@ -93,7 +93,11 @@ subroutine setup
     if (abs(x(2,i)).lt.0.25) then
        vel(1,i) = 0.5 
        dens(i) = densmedium
-       if (.not.equalmass) pmass(i) = massp*(densmedium/denszero)
+       if (equalmass) then
+          pmass(i) = massp
+       else
+          pmass(i) = massp*(densmedium/denszero)
+       endif
     else
        vel(1,i) = -0.5
        dens(i) = denszero
@@ -105,8 +109,11 @@ subroutine setup
 !
 !--add random velocity perturbation
 !
-    vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
-    vel(2,i) = 0.01*(ran1(iseed)-0.5)
+    !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
+    !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
+    if (abs(x(2,i)-0.25).lt.0.05 .or. abs(x(2,i)+0.25).lt.0.05) then
+       vel(2,i) = 0.05*sin(2.*pi*(x(1,i)+0.5)*6.)
+    endif
  enddo
 !
 !--get rho from a sum and then set u to give a
