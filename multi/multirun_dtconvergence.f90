@@ -18,7 +18,8 @@ program multirun
  character :: filename*15,infile*30
  character(len=10) :: string
  character(len=2) :: charnruns
- real :: C_cour_init
+ real :: C_cour_init,courmin,courmax,dcour
+ logical :: logspace
  
  nruns = 0
  iread = 11
@@ -45,9 +46,27 @@ program multirun
  print*,' initial psep = ',psep
  
  C_cour_init = C_cour
- C_cour = C_cour*sqrt(2.)
+ 
+ logspace = .false.
+ !--log spacing
+ if (logspace) then
+    courmax = 0.
+    courmin = -1.
+ else
+ !--linear
+    courmax = 0.25
+    courmin = 0.05
+ endif
+ dcour = (courmax - courmin)/real(nruns-1)
+
  do i=1,nruns
-    C_cour = C_cour*1./sqrt(2.)
+    if (logspace) then
+    !--log spacing
+       C_cour = 0.1*C_cour_init*10**(courmin + (i-1)*dcour)
+    else
+    !--linear spacing
+       C_cour = 0.1*(courmin + (i-1)*dcour)
+    endif
     dt = 1.078e-3*(psep/0.01)*(C_cour/C_cour_init)
     write(string,"(es10.3)") dt
      
