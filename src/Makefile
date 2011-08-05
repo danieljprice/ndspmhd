@@ -1,7 +1,7 @@
 ##-------------------------------------------------------------------##
 ##     Makefile for ND-SUPERSPMHD      			             ##
 ##     Written by Daniel Price					     ##
-##     Institute of Astronomy, Cambridge, UK, 2003	 	     ##
+##     University of Exeter, UK 2004                                 ##
 ##-------------------------------------------------------------------##
 
 
@@ -27,7 +27,7 @@ FFLAGS = $(F90FLAGS)
 	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
 
-# use the appropriate dimensions module
+# use the appropriate dimensions module and dimension specific routines
 
 SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
 SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
@@ -59,8 +59,8 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
-#SETUP2D = setup_toystarND_static.f90 
-SETUP2D = setup_shockND.f90
+SETUP2D = setup_toystarND_static.f90 
+#SETUP2D = setup_shockND.f90
 #SETUP2D = setup_fromfile.f90
 #SETUP2D = setup_shearflow2D.f90
 #SETUP2D = setup_rings2D.f90
@@ -76,7 +76,15 @@ SETUP2D = setup_shockND.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 SETUP3D = setup_disc3D.f90
+
 ######################################################################
+########### setup file for modify dump utility #######################
+
+MODDUMPSRC1D = moddump_tstar2D.f90
+MODDUMPSRC2D = moddump_tstar2D.f90
+MODDUMPSRC3D = moddump_tstar2D.f90
+######################################################################
+
 
 # these files are common to all dimensions and coordinate systems
 
@@ -116,13 +124,10 @@ OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
-
 OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
-
 OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-
 OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP3D:.f90=.o)
 
@@ -149,8 +154,31 @@ crap:
 
 ## files from elsewhere
 
+prompting.o:
+	$(F90C) -c ../plot/prompting.f90 -o $@
+
 geometry.o:
 	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
+
+## modify dump utility
+
+OBJMODDUMP = variablesND.o allocateND.o geometry.o \
+             readwrite_dumps.o prompting.o modifydump.o
+OBJMODDUMP1D = $(OBJMODDUMP) $(MODDUMPSRC1D:.f90=.o)
+OBJMODDUMP2D = $(OBJMODDUMP) $(MODDUMPSRC2D:.f90=.o)
+OBJMODDUMP3D = $(OBJMODDUMP) $(MODDUMPSRC3D:.f90=.o)
+             
+
+moddump1D: dimen1D.o $(OBJMODDUMP1D)
+	$(F90C) $(F90FLAGS) -o ../$@ dimen1D.o $(OBJMODDUMP1D)
+
+moddump2D: dimen2D.o $(OBJMODDUMP2D)
+	$(F90C) $(F90FLAGS) -o ../$@ dimen2D.o $(OBJMODDUMP2D)
+
+moddump3D: dimen3D.o $(OBJMODDUMP3D)
+	$(F90C) $(F90FLAGS) -o ../$@ dimen3D.o $(OBJMODDUMP3D)
+
+## other crap
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90

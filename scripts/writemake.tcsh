@@ -13,7 +13,7 @@ else
    echo $1':'
    echo '	cd ../; make '$1'; cp ./'$1'SPMHD '$PWD
    echo 'plot:'
-   echo '	cd ../plot; make'
+   echo '	cd ../plot; make dansph'
    echo 'plotc:'
    echo '	cd ../plot; make clean; make'
    echo 'edit:'
@@ -23,9 +23,9 @@ else
    echo 'evplotc:'
    echo '	cd ../; make clean; make plotev'
    echo 'moddump:'
-   echo '	cd ../utils; make moddump'$1
+   echo '	cd ../src; make moddump'$1
    echo 'moddumpc:'
-   echo '	cd ../utils; make clean; make moddump'$1
+   echo '	cd ../src; make clean; make moddump'$1
    echo 'clean:'
    echo '	cd ../; make clean'
 endif

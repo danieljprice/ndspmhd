@@ -26,7 +26,7 @@ subroutine write_dump(t,dumpfile)
  real, intent(in) :: t
  character(len=*), intent(in) :: dumpfile
  integer :: nprint,ndata
- integer :: i,ierr,iformat
+ integer :: ierr,iformat
 
  if (idumpghost.eq.1) then
     nprint = ntotal
@@ -118,7 +118,7 @@ end subroutine write_dump
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-subroutine read_dump(dumpfile,tfile)
+subroutine read_dump(dumpfile,tfile,copysetup)
 !
 !--include relevant global variables
 !
@@ -139,7 +139,8 @@ subroutine read_dump(dumpfile,tfile)
  implicit none
  character(len=*), intent(in) :: dumpfile
  real, intent(out) :: tfile
- integer :: i,j,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
+ logical, optional, intent(in) :: copysetup
+ integer :: i,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
  integer :: ierr, iformat,igeomfile
  real :: gammafile,hfactfile
  logical :: iexist
@@ -176,6 +177,15 @@ subroutine read_dump(dumpfile,tfile)
  endif
  write(iprint,*) 'time = ',tfile,' in dump file '
  write(iprint,*) 'xmin = ',xmin(1:ndimfile),' xmax = ',xmax(1:ndimfile)
+!
+!--copy setup options from header if desired
+!
+ if (present(copysetup)) then
+    if (copysetup) then
+       gamma = gammafile
+       hfact = hfactfile
+    endif
+ endif
 !
 !--check for compatibility with current settings
 !

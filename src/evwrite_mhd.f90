@@ -192,7 +192,7 @@ SUBROUTINE evwrite(t,etot,momtot)
     fdotBav = fdotBav/FLOAT(npart)
     force_err_av = force_err_av/FLOAT(npart)
 
-!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
+!!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag, &
           crosshel,betamhdmin,betamhdav,betamhdmax,   &
@@ -202,6 +202,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 30  FORMAT(20(1pe18.10,1x),1pe8.2)
       
  ELSE
+    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     WRITE(ievfile,40) t,ekin,etherm,emag,etot,momtot
 40  FORMAT(6(1pe18.10,1x))        
