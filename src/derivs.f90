@@ -31,7 +31,7 @@ subroutine derivs
        hh(i) = hh(npart-inext+1)
     enddo
  endif
- if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
+ if (ANY(ibound.NE.0)) call boundary ! inflow/outflow/periodic boundary conditions
 !
 !--set ghost particles if ghost boundaries are used
 !         
