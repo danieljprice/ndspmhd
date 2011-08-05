@@ -107,7 +107,6 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 SOURCES = sphND_mhd.f90   \
          boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
-	 coord_transform.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
@@ -135,20 +134,20 @@ SOURCESGR = allocateND_gr.f90 grutils_gr.f90 conservative2primitive_gr.f90 outpu
 	    stepND_mhd_gr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
-	    $(SETUP1D:.f90=.o)
+	    $(SETUP1D:.f90=.o) coord_transform.o
 OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
-	    $(SETUP2D:.f90=.o)
+	    $(SETUP2D:.f90=.o) coord_transform.o
 OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)\
-	    $(SETUP3D:.f90=.o)
+	    $(SETUP3D:.f90=.o) coord_transform.o
 
 OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP1D:.f90=.o)
+	    $(SETUP1D:.f90=.o) coord_transform.o
 
 OBJECTSGR2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP2D:.f90=.o)
+	    $(SETUP2D:.f90=.o) coord_transform.o
 
 OBJECTSGR3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
-	    $(SETUP3D:.f90=.o)
+	    $(SETUP3D:.f90=.o) coord_transform.o
 
 crap:
 	echo specify number of dimensions, e.g. make 1D
@@ -170,6 +169,11 @@ GR2D : 	$(OBJECTSGR2D)
 
 GR3D : 	$(OBJECTSGR3D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
+
+## files from elsewhere
+
+coord_transform.o:
+	$(FC) -c $(FFLAGS) $(LDFLAGS) ../plot/coord_transform.f90 -o $@
 
 tar:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
