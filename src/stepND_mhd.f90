@@ -23,6 +23,7 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim,ikernavprev,ierr
+ REAL :: hdt
 !
 !--allow for tracing flow
 !      
@@ -30,6 +31,7 @@ SUBROUTINE step
 !
 !--Mid-point Predictor step
 !      
+ hdt = 0.5*dt
       
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
@@ -251,7 +253,11 @@ SUBROUTINE step
 ! IF (idivBzero.NE.0) CALL divBcorrect
 !
  IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
-
+!
+!--set new timestep from courant/forces condition
+!
+ dt = min(dtforce,dtcourant)
+ 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
  RETURN

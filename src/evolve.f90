@@ -24,6 +24,7 @@ SUBROUTINE evolve
 !--Set initial timestep
 !
  dt = 0.
+ dt0 = 0.
  tprint = 0.0
  time = 0.0
  nsteps = 0
@@ -41,13 +42,10 @@ SUBROUTINE evolve
 !
  dostep: DO WHILE ((time.LT.tmax).AND.(nsteps.LT.nmax))
 
-    hdt = 0.5*dt
     time = time + dt
     nsteps = nsteps + 1
 
     CALL step 	 		!  Evolve data for one timestep
-
-    dt = min(dtforce,0.25*dtcourant) ! new timestep from force/Courant condition
 !
 !--write log every step in 2D/3D
 !
@@ -78,8 +76,10 @@ SUBROUTINE evolve
 !--calculate total energy etc and write to ev file    
 !
     IF (MOD(nsteps,nevwrite).EQ.0) CALL evwrite(time)
-
-    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
+!
+!--reach tprint exactly. Must take this out for integrator to be symplectic
+!
+!    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
 	 	 
  ENDDO dostep
 

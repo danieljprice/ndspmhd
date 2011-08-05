@@ -78,7 +78,7 @@ SUBROUTINE setup
  xmax(1) = radstar
  massp = psep*H		! this means that psep is the minimum separation
  imax = 1.1*totmass/massp   ! max number of particles
- itoystar = 1
+ iexternal_force = 1
 !
 !--allocate memory here
 !

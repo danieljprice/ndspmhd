@@ -81,7 +81,7 @@ SUBROUTINE setup
  imax = INT((xmax(1)-xmin(1))/psep)
  massp = psep
  gam1 = gamma - 1.
- itoystar = 1
+ iexternal_force = 1
 !
 !--allocate memory here
 !
