@@ -45,7 +45,7 @@ END MODULE
 MODULE derivB
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: divB
- REAL, DIMENSION(:,:), ALLOCATABLE :: curlB, avsource
+ REAL, DIMENSION(:,:), ALLOCATABLE :: curlB
 END MODULE
 
 !-------------------------------------------------------------------
@@ -220,7 +220,7 @@ MODULE timestep
 !
 ! (time step criterion from forces, courant condition)
 !
- REAL :: dtforce, dtcourant
+ REAL :: dtforce, dtcourant, C_force, C_cour
 END MODULE timestep
 
 !-------------------------------------------------------------------
