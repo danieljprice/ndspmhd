@@ -48,8 +48,8 @@ subroutine setup
  massp = totmass/float(ntotal) ! average particle mass
  
  przero = 1.0
- betazero = 0.1
- ampl = 0.1
+ betazero = 10.0
+ ampl = 0.01
  bzero = sqrt(2.*przero/betazero)
 !
 !--now assign particle properties
@@ -65,9 +65,9 @@ subroutine setup
     pmass(i) = massp
     uu(i) = 1.5	! isothermal
     if (abs(x(1,i)).gt.0.25) then
-       Bfield(2,i) = bzero
-    else
        Bfield(2,i) = -bzero
+    else
+       Bfield(2,i) = bzero
     endif
  enddo
 !
