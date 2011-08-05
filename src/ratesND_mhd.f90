@@ -532,12 +532,16 @@ subroutine get_rates
        if (iuse_exact_derivs.gt.0) then
           dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
           !--add the B/rho dot grad v bit
-          !print*,i,'dBevol/dt = ',sqrtg(i)*dBevoldt(:,i)*rho1i
+          !if (any(dBevoldt(:,i).gt.0.)) then
+          !print*,i,'dBevol/dt = ',dBevoldt(:,i)
+          !endif
           do k=1,ndimV
              dBevoldt(k,i) = dBevoldt(k,i) + dot_product(Bevol(1:ndim,i),dveldx(1:ndim,k,i))
           enddo
+          !if (any(dBevoldt(:,i).gt.0.)) then
           !print*,i,'dBevol/dt (exact) = ',dBevoldt(:,i)
           !read*
+          !endif
        else
           dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
           if (idivBzero.ge.2) then
@@ -817,7 +821,7 @@ contains
 !
 !--define local copies of quantities
 !
-    velj(:) = vel(:,j)            
+    velj(:) = vel(:,j)
     v2j = dot_product(velj(:),velj(:))
     dvel(:) = veli(:) - velj(:)
     dvdotr = dot_product(dvel,dr)
@@ -837,19 +841,19 @@ contains
     uuj = uu(j)
     
     phii_on_phij = phii/phi(j)
-    phij_on_phii = phi(j)*phii1       
-    sqrtgj = sqrtg(j)      
+    phij_on_phii = phi(j)*phii1
+    sqrtgj = sqrtg(j)
     !-- mhd definitions --
     if (imhd.ne.0) then
        Bj(:) = Bfield(:,j)
-       Brhoj(:) = Bj(:)*rho1j       
+       Brhoj(:) = Bj(:)*rho1j
        dB(:) = Bi(:) - Bj(:)
        projBi = dot_product(Bi,dr)
        projBj = dot_product(Bj,dr)
        projdB = dot_product(dB,dr)
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
-       
+
        if (trim(geom).ne.'cartes') then
           call metric_diag(x(:,j),gdiagj(:),sqrtgj,ndim,ndimV,geom)
           B2j = dot_product_gr(Bj,Bj,gdiagj)
