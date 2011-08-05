@@ -464,7 +464,7 @@ subroutine get_rates
 !
 !--calculate resistive timestep (bootstrap onto force timestep)
 !
-    if (etamhd.gt.tiny(etamhd)) then
+    if (iresist.gt.0 .and. etamhd.gt.tiny(etamhd)) then
        fhmax = max(fhmax,etamhd/hh(i)**2)
     endif
 
