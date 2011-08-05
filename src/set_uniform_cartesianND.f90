@@ -42,7 +42,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  IF (trace) WRITE(iprint,*) ' Entering subroutine uniform_cartesian ',idistin
  WRITE(iprint,*) 'Uniform cartesian distribution '
 
- IF (ndim.EQ.1) THEN 
+ IF (ndim.EQ.1 .and. idistin.ne.4) THEN 
     idist = 1   ! in 1D use default version
  ELSE
     idist = idistin
