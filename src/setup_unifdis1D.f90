@@ -48,21 +48,21 @@ SUBROUTINE setup
     x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
     vel(:,i) = 0.
     IF (x(1,i).LT.0.) THEN
-       rho(i) = 10.0
+       dens(i) = 10.0
        pmass(i) = 10.0*massp
     ELSE
-       rho(i) = 1.0
+       dens(i) = 1.0
        pmass(i) = massp
     ENDIF
     pri = 1.0
-    uu(i) = pri/((gamma-1.)*rho(i))
-    hh(i) = hfact*(pmass(i)/rho(i))**hpower	 ! ie constant everywhere
+    uu(i) = pri/((gamma-1.)*dens(i))
+    hh(i) = hfact*(pmass(i)/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.NE.0) THEN 
        Bfield(1,i) = 0.
-       Bfield(2,i) = sigma*rho(i)
+       Bfield(2,i) = sigma*dens(i)
        Bfield(3,i) = 0.
     ENDIF 
-!   print*,i,x(i),rho(i),uu(i),pmass(i),x(i)-x(i-1)
+!   print*,i,x(i),dens(i),uu(i),pmass(i),x(i)-x(i-1)
  ENDDO
   
  npart = imax

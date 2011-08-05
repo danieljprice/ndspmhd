@@ -28,7 +28,7 @@ SUBROUTINE setup
 !      
  IMPLICIT NONE
  INTEGER :: i,j,ntot,npartx,nparty,ipart
- REAL :: rhozero,rhodisk,przero,vzero,ftaper
+ REAL :: denszero,densdisk,przero,vzero,ftaper
  REAL :: pri,rdisk,rbuffer,radius
  REAL :: totmass,gam1,massp,const
  REAL, DIMENSION(ndim) :: xorigin, dx
@@ -56,13 +56,13 @@ SUBROUTINE setup
  Bzero(:) = 0.
  IF (imhd.NE.0) Bzero(1) = 5.0/const	! uniform field in Bx direction
  przero = 1.0		! initial pressure
- rhozero = 1.0		! ambient density
- rhodisk = 10.0		! density of rotating disk
+ denszero = 1.0		! ambient density
+ densdisk = 10.0		! density of rotating disk
  
  gam1 = gamma - 1.
 
  WRITE(iprint,*) 'Two dimensional MHD rotor problem '
- WRITE(iprint,10) rhodisk,rdisk,Bzero(1),vzero,przero
+ WRITE(iprint,10) densdisk,rdisk,Bzero(1),vzero,przero
 10 FORMAT(/,' Central density  = ',f10.3,', disk radius = ',f6.3,/, &
             ' Initial Bx   = ',f6.3,', rotation = ',f6.3,', pressure = ',f6.3,/)
 !
@@ -75,7 +75,7 @@ SUBROUTINE setup
 !
 !--determine particle mass in ambient medium
 !
- totmass = rhozero*PRODUCT(xmax(:)-xmin(:))
+ totmass = denszero*PRODUCT(xmax(:)-xmin(:))
  massp = totmass/FLOAT(ntotal) ! average particle mass
 !
 !--now assign particle properties
@@ -84,24 +84,24 @@ SUBROUTINE setup
     dx(:) = x(:,ipart)-xorigin(:) 
     radius = SQRT(DOT_PRODUCT(dx,dx))
     IF (radius.LE.rdisk) THEN
-       rho(ipart) = rhodisk
-       pmass(ipart) = massp*rhodisk/rhozero
+       dens(ipart) = densdisk
+       pmass(ipart) = massp*densdisk/denszero
        vel(1,ipart) = -vzero*(x(2,ipart)-xorigin(2))/rdisk
        vel(2,ipart) = vzero*(x(1,ipart)-xorigin(1))/rdisk
     ELSEIF (radius.LE.rbuffer) THEN	! smooth edge with taper function (Toth)
        ftaper = (rbuffer-radius)/(rbuffer - rdisk)
-       rho(ipart) = rhozero + (rhodisk-rhozero)*ftaper
-       pmass(ipart) = massp*rho(ipart)/rhozero
+       dens(ipart) = denszero + (densdisk-denszero)*ftaper
+       pmass(ipart) = massp*dens(ipart)/denszero
        vel(1,ipart) = -ftaper*vzero*(x(2,ipart)-xorigin(2))/radius
        vel(2,ipart) = ftaper*vzero*(x(1,ipart)-xorigin(1))/radius
     ELSE
        pmass(ipart) = massp
-       rho(ipart) = rhozero
+       dens(ipart) = denszero
        vel(:,ipart) = 0.
     ENDIF  
     pri = przero 
-    uu(ipart) = pri/(gam1*rhozero)
-    hh(ipart) = hfact*(pmass(ipart)/rho(ipart))**hpower	 ! ie constant everywhere
+    uu(ipart) = pri/(gam1*denszero)
+    hh(ipart) = hfact*(pmass(ipart)/dens(ipart))**hpower	 ! ie constant everywhere
     Bfield(:,ipart) = Bzero(:)
  ENDDO
 !

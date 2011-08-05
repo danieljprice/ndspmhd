@@ -29,7 +29,7 @@ SUBROUTINE setup
 !      
  IMPLICIT NONE
  INTEGER :: i,j,ntot,npartx,nparty,ipart
- REAL :: rhozero,przero,vzero
+ REAL :: denszero,przero,vzero
  REAL :: prblast,pri,uui,rblast,radius,enblast,enzero
  REAL :: totmass,gam1,massp,const
  REAL, DIMENSION(ndim) :: xblast, dblast
@@ -55,7 +55,7 @@ SUBROUTINE setup
     Bzero(1) = 10.0*const	! uniform field in Bx direction
  ENDIF
  przero = 1.0		! initial pressure
- rhozero = 1.0
+ denszero = 1.0
  prblast = 1000.0	! initial pressure within rblast
  enblast = 1.0
  enzero = 0.
@@ -64,7 +64,7 @@ SUBROUTINE setup
  IF (abs(gam1).lt.1.e-3) STOP 'eos cannot be isothermal for this setup'
 
  WRITE(iprint,10) ndim
- WRITE(iprint,20) prblast,rblast,rhozero,przero
+ WRITE(iprint,20) prblast,rblast,denszero,przero
  WRITE(iprint,30) Bzero
 10 FORMAT(/,1x,i1,'-dimensional adiabatic MHD blast wave problem')
 20 FORMAT(/,' Central pressure  = ',f10.3,', blast radius = ',f6.3,/, &
@@ -80,7 +80,7 @@ SUBROUTINE setup
 !
 !--determine particle mass
 !
- totmass = rhozero*PRODUCT(xmax(:)-xmin(:))	! assumes cartesian boundaries
+ totmass = denszero*PRODUCT(xmax(:)-xmin(:))	! assumes cartesian boundaries
  massp = totmass/FLOAT(ntotal) ! average particle mass
 ! enblast = enblast/massp   ! enblast is now the energy to put in a single particle
 !
@@ -89,9 +89,9 @@ SUBROUTINE setup
  DO ipart=1,ntotal
     vel(:,ipart) = 0.
 !--uniform density and smoothing length
-    rho(ipart) = rhozero
+    dens(ipart) = denszero
     pmass(ipart) = massp
-    hh(ipart) = hfact*(massp/rho(ipart))**hpower	 ! ie constant everywhere
+    hh(ipart) = hfact*(massp/dens(ipart))**hpower	 ! ie constant everywhere
 
     dblast(:) = x(:,ipart)-xblast(:) 
     radius = SQRT(DOT_PRODUCT(dblast,dblast))
@@ -112,7 +112,7 @@ SUBROUTINE setup
 !       pri = przero
 !       uui = enzero
 !    ENDIF   
-    uu(ipart) = uui	!pri/(gam1*rhozero)
+    uu(ipart) = uui	!pri/(gam1*denszero)
     Bfield(:,ipart) = Bzero(:)
  ENDDO
 !

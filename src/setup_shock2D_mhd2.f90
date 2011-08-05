@@ -28,7 +28,7 @@ SUBROUTINE setup
 !      
  IMPLICIT NONE
  INTEGER :: i,j,ntot,ipart,nparty
- REAL :: xcentre,rholeft,rhoright,uuleft,uuright
+ REAL :: xcentre,densleft,densright,uuleft,uuright
  REAL :: prleft, prright, exx, delta
  REAL :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright,enleft,enright
  REAL :: v2left,v2right,B2left,B2right
@@ -50,8 +50,8 @@ SUBROUTINE setup
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
  dsmooth = 10.      
- rholeft = 1.0
- rhoright = 1.0
+ densleft = 1.0
+ densright = 1.0
  prleft = 1.0
  prright = 1.0
  vleft(1) = 0.	!0.2
@@ -71,11 +71,11 @@ SUBROUTINE setup
     Byleft = 0.
     Byright = 0.
  ENDIF
- uuleft = prleft/(gam1*rholeft)
- uuright = prright/(gam1*rhoright)
- massp = rhoright*psep**ndim      
+ uuleft = prleft/(gam1*densleft)
+ uuright = prright/(gam1*densright)
+ massp = densright*psep**ndim      
  nparty = INT((xmax(2)-xmin(2))/psep)	
- psepleft = (massp/rholeft)**power
+ psepleft = (massp/densleft)**power
  xstart = 0.5*psepleft      ! offset from xmin boundary
  ystart = 0.5*psepleft      ! offset from ymin boundary
 !
@@ -94,16 +94,16 @@ SUBROUTINE setup
     					! discontinuity in x at this y
 
     x(1,ipart) = xmin(1) + xstart    
-    x(1,ipart + 1) = xmin(1) + psep*rhoright/rholeft + xstart
+    x(1,ipart + 1) = xmin(1) + psep*densright/densleft + xstart
 
     DO i=ipart,ipart+1
        x(2,i) = xmin(2) + (j-1)*psep	+ ystart! y position
-       rho(i) = rholeft
+       dens(i) = densleft
        uu(i) = uuleft
        enin(i) = enleft
        pmass(i) = massp
        vel(:,i) = vleft(:)	! overwrite vx
-       hh(i) = hfact*(pmass(i)/rholeft)**hpower
+       hh(i) = hfact*(pmass(i)/densleft)**hpower
        IF (imhd.NE.0) THEN
           Bfield(1,i) = Bxinit
           Bfield(2,i) = Byleft
@@ -116,30 +116,30 @@ SUBROUTINE setup
        ipart = ipart + 1         
        delta = (x(1,ipart-1) - xcentre)/psep
        IF (delta.GT.dsmooth) THEN
-          rho(ipart) = rhoright
+          dens(ipart) = densright
           uu(ipart) = uuright 
           vel(:,ipart) = vright(:) 
           Bfield(2,ipart) = Byright
           Bfield(3,ipart) = Bzright
        ELSEIF (delta.LT.-dsmooth) THEN
-          rho(ipart) = rholeft
+          dens(ipart) = densleft
           uu(ipart) = uuleft
           vel(:,ipart) = vleft(:)
           Bfield(2,ipart) = Byleft
           Bfield(3,ipart) = Bzleft
        ELSE
           exx = exp(delta)
-          rho(ipart) = (rholeft + rhoright*exx)/(1.0 +exx)
+          dens(ipart) = (densleft + densright*exx)/(1.0 +exx)
 !         uu(ipart) = (uuleft + uuright*exx)/(1.0 + exx)
-          uu(ipart) = (prleft + prright*exx)/((1.0 + exx)*gam1*rho(i))
+          uu(ipart) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
           vel(:,ipart) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
           Bfield(2,ipart) = (Byleft + Byright*exx)/(1.0 + exx)
           Bfield(3,ipart) = (Bzleft + Bzright*exx)/(1.0 + exx)
        ENDIF
-       x(1,ipart) = x(1,ipart-2) + 2.*(massp/rho(ipart-1))**hpower
+       x(1,ipart) = x(1,ipart-2) + 2.*(massp/dens(ipart-1))**hpower
        x(2,ipart) = xmin(2) + (j-1)*psep + ystart
        pmass(ipart) = massp
-       hh(ipart) = hfact*(massp/rho(ipart))**hpower
+       hh(ipart) = hfact*(massp/dens(ipart))**hpower
        Bfield(1,ipart) = Bxinit
     ENDDO
     ipart = ipart - 1      ! remove the one that is over the xmax boundary

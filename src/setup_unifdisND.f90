@@ -19,7 +19,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i
  REAL :: massp,volume,totmass
- REAL :: rhozero
+ REAL :: denszero
 !
 !--allow for tracing flow
 !
@@ -39,19 +39,19 @@ SUBROUTINE setup
 !
 !--determine particle mass
 !
- rhozero = 1.0
+ denszero = 1.0
  volume = PRODUCT(xmax(:)-xmin(:))
- totmass = rhozero*volume
+ totmass = denszero*volume
  massp = totmass/FLOAT(ntotal) ! average particle mass
 !
 !--now assign particle properties
 ! 
  DO i=1,ntotal
     vel(:,i) = 0.
-    rho(i) = rhozero
+    dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
-    hh(i) = hfact*(massp/rho(i))**hpower	 ! ie constant everywhere
+    hh(i) = hfact*(massp/dens(i))**hpower	 ! ie constant everywhere
     Bfield(:,i) = 0.
  ENDDO 
 !

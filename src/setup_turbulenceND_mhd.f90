@@ -27,7 +27,7 @@ SUBROUTINE setup
 !      
  IMPLICIT NONE
  INTEGER :: i,j,ntot,ipart,nfreq
- REAL :: rhozero,przero,spsound2
+ REAL :: denszero,przero,spsound2
  REAL, DIMENSION(ndimV) :: velzero,Bzero
  REAL :: totmass,volume,massp
  REAL :: rbuffer, exx,Ekin,ekinpart,pindex
@@ -53,18 +53,18 @@ SUBROUTINE setup
  beta_gammie = 0.01	! Gammie and Ostriker use a funny beta
  beta = 0.5*beta_gammie	! this is the usual beta (ratio of pressures)
 
- rhozero = 1.0		! initial density
+ denszero = 1.0		! initial density
  velzero(1) = 0.	! initial velocities
  przero = 1.0		! initial pressure 
- spsound2 = przero/rhozero
+ spsound2 = przero/denszero
  Bzero(1) = SQRT(przero/beta)
  
- Ewave = 100*rhozero*length*spsound2		! initial wave energy
+ Ewave = 100*denszero*length*spsound2		! initial wave energy
  Ekin = 0.5*Ewave				! initial kinetic energy
  
  WRITE(iprint,10) ndim
 10 FORMAT(/,1x,i1,'D compressible MHD turbulence ')
- WRITE(iprint,20) beta_gammie, Ewave, Bzero(1), rhozero, przero
+ WRITE(iprint,20) beta_gammie, Ewave, Bzero(1), denszero, przero
 20 FORMAT(/,' Beta (gammie)  = ',f10.3,', wave energy = ',f10.3,/, &
             ' Initial Bx     = ',f6.3,', density = ',f6.3,', pressure = ',f6.3,/)
 !
@@ -78,17 +78,17 @@ SUBROUTINE setup
 !--determine particle mass
 !
  volume = PRODUCT(xmax(:)-xmin(:))
- totmass = rhozero*volume
+ totmass = denszero*volume
  massp = totmass/FLOAT(ntotal) ! average particle mass
 !
 !--now assign particle properties
 ! 
  DO ipart=1,ntotal
     vel(:,ipart) = velzero(:)
-    rho(ipart) = rhozero
+    dens(ipart) = denszero
     pmass(ipart) = massp
     uu(ipart) = 1.0	! isothermal
-    hh(ipart) = hfact*(massp/rho(ipart))**hpower	 ! ie constant everywhere
+    hh(ipart) = hfact*(massp/dens(ipart))**hpower	 ! ie constant everywhere
     Bfield(:,ipart) = Bzero(:)
  ENDDO
 !
@@ -109,7 +109,7 @@ SUBROUTINE setup
 !
 !--set up magnetic field
 !
- Bfield(2,:) = vel(2,:)*SQRT(rhozero)
+ Bfield(2,:) = vel(2,:)*SQRT(denszero)
 !
 !--work out rms velocity and mag field perturbations
 !
@@ -120,7 +120,7 @@ SUBROUTINE setup
  Emag = 0.
  DO i=1,npart
     Ekin = Ekin + 0.5*pmass(i)*DOT_PRODUCT(vel(:,i),vel(:,i))
-    Emag = Emag + 0.5*pmass(i)*Bfield(2,i)**2/rhozero
+    Emag = Emag + 0.5*pmass(i)*Bfield(2,i)**2/denszero
     Brms = Brms + SQRT((Bfield(2,i)/Bzero(1))**2)
     vrms = vrms + SQRT(vel(2,i)**2/spsound2)
  ENDDO

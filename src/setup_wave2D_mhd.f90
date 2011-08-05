@@ -28,7 +28,7 @@ SUBROUTINE setup
  REAL, DIMENSION(ndim) :: runit,dxi,dxmax
  REAL, DIMENSION(ndimV) :: velzero
  REAL, DIMENSION(ndimB) :: Bzero
- REAL :: massp,totmass,rhozero,gam1,uuzero,przero
+ REAL :: massp,totmass,denszero,gam1,uuzero,przero
  REAL :: anglexy,ampl,wk,xlambda,rmax,denom
  REAL :: ri,rprev,xmassfrac,func,fderiv
  REAL :: pri,spsoundi,valfven2i
@@ -36,7 +36,7 @@ SUBROUTINE setup
  REAL :: vparallel,vperp,vz
  REAL :: Bparallel,Bperp,Bz
  REAL :: Bamplx,Bamply,Bamplz,Bampl_perp
- REAL :: vfast,vslow,vcrap,vwave,term,rho1
+ REAL :: vfast,vslow,vcrap,vwave,term,dens1
 !
 !--allow for tracing flow
 !
@@ -84,7 +84,7 @@ SUBROUTINE setup
  vperp = 0.1
  vparallel = 0.1
  vz = 0.1
- rhozero = 1.0
+ denszero = 1.0
  przero = 0.1
  Bparallel = 1.0
  Bperp = 0.1
@@ -94,7 +94,7 @@ SUBROUTINE setup
 !--work out dependent parameters
 !
  gam1 = gamma - 1.
-! uuzero = przero/(gam1*rhozero)
+! uuzero = przero/(gam1*denszero)
  velzero(1) = vparallel*runit(1) - vperp*runit(2)
  velzero(2) = vparallel*runit(2) + vperp*runit(1)
  velzero(3) = vz
@@ -109,16 +109,16 @@ SUBROUTINE setup
 !--determine particle mass
 !
  dxmax(:) = xmax(:) - xmin(:)
- totmass = rhozero*PRODUCT(dxmax)
+ totmass = denszero*PRODUCT(dxmax)
  massp = totmass/FLOAT(npart) ! average particle mass
  PRINT*,'npart,massp = ',npart,massp
  
  DO i=1,npart
     vel(:,i) = velzero
-    rho(i) = rhozero
+    dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    hh(i) = hfact*(pmass(i)/rhozero)**hpower	 ! ie constant everywhere
+    hh(i) = hfact*(pmass(i)/denszero)**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(:,i) = Bzero
     ENDIF 
@@ -133,19 +133,19 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- CALL equation_of_state(przero,spsoundi,uuzero,rhozero,gamma,1)
+ CALL equation_of_state(przero,spsoundi,uuzero,denszero,gamma,1)
 !
 !--work out MHD wave speeds
 !
- rho1 = 1./rhozero
+ dens1 = 1./denszero
  
- valfven2i = Bparallel**2*rho1
+ valfven2i = Bparallel**2*dens1
  vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  + SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*rho1)))
+                 - 4.*(spsoundi*Bparallel)**2*dens1)))
  vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
                  - SQRT((spsoundi**2 + valfven2i)**2	&
-                 - 4.*(spsoundi*Bparallel)**2*rho1)))
+                 - 4.*(spsoundi*Bparallel)**2*dens1)))
  vcrap = SQRT(spsoundi**2 + valfven2i)
 
 !----------------------------
@@ -198,11 +198,11 @@ SUBROUTINE setup
 !
 !--multiply by the appropriate amplitudes
 !
-    rho1 = 1./rho(i)
-    term = 1./(vwave**2 - Bparallel**2*rho1)
+    dens1 = 1./dens(i)
+    term = 1./(vwave**2 - Bparallel**2*dens1)
     vampl_par = vwave*ampl
-    vampl_perp = -vampl_par*Bparallel*Bperp*rho1*term
-    vamplz = -vampl_par*Bparallel*Bfield(3,i)*rho1*term
+    vampl_perp = -vampl_par*Bparallel*Bperp*dens1*term
+    vamplz = -vampl_par*Bparallel*Bfield(3,i)*dens1*term
     
     vamplx = vampl_par*runit(1) - vampl_perp*runit(2)
     vamply = vampl_par*runit(2) + vampl_perp*runit(1)
@@ -214,7 +214,7 @@ SUBROUTINE setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uu(i) = uu(i) + pri/rho(i)*ampl*SIN(wk*ri)	! if not polytropic
+   uu(i) = uu(i) + pri/dens(i)*ampl*SIN(wk*ri)	! if not polytropic
 !    
 !--perturb density if not using summation
 !
@@ -227,10 +227,10 @@ SUBROUTINE setup
     Bfield(1,i) = Bzero(1) + Bamplx*SIN(wk*ri)
     Bfield(2,i) = Bzero(2) + Bamply*SIN(wk*ri)
     Bfield(3,i) = Bzero(3) + Bamplz*SIN(wk*ri)
-    rho(i) = rho(i)*(1.+ampl*SIN(wk*ri))
+    dens(i) = dens(i)*(1.+ampl*SIN(wk*ri))
 
     IF (ihvar.NE.0) THEN
-       hh(i) = hfact*(pmass(i)/rho(i))**hpower	! if variable smoothing length
+       hh(i) = hfact*(pmass(i)/dens(i))**hpower	! if variable smoothing length
     ENDIF
 
  ENDDO
