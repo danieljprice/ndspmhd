@@ -19,10 +19,10 @@
 SUBROUTINE setkern  
  USE dimen_mhd
  USE debug
- USE loguns
+ USE loguns, only:iprint
  USE kernel
  USE kernelextra
- USE options
+ USE options, only:ikernel,ianticlump
  USE setup_params   ! for hfact in my kernel
  USE anticlumping
  IMPLICIT NONE         !  define local variables
@@ -469,7 +469,77 @@ SUBROUTINE setkern
          grgrwij(i) = 0.
       ENDIF
     ENDDO
-      
+
+  CASE(101)
+!
+!--this is the potential and force corresponding to the cubic spline
+!      
+    kernelname = 'potential'    
+   
+    radkern = 3.5
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(3)
+       cnormk = 1.
+      CASE DEFAULT
+       write(iprint,666)
+       STOP
+    END SELECT
+    DO i=0,ikern
+      q2 = i*dq2table
+      q = SQRT(q2)
+      q4 = q2*q2
+      !
+      ! note that the potential does not need to be divided by r
+      ! (tabulated like this to prevent numerical divergences)
+      ! however the force must be divided by 1/r^2
+      !
+      IF (q.LT.1.0) THEN 
+         wij(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
+         grwij(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
+      ELSEIF (q.LT.2.0) THEN
+         wij(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
+         grwij(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+      ELSE
+         wij(i) = -1./q
+         grwij(i) = 1.0
+      ENDIF
+    ENDDO
+    
+  CASE(102)
+!
+!--this is the force softening kernel corresponding to the cubic spline
+!      
+    kernelname = 'force'    
+   
+    radkern = 3.5
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(3)
+       cnormk = 1.
+      CASE DEFAULT
+       write(iprint,666)
+       STOP
+    END SELECT
+    DO i=0,ikern
+      q2 = i*dq2table
+      q = SQRT(q2)
+      q4 = q2*q2
+      IF (q.LT.1.0) THEN
+         !!wij(i) = 2./3.*q2*q - 0.3*q4*q + 0.1*q4*q2 - 1.4*q
+         wij(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
+      ELSEIF (q.LT.2.0) THEN
+         !!wij(i) = 4./3.*q2*q - q4 + 0.3*q4*q - q4*q2/30. - 1.6*q + 1./(15.)
+         wij(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+      ELSE
+         !!wij(i) = -1.
+         wij(i) = 1.0
+         grgrwij(i) = 0.
+      ENDIF
+    ENDDO
+
   CASE DEFAULT  
 !
 !--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
