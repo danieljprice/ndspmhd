@@ -11,7 +11,7 @@ program plotmeagraph
   integer :: ncol
   integer, parameter :: maxfile=25
   integer, parameter :: maxstep=6000
-  integer, parameter :: maxcol=22        ! (6)21 (non)MHD        maximum number of columns
+  integer, parameter :: maxcol=25        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,nfiles,ifile,ifilesteps
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,ierr
@@ -152,26 +152,24 @@ program plotmeagraph
   label(5) = 'E_pot          '
   label(6) = 'E_total        '
   label(7) = 'Linear momentum'
-
+  label(8) = 'rho max'
+  label(9) = 'rho mean '
   if (ncol.gt.10) then
-     label(8) = 'Total flux     '
-     label(9) = 'Cross helicity '
-     label(10) = 'Plasma beta (min)'
-     label(11) = 'Plasma beta (ave)'
-     label(12) = 'Plasma beta (max)'
-     label(13) = 'div B (average)  '
-     label(14) = 'div B (maximum)  '
-     label(15) = 'int (div B) dV   '
-     label(16) = 'Fmag dot B/|Fmag| (av)'
-     label(17) = 'Fmag dot B/|Fmag| (max)'
-     label(18) = 'Fmag dot B/|force| (av)'
-     label(19) = 'Fmag dot B/|force| (max)'            
-     label(20) = 'omega_mhd (average)'
-     label(21) = 'omega_mhd (max) '
-     label(22) = '% particles with omega < 0.01 '
-  else
-     label(8) = 'rho max'
-     label(9) = 'rho mean'  
+     label(10) = 'Total flux     '
+     label(11) = 'Cross helicity '
+     label(12) = 'Plasma beta (min)'
+     label(13) = 'Plasma beta (ave)'
+     label(14) = 'Plasma beta (max)'
+     label(15) = 'div B (average)  '
+     label(16) = 'div B (maximum)  '
+     label(17) = 'int (div B) dV   '
+     label(18) = 'Fmag dot B/|Fmag| (av)'
+     label(19) = 'Fmag dot B/|Fmag| (max)'
+     label(20) = 'Fmag dot B/|force| (av)'
+     label(21) = 'Fmag dot B/|force| (max)'            
+     label(22) = 'omega_mhd (average)'
+     label(23) = 'omega_mhd (max) '
+     label(24) = '% particles with omega < 0.01 '
   endif
   label(ncol) = 'nstep          '
 
