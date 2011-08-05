@@ -94,6 +94,12 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart)
     sink = 0.25*pi
     fext(1) = -Asin*sink*SIN(sink*(xpart(1) + Bsin))
 
+  case(8)
+!
+!--gravity
+!
+    if (ndim.ge.2) fext(2) = -1.
+
   case default
      
      fext(:) = 0.
