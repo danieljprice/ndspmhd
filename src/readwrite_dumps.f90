@@ -136,7 +136,7 @@ subroutine read_dump(dumpfile,tfile)
  integer :: ierr, iformat,igeomfile
  real :: gammafile,hfactfile
  logical :: iexist, mhdfile
- real, dimension(ndim) :: xnew
+ real, dimension(ndim) :: xnew,vecnew
 
  igeomfile = 0
 !
@@ -254,17 +254,21 @@ subroutine read_dump(dumpfile,tfile)
     write(iprint,*) 'CONVERTING file from coord system ',igeomfile,' to ',igeom
     do i=1,npart
        call coord_transform(x(:,i),ndim,igeomfile,xnew(:),ndim,igeom)
+       call vector_transform(x(:,i),vel(1:ndim,i),ndim,igeomfile, &
+                                    vecnew(1:ndim),ndim,igeom)                                    
        x(:,i) = xnew(:)
+       vel(1:ndim,i) = vecnew(1:ndim)
     enddo
-    write(iprint,*) 'WARNING: vector transform not yet implemented'
+    write(iprint,*) 'WARNING: vector transform not yet implemented on B'
  endif
  
  
  write(iprint,*) 'finished reading setup file: everything is aok'
 
  if (igeom.eq.2) then
-    ibound(1) = 0 ! reflective in r
+    ibound(1) = 2 ! reflective in r
     xmin(1) = 0.0
+    xmax(1) = 10000.0 ! a long way away
     if (ndim.ge.2) then 
        ibound(2) = 3 ! periodic in phi
        xmin(2) = -pi ! phi min
