@@ -15,7 +15,7 @@ subroutine copy_particle(i,j)
   implicit none
   integer :: i,j
 
-  if (trace) write(iprint,*) 'copying particle ',j,' to particle ',i
+  if (idebug(1:4).eq.'copy') write(iprint,*) 'copying particle ',j,' to particle ',i
   vel(:,i) = vel(:,j)
   pmass(i) = pmass(j)
   rho(i) = rho(j)
