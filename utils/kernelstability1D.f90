@@ -129,7 +129,11 @@ subroutine kernelstability1D(iplot,nacross,ndown)
      call pgsch(1.0)
      call danpgtile(iplot,nacross,ndown, &
           1.0,1.99,0.8,1.11, &  ! tiled plots
-          'h','cs',TRIM(kernelname),0,0)
+          'h','cs',' ',0,0)
+     if (iplot.eq.2) then
+        !call pgsls(5)
+        call legend(5,trim(kernelname)//', fixed h',0.6,25.0)
+     endif
      call pgline(ny,yaxis(1:ny),sqrt(dat(1,1:ny)))
      !
      !--plot line from file
