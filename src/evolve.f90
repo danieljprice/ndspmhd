@@ -134,7 +134,7 @@ subroutine evolve
 !
  if (abs(momtotin).lt.tiny(momtotin))  momtotin = 1.0
  if (abs(etotin).lt.tiny(etotin)) etotin = 1.0
- write(iprint,20) detot/etotin,dmomtot/momtotin
+ write(iprint,20) detot/abs(etotin),dmomtot/abs(momtotin)
 20 format(/,' Max energy error   : ',1pe10.2,3x,' Max momentum error : ',1pe10.2)
 !
 !--now print out total code timings:
