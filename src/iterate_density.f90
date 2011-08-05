@@ -28,10 +28,10 @@ subroutine iterate_density
 !--define local variables
 !
   implicit none
-  integer :: i,j,itsdensity,itsdensitymax
+  integer :: i,j,itsdensitymax
   integer :: ncalc,ncalcprev,ncalctotal,isize
   integer, dimension(:), allocatable :: redolist, redolistprev
-  real :: tol,hnew
+  real :: tol,hnew,f,dfdrho,deltarho
   real, dimension(:), allocatable :: rho_old
   logical :: converged,redolink
 !
@@ -112,13 +112,17 @@ subroutine iterate_density
               
               gradh(i) = gradh(i)/rho(i)    ! now that rho is known
               if (abs(1.-gradh(i)).lt.1.e-5) then
-            print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
-       if (abs(1.-gradh(i)).eq.0.) call quit
-         endif
+                 print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
+                 if (abs(1.-gradh(i)).eq.0.) call quit
+              endif
 !
 !--perform Newton-Raphson iteration on rho
 !      
-!             rho(i) = rho_old(i) - (rho_old(i) - rho(i))/(1.-gradh(i))
+              !f = rho_old(i) - rho(i)
+	      !dfdrho = 1.- gradh(i)
+	      !deltarho = -f/dfdrho
+	      
+	      !rho(i) = rho_old(i) + deltarho
 !
 !--work out new smoothing length h
 !
@@ -128,7 +132,8 @@ subroutine iterate_density
 !
 !             PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
               
-              converged = abs((hnew-hh(i))/hh(i)) < tol     
+              !!converged = abs((rho(i)-rho_old(i))/rho(i) < tol)
+	      converged = abs((hnew-hh(i))/hh(i)) < tol     
               if (.not.converged) then
                  ncalc = ncalc + 1
                  redolist(ncalc) = i
@@ -137,7 +142,10 @@ subroutine iterate_density
 !
 !--update smoothing length only if taking another iteration
 !
-                 if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) hh(i) = hnew
+                 if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) then
+!!		    print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
+		    hh(i) = hnew		    
+		 endif
                  if (hnew.gt.hhmax) then
                     redolink = .true.
                  endif
@@ -178,9 +186,11 @@ subroutine iterate_density
      endif
      
   enddo iterate
-  
-  if (itsdensity.gt.1 .and. ndim.ge.2) write(iprint,*) ' Finished density, iterations = ', &
-                                       itsdensity, ncalctotal
+
+!--NB: itsdensity is also used in step  
+  if (itsdensity.gt.2 .or. (itsdensity.gt.1 .and. ndim.ge.2)) then
+     write(iprint,*) ' Finished density, iterations = ',itsdensity, ncalctotal
+  endif
   
   return
 end subroutine iterate_density

@@ -135,6 +135,7 @@ SUBROUTINE setkern
        cnormk = 0.5/1280.
       CASE DEFAULT
        write(iprint,666)
+       stop
     END SELECT
     DO i=0,ikern         
        q2 = i*dq2table
@@ -207,7 +208,8 @@ SUBROUTINE setkern
         cnormk = 42./(2.*pi*(A*alpha**7 + B*beta**7 + C*gamma**7 + radkern**7))
         print*,'2D cnormk = ',cnormk,' A,B = ',A,B,beta,alpha
       CASE DEFAULT
-       write(iprint,666)     
+       write(iprint,666)
+       stop  
     END SELECT
   
     DO i=0,ikern         
@@ -416,6 +418,7 @@ SUBROUTINE setkern
        cnormk = 1./16.
       CASE DEFAULT
        write(iprint,666)
+       stop
     END SELECT
     DO i=0,ikern
       q2 = i*dq2table
@@ -434,7 +437,37 @@ SUBROUTINE setkern
          grgrwij(i) = 0.
       ENDIF
     ENDDO  
-      
+    
+  CASE(13)
+!
+!--this is the Lucy kernel (to 2h not to 1h)
+!
+    kernelname = 'Lucy kernel'    
+   
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+       cnormk = 3./5.
+      CASE DEFAULT
+       write(iprint,666)
+       STOP
+    END SELECT
+    DO i=0,ikern
+      q2 = i*dq2table
+      q = SQRT(q2)
+      IF (q.LT.2.0) THEN
+         wij(i) = cnormk*(1.+0.5*q)*(1.-0.5*q)**3
+         grwij(i) = cnormk*(0.5*(1.-0.5*q)**3 - 1.5*(1.+0.5*q)*(1.-0.5*q)**2)
+         grgrwij(i) = cnormk*(-1.5*(1.-0.5*q)**2 + 1.5*(1.+0.5*q)*(1.-0.5*q))
+      ELSE
+         wij(i) = 0.0
+         grwij(i) = 0.0
+         grgrwij(i) = 0.
+      ENDIF
+    ENDDO
+        
   CASE DEFAULT  
 !
 !--default is cubic spline (see Monaghan 1992; Monaghan & Lattanzio 1985)
