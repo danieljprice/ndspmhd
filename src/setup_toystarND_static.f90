@@ -191,7 +191,7 @@ subroutine modify_dump
     write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
  else
     write(iprint,*) 'NONLINEAR MODES: alpha = ',alpha,' beta = ',betatstar
-    write(iprint,*) '               : c = ',ctstar1,' d = ',ctstar2   
+    if (.not.symmetric) write(iprint,*) '               : c = ',ctstar1,' d = ',ctstar2   
  endif
  
  gamm1 = gamma - 1.
