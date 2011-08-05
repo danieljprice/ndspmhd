@@ -65,20 +65,21 @@ subroutine sobolsequence(ndim,x)
   !  as some are fixed by the recurrence (e.g. for degree 1, 1st bit is 1
   !  so 2nd, 3rd, 4th go 3,5,15 as set by the recurrence)
   !
-  istart(:,1) = 1                  ! 1st bit for degree 1, so < 2
-  istart(:,2) = (/3,1,3,3,1,1/)    ! 2nd bit for degree 2, so < 4
-  istart(:,3) = (/5,7,7,3,3,5/)    ! 3rd bit for degree 3, so < 8
-  istart(:,4) = (/15,1,5,15,13,9/) ! 4th bit for degree 4, so < 16 
-  istart(:,5:maxbit) = 0
+  ibitsequence(:,1) = 1                  ! 1st bit for degree 1, so < 2
+  ibitsequence(:,2) = (/3,1,3,3,1,1/)    ! 2nd bit for degree 2, so < 4
+  ibitsequence(:,3) = (/5,7,7,3,3,5/)    ! 3rd bit for degree 3, so < 8
+  ibitsequence(:,4) = (/15,1,5,15,13,9/) ! 4th bit for degree 4, so < 16 
+  ibitsequence(:,5:maxbit) = 0
 
-  print*,'factor = ',factor,' number in sequence =',inuminseq
-  print*,'ibitsequence = ',ibitsequence
+  !print*,'factor = ',factor,' number in sequence =',inuminseq
+  !print*,'ibitsequence = ',ibitsequence
 
   if (ndim.le.0) then
-     ix = 0
+     ix(:) = 0
      inuminseq = 0
+     if (ibitsequence(1,1).ne.1) return
      factor = 1./2.**maxbit
-     print*,'fac = ',factor,maxbit,2**maxbit
+     !print*,'fac = ',factor,maxbit,2**maxbit
      !
      !--initialise the maxdim Sobol sequences (nothing returned in x)
      !  this means calculating all of the direction numbers
@@ -89,7 +90,7 @@ subroutine sobolsequence(ndim,x)
         !  (these are those initialised above) to give the direction numbers
         !
         do j=1,ipolydeg(iseq)
-           ibitsequence(iseq,j) = istart(iseq,j)*2**(maxbit-j)
+           ibitsequence(iseq,j) = ibitsequence(iseq,j)*2**(maxbit-j)
         enddo
 !        print*,'iseq = ',iseq,' istart = ',ibitsequence(iseq,:)
         !
