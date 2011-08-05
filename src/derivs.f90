@@ -10,7 +10,7 @@ subroutine derivs
  use setup_params, only:hfact
  use cons2prim, only:conservative2primitive
  use resistivity, only:Bdiffusion
- use timestep, only:dt
+ use timestep, only:dt,C_Cour,C_force,dtcourant,dtforce
  use options, only:iresist,etamhd
  implicit none
  logical, parameter :: itiming = .false.
@@ -68,7 +68,8 @@ subroutine derivs
  call get_rates
  
  if (imhd.eq.11 .and. iresist.eq.2 .and. etamhd.gt.0.) then
-    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,dt)
+    !print*,' in derivs, dt = ',dt,min(C_force*dtforce,C_cour*dtcourant)
+    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,min(C_force*dtforce,C_cour*dtcourant))
  endif
 
  if (itiming) then
