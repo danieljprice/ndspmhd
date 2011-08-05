@@ -210,8 +210,8 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          outputND_mhd.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
-	 set_fixedbound.f90 \
-	 sobolsequence.f90 sort_particles.f90 substep_divB.f90 utils.f90 \
+	 set_fixedbound.f90 smooth.f90 \
+	 sort_particles.f90 substep_divB.f90 utils.f90 \
 	 write_headerND_mhd.f90 \
 	 get_divB.f90 get_curl.f90 divBcorrect.f90 get_divBgradpsi.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
