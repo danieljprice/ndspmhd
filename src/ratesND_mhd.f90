@@ -152,10 +152,10 @@ subroutine get_rates
     do i=1,ntotal
        call metric_diag(x(:,i),gdiagi(:),sqrtgi,ndim,ndimV,geom)
        B2i = dot_product_gr(Bfield(:,i),Bfield(:,i),gdiagi(:))
-       stressterm = max(0.5*B2i - pr(i),0.)
-       stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
+!       stressterm = max(0.5*B2i - pr(i),0.)
+!       stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
     enddo
-    if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
+ !   if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
  endif
 !
 !--set MHD quantities to zero if mhd not set
@@ -386,7 +386,7 @@ subroutine get_rates
 !--add external (body) forces
 !
     if (iexternal_force.ne.0) then
-       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim)
+       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim,ndimV,vel(1:ndimV,i))
        force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
     endif
 !
@@ -585,6 +585,7 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
+    real :: vidotdS,vjdotdS
 
    pmassj = pmass(j)
 !
@@ -795,6 +796,16 @@ contains
     elseif (iener.gt.0 .and. iav.lt.0) then
        dudt(i) = dudt(i) + pmassj*prstar*(rho21i)*dvdotr*grkerni
        dudt(j) = dudt(j) + pmassi*prstar*(rho21j)*dvdotr*grkernj
+    elseif (iener.eq.4) then
+       !
+       !--add surface term
+       !
+       vidotdS = veli(1) !!dot_product(veli(:),dr(:))
+       vjdotdS = velj(1) !!-dot_product(velj(:),dr(:))
+       dudt(i) = dudt(i) - pri*rho21i*(rhoi*vidotdS*wabi - rhoj*vjdotdS*wabj)
+       dudt(j) = dudt(j) - prj*rho21j*(rhoj*vjdotdS*wabj - rhoi*vidotdS*wabi)
+       !               ( ^ change of sign here is because of the v dot dS defined above)
+
     endif
 
 !------------------------------------------------------------------------
@@ -820,6 +831,8 @@ contains
     if (ixsph.eq.1) then
        xsphterm(:,i) = xsphterm(:,i) - pmassj*dvel(:)*rhoav1*wabalt
        xsphterm(:,j) = xsphterm(:,j) + pmassi*dvel(:)*rhoav1*wabalt
+!       dudt(i) = dudt(i) - 0.2*pmassj*(uu(i)-uu(j))*rhoav1*grkernalti
+!       dudt(j) = dudt(j) + 0.2*pmassi*(uu(i)-uu(j))*rhoav1*grkernaltj
     endif
     
     return
