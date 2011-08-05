@@ -1,7 +1,7 @@
 subroutine kernelstability1D(iplot,nacross,ndown)
   use kernel
   implicit none
-  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
+  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 100
   integer, intent(in) :: iplot, nacross, ndown
   integer :: i,j,ipart,mm,pp,nc
   real, parameter :: pi = 3.1415926536
@@ -26,9 +26,9 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
 !--set various options
 !  
-  contours = .false.     ! plot whole dispersion relation or just kx=0
+  contours = .true.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
-  R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
+  R = -100.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
 !
 !--set up an array of particle positions to sum over
@@ -42,7 +42,7 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !--set up an array of smoothing length values for the y axis
 !
   if (negstress) then   ! y axis is negative stress parameter R
-     ymin = -1.
+     ymin = -100.
      ymax = 1.
      labely = 'R'
   else                  ! y axis is h
@@ -87,7 +87,8 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
   if (contours .or. negstress) then
 !!  call pgbegin(0,'?',1,1)
-!!  call pgsch(1.2)
+     call pgsch(1.2)
+     if (mod(iplot,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
      call danpgtile(iplot,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
                  'kx',TRIM(labely),TRIM(kernelname),0,0)
 !  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
@@ -127,18 +128,14 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !--plot just the line along kx = 0
 !
      call pgsch(1.0)
+     if (iplot.eq.1) call pgpage
      call danpgtile(iplot,nacross,ndown, &
           1.0,1.99,0.8,1.11, &  ! tiled plots
           'h','cs',' ',0,0)
-     if (iplot.eq.2) then
-        !call pgsls(5)
-        call legend(5,trim(kernelname)//', fixed h',0.6,25.0)
-     endif
      call pgline(ny,yaxis(1:ny),sqrt(dat(1,1:ny)))
      !
      !--plot line from file
      !
-     call pgsls(2)
      if (iplot.eq.1) then
         open(unit=11,file='legend',status='old')
 20      continue
@@ -154,6 +151,8 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 	   endif
 	enddo
         close(unit=11)
+     else
+        call legend(5,trim(kernelname)//', fixed h',0.6,25.0)     
      endif
 
      call pgsch(charheight)

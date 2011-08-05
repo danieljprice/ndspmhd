@@ -57,10 +57,14 @@ SUBROUTINE setup
     IF (imhd.ne.0) Bzero(1:3) = 0.5  
     WRITE(iprint,10) 'MHD fast wave'
  ELSE                        ! Sound wave
-    ampl = 0.05
+    ampl = 0.005
     denszero = 1.0
-    uuzero = 1.0
-    Bzero = 0.0
+    if (abs(gamma-1.).gt.1e-3) then
+       uuzero = 1.0/((gamma-1.)*gamma)
+    else
+       uuzero = 1.0
+    endif
+    Bzero(1) = 100.0
     WRITE(iprint,10) 'sound wave'
  ENDIF
  xlambda = 1.0    
@@ -73,7 +77,7 @@ SUBROUTINE setup
  xmin(:) = 0.   ! set position of boundaries
  xmax(1) = 1.0 
  IF (ndim.GE.2) THEN
-    xmax(2:ndim) = 0.25 ! would need to adjust this depending on grid setup
+    xmax(2:ndim) = 6.*psep ! would need to adjust this depending on grid setup
  ENDIF
 !
 !--initially set up a uniform density grid (also determines npart)
@@ -191,8 +195,8 @@ SUBROUTINE setup
     vamplz = -vamplx*Bfield(1,i)*Bfield(3,i)/(dens(i)*term)
     
     vel(1,i) = vamplx*SIN(wk*dxi)
-    vel(2,i) = vamply*SIN(wk*dxi)
-    vel(3,i) = vamplz*SIN(wk*dxi)
+!    vel(2,i) = vamply*SIN(wk*dxi)
+!    vel(3,i) = vamplz*SIN(wk*dxi)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
@@ -201,8 +205,8 @@ SUBROUTINE setup
 !    
 !--perturb density if not using summation
 !
-    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
-    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
+!    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
+!    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
     dens(i) = dens(i)*(1.+ampl*SIN(wk*dxi))
 
  ENDDO
