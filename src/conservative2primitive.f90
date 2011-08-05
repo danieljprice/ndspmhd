@@ -41,7 +41,7 @@ subroutine conservative2primitive(rho,vel,uu,en,Bfield,Bcons,ierr)
   if (iener.eq.3) then     ! total energy is evolved
      v2i = DOT_PRODUCT(vel,vel)
      uu = en - 0.5*v2i - 0.5*B2i
-  elseif (iener.ge.1) then ! thermal energy is evolved
+  else		 ! en = thermal energy
      uu = en
   endif
   if (uu.lt.0.) then
@@ -86,8 +86,8 @@ subroutine primitive2conservative(rho,vel,uu,en,Bfield,Bcons,ierr)
   if (iener.eq.3) then     ! total energy is evolved
      v2i = DOT_PRODUCT(vel,vel)
      en = uu + 0.5*v2i + 0.5*B2i
-     if (uu.lt.0.) ierr = 1  ! error if negative thermal energy
-  elseif (iener.ge.1) then ! thermal energy is evolved
+     if (uu.lt.0.) stop 'primitive2conservative: utherm -ve'
+  else		! en = thermal energy
      en = uu
   endif
 

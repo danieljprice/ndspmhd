@@ -8,45 +8,50 @@
 .KEEP_STATE:
 
 # specify editor to use for file editing
-EDITOR = xemacs
+EDITOR = nedit
 
-# define the implicit rule to make a .o file from a .f90 file
-
-%.o : %.f90
-	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
 ##.SUFFIXES:
 ##.SUFFIXES:.f90 .o
 
-###### Sun f90 compiler (IoA)
+## ------------------------------------------------------------------ ##
+## Compiler options (uncomment ONE set)
+## ------------------------------------------------------------------ ##
+# IoA compiler (Sun fortran)
+#
+# -C gives array out-of-bounds checking
+# -u forces implicit none
+# -g for debugging with dbx etc
+# -pg for profiling
+# -xtypemap=real:64,double:64,integer:32 for double precision
+# -ftrap = %all traps floating point exceptions
+#
+#FC = f90
 #F90C = f90
+#FFLAGS = -O4
+#F90FLAGS = -O4 ###-C -O4 -xtypemap=real:64,double:64,integer:32
+#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
+## ------------------------------------------------------------------ ##
+# Monash compiler (Lahey-Fujitsu f95)
+FC = lf95
+F90C = lf95
+FFLAGS = -O ##--chk aesux --chkglobal  --warn
+F90FLAGS = -O ##--chk aesux --chkglobal --warn
+LDFLAGS = ##-lpgplot -L/usr/X11R6/lib -lX11
+## ------------------------------------------------------------------ ##
+# Swinburne compiler (Intel fortran)
+#FC = ifort
+#F90C = ifort
+#FFLAGS = -O -CB -std90 -check all
+#F90FLAGS = -O -CB -std90 -check all
+#LDFLAGS =  -lg2c -L/usr/local/pgplot -lpgplot -L/usr/X11R6/lib -lX11
+## ------------------------------------------------------------------ ##
 
-## -C gives array out-of-bounds checking
-## -u forces implicit none
-## -g for debugging with dbx etc
-## -pg for profiling
-## -xtypemap=real:64,double:64,integer:32 for double precision
-## -ftrap = %all traps floating point exceptions
+# define the implicit rule to make a .o file from a .f90 file
 
-#F90FLAGS = -O4 
-# use the following instead for double precision
-#F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
+%.o : %.f90
+	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
-####### monash compiler (lf95):
-#F90C = lf95
-#F90FLAGS = ##-O 
-#DBLFLAGS = ##-dbl
-
-####### Swinburne compiler (ifort):
-F90C = ifort
-F90FLAGS = -O
-DBLFLAGS =
-
-# PGPLOT libraries (note linking with the -lF77 libraries causes an 
-# error in the flush commands, just means output is buffered).
-# NOTE: cannot use the double precision flags when compiling with PGPLOT
-#LDFLAGS = -lpgplot -lX11 -lF77
-LDFLAGS =
 
 # use the appropriate dimensions module
 
@@ -62,12 +67,12 @@ SOURCES3D = dimen3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
 #SETUP1D = setup_sphericalblastND_mhd.f90
-#SETUP1D = setup_alfvenwaveND_x.f90
+SETUP1D = setup_alfvenwaveND_x.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -131,8 +136,7 @@ OBJECTSGR = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCESGR:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
 
 crap:
-	echo $(OBJECTS1D) 
-	echo $(F90C)
+	echo try make 1D
 
 1D: $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)

@@ -29,6 +29,7 @@ SUBROUTINE get_neighbour_list(icell,neighcell,listneigh,nneigh)
 !--allow for tracing flow (removed for speed)
 !      
 ! IF (trace) WRITE(iprint,*) ' Entering subroutine get_neighbour_list'
+ debugging = .false.
  IF (idebug(1:4).EQ.'neig') debugging = .true.
 !
 !--work out whether cell is near a boundary

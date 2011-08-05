@@ -61,6 +61,7 @@ subroutine iterate_density
   ncalc = npart	! number of particles to calculate density on
   redolink = .false.
   ncalcprev = 0
+  gradh = 0.
   if (ncalc.eq.npart) then
      do j=1,npart     
         redolist(j) = j

@@ -41,12 +41,16 @@ SUBROUTINE alloc(newsizein)
 !
 !--set size of neighbour list
 !
- nlistdim = newsize/2	! ie. up to half of particles can be neighbours
+ nlistdim = newsizein/2	! ie. up to half of particles can be neighbours
 !
 !--work out whether reallocating memory and what the current array size is
 ! 
  reallocate = ALLOCATED(x)
- ioldsize = SIZE(rho) 		! current array size
+ IF (allocated(rho)) THEN
+    ioldsize = SIZE(rho)  ! current array size
+ ELSE
+    ioldsize = 0
+ ENDIF
 !
 !--check for errors
 ! 
