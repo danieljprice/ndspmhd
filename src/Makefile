@@ -40,17 +40,17 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-#SETUP1D = setup_shockND.f90
+SETUP1D = setup_shockND.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
-#SETUP2D = setup_orszagtang2D_mhd.f90
+SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
@@ -70,7 +70,7 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_disc2D_2.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
-SETUP2D = setup_torus2D.f90
+#SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 
@@ -81,9 +81,9 @@ SETUP2D = setup_torus2D.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
-SETUP3D = setup_torus3D.f90
+#SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
-#SETUP3D = setup_densityprofileND.f90
+SETUP3D = setup_densityprofileND.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -98,12 +98,13 @@ MODDUMPSRC3D = moddump_tstar2D.f90
 
 SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
+         get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND_1D.f90 check_setup.f90 \
+         boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
          direct_sum_poisson3D_soft.f90 \
-         get_neighbour_lists.f90 \
+          grutils_gr.f90 \
          density_sums.f90 \
 	 eos.f90 evolve.f90 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
@@ -122,7 +123,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 
 
 # these files are for the gr version of the code
-SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
+SOURCESGR = conservative2primitive_gr.f90 \
 	    stepND_mhd_gr.f90 evwrite_mhd_gr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
