@@ -11,7 +11,7 @@ subroutine check_neighbourlist
  implicit none
  integer :: i,j,n,ineigh
  integer :: icell,icellloop,ipart,iprev,ncell,nneigh,icellprev
- integer, allocatable, dimension(:) :: listneigh,numneigh ! neighbour list
+ integer, allocatable, dimension(:) :: listneigh
  integer, allocatable, dimension(:,:) :: neighbour_list
  integer :: idone, nlistdim
  real :: rij,rij2,hi,q2i,q2j

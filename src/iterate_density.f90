@@ -80,7 +80,7 @@ subroutine iterate_density
 !     
      if (ncalc.eq.npart) then
         call density(x,pmass,hh,rho,gradh,npart) ! symmetric for particle pairs
-        !!call output(0.0,1)
+        !call output(0.0,1)
      else
         call density_partial(x,pmass,hh,rho,gradh,npart,ncalc,redolist)
      endif
@@ -119,14 +119,16 @@ subroutine iterate_density
               func = rhoi - rho(i)
               dfdh = omegai/dhdrhoi
               
-              hnew = hh(i) - func/dfdh
-              if (hnew.le.0. .or. gradh(i).lt.0.) then
-                 print*,' rapid density change on particle ',i
+!              hnew = hh(i) - func/dfdh
+!              if (hnew.le.0. .or. gradh(i).lt.0.5 .or. abs(func)/rho(i) .gt.0.5) then
+              !   print*,' rapid density change on particle ',i
                  hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen            
-              endif
+!              endif
+!              if (hnew/hh(i) .lt. 0.5 .or. hnew/hh(i).gt.2.0) then
               !print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
               !print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)
               !print*,' gradh = ',gradh(i),omegai,dhdrhoi
+!              endif
               !read*
 
 !
@@ -134,8 +136,8 @@ subroutine iterate_density
 !
 !             PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
               
-              converged = abs((rho(i)-rhoi)/rho(i)) < tol
-              !!converged = abs((hnew-hh(i))/hh(i)) < tol 
+              !!converged = abs((rho(i)-rhoi)/rho(i)) < tol .and. omegai > 1.e-5
+              converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 1.e-5
               if (.not.converged) then
                  ncalc = ncalc + 1
                  redolist(ncalc) = i
