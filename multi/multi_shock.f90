@@ -194,6 +194,28 @@ PROGRAM multirun
        Byright = 4.*const
        Bzleft = 1.*const
        Bzright = 1.*const   
+    
+    ELSEIF (i.EQ.7) THEN   ! 2D shock problem
+       psep = 0.0025
+       gamma = 1.66666666666667
+       tmax = 0.08
+       tout = 0.04
+       
+       rholeft = 1.0
+       rhoright = 1.0
+       prleft = 20.0
+       prright = 1.0
+       vxleft = 10.0
+       vxright = -10.0
+       vyleft = 0.
+       vyright = 0.
+       vzleft = 0.
+       vzright = 0.
+       Bxinit = 5.*const
+       Byleft = 5.*const
+       Byright = 5.*const
+       Bzleft = 0.
+       Bzright = 0.
     ENDIF
     
     PRINT*,'Writing ',shkfile,' with initial left/right states'
