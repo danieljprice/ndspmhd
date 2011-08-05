@@ -827,15 +827,15 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    !if (dvdotr.lt.0 .and. iav.le.2) then            
+    if (dvdotr.lt.0 .and. iav.le.2) then            
        visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        force(:,i) = force(:,i) - pmassj*visc*dr(:)
        force(:,j) = force(:,j) + pmassi*visc*dr(:)
-    !elseif (iav.ge.3) then ! using total energy, for approaching and receding
-    !   visc = alphaav*term
-    !   force(:,i) = force(:,i) + pmassj*visc*dvel(:)
-    !   force(:,j) = force(:,j) - pmassi*visc*dvel(:)
-    !endif
+    elseif (iav.ge.3) then ! using total energy, for approaching and receding
+       visc = alphaav*term
+       force(:,i) = force(:,i) + pmassj*visc*dvel(:)
+       force(:,j) = force(:,j) - pmassi*visc*dvel(:)
+    endif
     
     !--------------------------------------------
     !  resistivity in induction equation
