@@ -24,11 +24,11 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  use get_neighbour_lists, only:get_neighbour_list
  use hterms,       only:gradh
  use setup_params, only:hfact
- use part,         only:itype,ntotal
+ use part,         only:itype,ntotal,rho0
  use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
  use bound,        only:ireal
  use options,      only:iuse_exact_derivs,ibound
- use utils,        only:cross_product3D, curl3D_epsijk, matrixinvert3D
+ use utils,        only:cross_product3D, curl3D_epsijk, matrixinvert3D, det
  use timestep, only:time
 !
 !--define local variables
@@ -46,11 +46,11 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  integer :: i,j,n,k,ierr
  integer :: icell,iprev,nneigh
  integer, dimension(npart) :: listneigh ! neighbour list
- integer :: idone
+ integer :: idone,ierrmax,iJmax
  real :: rij,rij2
  real :: hi1,hj1,hi21
  real :: hfacwabi,hfacwabj
- real :: pmassi
+ real :: pmassi,detJ1,detJ2,err,errtot,errmax,detJmax
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr,dalpha,dbeta,Bk,alphapoti,betapoti
  real, dimension(ndimV,ndimV) :: gradalphai,gradbetai
@@ -183,6 +183,11 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
     
  enddo loop_over_cells
 
+ errtot = 0.
+ errmax = 0.
+ ierrmax = 0
+ detJmax = 0.
+ iJmax = 0
  do i=1,npart
     select case(iderivtype)
     case default
@@ -190,6 +195,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           call compute_rmatrix(dxdx(:,i),rmatrix,denom,ndim)
           !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
           if (abs(denom).gt.epsilon(denom)) then
+             if (denom.lt.0.) print*,'WARNING: determinant < 0 in exact derivs particle ',i
              ddenom = 1./denom
              do k=1,ndimV
                 call exactlinear(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
@@ -207,21 +213,45 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
        endif
 
-       if (iderivtype.eq.3) then
+       if (iderivtype.eq.3 .or. iderivtype.eq.4) then
           !--remapping of B/rho
           !  (alphapot is B/rho_0, send out B/rho new as Bfield)
           alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
           call matrixinvert3D(gradbeta(:,:,i),dxdx0i,ierr)
           !print*,'matrix inverse = ',matmul(gradbeta(:,:,i),dxdx0i)
           if (ierr.ne.0) stop 'could not invert matrix in remapping'
-          
-          Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
+
+          detJ1 = det(dxdx0i)
+!          if (detJ1.le.0.) then
+!             print*,'ERROR: determinant collapsed in remapping, particle ',i
+!             print*,'J = ',detJ1, 'should be rho0/rho = ',rho0(i)/rho(i)
+!          endif                
+          detJ2 = rho0(i)/rho(i)
+          err = abs(detJ1-detJ2)
+          errtot = errtot + err
+          if (err.gt.errmax) then             
+             errmax = err
+             ierrmax = i
+          endif
+          if (1./detJ1.gt.detJmax) then
+             detJmax = 1./detJ1
+             iJmax = i
+          endif
+             !print*,' abs error in J vs rho0/rho = ',abs(detJ1-detJ2)
+!          print*,'J = det(dx/dx0) = ',detJ1,' rho_0/rho = ',detJ2
+
+          if (iderivtype.eq.4) then
+             Bfield(:,i) = matmul(alphapoti,dxdx0i)/detJ1  ! this is B (new)
+          else
+             Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
+          endif
 !          do k=1,ndimV
 !             Bfield(k,i) = dot_product(alphapoti(:),dxdx0i(:,k))
 !          enddo
           if (remap) then
              alphapot(:,i) = Bfield(:,i)
              betapot(1:ndim,i) = x(1:ndim,i)
+             rho0(i) = rho(i)
           endif
        elseif (iderivtype.eq.2) then
           !--compute B = curl alpha (i.e., eps_ijk grad^j alpha^k)
@@ -251,6 +281,17 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        endif
     end select
  enddo
+ if (iderivtype.eq.3 .or. iderivtype.eq.4) then
+    print*,' remapping errors, max = ',errmax,' mean = ',errtot/real(npart)
+    print*,' worst on particle ',ierrmax,'   J = ',det(gradbeta(:,:,ierrmax)),&
+           'rho/rho0 = ',rho(ierrmax)/rho0(ierrmax)
+    call matrixinvert3D(gradbeta(:,:,ierrmax),dxdx0i,ierr)
+    print*,' inverse on part   ',ierrmax,' 1/J = ',det(dxdx0i),&
+           'rho0/rho = ',rho0(ierrmax)/rho(ierrmax)
+
+    print*,' max J on particle ',iJmax,' J = ',det(gradbeta(:,:,iJmax)),&
+           'rho/rho0 = ',rho(iJmax)/rho0(iJmax)
+ endif
  
  if (remap .and. iderivtype.ne.2) then
     !--remap x0 for all particles

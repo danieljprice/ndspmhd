@@ -31,7 +31,7 @@ subroutine conservative2primitive
   use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
-  use timestep, only:time
+  use timestep, only:time,nsteps
   implicit none
   integer :: i,j,nerr,k
   real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
@@ -45,29 +45,56 @@ subroutine conservative2primitive
   nerr = 0
   sqrtg = 1.
   dens = rho
+! 
+!--set x0 correctly on ghost particles
+!  (needed for remapped B or remapped euler potentials evolution)
+!
+  if (imhd.eq.-3 .or. imhd.eq.10 .or. imhd.eq.20 .and. any(ibound.gt.1)) then
+     dxbound(:) = xmax(:) - xmin(:)
+     do i=npart+1,ntotal
+        j = ireal(i)
+        do k=1,ndim
+           dx = x(k,j) - x(k,i)
+           if (abs(dx).gt.0.5*dxbound(k)) then
+              x0(k,i) = x0(k,j) - dxbound(k)*SIGN(1.,dx)
+           else
+              x0(k,i) = x0(k,j)              
+           endif
+        enddo
+     enddo
+  endif
+  
 !
 !--calculate magnetic flux density B from the conserved variable
-!  
+!
   select case(imhd)
-  case(11:) ! if using B as conserved variable
+  case(11:19, 21:) ! if using B as conserved variable
      Bfield = Bevol
-  case(10)  ! remapped B/rho
-     remap = .true.
-     !--set x0 correctly on ghost particles
-     if (any(ibound.gt.1)) then  ! ghost particles
-        dxbound(:) = xmax(:) - xmin(:)
-        do i=npart+1,ntotal
-           j = ireal(i)
-           do k=1,ndim
-              dx = x(k,j) - x(k,i)
-              if (abs(dx).gt.0.5*dxbound(k)) then
-                 x0(k,i) = x0(k,j) - dxbound(k)*SIGN(1.,dx)
-              else
-                 x0(k,i) = x0(k,j)              
-              endif
-           enddo
-        enddo
+  case(20)  ! remapped B
+     remap = .false.
+     if (mod(nsteps,50).eq.0) then
+        remap = .true.
+        print*,' REMAPPING...'
      endif
+     !--remap B_0 to current B
+     call get_B_eulerpots(4,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     if (remap) then
+        !
+        !--recompute B field with remapped potentials (if remap=.true. on first
+        !  call then Bevol comes out changed)
+        !
+        emagold = emag_calc(pmass,rho,Bfield,npart)
+        print*,' magnetic energy before remapping = ',emagold
+
+        Bfield = Bevol  ! set B field equal to remapped B_0
+        emag = emag_calc(pmass,rho,Bfield,npart)
+        print*,' magnetic energy after remapping = ',emag, ' change = ',(emag-emagold)/emagold
+     else
+        print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
+     endif
+  case(10)  ! remapped B/rho
+     remap = .false.
+
      !--remap B/rho to current B/rho
      call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      do i=1,npart
@@ -88,7 +115,6 @@ subroutine conservative2primitive
      else
         print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
      endif
-
   case(1:9) ! if using B/rho as conserved variable
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
@@ -151,22 +177,6 @@ subroutine conservative2primitive
   case(:-3) ! generalised Euler potentials
      
      remap = .false.
-     !--set x0 correctly on ghost particles
-     if (any(ibound.gt.1)) then  ! ghost particles
-        dxbound(:) = xmax(:) - xmin(:)
-        do i=npart+1,ntotal
-           j = ireal(i)
-           do k=1,ndim
-              dx = x(k,j) - x(k,i)
-              if (abs(dx).gt.0.5*dxbound(k)) then
-                 x0(k,i) = x0(k,j) - dxbound(k)*SIGN(1.,dx)
-              else
-                 x0(k,i) = x0(k,j)              
-              endif
-           enddo
-        enddo
-     endif
-     
      write(iprint,*) 'getting B field from Generalised Euler Potentials... '
      call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
@@ -392,12 +402,15 @@ subroutine primitive2conservative
 !--calculate conserved variable from the magnetic flux density B
 !  
   remap = .false.
+  x0 = x     ! setup initial positions for Jacobian mapping for all particles
+  rho0 = rho ! initial densities for checking the Jacobian mapping
+
   select case(imhd)
-  case(11:)    ! if using B as conserved variable
+  case(11:)    ! if using B or remapped B as conserved variable
      Bevol = Bfield
+     if (imhd.eq.20) write(iprint,*) ' Using remapped B as conserved variable...'
   case(10)   ! remapped B/rho as conserved variable
      write(iprint,*) ' Using remapped B/rho as conserved variable...'
-     x0 = x
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
         !if (i.le.10) print*,i,' B/rho (before) = ',Bevol(:,i)
@@ -457,8 +470,6 @@ subroutine primitive2conservative
      call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
      !print*,' curlB(100) = ',curlB(:,100)
   case(-3) ! Generalised Euler potentials
-     x0 = x  ! setup beta term (Jacobian map) for all particles
-
      !--compute B = \nabla alpha_k x \nabla \beta^k
      write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... '
      nremap = 1

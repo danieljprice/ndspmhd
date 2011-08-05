@@ -524,12 +524,12 @@ subroutine get_rates
 !  (note that the dBevoldt term should be divided by rho)
 !
     select case(imhd)
-    case(11:) ! evolving B
+    case(11:19,21:) ! evolving B
        dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i
        endif
-    case(10) ! remapped B/rho
+    case(10,20) ! remapped B/rho or remapped B
        dBevoldt(:,i) = 0.
     case(1:9) ! evolving B/rho
        if (iuse_exact_derivs.gt.0) then
