@@ -32,7 +32,8 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  CHARACTER(LEN=19) :: boundtype
  CHARACTER(LEN=5), DIMENSION(3) :: coord
  CHARACTER(LEN=10) :: startdate, starttime
- REAL :: have,hmin,hmax
+ REAL :: have,hmin,hmax,v2i,B2i
+ REAL, DIMENSION(npart) :: dummy
 !
 !--allow for tracing flow
 !      
@@ -147,7 +148,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !--number of particles
 !     
     WRITE (iprint, 200) npart     
-200 FORMAT(' Number of particles = ',i6,/)
+200 FORMAT(/,' Number of particles = ',i6,/)
 
 !
 !--boundary options
@@ -181,7 +182,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
        IF (ibound(i).EQ.2) boundtype = 'Reflective ghosts'
        IF (ibound(i).EQ.3) boundtype = 'Periodic (ghosts)'     
        WRITE (iprint, 210) coord(i),TRIM(boundtype)             
-       WRITE (iprint, 220) coord(i),xmin(i),coord(i),xmax(i)
+       IF (ibound(i).NE.0) WRITE (iprint, 220) coord(i),xmin(i),coord(i),xmax(i)
     ENDDO
     WRITE (iprint, 230) nbpts
 210 FORMAT(1x,a1,' boundary:',1x,a)
@@ -194,7 +195,9 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 240 FORMAT(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
       6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',1pe8.2)
-
+!
+!--print out diagnostics of run
+!
     WRITE(iprint,*)
     CALL minmaxave(hh(1:npart),hmin,hmax,have,npart)
     WRITE(iprint,250) 'h',hmin,hmax,have
@@ -202,11 +205,27 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     WRITE(iprint,250) 'dens',hmin,hmax,have
     CALL minmaxave(uu(1:npart),hmin,hmax,have,npart)
     WRITE(iprint,250) 'u',hmin,hmax,have
-    
     DO i=1,ndimV
        CALL minmaxave(vel(i,1:npart),hmin,hmax,have,npart)
        WRITE(iprint,250) 'v'//trim(coord(i)),hmin,hmax,have
     ENDDO
+!--mach number
+    DO i=1,npart
+       v2i = dot_product(vel(:,i),vel(:,i))
+       dummy(i) = sqrt(v2i)/spsound(i)
+    ENDDO
+    CALL minmaxave(dummy(1:npart),hmin,hmax,have,npart)
+    WRITE(iprint,250) 'Mach #',hmin,hmax,have
+!--plasma beta
+    IF (imhd.NE.0) THEN
+       DO i=1,npart
+          B2i = dot_product(Bfield(:,i),Bfield(:,i))
+          dummy(i) = pr(i)/(0.5*B2i)
+       ENDDO
+       CALL minmaxave(dummy(1:npart),hmin,hmax,have,npart)
+       WRITE(iprint,250) 'beta',hmin,hmax,have
+    ENDIF
+
 250 FORMAT (1x,a6,' min = ',1pe9.2,' max = ',1pe9.2,' av = ',1pe9.2)
     WRITE(iprint,*)
 
