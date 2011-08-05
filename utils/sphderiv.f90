@@ -144,8 +144,8 @@ program sphderiv
                 + rho(i)*pmass(j)*(Apart(j)/rho(j)**2  &
 		+           Apart(i)/rho(i)**2)*dr*grkern/h(i)**2
            gradApart4(i) = gradApart4(i) &
-                + pmass(j)/unity(i)*(Apart(j)/rho(j))   &
-		  *(dr*grkern/h(i)**2 - gradunity(i)*wab/h(i)/unity(i))
+                + rho(i)*pmass(j)*(Apart(j)/(gradr(j)*rho(j))  &
+		+           Apart(i)/(gradr(i)*rho(i)))*dr*grkern/h(i)**2
 
         endif
      enddo
@@ -189,7 +189,7 @@ program sphderiv
   call pgpt(npart,x,gradApart3,4)
   call pgline(npart,x,gradApart3)
   read*
-  print*,'exact const (Bonet)'
+  print*,'cons const exact'
   call pgpt(npart,x,gradApart4,3)
   call pgline(npart,x,gradApart4) 
   call pgend

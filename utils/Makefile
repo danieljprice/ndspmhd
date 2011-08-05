@@ -1,18 +1,19 @@
 ##-------------------------------------------------------------------##
-##     Makefile for compiling kernel plotting utilities	             ##
+##     Makefile for compiling various utilities which use	     ##
+##      parts of the main code                                       ##
+##                                                                   ##
 ##     Written by Daniel Price					     ##
-##     Institute of Astronomy, Cambridge, UK, 2004	 	     ##
+##     Institute of Astronomy, Cambridge, UK, -2004	 	     ##
+##     University of Exeter, Exeter, UK       2004-                  ##
 ##-------------------------------------------------------------------##
 
 
 .KEEP_STATE:
 
 ## Compiler flags
-FORTRAN = ifc
-F90C =  ifc
-FC = ifc
-F90FLAGS =  -O -WB ##-C
-LDFLAGS =  -lpgplot -L/usr/X11R6/lib -lX11 -L/usr/lib/gcc-lib/i386-redhat-linux/3.2.2/ -lg2c -lpng -Vaxlib
+F90C =  g95
+F90FLAGS =  -O -r8
+LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
 .SUFFIXES:
 .SUFFIXES:.f90 .o
@@ -33,6 +34,9 @@ OBJECTS = dimen1D.o variablesND.o kernelND.o  \
 
 OBJSPHDERIV = kernelND.o variablesND.o sphderiv.o interpolate_kernel.o
 
+OBJMODDUMP = variablesND.o allocateND.o prompting.o \
+             readwrite_dumps.o modifydump.o
+
 kernelplot : $(OBJECTS)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
@@ -41,9 +45,24 @@ sametime : sametime.o
 
 sphderiv : $(OBJSPHDERIV)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJSPHDERIV)
+        
+moddump1D: dimen1D.o $(OBJMODDUMP)
+	$(F90C) $(F90FLAGS) -o $@ dimen1D.o $(OBJMODDUMP)
+
+moddump2D: dimen2D.o $(OBJMODDUMP)
+	$(F90C) $(F90FLAGS) -o $@ dimen2D.o $(OBJMODDUMP)
+
+moddump3D: dimen3D.o $(OBJMODDUMP)
+	$(F90C) $(F90FLAGS) -o $@ dimen3D.o $(OBJMODDUMP)
 
 dimen1D.o :
 	$(F90C) -c $(F90FLAGS) ../src/dimen1D.f90 -o $@
+
+dimen2D.o :
+	$(F90C) -c $(F90FLAGS) ../src/dimen2D.f90 -o $@
+
+dimen3D.o :
+	$(F90C) -c $(F90FLAGS) ../src/dimen3D.f90 -o $@
 
 variablesND.o :
 	$(F90C) -c $(F90FLAGS) ../src/variablesND.f90 -o $@
@@ -57,6 +76,14 @@ danpgtile.o :
 interpolate_kernel.o :
 	$(F90C) -c $(F90FLAGS) ../src/interpolate_kernel.f90 -o $@
 
+allocateND.o : variablesND.o
+	$(F90C) -c $(F90FLAGS) ../src/allocateND.f90 -o $@
+
+readwrite_dumps.o : variablesND.o
+	$(F90C) -c $(F90FLAGS) ../src/readwrite_dumps.f90 -o $@
+
+prompting.o :
+	$(F90C) -c $(F90FLAGS) ../plot/prompting.f90 -o $@
 
 clean :
-	rm *.o *.mod
+	rm *.o *.mod *.bp *.lreg
