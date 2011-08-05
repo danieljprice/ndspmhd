@@ -14,11 +14,17 @@ else
    echo '	cd ../; make '$1'; cp ./'$1'SPMHD '$PWD
    echo 'plot:'
    echo '	cd ../plot; make'
+   echo 'plotc:'
+   echo '	cd ../plot; make clean; make'
    echo 'edit:'
    echo '	cd ../; make edit'$1
    echo 'evplot:'
    echo '	cd ../; make plotev'
+   echo 'evplotc:'
+   echo '	cd ../; make clean; make plotev'
    echo 'moddump:'
+   echo '	cd ../utils; make moddump'$1
+   echo 'moddumpc:'
    echo '	cd ../utils; make clean; make moddump'$1
    echo 'clean:'
    echo '	cd ../; make clean'

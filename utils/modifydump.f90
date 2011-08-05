@@ -7,6 +7,7 @@ program modifydump
  use part
  use rates
  use options
+ use derivB
  
  use dumpfiles
  use prompting
@@ -49,16 +50,23 @@ program modifydump
  ians = .false.
  if (dumpfile(1:1) == 'm') ians = .true.
  call prompt('MHD dump?',ians) 
+ imhd = 0 
  if (ians) imhd = 1
  
  call read_dump(dumpfile,tfile)
 !
 !--------- do modifications here ------------------
 ! 
- do i=1,npart
-    vel(:,i) = x(:,i)
+ do i=1,npart 
+    !vel(:,i) = x(:,i)
+    !vel(1,i) = vel(1,i) - x(2,i)
+    !vel(2,i) = vel(2,i) + x(1,i)
+    !vel(:,i) = 0.
+    Bfield(1:2,i) = 0.01
+    Bfield(3,i) = 0.
  enddo
  tfile = 0.
+ imhd = 1
  
 !--------------------------------------------------
 !
@@ -66,6 +74,8 @@ program modifydump
 !
  pr = 0.
  drhodt = 0.
+ divB = 0.
+ curlB = 0.
  psi = 0.
  idumpghost = 0
  

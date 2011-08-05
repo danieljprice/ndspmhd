@@ -48,7 +48,7 @@ SUBROUTINE setup
 ! 
  DO i=1,ntotal
     vel(:,i) = 0.
-    vel(1,i) = SIN(2.*pi*x(1,i))
+    vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
