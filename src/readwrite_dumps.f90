@@ -7,11 +7,10 @@ contains
 !!  (change this to change format of output)
 !!-------------------------------------------------------------------
 
-subroutine write_dump(t,nstep)
+subroutine write_dump(t,dumpfile)
  use dimen_mhd
- use debug
  use loguns
-
+ 
  use eos
  use options
  use part
@@ -23,15 +22,9 @@ subroutine write_dump(t,nstep)
 !
  implicit none
  real, intent(in) :: t
-! real, parameter :: pi=3.1415926536
- integer, intent(in) :: nstep
+ character(len=*), intent(in) :: dumpfile
  integer :: nprint,ndata
  integer :: i,ierr
- character(len=len(rootname)+10) :: dumpfile
-!
-!--allow for tracing flow
-!      
- if (trace) write(iprint,*) ' entering subroutine output'
 
  if (idumpghost.eq.1) then
     nprint = ntotal
@@ -39,29 +32,13 @@ subroutine write_dump(t,nstep)
     nprint = npart
  endif
 !
-!--calculate primitive variables from conservatives for output
-!  nstep <0 means do not do this as we are on a quit dump
+!--open dumpfile
 !
- if (nstep.ge.0) call conservative2primitive  ! also calls equation of state
-!
-!--create new dumpfile
-!
- ifile = ifile + 1
- write(dumpfile,"(a,'_',i5.5,'.dat')") trim(rootname),ifile
  open(unit=idatfile,file=dumpfile,status='replace',form='unformatted',iostat=ierr)
  if (ierr /= 0) then
     write(iprint,*) 'error: can''t create new dumpfile ',trim(dumpfile)
     stop
  endif
-!
-!--write timestep info to log file
-!      
- write(iprint,"('| ',a73,'|')") trim(dumpfile)
- write (iprint,10) t,abs(nstep),npart,ntotal-npart
-10 format('| time = ',f7.3,' | timesteps = ',i8,' | npart = ',i7,        &
-             ' | nghost = ',i5,' |')
- write(iprint,"(76('-'))")
-
 !
 !--write timestep header to data file
 !
@@ -181,11 +158,18 @@ subroutine read_dump(dumpfile,tfile)
 !
 !--check for compatibility with current settings
 !
- if (ndimfile.ne.ndim) stop 'x dimensions not equal between dump file and code'
+ if (ndimfile.ne.ndim) then
+    write(iprint,*) '***ERROR: x dimensions not equal between dump file and code',ndim,ndimfile
+    if (ndimfile.le.0 .or. ndimfile.ge.3) then
+       write(iprint,*) 'This could be because the code was compiled in double precision'
+       write(iprint,*) ' whilst moddump has been compiled in single (or vice versa)' 
+    endif
+    stop
+ endif
  if (ndimVfile.ne.ndimV) stop 'v dimensions not equal between dump file and code'
  if (abs(gammafile-gamma).gt.1.e-3) write(iprint,10) 'gamma',gammafile,gamma
  if (abs(hfactfile-hfact).gt.1.e-3) write(iprint,10) 'hfact',hfactfile,hfact
-10 format(/,'warning: ',a,' changed from original setup: old = ',f9.6,' new = ',f9.6,/)
+10 format('warning: ',a,' changed from original setup: old = ',f9.6,' new = ',f9.6)
 
  if ((nprintfile.ne.npartfile).and.(all(ibound.le.1))) then
     write(iprint,*) 'warning: setup file contains ghosts, but none set'

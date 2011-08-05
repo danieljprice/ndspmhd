@@ -36,16 +36,23 @@ SUBROUTINE initialise
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
 !
  idash = index(rootname,'_')
- idot = index(rootname,'.')
+ idot = index(rootname,'.dat')
  if (idash.ne.0) then
-    if (idot.eq.0) idot = len_trim(rootname)+1
-    print*,idash,idot,rootname(idash+1:idot-1)
+    if (idot.eq.0) then
+       idot = len_trim(rootname)+1
+       dumpfile = trim(rootname)//'.dat'
+       !!write(dumpfile,"(a,i5.5,'.dat')") trim(rootname),ifile
+    else
+       dumpfile = trim(rootname)
+    endif
     ifile = int_from_string(rootname(idash+1:idot-1))
-    dumpfile = trim(rootname)
     rootname = rootname(1:idash-1)
-    if (ifile.lt.0 .or. ifile.gt.99999) then
+    if (ifile.gt.99999) then
        print*,'*** error in run name, trying to extract dump number '
        stop
+    elseif (ifile.lt.0) then
+       print*,'***starting new run using dumpfile***'
+       ifile = 0
     endif
     print*,'ifile = ',ifile,'rootname = ',trim(rootname)
     !!ifile = ifile - 1
@@ -64,7 +71,7 @@ SUBROUTINE initialise
 !--Initialise log file (if used)
 !
  if (iprint.ne.6) then
-    if (ifile.lt.0) then
+    if (ifile.le.0) then
        open(unit=iprint,file=logfile,err=669,status='replace',form='formatted')
     else
        inquire(file=logfile,exist=iexist)
@@ -109,7 +116,18 @@ SUBROUTINE initialise
 !--Open data/ev files
 !
 !! OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='unformatted')
- OPEN(UNIT=ievfile,ERR=668,FILE=evfile,STATUS='replace',FORM='formatted')
+ if (ifile.gt.0) then
+    inquire(file=evfile,exist=iexist)
+    if (iexist) then
+       i = 0
+       do while(iexist)
+          i = i + 1
+          write(evfile,"(a,i2.2,'.ev')") trim(rootname),i
+          inquire(file=evfile,exist=iexist)
+       enddo
+    endif
+ endif
+ open(unit=ievfile,err=668,file=evfile,status='replace',form='formatted')
 !
 !--work out multiplication factor for source term in Morris and Monaghan scheme
 !  (just from gamma)
@@ -198,8 +216,6 @@ SUBROUTINE initialise
 !
 !--Error control
 !
-667   WRITE(iprint,*) 'Initialise: Error opening data file, exiting...'
-      CALL quit 
 668   WRITE(iprint,*) 'Initialise: Error opening ev file, exiting...'
       CALL quit 
 669   WRITE(iprint,*) 'Initialise: Error opening log file, exiting...'
