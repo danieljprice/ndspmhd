@@ -27,26 +27,29 @@ subroutine conservative2primitive
   use part
   use grutils
   implicit none
-  integer :: i,j
+  integer :: i,j,nerr
   real, dimension(ndimV) :: gdiag
   real :: B2i, v2i
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
+  nerr = 0
   sqrtg = 1.
 !
 !--this is the procedure for general (non-relativistic) diagonal metrics
 !
   do i=1,npart
-     call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
+     call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
      
      dens(i) = rho(i)/sqrtg(i)
      if (allocated(pmom)) vel(:,i) = pmom(:,i)/gdiag(:)
      
      if (imhd.ge.11) then    ! if using B as conserved variable
-        Bfield(:,i) = Bevol(:,i)
-     elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-        Bfield(:,i) = Bevol(:,i)*rho(i)
+        Bfield(:,i) = Bevol(:,i)/gdiag(:)
+     elseif (imhd.gt.0) then ! if using B/rho as conserved variable
+        Bfield(:,i) = Bevol(:,i)*rho(i)/gdiag(:)
+     elseif (imhd.lt.0) then
+        stop 'GR vector potential not implemented'
      endif     
      
      if (iener.eq.3) then     ! total energy is evolved
@@ -54,9 +57,12 @@ subroutine conservative2primitive
         B2i = DOT_PRODUCT_GR(Bfield(:,i),Bfield(:,i),gdiag,ndimV)/rho(i)
         uu(i) = en(i) - 0.5*v2i - 0.5*B2i
         if (uu(i).lt.0.) then
-           write(iprint,*) 'Warning: utherm -ve, particle ',i
+           nerr = nerr + 1
            uu(i) = 0.
         endif
+        if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
+     elseif (iener.eq.1) then ! en = entropy variable
+        stop 'GR entropy not implemented'
      else   ! thermal energy is evolved
         uu(i) = en(i)
      endif
@@ -66,38 +72,10 @@ subroutine conservative2primitive
      call equation_of_state(pr(i),spsound(i),uu(i),dens(i),gamma,polyk,1)
   enddo
 
-!
-!--compute source terms (derivatives of metric) for momentum equation
-!  (these are 1/(2*dens)* T^\mu\nu d(g_\mu_\nu)/dx^i
-!
-  select case(igeom)
-  !
-  !--cylindrical
-  !
-  case(2)
-     sourceterms(1,:) = pr(:)/rho(:)
-     if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + pmom(2,:)
-  !
-  !--spherical
-  !
-  case(3)
-     do i=1,npart
-        sourceterms(1,i) = pr(i)/rho(i)
-        if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)**2*vel(2,i)
-        if (ndimV.ge.3) sourceterms(2,i) = x(1,i)**2*vel(3,i)
-     enddo
-  !
-  !--spherical polars with logarithmic radial co-ordinate
-  !
-  case(4)
-     do i=1,npart
-        sourceterms(:,i) = 0.!! WORK THESE OUT!!
-     enddo
-  !
-  !--note that source terms are zero and not allocated for cartesian
-  !         
-  end select
-  
+  if (allocated(sourceterms)) then
+     call metric_derivs(x(:,1:npart),vel(:,1:npart),rho(1:npart),pr(1:npart), &
+                        sourceterms(:,1:npart),ndim,ndimV,npart,geom)
+  endif
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -132,9 +110,9 @@ subroutine primitive2conservative
   use setup_params
   use timestep
   implicit none
-  integer :: i,iktemp
+  integer :: i,j,iktemp
   real, dimension(ndimV) :: gdiag
-  real :: B2i, v2i
+  real :: B2i, v2i, hmin, hmax, hav
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 
@@ -142,9 +120,9 @@ subroutine primitive2conservative
 !
 !--this is the procedure for general (non-relativistic) diagonal metrics
 !
-  if (igeom.lt.10) then
+  if (geom(1:2).ne.'gr') then
      do i=1,npart
-        call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
+        call metric_diag(x(1:ndim,i),gdiag,sqrtg(i),ndim,ndimV,geom)
         rho(i) = dens(i)*sqrtg(i)
 	hh(i) = hfact*(pmass(i)/rho(i))**dndim
      enddo
@@ -156,21 +134,27 @@ subroutine primitive2conservative
         if (ANY(ibound.GT.1)) call set_ghost_particles
         call set_linklist
         iktemp = ikernav
-        ikernav = 3		! consistent with h for first density evaluation
+!        ikernav = 3		! consistent with h for first density evaluation
         call iterate_density	! evaluate density by direct summation
         ikernav = iktemp  
-        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
+!!        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
+        if (ihvar.le.0) then
+           call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
+           hh(1:npart) = hav
+        endif
      endif
 	
      do i=1,npart
-        call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
+        call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
 	
         if (allocated(pmom)) pmom(:,i) = vel(:,i)*gdiag(:)
         
         if (imhd.ge.11) then    ! if using B as conserved variable
-           Bevol(:,i) = Bfield(:,i)
-        elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-           Bevol(:,i) = Bfield(:,i)/rho(i)
+           Bevol(:,i) = Bfield(:,i)*gdiag(:)
+        elseif (imhd.gt.0) then ! if using B/rho as conserved variable
+           Bevol(:,i) = Bfield(:,i)*gdiag(:)/rho(i)
+        elseif (imhd.lt.0) then ! vector potential
+           stop 'vector potential not implemented for GR'
         endif
         
         if (iener.eq.3) then     ! total energy is evolved
@@ -189,15 +173,13 @@ subroutine primitive2conservative
 !--copy the conservative variables onto the ghost particles
 !  
      if (any(ibound.gt.1)) then
-        if (any(ibound.eq.2)) print*,'WARNING: reflective ghosts should be checked (pmom copying...)'
         do i=npart+1,ntotal
            j = ireal(i)
-           rho(i) = rho(j)
-           pmom(:,i) = pmom(:,j)
-           en(i) = en(j)
-           pr(i) = pr(j)
-           spsound(i) = spsound(j)
-           Bevol(:,i) = Bevol(:,j)
+           call copy_particle(i,j)
+           where(ibound.eq.2)
+              pmom(:,i) = -pmom(:,j)
+              vel(:,i) = -vel(:,j)
+           end where
         enddo
      endif
 !
@@ -206,7 +188,7 @@ subroutine primitive2conservative
      call get_rates     
 
   else
-     write(iprint,*) 'invalid igeom in conservative2primitive: igeom = ',igeom
+     write(iprint,*) 'GR metrics not implemented in conservative2primitive'
      stop
   endif
 

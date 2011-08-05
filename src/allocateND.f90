@@ -251,7 +251,7 @@ SUBROUTINE alloc(newsizein)
    ALLOCATE(dens(newsize))
    ALLOCATE(pmom(ndimV,newsize))
    ALLOCATE(pmomin(ndimV,newsize))
-   IF (igeom.GT.1) THEN
+   IF (geom(1:4).NE.'cart') THEN
       ALLOCATE(sourceterms(ndimV,newsize))
    ENDIF   
    !ALLOCATE(gradmatrix(ndim,ndim,newsize))

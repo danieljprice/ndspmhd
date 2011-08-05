@@ -8,27 +8,35 @@ contains
 !
 !--subroutine to calculate the diagonal metric from the coordinates
 !  also returns the determinant of the metric sqrtg 
-!  (note that derivatives still need to be known in conservative2primitive)
 !
-  subroutine metric_diag(x,gdiag,sqrtg,ndimx,ndimg,imetric)
+  subroutine metric_diag(x,gdiag,sqrtg,ndimx,ndimg,metric)
     implicit none
-    integer :: ndimx, ndimg, imetric
-    real, dimension(ndimx) :: x
-    real, dimension(ndimg) :: gdiag
-    real :: sqrtg, rr
+    integer, intent(in) :: ndimx, ndimg
+    real, dimension(ndimx), intent(in) :: x
+    real, dimension(ndimg), intent(out) :: gdiag
+    real, intent(out) :: sqrtg
+    character(len=*), intent(in) :: metric
+    real :: rr
     
-    select case(imetric)
+    select case(metric(1:6))
 !
-!--cylindrical
+!--cylindrical r,phi,z
 !
-    case(2)
+    case('cylrpz')
        gdiag(:) = 1.
        if (ndimg.ge.2) gdiag(2) = x(1)**2
        sqrtg = abs(x(1))
 !
-!--spherical
+!--cylindrical r,z,phi    
 !
-    case(3)
+    case('cylrzp')
+       gdiag(:) = 1.
+       if (ndimg.ge.3) gdiag(3) = x(1)**2
+       sqrtg = abs(x(1))
+!
+!--spherical r,phi,theta
+!
+    case('sphrpt')
         gdiag(:) = 1.
         if (ndimg.ge.2) gdiag(2) = x(1)**2
         if (ndimg.ge.3 .and. ndimx.gt.1) gdiag(3) = gdiag(2)*SIN(x(2))
@@ -37,7 +45,7 @@ contains
 !
 !--spherical with log co-ordinate
 !
-    case(4)
+    case('sphlog')
        gdiag(:) = 1.
        rr = exp(x(1))
        if (ndimx.eq.1) then
@@ -54,7 +62,57 @@ contains
     end select
     
   end subroutine metric_diag
-
+!
+!--subroutine to compute source terms (derivatives of metric) for momentum equation
+!  (these are 1/(2*dens)* T^\mu\nu d(g_\mu_\nu)/dx^i
+!
+  subroutine metric_derivs(x,vel,rho,pr,sourceterms,ndim,ndimV,npart,metric)
+    implicit none
+    integer, intent(in) :: ndim, ndimV, npart
+    real, dimension(ndim,npart), intent(in) :: x
+    real, dimension(ndimV,npart), intent(in) :: vel
+    real, dimension(npart), intent(in) :: rho, pr
+    real, dimension(ndimV,npart), intent(out) :: sourceterms
+    character(len=*), intent(in) :: metric
+    integer :: i
+    
+    select case(metric(1:6))
+    !
+    !--cylindrical r,phi,z
+    !
+    case('cylrpz')
+       sourceterms(1,:) = pr(:)/rho(:)
+       if (ndimV.ge.2) sourceterms(1,:) = sourceterms(1,:) + x(1,:)**2*vel(2,:)
+    !
+    !--cylindrical r,z,phi
+    !
+    case('cylrzp')
+       sourceterms(1,:) = pr(:)/rho(:)
+       if (ndimV.ge.3) sourceterms(1,:) = sourceterms(1,:) + x(1,:)**2*vel(3,:)
+    !
+    !--spherical
+    !
+    case('sphrpt')
+       do i=1,size(x(:,i))
+          sourceterms(1,i) = pr(i)/rho(i)
+          if (ndimV.ge.2) sourceterms(1,i) = sourceterms(1,i) + x(1,i)**2*vel(2,i)
+          if (ndimV.ge.3) sourceterms(2,i) = x(1,i)**2*vel(3,i)
+       enddo
+    !
+    !--spherical polars with logarithmic radial co-ordinate
+    !
+    case('sphlog')
+       do i=1,npart
+          sourceterms(:,i) = 0.!! WORK THESE OUT!!
+       enddo
+    !
+    !--note that source terms are zero and not allocated for cartesian
+    !
+    case default
+       sourceterms = 0.
+       
+    end select
+  end subroutine metric_derivs
 !
 !--function to compute the dot product of two vectors with a diagonal metric
 !
