@@ -37,7 +37,7 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 ########### choose the setup file in each dimension here #############
 
 #SETUP1D = setup_unifdis1D.f90
-SETUP1D = setup_unifdisND.f90
+#SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
@@ -46,7 +46,7 @@ SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-#SETUP1D = setup_shockND.f90
+SETUP1D = setup_shockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
@@ -80,7 +80,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 SOURCES = sphND_mhd.f90 geometry.f90 \
          allocateND.f90 readwrite_dumps.f90 \
-         boundaryND_1D.f90 check_setup.f90 \
+         boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
          get_neighbour_lists.f90 \
@@ -88,7 +88,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
-	 interpolate_kernel.f90 int_from_string.f90 \
+	 interpolate_kernel.f90\
 	 iterate_density.f90 kernelND.f90 \
 	 linkND.f90 logun.f90 outputND_mhd.f90 \
 	 random.f90 ratesND_mhd.f90 \
