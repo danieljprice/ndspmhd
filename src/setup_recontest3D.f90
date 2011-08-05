@@ -21,7 +21,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero
+ real :: denszero,przero,betazero,ampl,bzero
 !
 !--allow for tracing flow
 !
@@ -46,23 +46,30 @@ subroutine setup
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
+ 
+ przero = 1.0
+ betazero = 0.1
+ ampl = 0.1
+ bzero = sqrt(2.*przero/betazero)
 !
 !--now assign particle properties
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    if (x(1,i).gt.0.45 .and. x(1,i).lt.0.55) then
-       vel(1,i) = 150.*SIN(pi*(x(3,i)-0.5))**36
-    endif
-    !!!vel(1,i) = x(1,i)
+    Bfield(:,i) = 0.
+!    if (x(1,i).gt.0.45 .and. x(1,i).lt.0.55) then
+!       vel(1,i) = 150.*SIN(pi*(x(3,i)-0.5))**36
+!    endif
+    vel(1,i) = ampl*SIN(2.*pi*x(2,i))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.5	! isothermal
-    Bfield(:,i) = 0.
-    Bfield(3,i) = 5.
+    if (abs(x(1,i)).gt.0.25) then
+       Bfield(2,i) = bzero
+    else
+       Bfield(2,i) = -bzero
+    endif
  enddo
- Bconst(:) = 0.
- Bconst(3) = Bfield(3,1)
 !
 !--allow for tracing flow
 !
