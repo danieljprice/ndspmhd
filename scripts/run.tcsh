@@ -20,7 +20,7 @@ else
    ln -s ../supersphplot supersphplot
    ln -s ../evsupersph evsupersph
    ##echo 'writing sge script '$runname\.sge
-   ##../scripts/write_sgescript2D.bash $runname > $runname\.sge
+   ##../scripts/write_sgescript.bash $1 $runname > $runname\.sge
 ##   echo 'submitting job to grid'
 ##   qsub $runname\.sge   
 endif
