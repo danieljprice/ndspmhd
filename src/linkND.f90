@@ -53,7 +53,7 @@ SUBROUTINE link
     CALL quit
  ENDIF
 !
-!--if not using ghosts find max/min of particle distribution
+!--find max/min of particle distribution or use boundaries already set
 !  
  xminpart(:) = xmin(:)
  xmaxpart(:) = xmax(:)
@@ -88,18 +88,20 @@ SUBROUTINE link
  
  ncells = PRODUCT(ncellsx)
 
-! WRITE(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax 
+! WRITE(iprint,*) ' ncells x,y,z, hhmax = ',ncells,ncellsx,hhmax,dxcell
 
 !
 !--when doing calculation, in 1/2/3D 
 !  don't do last cell/row of cells/face of cells as these are purely ghosts
+!  really should make a list of cells to do in 3D as should skip the top row
+!  of every block. At the moment this is just slightly inefficient.
 !
  IF (ibound.LE.1) THEN	! BUG FIXED HERE (should be ibound.LE.1)
     ncellsloop = ncells
  ELSE
     IF (ndim.EQ.1) ncellsloop = ncells - 1
     IF (ndim.EQ.2) ncellsloop = ncells-ncellsx(1)
-    IF (ndim.EQ.3) PRINT*,' need to work out ncellsloop *******'
+    IF (ndim.EQ.3) ncellsloop = ncells-ncellsx(1)*ncellsx(2) ! inefficient in 3D
  ENDIF
 ! print*,' ncellsloop = ',ncellsloop
 ! read*
@@ -139,6 +141,8 @@ SUBROUTINE link
     ll(i) = ifirstincell(icell)		! link to previous start of chain
     ifirstincell(icell) = i		! set head of chain to current particle	 
     iamincell(i) = icell 		! save which cell particle is in 
+!    PRINT*,' particle ',i,' x =',x(:,i),' in cell ',icellx,' = ',icell
+!    read*
  ENDDO
 !
 !--debugging
