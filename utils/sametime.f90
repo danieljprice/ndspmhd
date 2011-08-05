@@ -117,8 +117,6 @@ PROGRAM combinedat
 	  ALLOCATE(dat(ncolmax,npartmax,nfiles))
 	  IF (ierr.NE.0) PRINT*,'dat reallocation error'	  
 	  dat(1:ncolmax_old,1:npartmax_old,1:nfiles) = dattemp
-	  ncolmax = ndata(ifile)
-	  npartmax = nprint(ifile)
        ENDIF
        
        READ(infile,*,END=222) (dat(1:ndata(ifile),k,ifile), k=1,nprint(ifile))
