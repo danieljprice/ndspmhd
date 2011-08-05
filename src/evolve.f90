@@ -126,8 +126,8 @@ SUBROUTINE evolve
 !--Now print out total code timings:
 !
  t_used = t_end - t_start
- WRITE(iprint,30) t_used,t_used/nsteps
-30 FORMAT(' Total CPU time : ',f8.4,'s',2x,' Average time per step : ',f8.4,'s',/)
+ IF (nsteps.gt.0) WRITE(iprint,30) t_used,t_used/nsteps
+30  FORMAT(' Total CPU time : ',f8.4,'s',2x,' Average time per step : ',f8.4,'s',/)
 !
 !--print time and date of finishing
 !
