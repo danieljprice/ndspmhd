@@ -29,7 +29,7 @@ subroutine get_rates
 !
  implicit none
  integer :: i,j,n
- integer :: icell,iprev,nneigh
+ integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
  integer :: idone
  integer, dimension(3**ndim) :: neighcell
@@ -43,7 +43,7 @@ subroutine get_rates
  real :: hi,hi1,hj,hj1,hi21,hj21
  real :: hav,hav1,h21
  real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
- real, dimension(ndim) :: dx
+ real, dimension(ndim) :: dx, fexternal
 !
 !--gr terms
 !
@@ -100,7 +100,7 @@ subroutine get_rates
 !
 !  (variable smoothing length terms)
 !
- real :: gradhi,gradhj,gradhanisoi,gradhanisoj
+ real :: gradhi,gradhj
  integer :: ierr
 !
 !  (gravity)
@@ -235,7 +235,6 @@ subroutine get_rates
           alphaBi = alpha(3,i)
        endif
        gradhi = 1./(1. - gradh(i))
-       gradhanisoi = 1./(1.-gradhaniso(i))
        !if (gradhi.le.0.5) then
        !   write(iprint,*) 'Error in grad h terms, part ',i,gradhi
        !endif
@@ -339,7 +338,10 @@ subroutine get_rates
 !
 !--subtract external forces
 !
-    if (iexternal_force.ne.0) call external_forces(i,iexternal_force)
+    if (iexternal_force.ne.0) then
+       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim)
+       force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
+    endif
 !
 !--add self-gravity force
 !
@@ -558,10 +560,6 @@ contains
             grkerni = grkerni*gradhi
             grkernj = grkernj*gradhj
             grkern = 0.5*(grkerni + grkernj)
-            gradhanisoj = 1./(1. - gradhaniso(j))
-            grkernanisoi = grkernanisoi*gradhanisoi
-            grkernanisoj = grkernanisoj*gradhanisoj
-            !!grkernaniso = 0.5*(grkernanisoi + grkernanisoj)	  
          else  ! if not using grad h correction               
             grkern = 0.5*(grkerni + grkernj)
             grkerni = grkern
