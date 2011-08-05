@@ -167,7 +167,7 @@ subroutine iterate_density
                  nwarn = nwarn + 1
 !                 !print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
                  hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
-              elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.0)) then
+              elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.tiny(gradh))) then
 !                 nwarn = nwarn + 1
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
               elseif (itsdensity.gt.100) then
@@ -175,9 +175,10 @@ subroutine iterate_density
               endif
               if (numneigh(i).le.1) then
                  nwarn = nwarn + 1
-                 !print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
                  !write(iprint,*) ' WARNING: particle ',i,' has no neighbours, increasing h'
-                 hnew = max(hh(i),hnew) + psep
+                 hnew = hh(i) + psep
+                 write(iprint,*) 'NO NEIGHBOURS : rho,h = ',rho(i),hh(i),'setting h = ',hnew
+                 redolink = .true.
               endif
 !
 !--if this particle is not converged, add to list of particles to recalculate
