@@ -980,6 +980,45 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
          grgrwkern(i) = 0.
       endif
     enddo
+    
+  case(60)
+!
+!--particle splitting kernel (cubic spline gradient  * q)
+!   
+    kernellabel = 'particle splitting'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.66666666666
+      case(2)
+        cnormk = 10./(7.*pi)
+      case(3)
+        cnormk = 1./pi
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.1.0) then
+          wkern(i) = q*(3.*q - 2.25*q2)
+          grwkern(i) = 6.*q - 3.*2.25*q2
+          grgrwkern(i) = 6. - 6.*2.25*q
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = q*0.75*(2.-q)**2
+          grwkern(i) = 0.75*(2.-q)**2 - 0.75*q*2.*(2.-q)
+          grgrwkern(i) = -1.5*(2.-q) - 0.75*2.*(2.-q) + 0.75*q*2.
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
 
   case default  
 !
