@@ -139,7 +139,6 @@ SUBROUTINE setup
     enin(i) = enleft
     pmass(i) = massp
     vel(:,i) = vleft(:)	! overwrite vx
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower
     IF (imhd.NE.0) THEN
        Bfield(1,i) = Bxinit
        Bfield(2,i) = Byleft
@@ -181,7 +180,6 @@ SUBROUTINE setup
     ENDIF
     x(1,i) = x(1,i-2) + 2.*massp/dens(i-1)
     pmass(i) = massp
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower
  ENDDO
  
  npart = i-1

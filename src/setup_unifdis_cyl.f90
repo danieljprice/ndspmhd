@@ -59,7 +59,7 @@ subroutine setup
 !
 !--now assign particle properties
 !  (note *do not* setup smoothing length as it depends on the conservative
-!   density dens which has not yet been calculated) 
+!   density rho which has not yet been calculated) 
 !
  do i=1,ntotal
     vel(:,i) = 0.

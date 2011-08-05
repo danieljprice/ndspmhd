@@ -78,7 +78,6 @@ SUBROUTINE setup
  vel(1,1:2) = velzero
  
  Bfield(:,1:2) = 0.
- hh(1:2) = hfact*massp/denszero
 
  i = 1
  DO WHILE (x(1,i).lt.xmax(1))  
@@ -118,7 +117,6 @@ SUBROUTINE setup
     ENDIF
 
 !   x(1,i) = x(1,i-2) + 2.*massp/dens(i-1)	 
-    hh(i) = hfact*massp/dens(i)
     uu(i) = uuzero
     pmass(i) = massp
  ENDDO

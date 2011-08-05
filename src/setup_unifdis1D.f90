@@ -56,7 +56,6 @@ SUBROUTINE setup
     ENDIF
     pri = 1.0
     uu(i) = pri/((gamma-1.)*dens(i))
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.NE.0) THEN 
        Bfield(1,i) = 0.
        Bfield(2,i) = sigma*dens(i)

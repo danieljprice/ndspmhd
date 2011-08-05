@@ -51,7 +51,6 @@ SUBROUTINE setup
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
-    hh(i) = hfact*(massp/dens(i))**hpower	 ! ie constant everywhere
     Bfield(:,i) = 0.
  ENDDO 
 !

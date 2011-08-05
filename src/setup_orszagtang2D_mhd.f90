@@ -91,7 +91,6 @@ SUBROUTINE setup
     dens(ipart) = denszero
     pmass(ipart) = massp
     uu(ipart) = uuzero
-    hh(ipart) = hfact*(massp/dens(ipart))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,ipart) = -Bzero*SIN(2.*pi*x(2,ipart))
        Bfield(2,ipart) = Bzero*SIN(4.*pi*x(1,ipart))

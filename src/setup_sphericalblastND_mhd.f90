@@ -91,7 +91,6 @@ SUBROUTINE setup
 !--uniform density and smoothing length
     dens(ipart) = denszero
     pmass(ipart) = massp
-    hh(ipart) = hfact*(massp/dens(ipart))**hpower	 ! ie constant everywhere
 
     dblast(:) = x(:,ipart)-xblast(:) 
     radius = SQRT(DOT_PRODUCT(dblast,dblast))

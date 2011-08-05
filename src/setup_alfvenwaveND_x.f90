@@ -127,7 +127,6 @@ SUBROUTINE setup
 !
     uu(i) = uuzero !+ pri/dens(i)*ampl*SIN(wk*ri)	! if not polytropic
 
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower	 ! ie constant everywhere
     IF (imhd.GE.1) THEN 
        Bfield(1,i) = Bparallel*rvec(1) - Bperp*rvec(2)
        Bfield(2,i) = Bparallel*rvec(2) + Bperp*rvec(1)

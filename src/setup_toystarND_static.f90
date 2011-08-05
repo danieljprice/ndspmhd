@@ -68,9 +68,6 @@ SUBROUTINE setup
  uu(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
- WHERE (dens > 0.)
-    hh = hfact*(massp/dens(:))**hpower
- END WHERE
  
  RETURN
 END SUBROUTINE setup

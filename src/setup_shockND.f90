@@ -164,7 +164,6 @@ subroutine setup
        Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif       
     pmass(i) = massp    
-    hh(i) = hfact*(pmass(i)/dens(i))**hpower    
  enddo
  
  return
