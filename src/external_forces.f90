@@ -151,6 +151,22 @@ real function gradwkernbound(q2)
 
 end function gradwkernbound
 
+real function pequil(iexternal_force,xpart,densi)
+ use dimen_mhd, only:ndim
+ implicit none
+ integer, intent(in) :: iexternal_force
+ real, dimension(ndim), intent(in) :: xpart
+ real, intent(in) :: densi
+ 
+ select case(iexternal_force)
+ case(8)
+    pequil = -0.1*densi*xpart(2)
+ case default
+    pequil = 0.
+ end select
+
+end function pequil
+
 !!-----------------------------------------------------------------------
 !!
 !! Calculate potential energy for above forces
