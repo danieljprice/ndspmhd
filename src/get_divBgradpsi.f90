@@ -9,7 +9,7 @@
 !! global modules
 !!------------------------------------------------------------------------
 
-SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
+SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphasub)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -19,14 +19,16 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  USE linklist
  USE options
  USE get_neighbour_lists
+ USE eos, only:spsound
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npart,ntot
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
  REAL, DIMENSION(ntot), INTENT(IN) :: hh,pmass
  REAL, DIMENSION(ndimV,ntot), INTENT(IN) :: Bin
- REAL, DIMENSION(ntot), INTENT(IN) :: psi
- REAL, DIMENSION(ntot), INTENT(OUT) :: divB,rho
+ REAL, DIMENSION(ntot), INTENT(IN) :: psi, rho
+ REAL, DIMENSION(ntot), INTENT(OUT) :: divB
  REAL, DIMENSION(ndimV,ntot), INTENT(OUT) :: gradpsi
+ REAL, INTENT(IN) :: alphasub
 !
 !--define local variables
 !
@@ -39,10 +41,10 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !      
  REAL :: rij,rij2
  REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
- REAL :: hfacwab,hfacwabi,hfacwabj
- REAL :: pmassi,pmassj,projdB,gradpsiterm
+ REAL :: hfacwab,hfacwabi,hfacwabj,rho1j,rho1i
+ REAL :: pmassi,pmassj,projdB,gradpsiterm,vsig
  REAL, DIMENSION(ndim) :: dx
- REAL, DIMENSION(ndimV) :: dr
+ REAL, DIMENSION(ndimV) :: dr,Bdiss
 !
 !  (kernel quantities)
 !
@@ -59,7 +61,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  listneigh = 0
  divB = 0.
  gradpsi = 0.
- rho = 0.
+ !!rho = 0.
 !
 !--Loop over all the link-list cells
 !
@@ -85,6 +87,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
        hi2 = hi*hi
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
+       rho1i = 1./rho(i)
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -105,6 +108,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
              hfacwab = hav1**ndim
              hfacwabj = hj1**ndim
              pmassj = pmass(j)
+             rho1j = 1./rho(j)
              
              rij2 = DOT_PRODUCT(dx,dx)
              rij = SQRT(rij2)
@@ -163,14 +167,20 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
                 gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
                 gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
                    
+!                vsig = 0.5*alphasub*(spsound(i) + spsound(j) &
+!                          + dot_product(Bin(:,i),Bin(:,i))*rho1i &
+!                          + dot_product(Bin(:,j),Bin(:,j))*rho1j)
+!                Bdiss(:) = (Bin(:,i) - Bin(:,j)) - 3.*projdB*dr(:)
+!                gradpsi(:,i) = gradpsi(:,i) - vsig*pmassj*rho1j*Bdiss(:)*grkern
+!                gradpsi(:,j) = gradpsi(:,j) + vsig*pmassi*rho1i*Bdiss(:)*grkern
                 !print*,' Bi,j = ',Bin(:,i),Bin(:,j)
                 !print*,' projdB,dr = ',projdB,dr(:)
                 !read*
                    
-                weight = 1.0
-                if (j.eq.i) weight = 0.5
-                rho(i) = rho(i) + weight*pmassj*wabi
-                rho(j) = rho(j) + weight*pmassi*wabj
+                !weight = 1.0
+                !f (j.eq.i) weight = 0.5
+                !rho(i) = rho(i) + weight*pmassj*wabi
+                !rho(j) = rho(j) + weight*pmassi*wabj
 
                 !      ELSE
                 !         PRINT*,' r/h > 2 '      
@@ -209,7 +219,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  
  DO i=npart+1,ntot
     j = ireal(i)
-    rho(i) = rho(j)
+    !!rho(i) = rho(j)
     gradpsi(:,i) = 0.
     !print*,i,Bin(:,i),rho(i)
  ENDDO
