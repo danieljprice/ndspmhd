@@ -164,7 +164,7 @@ SUBROUTINE initialise
  alpha(1,:) = alphamin
  alpha(2,:) = alphaumin
  alpha(3,:) = alphaBmin
- gradh = 0.
+ gradh = 1.
  divB = 0.
  curlB = 0.
  fmag = 0.
