@@ -31,7 +31,7 @@ subroutine get_rates
  integer :: i,j,n
  integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
- integer :: idone
+ integer :: idone,nclumped
 !
 !  (particle properties - local copies and composites)
 !
@@ -125,6 +125,7 @@ subroutine get_rates
  zero = 1.e-10
  vsigmax = 0.
  dr(:) = 0.
+ nclumped = 0
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -285,11 +286,14 @@ subroutine get_rates
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
               rij = sqrt(rij2)
-              if (rij.le.1.e-10) then
-                 write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
-                 call quit
-              endif      
-              dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
+              if (rij.le.1.e-8) then
+                 nclumped = nclumped + 1
+                 if (rij.lt.tiny(rij)) then
+                    write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
+                    call quit
+                 endif
+              endif
+              dr(1:ndim) = dx(1:ndim)/rij      ! unit vector           
               !do idim=1,ndim
               !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
               !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
@@ -314,6 +318,7 @@ subroutine get_rates
     enddo loop_over_cell_particles
             
  enddo loop_over_cells
+ if (nclumped.gt.0) write(iprint,*) ' WARNING: clumping on ',nclumped,' pairs'
  
 666 continue
 
