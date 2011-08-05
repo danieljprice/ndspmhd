@@ -254,7 +254,7 @@ SUBROUTINE alloc(newsizein)
    ALLOCATE(dens(newsize))
    ALLOCATE(pmom(ndimV,newsize))
    ALLOCATE(pmomin(ndimV,newsize))
-   IF (igeom.NE.0) THEN
+   IF (igeom.GT.1) THEN
       ALLOCATE(sourceterms(ndimV,newsize))
    ENDIF   
    !ALLOCATE(gradmatrix(ndim,ndim,newsize))

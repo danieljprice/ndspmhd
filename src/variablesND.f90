@@ -83,6 +83,7 @@ MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
  REAL, DIMENSION(:), ALLOCATABLE :: gradh
+ REAL :: rhomin
 END MODULE hterms
 
 !-------------------------------------------------------------------

@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS =  -O -C -r8
+F90FLAGS = -O -r8 -Wall
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -87,7 +87,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          get_neighbour_lists.f90 \
          density_sums.f90 \
 	 eos.f90 evolve.f90 \
-	 external_forces_gr.f90 \
+	 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90\
 	 iterate_density.f90 kernelND.f90 \
@@ -102,7 +102,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 check_neighbourlist.f90
 
 # these are the ordinary cartesian versions
-SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
+SOURCES2 = conservative2primitive.f90 stepND_symplectic.f90 evwrite_mhd.f90 \
 
 # these files are for the gr version of the code
 SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \

@@ -169,7 +169,7 @@ SUBROUTINE step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = velin(:,i) + hdt*force(:,i)
+       vel(:,i) = (velin(:,i) + hdt*force(:,i))/(1.+damp)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 
        IF (imhd.NE.0) THEN
@@ -258,7 +258,7 @@ SUBROUTINE step
        hh(i) = hhin(i)
        psi(i) = psiin(i)
     ELSE
-       vel(:,i) = velin(:,i) + hdt*force(:,i)            
+       vel(:,i) = (velin(:,i) + hdt*force(:,i))/(1.+damp)            
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        IF (ihvar.EQ.2 .OR. (ihvar.EQ.3 .and. itsdensity.eq.0)) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
@@ -295,7 +295,7 @@ SUBROUTINE step
        xin(:,i) = 2.*x(:,i) - xin(:,i)
        x(:,i) = xin(:,i)
     ENDDO
-           
+    WRITE(iprint,*) 'taking direct sum'       
     CALL set_linklist
 !    ikernavprev = ikernav
 !    ikernav = 3
@@ -363,7 +363,9 @@ SUBROUTINE step
           IF (hh(i).LE.0.) THEN
              WRITE(iprint,*) 'step: corrector: hh -ve ',i,hh(i)
              CALL quit
-          ENDIF       
+          ENDIF
+       ELSEIF (ihvar.GT.0) THEN
+          hhin(i) = hh(i)     
        ENDIF
        hhin(i) = hh(i)                
        IF (ANY(iavlim.NE.0)) THEN

@@ -370,8 +370,12 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb,centred)
  if (allocated(xtemp)) deallocate(xtemp)
  allocate(xtemp(ndim,npart))
  
- xtemp(:,1:npart) = x(:,partlist(1:npart))
+ do i=1,npart
+    xtemp(:,i) = x(:,partlist(i))
+ enddo
+
  x(:,1:npart) = xtemp(:,1:npart)
+
  deallocate(xtemp)
  
 !

@@ -20,7 +20,6 @@ subroutine get_rates
  use timestep
  use xsph
  use anticlumping
- use setup_params, only:hfact
   
  use fmagarray
  use derivB
@@ -354,17 +353,17 @@ subroutine get_rates
 !
 !--damp force if appropriate
 !
-    if (damp.gt.1.e-10) then
-       if (igeom.gt.1) then
-          force(:,i) = force(:,i) - damp*pmom(:,i)
-       else
-          force(:,i) = force(:,i) - damp*vel(:,i)
-       endif
-    endif
+!    if (damp.gt.1.e-10) then
+!       if (igeom.gt.1) then
+!          force(:,i) = force(:,i) - damp*pmom(:,i)
+!       else
+!          force(:,i) = force(:,i) - damp*vel(:,i)
+!       endif
+!    endif
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
-    if (igeom.ne.0 .and. allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
+    if (igeom.gt.1 .and. allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
 !
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)
@@ -378,7 +377,7 @@ subroutine get_rates
 !--calculate time derivative of the smoothing length from the density derivative
 !
     if (ihvar.eq.2 .or. ihvar.eq.3) then
-       dhdt(i) = -hh(i)/(ndim*rho(i))*drhodt(i)
+       dhdt(i) = -hh(i)/(ndim*(rho(i)+rhomin))*drhodt(i)
     else
        dhdt(i) = 0.    
     endif
@@ -818,7 +817,7 @@ contains
     if (igeom.gt.1) then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
     else
-       dpmomdotr = abs(dvdotr)
+       dpmomdotr = -dvdotr
     endif
     term = 0.5*vsig*rhoav1*grkern
 
@@ -827,15 +826,15 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0 .and. iav.le.2) then            
+    !if (dvdotr.lt.0 .and. iav.le.2) then            
        visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        force(:,i) = force(:,i) - pmassj*visc*dr(:)
        force(:,j) = force(:,j) + pmassi*visc*dr(:)
-    elseif (iav.ge.3) then ! using total energy, for approaching and receding
-       visc = alphaav*term
-       force(:,i) = force(:,i) + pmassj*visc*dvel(:)
-       force(:,j) = force(:,j) - pmassi*visc*dvel(:)
-    endif
+    !elseif (iav.ge.3) then ! using total energy, for approaching and receding
+    !   visc = alphaav*term
+    !   force(:,i) = force(:,i) + pmassj*visc*dvel(:)
+    !   force(:,j) = force(:,j) - pmassi*visc*dvel(:)
+    !endif
     
     !--------------------------------------------
     !  resistivity in induction equation
