@@ -100,10 +100,10 @@ SUBROUTINE set_ghost_particles
 !--xnew is the shifted position of the ghost particle
 !  save this for each boundary to use for edges/corners
 !	     
-	     IF (ibound.EQ.2) THEN	! reflective
-	        xnew(idimen,imaxmin) = xbound - dxshift
-	     ELSE			! periodic
+	     IF (ibound.EQ.3) THEN	! periodic
 	        xnew(idimen,imaxmin) = xperbound + dxshift
+	     ELSE			! other
+	        xnew(idimen,imaxmin) = xbound - dxshift
 	     ENDIF
 !
 !--set ghost position in current dimension equal to shifted position
@@ -221,7 +221,7 @@ SUBROUTINE makeghost(jpart,xghost)
  ipart = ntotal + 1
  IF (ipart.GT.SIZE(rho)) THEN
     WRITE(iprint,*) 'ghost: ntotal > array size, re-allocating... '
-    CALL alloc(SIZE(rho),2)
+    CALL alloc(ipart,2)
  ENDIF 
  ntotal = ipart
 !
@@ -233,10 +233,8 @@ SUBROUTINE makeghost(jpart,xghost)
 !
  IF (ibound.EQ.2) THEN 		! reflecting
     vel(:,ipart) = -vel(:,jpart)	! should reflect all vels
- ELSEIF (ibound.EQ.3) THEN		! periodic
-    vel(:,ipart) = vel(:,jpart)		! overwrite this if reflecting
- ELSE
-    STOP 'Error: ghosts: invalid boundary option'
+ ELSE				! periodic / fixed particles
+    vel(:,ipart) = vel(:,jpart)
  ENDIF
 !
 !--ireal for ghosts refers to the real particle of which they are ghosts
