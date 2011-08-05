@@ -15,7 +15,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE polyconst
  USE setup_params
 !
 !--define local variables
@@ -118,7 +117,7 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- CALL equation_of_state(przero,spsoundi,uuzero,denszero,gamma,1)
+ CALL equation_of_state(przero,spsoundi,uuzero,denszero,gamma,polyk,1)
 !
 !--work out MHD wave speeds
 !

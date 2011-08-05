@@ -49,7 +49,7 @@ SUBROUTINE output(t,nstep)
  ELSE
     ndata = ndim + 7 + ndimV + ndimV
  ENDIF
- WRITE(idatfile,20) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
+ WRITE(idatfile) t,npart,nprint,gamma,hfact,ndim,ndimV,ndata
 20 FORMAT(e12.5,1x,i8,1x,i8,1x,f14.12,1x,f6.2,1x,i1,1x,i1,1x,i3)
 
 !--calculate primitive variables from conservatives for output
@@ -60,23 +60,28 @@ SUBROUTINE output(t,nstep)
 !      
 ! scale = MAXVAL(Bfield(2,:))
  
- DO i=1,nprint
 !
 !--write the data (primitive variables) to the .dat file
 !
-    IF (imhd.NE.0) THEN	! MHD
+  write(idatfile) x(1:ndim,1:nprint)
+  write(idatfile) vel(1:ndimV,1:nprint)
+  write(idatfile) dens(1:nprint)
+  write(idatfile) pr(1:nprint)
+  write(idatfile) uu(1:nprint)
+  write(idatfile) hh(1:nprint)
+  write(idatfile) pmass(1:nprint)
+  IF (imhd.NE.0) THEN
+     write(idatfile) alpha(:,1:nprint)
+     write(idatfile) Bfield(:,1:nprint)
+     write(idatfile) curlB(:,1:nprint)
+     write(idatfile) divB(1:nprint)
+     write(idatfile) psi(1:nprint)
+     write(idatfile) force(:,1:nprint)
+  ELSE
+     write(idatfile) alpha(1:2,1:nprint)    
+     write(idatfile) force(:,1:nprint)
+  ENDIF
 
-       WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &
-        pmass(i),alpha(:,i),Bfield(:,i)+Bconst(:,i),divB(i),curlB(:,i),psi(i),force(:,i)
-
-    ELSE   ! non-MHD
-
-       WRITE(idatfile,30) x(:,i),vel(:,i),dens(i),pr(i),uu(i),hh(i),   &                        
-        pmass(i),alpha(1:2,i),force(:,i)
-
-    ENDIF
-
- ENDDO
 !
 !--flush the buffer so that whole timestep is printed even if program crashes
 ! 

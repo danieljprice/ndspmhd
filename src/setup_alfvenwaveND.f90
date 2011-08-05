@@ -40,8 +40,8 @@ SUBROUTINE setup
  anglexy = 30.	! angle in degrees x,y plane
 ! anglez = 45.	! angle in degrees z plane
  anglexy = anglexy*pi/180.	! convert to radians
- runit(1) = 0.5*SQRT(3.) !COS(anglexy)
- runit(2) = 0.5	!SIN(anglexy)
+ runit(1) = COS(anglexy)
+ runit(2) = SIN(anglexy)
 ! runit(3) = 0.
  WRITE(iprint,*) ' runit = ',runit
 !
@@ -51,16 +51,18 @@ SUBROUTINE setup
  nbpts = 0	! no fixed particles
  xmin(:) = 0.0	! set position of boundaries
  xmax(:) = 1.0/runit(:)
- PRINT*,'xmin,xmax = ',xmin,xmax
+ PRINT*,'xmin,xmax = ',xmin,xmax,(xmax(1)-xmin(1))/8
 !
 !--read/set wave parameters
 ! 
- rmax = DOT_PRODUCT((xmax(:)-xmin(:)),runit)
+ rmax = SQRT(DOT_PRODUCT(xmax(:)-xmin(:),xmax(:)-xmin(:)))
  ampl = 0.001
+ print*,'rmax = ',rmax
 ! WRITE (*,*) 'Enter amplitude of disturbance'
 ! READ (*,*) ampl
  
- xlambda = 1.0	!/COS(anglexy)	!*rmax
+ xlambda = 1.0 !!rmax !!!2.0 !!!(xmax(1)-xmin(1))/COS(anglexy)
+ write(iprint,*) 'xlambda = ',xlambda
 ! WRITE (*,*) 'Enter wavelength lambda'
 ! READ (*,*) xlambda
     
@@ -126,6 +128,11 @@ SUBROUTINE setup
  ntotal = npart
  
  valfven = SQRT(Bparallel**2/denszero)
+ if (iener.eq.0) then
+    polyk = przero/denszero**gamma
+    WRITE(iprint,*) 'setting polyk = ',polyk
+ endif
+
 
 !----------------------------
 

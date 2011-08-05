@@ -15,7 +15,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE polyconst
  USE setup_params
 !
 !--define local variables
@@ -131,6 +130,9 @@ SUBROUTINE setup
        Bfield(1,i) = Bparallel*rvec(1) - Bperp*rvec(2)
        Bfield(2,i) = Bparallel*rvec(2) + Bperp*rvec(1)
        Bfield(3,i) = Bz
+       Bconst(1,i) = Bparallel*rvec(1)
+       Bconst(2,i) = Bparallel*rvec(2)
+       Bconst(3,i) = 0.
     ENDIF 
  ENDDO
 

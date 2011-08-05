@@ -130,10 +130,10 @@ SUBROUTINE setup
     pmass(i) = massp
     vel(:,i) = vleft(:)
     IF (imhd.NE.0) THEN
-       Bfield(1,i) = 0. !Bxinit
-       Bconst(1,i) = Bxinit
+       Bfield(1,i) = Bxinit
        Bfield(2,i) = Byleft
        Bfield(3,i) = Bzleft
+       Bconst(1,i) = Bxinit
     ENDIF 
  ENDDO
  
@@ -189,7 +189,7 @@ SUBROUTINE setup
        Bfield(3,j) = (Bzleft + Bzright*exx)/(1.0 + exx)
     ENDIF
     pmass(j) = massp
-    Bfield(1,j) = 0.  !Bxinit
+    Bfield(1,j) = Bxinit
     Bconst(1,j) = Bxinit
  ENDDO
 

@@ -13,7 +13,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE polyconst
  USE setup_params
 !
 !--define local variables

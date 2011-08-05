@@ -590,15 +590,15 @@ contains
        Bj(:) = Bfield(:,j)
     endif
     if (imhd.ne.0) then
-       Bconstj(:) = Bconst(:,j)
        dB(:) = Bi(:) - Bj(:)
        projBi = dot_product(Bi,dr)
        projBj = dot_product(Bj,dr)
        projdB = dot_product(dB,dr)
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
+       Bconstj(:) = Bconst(:,j)
        Brho2j = dot_product(Brhoj,Brhoj)
-       !Brho2j = dot_product((Bj+Bconstj)*rho1j,(Bj+Bconstj)*rho1j)
+       !!Brho2j = dot_product((Bj+Bconstj)*rho1j,(Bj+Bconstj)*rho1j)
        valfven2j = Brho2j*rhoj
        projBconsti = dot_product(Bconsti,dr)
        projBconstj = dot_product(Bconstj,dr)
@@ -925,14 +925,10 @@ contains
           endif
 
        else
-!         faniso(:) = ((Bconsti(:)*projBrhoi + Brhoi(:)*projBconsti)*rho1i &
-! 	              + Brhoi(:)*projBrhoi)*phij_on_phii*grkerni         &
-!                   + ((Bconstj(:)*projBrhoj + Brhoi(:)*projBconstj)*rho1j &
-! 	              + Brhoj(:)*projBrhoj)*phii_on_phij*grkernj
-          faniso(:) = (Brhoi(:)*projBrhoi   +Bconsti(:)*rho1i*projBrhoi &
-	              +Brhoi(:)*projBconsti*rho1i)*phij_on_phii*grkerni &
-                    + (Brhoj(:)*projBrhoj   +Bconstj(:)*rho1j*projBrhoj &
-		      +Brhoj(:)*projBconstj*rho1j)*phii_on_phij*grkernj
+          faniso(:) = (Brhoi(:)*projBrhoi &
+	             - Bconsti(:)*projBconsti*rho21i)*phij_on_phii*grkerni &
+                    + (Brhoj(:)*projBrhoj &
+		     - Bconstj(:)*projBconstj*rho21j)*phii_on_phij*grkernj
        endif
 
        !
@@ -1013,10 +1009,10 @@ contains
        !
     elseif (imhd.ge.11) then      ! note divided by rho later              
        
-       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*((Bi(:)+Bconsti(:))*dvdotr &
-                                       - dvel(:)*(projBi+projBconsti))*grkerni   
-       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*((Bj(:)+Bconstj(:))*dvdotr &
-                                       - dvel(:)*(projBj+projBconstj))*grkernj
+       dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(Bi(:)*dvdotr &
+                                       - dvel(:)*projBi)*grkerni   
+       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*(Bj(:)*dvdotr &
+                                       - dvel(:)*projBj)*grkernj
         
        if (imhd.eq.12) then ! add v div B term
         dBevoldt(:,i) = dBevoldt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
