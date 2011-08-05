@@ -265,7 +265,7 @@ subroutine set_ghost_particles
 !  make a corner ghost if ghosts set in both previous dimensions
 !  (could be up to 8 corner reflections of this particle in 3D
 !----------------------------------------------------------------------
-                             if (idimenprev.gt.2) then
+                             if (idimenprev.ge.2) then
                                 idimenprevprev = idimenprev-1 ! in 3D
                                 do imaxminprevprev = 1,nbound(idimenprevprev)
                                    if (imakeghost(idimenprevprev,imaxminprevprev)) then
