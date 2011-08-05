@@ -147,6 +147,7 @@ SETUP1D = setup_shockND.f90
 #SETUP1D = setup_clareshk1D.f90
 #SETUP1D = setup_resist1D.f90
 #SETUP1D = setup_anyrho1Dran.f90
+#SETUP1D = setup_resistivityND_mhd.f90
 endif
 
 ifndef SETUP2D
@@ -229,6 +230,7 @@ SOURCES= sphND_mhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
          get_curl.f90 get_B_eulerpots.f90 \
          smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
+         resistivity_implicit.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
          grutils_gr.f90 \

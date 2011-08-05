@@ -480,7 +480,7 @@ subroutine get_rates
 !
 !--calculate resistive timestep (bootstrap onto force timestep)
 !
-    if (iresist.gt.0 .and. etamhd.gt.tiny(etamhd)) then
+    if (iresist.gt.0 .and. iresist.ne.2 .and. etamhd.gt.tiny(etamhd)) then
        fhmax = max(fhmax,etamhd/hh(i)**2)
     endif
 
@@ -1761,7 +1761,7 @@ contains
     !--------------------------------------------
     !  real resistivity in induction equation
     !--------------------------------------------
-    if (iresist.gt.0) then
+    if (iresist.gt.0 .and. iresist.ne.2) then
        if (imhd.gt.0) then
           dBdtvisc(:) = -2.*etamhd*dB(:)/rij
        else !--vector potential resistivity

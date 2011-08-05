@@ -5,9 +5,13 @@
 subroutine derivs
  use loguns, only:iprint
  use options, only:ibound,icty,ihvar,imhd,isplitpart
- use part, only:hh,x,npart
+ use part, only:hh,x,npart,rho,Bevol,pmass
+ use rates, only:dBevoldt
  use setup_params, only:hfact
  use cons2prim, only:conservative2primitive
+ use resistivity, only:Bdiffusion
+ use timestep, only:dt
+ use options, only:iresist,etamhd
  implicit none
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
@@ -62,6 +66,10 @@ subroutine derivs
  if (itiming) call cpu_time(t4)
 
  call get_rates
+ 
+ if (imhd.eq.11 .and. iresist.eq.2 .and. etamhd.gt.0.) then
+    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,dt)
+ endif
 
  if (itiming) then
     call cpu_time(t5)

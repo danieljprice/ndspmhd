@@ -67,7 +67,7 @@ subroutine write_infile(infile)
 110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
 120 format(i2,4x,i1,29x,'! MHD (0:no 1-10:B >10:B/rho <0:A -3:GEPs), force type(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
-140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:on), eta')
+140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:explicit 2:implicit), eta')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
 160 format(i2,1x,1pe9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
@@ -192,7 +192,7 @@ subroutine read_infile(infile)
     write(iprint,100) 'tolh really, really tiny (probably zero)!!'
     stop
  endif
- if (iresist.lt.0 .or. iresist.gt.1) then
+ if (iresist.lt.0 .or. iresist.gt.2) then
     write(iprint,100) 'invalid choice of resistivity formulation'
     stop
  endif
