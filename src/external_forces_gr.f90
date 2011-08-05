@@ -5,6 +5,7 @@
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim)
   use options, only:geom
+  use setup_params, only:pi
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
@@ -12,6 +13,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
   real, dimension(ndim) :: dr
   real :: rr2,drr,drr2,rcyl2,rcyl,rsph,v2onr
   real, parameter :: Rtorus = 1.0, dfac = 1.1
+ real, parameter :: sink = 0.25*pi, Asin = 100., Bsin = 2.0
 
   fext(:) = 0.
   
@@ -50,12 +52,13 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         if (ndim.ge.3) dr(3) = xpart(3)*drr
         fext(:) = -dr(:)*drr2
      case('cylrzp') ! cylindrical r-z-phi
-        rr2 = xpart(1)**2 + xpart(2)**2
-        drr = 1./sqrt(rr2)
-        drr2 = drr*drr
-        dr(1) = xpart(1)*drr
-        dr(2) = xpart(2)*drr
-        fext(:) = -dr(:)*drr2
+!        rr2 = xpart(1)**2 + xpart(2)**2
+!        drr = 1./sqrt(rr2)
+!        drr2 = drr*drr
+!        dr(1) = xpart(1)*drr
+!        dr(2) = xpart(2)*drr
+!        fext(:) = -dr(:)*drr2
+        fext(:) = -1./xpart(1)**2
      case ('cartes') ! cartesian
         rr2 = DOT_PRODUCT(xpart,xpart) 
         drr = 1./sqrt(rr2)
@@ -66,8 +69,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         stop 'error: external force not implemented'
      end select
 
-  case(3:5,7:)
-     stop 'external force not implemented'
+  case(3:5)
 !
 !--compute force on gas particle from n point masses
 !
@@ -129,9 +131,15 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
      case default
         stop 'external force not implemented'
      end select
+  case(7)
+!
+!--sinusoidal potential as in Dobbs, Bonnell etc.
+!
+    fext(1) = Asin*sink*SIN(sink*(xpart(1) + Bsin))
+
   case default
      
-     fext(:) = 0.
+     stop 'external force not implemented'
      
   end select
   
@@ -147,10 +155,12 @@ end subroutine external_forces
 
 subroutine external_potentials(iexternal_force,xpart,epot,ndim)
  use options, only:geom
+ use setup_params, only:pi
  implicit none
  integer, intent(in) :: iexternal_force,ndim
  real, dimension(ndim), intent(in) :: xpart
  real, intent(out) :: epot
+ real, parameter :: sink = 0.25*pi, Asin = 100., Bsin = 2.0
  
  select case(iexternal_force)
  
@@ -181,6 +191,9 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
 
  case(3) ! potential from n point masses
     epot = 0.
+
+ case(7)
+    epot = Asin*COS(sink*(xpart(1) + Bsin))
 
  case default
     epot = 0.
