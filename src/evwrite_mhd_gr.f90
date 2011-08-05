@@ -30,12 +30,13 @@ subroutine evwrite(t,etot,momtot)
  real, dimension(ndimV) :: Bi,Brhoi,fluxtot
  real :: B2i,Bmagi
  real :: fluxtotmag,crosshel
- real :: betamhdi,betamhdmin,betamhdmax,betamhdav
+ real :: betamhdi,betamhdmin,betamhdav
  real :: FdotBi,Fdotbmax,Fdotbav
  real :: forcemagi,force_erri,force_err_max,force_err_av
  real :: divBi,divbav,divbmax,divbtot
  real :: omegamhdi,omegamhdav,omegamhdmax
- real :: omegtol,fracdivbok
+ real :: fracdivbok
+ real, parameter :: omegtol = 1.E-2
  real :: fmagabs
 !
 !--allow for tracing flow
@@ -54,8 +55,7 @@ subroutine evwrite(t,etot,momtot)
 !     
  if (imhd.ne.0) then
     betamhdav = 0.
-    betamhdmax = 0.
-    betamhdmin = 1.e30
+    betamhdmin = huge(betamhdmin)
     divbmax = 0.
     divbav = 0.
     divbtot = 0.
@@ -65,7 +65,6 @@ subroutine evwrite(t,etot,momtot)
     force_err_av = 0.
     omegamhdav = 0.
     omegamhdmax = 0.
-    omegtol = 1.e-2
     fracdivbok = 0.
     fluxtot(:) = 0.
     fluxtotmag = 0.
@@ -115,7 +114,6 @@ subroutine evwrite(t,etot,momtot)
           !print*,'beta i = ',pr(i),B2i,betamhdi
        endif
        betamhdav = betamhdav + betamhdi
-       if (betamhdi.gt.betamhdmax) betamhdmax = betamhdi
        if (betamhdi.lt.betamhdmin) betamhdmin = betamhdi
 !
 !--maximum divergence of B
@@ -195,10 +193,10 @@ subroutine evwrite(t,etot,momtot)
     fracdivbok = 100.*fracdivbok/float(npart)
 
 !    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
-    print*,'beta(av) = ',betamhdav
+!    print*,'beta(av) = ',betamhdav
 
     write(ievfile,30) t,ekin,etherm,emag,etot,momtot,fluxtotmag, &
-          crosshel,betamhdmin,betamhdav,betamhdmax,   &
+          crosshel,betamhdmin,betamhdav, &
           divbav,divbmax,divbtot,     &
           fdotbav,fdotbmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivbok

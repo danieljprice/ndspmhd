@@ -152,24 +152,25 @@ program plotmeagraph
   label(5) = 'E_pot          '
   label(6) = 'E_total        '
   label(7) = 'Linear momentum'
-  label(8) = 'rho max'
-  label(9) = 'rho mean '
-  if (ncol.gt.10) then
-     label(10) = 'Total flux     '
-     label(11) = 'Cross helicity '
-     label(12) = 'Plasma beta (min)'
-     label(13) = 'Plasma beta (ave)'
-     label(14) = 'Plasma beta (max)'
-     label(15) = 'div B (average)  '
-     label(16) = 'div B (maximum)  '
-     label(17) = 'int (div B) dV   '
-     label(18) = 'Fmag dot B/|Fmag| (av)'
-     label(19) = 'Fmag dot B/|Fmag| (max)'
-     label(20) = 'Fmag dot B/|force| (av)'
-     label(21) = 'Fmag dot B/|force| (max)'            
-     label(22) = 'omega_mhd (average)'
-     label(23) = 'omega_mhd (max) '
-     label(24) = '% particles with omega < 0.01 '
+  label(8) = 'Angular momentum'
+  label(9) = 'density (max)'
+  label(10) = 'density (mean)'
+  label(11) = 'dt'
+  if (ncol.gt.11) then
+     label(12) = 'Total flux     '
+     label(13) = 'Cross helicity '
+     label(14) = 'Plasma beta (min)'
+     label(15) = 'Plasma beta (ave)'
+     label(16) = 'div B (average)  '
+     label(17) = 'div B (maximum)  '
+     label(18) = 'int (div B) dV   '
+     label(19) = 'Fmag dot B/|Fmag| (av)'
+     label(20) = 'Fmag dot B/|Fmag| (max)'
+     label(21) = 'Fmag dot B/|force| (av)'
+     label(22) = 'Fmag dot B/|force| (max)'            
+     label(23) = 'omega_mhd (average)'
+     label(24) = 'omega_mhd (max) '
+     label(25) = '% particles with omega < 0.01 '
   endif
   label(ncol) = 'nstep          '
 
@@ -352,7 +353,7 @@ program plotmeagraph
 ! initialise PGPLOT
 !
   isameXaxis = all(iplotx(1:nplots).eq.iplotx(1))
-  isameYaxis = all(iploty(1:nplots).eq.iploty(1))
+  isameYaxis = .true. !!all(iploty(1:nplots).eq.iploty(1))
 
   if (nplots.eq.1) then
      if (nfiles.gt.1) then
