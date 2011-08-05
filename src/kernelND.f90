@@ -1593,12 +1593,12 @@ end subroutine interpolate_kernel
 !!----------------------------------------------------------------------
 !! same but for kernal *and* modified kernel in anticlumping term
 !!----------------------------------------------------------------------
-subroutine interpolate_kernels(q2,w,gradw,walt,gradwalt)
+subroutine interpolate_kernels(q2,w,gradw,gradwalt,gradgradwalt)
  implicit none
  integer :: index,index1
  real, intent(in) :: q2
- real, intent(out) :: w,gradw,walt,gradwalt
- real :: dxx,dwdx,dgrwdx,dwaltdx,dgrwaltdx
+ real, intent(out) :: w,gradw,gradwalt,gradgradwalt
+ real :: dxx,dwdx,dgrwdx,dwaltdx,dgrwaltdx,dgrgrwaltdx
 !
 !--find nearest index in kernel table
 ! 
@@ -1624,13 +1624,17 @@ subroutine interpolate_kernels(q2,w,gradw,walt,gradwalt)
 !
 !--interpolate for alternative kernel and derivative
 !
- walt = wijalt(index)
- dwaltdx =  (wijalt(index1)-walt)*ddq2table
- walt = walt + dwaltdx*dxx
+! walt = wijalt(index)
+! dwaltdx =  (wijalt(index1)-walt)*ddq2table
+! walt = walt + dwaltdx*dxx
 
  gradwalt = grwijalt(index)
  dgrwaltdx =  (grwijalt(index1)-gradwalt)*ddq2table
  gradwalt = gradwalt + dgrwaltdx*dxx
+
+ gradgradwalt = grgrwijalt(index)
+ dgrgrwaltdx =  (grgrwijalt(index1)-gradgradwalt)*ddq2table
+ gradgradwalt = gradgradwalt + dgrgrwaltdx*dxx
  
 end subroutine interpolate_kernels
 
@@ -1748,5 +1752,39 @@ subroutine interpolate_kernel_dens(q2,w,gradw,gradgradw)
  gradgradw = (grgrwij(index)+ dgrgrwdx*dxx)
  
 end subroutine interpolate_kernel_dens
+
+!!----------------------------------------------------------------------
+!! kernels used in calculating the curl in get_curl.f90
+!!----------------------------------------------------------------------
+subroutine interpolate_kernel_curl(q2,gradwalt,gradgradwalt)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: gradwalt,gradgradwalt
+ real :: dxx,dgrwaltdx,dgrgrwaltdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw, waniso, gradwaniso
+!  and interpolate for each
+! 
+ gradwalt = grwijalt(index)
+ dgrwaltdx =  (grwijalt(index1)-gradwalt)*ddq2table
+ gradwalt = gradwalt + dgrwaltdx*dxx
+
+ gradgradwalt = grgrwijalt(index)
+ dgrgrwaltdx =  (grgrwijalt(index1)-gradgradwalt)*ddq2table
+ gradgradwalt = gradgradwalt + dgrgrwaltdx*dxx
+ 
+end subroutine interpolate_kernel_curl
 
 end module kernels
