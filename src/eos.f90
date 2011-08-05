@@ -85,10 +85,10 @@ subroutine equation_of_state1(pr,vsound,uu,rho)
 !--exit gracefully if rho is negative
 !
  if (rho.lt.0.) then
-    write(iprint,*) 'eos: rho -ve, exiting'
+    write(iprint,*) 'eos1: rho -ve, exiting'
     call quit
  elseif ((iener.ne.0).and.uu.lt.0.) then
-    write(iprint,*) 'eos: u_therm -ve, exiting',isize    
+    write(iprint,*) 'eos1: u_therm -ve, exiting',isize    
     call quit
  endif
 
