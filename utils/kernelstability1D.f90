@@ -10,7 +10,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
-  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4,rhosum,Wnorm,grWnorm,grgrWnorm
+  real, dimension(ny) :: yaxis,tterm1,tterm2,tterm3,tterm4,rhosum,Wnorm,grWnorm,grgrWnorm,grgrWnorm2
   real, dimension(nkx) :: kxarray
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
@@ -19,11 +19,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
   real :: charheight, hpos, vpos, term1,term2,term3,term4,rhosumi
-  real :: termWnorm,termgradWnorm,termgrgrWnorm
+  real :: termWnorm,termgradWnorm,termgrgrWnorm,termgrgrWnorm2
   character(len=20) :: string,labely
   character(len=50) :: text,title
   logical :: negstress, contours,normplot
-  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm
+  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm,termgrgrWnorm2
   
   cs2 = 1.0
   rhozero = 1.0
@@ -34,9 +34,9 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !
 !--set various options
 !  
-  contours = .true.     ! plot whole dispersion relation or just kx=0
-  negstress = .true.    ! plot vs h or R
-  normplot = .false.     ! plot normalisation conditions
+  contours = .false.     ! plot whole dispersion relation or just kx=0
+  negstress = .false.    ! plot vs h or R
+  normplot = .true.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
   ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
@@ -74,7 +74,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !     ymin = 0.5*psep
 !     ymax = 5.0*psep
      ymin = 1.0*psep
-     ymax = 6.3*psep
+     ymax = 2.0*psep
      labely = 'h / \Deltap'
   endif
 !
@@ -97,7 +97,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   mainloop: do iloop=1,nplots
      if (nplots.gt.1) iplotpos = iloop
 !     neps = neps + 1
-     print*,'eps = ',eps,' neps = ',neps
+     !print*,'eps = ',eps,' neps = ',neps
      write(title,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
 !
 !--calculates the 1D dispersion relation for SPH (no av)
@@ -122,6 +122,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
            Wnorm(j) = termWnorm
            grWnorm(j) = termgradWnorm
            grgrWnorm(j) = termgrgrWnorm
+           grgrWnorm2(j) = termgrgrWnorm2
         endif
      enddo
   enddo
@@ -218,6 +219,18 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call pgline(ny,yaxis(1:ny),grgrWnorm(1:ny))
      print*,' grgrWnorm = ',grgrWnorm(1:10),ny
      if (iplotpos.eq.1) call legend(ipos,'d^2W/dx^2',hpos,vpos)
+!--second derivative normalisation term
+     call pgsls(4)
+     call pgsci(4)
+     call pgline(ny,yaxis(1:ny),grgrWnorm2(1:ny))
+     do i=2,ny
+        if ((grgrWnorm2(i-1).ge.1. .and. grgrWnorm2(i).lt.1.) .or. &
+            (grgrWnorm2(i-1).lt.1. .and. grgrWnorm2(i).ge.1.)) then
+           print*,'crosses unity at ',yaxis(i-1),0.5*(yaxis(i-1) + yaxis(i)),yaxis(i)
+        endif
+     enddo
+     print*,' Brookshaw del^2 = ',grgrWnorm2(1:10),ny
+     if (iplotpos.eq.1) call legend(ipos,'Brookshaw d^2W/dx^2',hpos,vpos)
 
      call pgsci(1)
      call pgsls(1)
@@ -338,8 +351,8 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
   real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
   real :: dx, dr, q2, eps, term1,term2,term3,term4,rhosumi
-  real :: termWnorm,termgradWnorm,termgrgrWnorm
-  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm
+  real :: termWnorm,termgradWnorm,termgrgrWnorm,termgrgrWnorm2
+  common /terms/ term1,term2,term3,term4,rhosumi,termWnorm,termgradWnorm,termgrgrWnorm,termgrgrWnorm2
 
   sum1 = 0.
   sum2 = 0.
@@ -354,6 +367,7 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   termWnorm = 0.
   termgradWnorm = 0.
   termgrgrWnorm = 0.
+  termgrgrWnorm2 = 0.
 !
 !--calculate pressure from cs2 and gamma
 !  
@@ -431,11 +445,15 @@ real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      termWnorm = termWnorm + W
      termgradWnorm = termgradWnorm - dx*gradW*dr
      termgrgrWnorm = termgrgrWnorm + 0.5*dx**2*gradgradW
+     if (abs(dx).gt.0.) then
+     termgrgrWnorm2 = termgrgrWnorm2 + 0.5*dx**2*(-2.*gradW/abs(dx))
+     endif
   enddo
   
   termWnorm = pmass/rhozero*termWnorm
   termgradWnorm = pmass/rhozero*termgradWnorm
   termgrgrWnorm = pmass/rhozero*termgrgrWnorm
+  termgrgrWnorm2 = pmass/rhozero*termgrgrWnorm2
 ! 
 !!  if (kx.lt.0.1) print*,sum1,kx**2,sum2/kx,sum3,sum4,sum5,sum6,sum7
 !  sum1 = kx**2
