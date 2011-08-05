@@ -14,6 +14,7 @@ subroutine setup
  use options
  use part
  use setup_params
+ use eos, only:polyk
  
  use uniform_distributions
 !
@@ -50,7 +51,8 @@ subroutine setup
 !
 !--determine particle mass
 !
- denszero = 1.0
+ denszero = 1.0e-3
+ polyk = 1.0
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
@@ -61,7 +63,7 @@ subroutine setup
     vel(:,i) = 0.
     dens(i) = denszero
     pmass(i) = massp
-    uu(i) = 0.0	! isothermal
+    uu(i) = 1.5	! isothermal
     rcyl = sqrt(dot_product(x(1:2,i),x(1:2,i)))
     Bphi = besj1(rmu*rcyl)
     Bfield(1,i) = Bphi*(-x(2,i)/rcyl)
