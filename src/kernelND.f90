@@ -22,6 +22,7 @@ module kernels
  real, dimension(0:ikern) :: grgrwij,grgrwijalt
  character(len=100) :: kernelname,kernelnamealt
  
+ public :: wij,grwij,grgrwij
  public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
  private :: setkerntable
 
@@ -77,7 +78,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  character(len=*), intent(out) :: kernellabel
  integer, intent(out) :: ierr
  integer :: i,j,npower,n
- real :: q,q2,q4,cnormk,cnormkaniso
+ real :: q,q2,q4,q3,q5,q6,q7,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4
@@ -1010,6 +1011,9 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
        a = 0.9
        cnormk = 2./(3.*a - 1.)
+      case(3)
+       a = 85./63.
+       cnormk = 1./pi * (630./283.)
       case default
        write(*,666)
        ierr = 1
@@ -1026,6 +1030,58 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
          wkern(i) = 0.25*(a - q2)*(2.-q)**3
          grwkern(i) = -0.5*q*(2.-q)**3 - 0.75*(a-q2)*(2.-q)**2
          grgrwkern(i) = -4. + 3.*a + 18.*q - 18.*q2 - 1.5*a*q + 5.*q2*q
+      else
+         wkern(i) = 0.0
+         grwkern(i) = 0.0
+         grgrwkern(i) = 0.
+      endif
+    enddo
+
+  case(52)
+!
+!--quartic spline with vanishing second moment (using monaghan 1992 method)
+!
+    kernellabel = 'Higher order quartic spline'    
+   
+    radkern = 2.5
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+       cnormk = 1.
+      case(3)
+       cnormk = 1./pi
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select
+    do i=0,ikern
+      q2 = i*dq2table
+      q = sqrt(q2)
+      q3 = q*q2
+      q4 = q2*q2
+      q5 = q3*q2
+      q6 = q3*q4
+      q7 = q6*q
+      if (q.lt.0.5) then
+         wkern(i)     = 1./40.*(575./8. - 105.*q2 + 54.*q4)
+         grwkern(i)   = 1./40.*(-210.*q + 216.*q2*q)
+         fsoft(i)     = 1./10.*(575./24.*q3 - 21.*q5 + 54./7.*q7)
+         potensoft(i) = 1./10.*(575./48.*q2 - 21./4.*q4 + 9./7.*q6 - 1199./64.)
+         dphidh(i)    = 1./10.*(1199./64. - 575./16.*q2 + 105./4.*q4 - 9.*q6)
+      elseif (q.lt.1.5) then
+         wkern(i)   =  1./40.*(275./4. + 30.*q - 210.*q2 + 160.*q3 - 36.*q4)
+         grwkern(i) = 1./40.*(30. - 420.*q + 480.*q2 - 144.*q3)
+         fsoft(i)   = 1./10.*(275./12.*q3 + 15./2.*q4 - 42.*q5 + 80./3.*q6 - 36./7.*q7 + 1./672.)
+         potensoft(i) = 1./10.*(275./24.*q2 + 5./2.*q3 - 21./2.*q4 + 16./3.*q5 - 6./7.*q6 - 599./32.)
+         dphidh(i)    = 1./10.*(599./32. - 275./8.*q2 - 10.*q3 + 105./2.*q4 - 32.*q5 + 6.*q6)
+      elseif (q.lt.2.5) then
+         wkern(i)     = 1./40.*(3125./16. - 375.*q + 525./2.*q2 -  80.*q3 + 9.*q4)
+         grwkern(i)   = 1./40.*(-375. + 525.*q - 240.*q2 + 36.*q3)
+         fsoft(i)     = 1./10.*(3125./48.*q3 - 375./4.*q4 + 105./2.*q5 - 40./3.*q6 + 9./7.*q7 - 2185./1344.)
+         potensoft(i) = 1./10.*(3125./96.*q2 - 125./4.*q3 + 105./8.*q4 - 8./3.*q5 + 3./14.*q6 - 3125./128.)
+         dphidh(i)    = 1./10.*(3125./128. - 3125./32.*q2 + 125.*q3 - 525./8.*q4 + 16.*q5 - 3./2.*q6)      
       else
          wkern(i) = 0.0
          grwkern(i) = 0.0
@@ -1049,7 +1105,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(2)
        cnormk = 4./(3.*pi)
       case(3)
-       cnormk = 30./(31.*pi)
+       cnormk = 30./(31.*pi)/(-0.877)
       case default
        write(*,666)
        ierr = 1
@@ -1076,7 +1132,42 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
          grgrwkern(i) = 0.
       endif
     enddo
-    
+
+  case(58)
+!
+!--Super Gaussian (Monaghan & Gingold 1983)
+!   
+    kernellabel = '1D Super Gaussian'
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 1./sqrt(pi)
+      case default
+        write(*,666)
+        ierr = 1
+        return
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q2.lt.radkern2) then
+          wkern(i) = exp(-q2)*(1.5 - q2)
+          grwkern(i) = exp(-q2)*q*(2.*q2 - 5.)
+          grgrwkern(i) = exp(-q2)*(-4.*q4 + 16.*q2 - 5.)
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
   case(59)
 !
 !--particle splitting kernel (cubic spline gradient  * q)
@@ -1092,7 +1183,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(2)
         cnormk = 10./(7.*pi)
       case(3)
-        cnormk = 1./pi
+        cnormk = 1./(3.*pi)
     end select
 !
 !--setup kernel table
@@ -1478,6 +1569,52 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           grwkern(i) = 0.0
           grgrwkern(i) = 0.25*(2.-q)**3
        else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case (69)
+!
+!--hacked cubic spline
+!   
+    kernellabel = 'hacked M_4 cubic'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 2./5.
+      case(2)
+        cnormk = 10./(9.*pi)
+      case(3)
+        cnormk = 15./(17.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       !
+       ! potential must be divided by h
+       ! force must be divided by h^2
+       !
+       if (q.lt.1.0) then
+          wkern(i) = 0.25*(2.-q)**3 + (1.-q)**3
+          grwkern(i) = -0.75*(2.-q)**2 - 3.*(1.-q)**2
+          grgrwkern(i) = 1.5*(2.-q) + 6.*(1.-q)
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = 0.25*(2.-q)**3
+          grwkern(i) = -0.75*(2.-q)**2
+          grgrwkern(i) = 1.5*(2.-q)
+       else
+          potensoft(i) = -1./q
+          fsoft(i) = 1.0
+          dphidh(i) = 0.
           wkern(i) = 0.0
           grwkern(i) = 0.0
           grgrwkern(i) = 0.
