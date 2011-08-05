@@ -21,6 +21,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  use dimen_mhd
  use debug
  use loguns
+ use linklist, only:iamincell
+ use bound, only:hhmax
+ use get_neighbour_lists, only:get_neighbour_list_partial
 
  use options
  use part
@@ -37,11 +40,12 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  logical, intent(in), optional :: offset,fill,adjustbound
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
- integer :: idist
+ integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
+ integer, dimension(1000) :: listneigh
  real :: xstart,ystart,deltax,deltay,deltaz
- real :: ran1,ampl,radmin,radmax,rr
- real, dimension(ndim) :: xran,xcentre
- logical :: adjustdeltas
+ real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart
+ real, dimension(ndim) :: xran,xcentre,dx
+ logical :: adjustdeltas,offsetx
 !
 !--allow for tracing flow
 !
@@ -74,9 +78,9 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  select case(idist)
 !
 !--hexagonal close packed arrangement 
-!  (in 3d, 2d this is the same as body centred)
+!  (22 is with symmetry-breaking)
 !
- case(2)
+ case(2,22)
 !
 !--determine number of particles
 ! 
@@ -171,7 +175,6 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     write(iprint,*) ' hexagonal close packed distribution, npart = ',ntot
     
     call alloc(ntot)
-    npart = ntot
 
     ipart = npartin
     do k=1,npartz
@@ -200,12 +203,80 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
                  rr .gt. (radmax - 0.01*psep)) ipart = ipart - 1
           enddo
        enddo
-    enddo 
+    enddo
+    
+!
+!--transform to asymmetric "glass-like" distribution 
+!  by rotating lattice crystals by random amounts
+!
+    if (idist.eq.22 .and. ndim.ge.2) then
+       hpart = 1.2*psep
+       if (ndim.eq.3) then
+          nskipz = int(4.5*hpart/deltaz)
+          print*,'rotating every ',nskipz,'nd/rd z layer'
+       else
+          nskipz = 1
+       endif
+       nskipy = int(4.5*hpart/deltay)
+       print*,'rotating every ',nskipy,'nd/rd y layer'
+       nskipx = int(4.5*hpart/deltax)
+       nskipy = nskipx
+       print*,'rotating every ',nskipx,'nd/rd x layer'
+
+   !--set "smoothing length" (size of lattice crystals)
+       hh(1:ntot) = hpart
+       hhmax = hpart
+       npart = ipart
+       ntotal = npart
+       call set_linklist
+   !--initialise random number generator for angle
+       iseed = -630
+       dangle = ran1(iseed)
+
+       do k=nskipz,npartz,nskipz
+          istarty = nskipy
+          offsetx = .false.
+          do j=istarty,nparty-nskipy,nskipy
+             offsetx = .not.offsetx
+             if (offsetx) then
+                istartx = nskipx
+             else
+                istartx = nskipx + nskipx/2
+             endif
+             do i=istartx,npartx-nskipx,nskipx
+                ipart = (j-1)*npartx + i - 1
+                if (ndim.ge.3) ipart = ipart + (k-1)*nparty*npartx
+                call get_neighbour_list_partial(iamincell(ipart),listneigh,nneigh)
+                !print*,'ipart= ',ipart,' in cell ',iamincell(ipart),' nneighbours = ',nneigh
+                !--get random angle for rotation of lattice points
+                dangle = 2.*3.14159*(ran1(iseed) - 0.5)
+                !print*,'rotating neighbours by ',dangle
+                !--loop over neighbours             
+                do ineigh = 1,nneigh
+                   jpart = listneigh(ineigh)
+                   dx(1:2) = x(1:2,jpart)-x(1:2,ipart)
+                   rr2 = dot_product(dx,dx)
+                   if (rr2.lt.4.*hpart**2 .and. ipart.ne.jpart) then
+                      rr = sqrt(rr2)
+                      phi = ATAN2(dx(2),dx(1))
+                      phi = phi + dangle
+                      dx(1) = rr*COS(phi)
+                      dx(2) = rr*SIN(phi)
+                      x(1:2,jpart) = x(1:2,ipart) + dx(1:2)
+                   endif
+                enddo
+             enddo
+          enddo
+       enddo
+      !--reset ipart (oops) 
+       ipart = ntotal
+    
+    endif
 !
 !--body centred lattice
 !
  case(3)
-    if (ndim.eq.3) stop 'body centred not implemented in 3d'
+    if (ndim.eq.3) stop 'body centred not implemented in 3D'
 !
 !--determine number of particles
 ! 
@@ -275,20 +346,22 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !  (uses random number generator ran1 in module random)
 ! 
  case(5)
+     ipart = npartin
      ntot = int(product((xmax(:)-xmin(:))/psep))
-     npart = ntot
+     ipart = ipart + ntot
      write(iprint,*) 'quasi-random (sobol) particle distribution, npart = ',ntot 
-     call alloc(ntot)
+     call alloc(ipart)
 !
 !--initialise quasi-random sequence
 !
-     call sobolsequence(-ndim,xran(:))
+     !call sobolsequence(-ndim,xran(:))
+     call sobseq(-ndim,xran(:))
      
      do i=1,ntot
-        call sobolsequence(ndim,xran(:))
+        call sobseq(ndim,xran(:))
 	x(:,i) = xmin(:) + xran(:)*(xmax(:)-xmin(:))
-        print*,i,xran(:),' x = ',x(:,i)
-	read*
+!        print*,i,xran(:),' x = ',x(:,i)
+!	read*
      enddo
 
  case default
@@ -367,7 +440,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     enddo
  end select 
 !
-!--if idist > 10 apply a small random perturbation to the particle positions
+!--if perturb is set add a small random perturbation to the particle positions
 ! 
  if (present(perturb)) then
     write(iprint,"(a,f6.1,a)") &
