@@ -138,7 +138,7 @@ subroutine iterate_density
                  omegai =  1. - dhdni*gradhn(i)           
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
-                    if (abs(omegai).eq.0.) call quit
+                    if (abs(omegai).eq.0.) omegai = 1. ! call quit
                  endif
                  gradhn(i) = 1./omegai
                  gradh(i) = gradh(i)*dhdni
@@ -152,7 +152,7 @@ subroutine iterate_density
                  omegai =  1. - dhdrhoi*gradh(i)
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
-                    if (abs(omegai).eq.0.) call quit
+                    if (abs(omegai).eq.0.) omegai = 1. !call quit
                  endif
                  gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
                  func = rhoi - rho(i)
@@ -163,6 +163,11 @@ subroutine iterate_density
 !--perform Newton-Raphson iteration to get new h
 !                    
               hnew = hh(i) - func/dfdh
+              if (hnew.gt.1.2*hh(i)) then
+                 hnew = 1.2*hh(i)
+              elseif (hnew.lt.0.8*hh(i)) then
+                 hnew = 0.8*hh(i)
+              endif
 !
 !--overwrite if iterations are going wrong
 !
