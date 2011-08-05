@@ -18,7 +18,8 @@ subroutine conservative2primitive
   use bound
   use eos
   use part
-  use getcurl
+  use getcurl, only:get_curl
+  use smooth, only:smooth_variable
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i
@@ -60,6 +61,8 @@ subroutine conservative2primitive
      if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
   elseif (iener.eq.1) then  ! en = entropy variable
      uu = en/(gamma-1.)*rho**(gamma-1.)
+  elseif (iener.eq.5) then
+     call smooth_variable(en,uu,x,pmass,hh,rho)
   else                 ! en = thermal energy
      uu = en
   endif
@@ -71,17 +74,17 @@ subroutine conservative2primitive
 !
 !--make fixed particles exact replicas of their closest particle
 !
-  if (any(ibound.eq.1)) then
-     do i=1,npart
-        if (itype(i).eq.1) then
-           j = ireal(i)
-           uu(i) = uu(j)
-           pr(i) = pr(j)
-           spsound(i) = spsound(j)
-           Bfield(:,i) = Bfield(:,j)
-        endif
-     enddo
-  endif
+!  if (any(ibound.eq.1)) then
+!     do i=1,npart
+!        if (itype(i).eq.1) then
+!           j = ireal(i)
+!!           uu(i) = uu(j)
+!           pr(i) = pr(j)
+!           spsound(i) = spsound(j)
+ !          Bfield(:,i) = Bfield(:,j)
+!        endif
+!     enddo
+!  endif
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -165,10 +168,10 @@ subroutine primitive2conservative
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
-!     ikernav = 3                ! consistent with h for first density evaluation
+     ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
 !     call densityiterate
-!     ikernav = iktemp  
+     ikernav = iktemp  
 !!     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
