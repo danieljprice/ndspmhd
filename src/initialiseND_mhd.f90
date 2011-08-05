@@ -151,6 +151,7 @@ subroutine initialise
 !
 !--setup kernel tables
 !
+ ikernelalt = ikernel
  call setkernels(ikernel,ikernelalt,ndim)
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
@@ -164,7 +165,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- if (ifile.eq.0) call modify_dump
+! if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
