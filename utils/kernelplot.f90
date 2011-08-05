@@ -1,31 +1,32 @@
 program kernelplot
  use debug
  use kernel
+ use kernelextra
  use options
  use loguns
  use anticlumping
  use setup_params
 
  implicit none
- integer :: i,j,nkernels,nacross,ndown,ilinestyle
+ integer :: i,j,nkernels,nacross,ndown,ilinestyle,nepszero
  integer, dimension(10) :: iplotorder
- real :: q,q2,xmin,xmax,ymin,ymax
+ real :: q,q2,xmin,xmax,ymin,ymax,epszero
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
- character(len=50) :: string
+ character(len=50) :: text
 
  data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 0, 0/   ! order in which kernels are plotted
- !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 1
+ iplotorder = 0 ! override data statement if all the same kernel
+ nkernels = 6
  iprint = 6   ! make sure output from kernel setup goes to screen
- idivBzero = 0
- eps = 0.4
- neps = 2
+ idivBzero = 5
+ epszero = -0.2
+ nepszero = 5
  hfact = 1.5
  samepage = .false.
  trace = .true.
- nacross = 1
- ndown = 1
+ nacross = 3
+ ndown = 2
  xmin = 0.0
  xmax = 3.2
  ymin = -3.5
@@ -47,7 +48,14 @@ program kernelplot
     call pgbegin(0,'?',1,1) 
  endif
 
+ eps = epszero
+ neps = nepszero
+
  do j=1,nkernels
+    if (idivBzero.eq.5) then
+       eps = eps+0.2
+    endif
+    
     ikernel = iplotorder(j)
     call setkern
 !
@@ -86,19 +94,31 @@ program kernelplot
 !
     call pgsls(1)
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
+    if (idivBzero.eq.5) then
+       !!call pgsls(j+2)
+       call pgline(ikern+1,dqkern(0:ikern),wijaniso(0:ikern))
+    endif
 !
 !--kernel gradient
 !    
     call pgsls(2)
     call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+    if (idivBzero.eq.5) then
+       call pgsls(j+2)
+       write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
+       call legend(j,text,0.5,3.0)
+       call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))    
+    endif
 !
 !--second derivative
 !
     call pgsls(3)
     call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-    call pgsci(1)
+    if (idivBzero.eq.5) then
+       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+    endif
     call pgsls(1)
-
+    call pgsci(1)
  enddo
  
  read*
@@ -110,7 +130,12 @@ program kernelplot
    !! call pgpage
 !!    if (nkernels.eq.1) call pgpap(5.85,1./sqrt(2.))  ! change paper size
 
+    eps = epszero
+    neps = nepszero
     do j=1,nkernels
+       if (idivBzero.eq.5) then
+          eps = eps + 0.2
+       endif
        ikernel = iplotorder(j)
        call setkern
        dq2table = radkern2/real(ikern)
@@ -119,7 +144,7 @@ program kernelplot
           q = sqrt(q2)
           dqkern(i) = q
        enddo
-       call kernelstability1D(j,nacross,ndown)
+       call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo
 
  call pgend

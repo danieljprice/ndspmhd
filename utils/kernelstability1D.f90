@@ -1,9 +1,11 @@
-subroutine kernelstability1D(iplot,nacrossin,ndownin)
+subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   use kernel
+  use kernelextra
   implicit none
   integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
-  integer, intent(in) :: iplot, nacrossin, ndownin
-  integer :: i,j,ipart,mm,pp,nc,neps
+  integer, intent(in) :: iplot, nacrossin, ndownin, neps
+  real, intent(in) :: eps
+  integer :: i,j,ipart,mm,pp,nc
   integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
@@ -12,7 +14,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
   real, dimension(6) :: trans
-  real :: xmin, psep, pmass, rhozero, cs2, R, eps
+  real :: xmin, psep, pmass, rhozero, przero, gamma, cs2, R
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
   real :: charheight, hpos, vpos
@@ -22,6 +24,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
   
   cs2 = 1.0
   rhozero = 1.0
+  przero = 1.0
+  gamma = 1.0  ! isothermal
   psep = 1.0
   pmass = rhozero*psep
 !
@@ -31,14 +35,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
   negstress = .true.    ! plot vs h or R
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
-  eps = 0.4
-  neps = 0
-  nplots = 6
+  nplots = 1
   nacross = nacrossin
   ndown = ndownin
-  nacross = nplots/2
-  ndown = nplots/nacross
-
+!  nacross = int(nplots/2) + 1
+!  ndown = nplots/nacross
 !  nacross = 1
 !  ndown = 1
 
@@ -86,9 +87,9 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
      kxarray(i) = kxmin + i*dkx
   enddo
 
-  do iloop=1,nplots
+  mainloop: do iloop=1,nplots
      if (nplots.gt.1) iplotpos = iloop
-     neps = neps + 1
+!     neps = neps + 1
      print*,'eps = ',eps,' neps = ',neps
      write(title,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
 !
@@ -102,7 +103,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
      endif
      do i=1,nkx
         kx = kxarray(i)/psep
-	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,R,eps,neps,x,npart,ipart)
+        omegasq = omegasq1D(h,kxarray(i),cs2,gamma,pmass,rhozero,R,eps,neps,x,npart,ipart)
         dat(i,j) = omegasq/(kx**2*cs2)
 !!       print*,i,j,' kx = ',kx,' h = ',h,' R = ',R,' dat = ',dat(i,j)
      enddo
@@ -206,7 +207,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin)
      call pgsls(1)
   endif
 
-  enddo
+  enddo mainloop
 
 end subroutine kernelstability1D
 !
@@ -224,21 +225,31 @@ end subroutine kernelstability1D
 !           npart    : number of particles
 !           RR       : negative stress parameter (RR=1 gives hydro)
 !
-real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,eps,neps,x,npart,ipart)
+real function omegasq1D(hh,kx,cs2,gamma,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   use kernel
+  use kernelextra
   implicit none
   integer :: i,index,index1, ipart, npart, neps
   real, dimension(npart) :: x
-  real :: hh,kx,cs2,pmass,rhozero,RR
+  real :: hh,kx,cs2,pmass,gamma,rhozero,RR
+  real :: przero,Bxzero,priso,praniso
   real :: sum1, sum2, sum3, sum4
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
-  real :: Wjoe, W, dWdx, gradgradWcorr
-  real :: dx, dr, q2, eps
+  real :: Wjoe, W, dWdx, gradWcorr, gradgradWcorr
+  real :: dx, dr, q2, eps, term
 
   sum1 = 0.
   sum2 = 0.
   sum3 = 0.
   sum4 = 0.
+!
+!--calculate pressure from cs2 and gamma
+!  
+  przero = rhozero*cs2/gamma
+!
+!--Bx from the input negative stress parameter
+!
+  Bxzero = sqrt(2.*rhozero*cs2*(1.-RR))
 !
 !--calculate kernel in denominator of anticlumping term
 !
@@ -281,26 +292,39 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,eps,neps,x,npart,ipart)
      
      dWdx = (wij(index1)-wij(index))*ddq2table
      W = (wij(index) + dWdx*dxx)/hh 
-     !--calculate dW^n+1/dx^2 for anticlumping term
-     if (neps.gt.0) gradgradWcorr = (neps+1.)*(neps*(W**(neps-1))*gradW*gradW + (W**neps)*gradgradW)
      
+     !--calculate corrected kernels for anticlumping
+     if (neps.ne.0) then
+!        term = (1.-0.5*eps*(w/wjoe)**neps)
+!        gradWcorr = gradW*term
+!        gradgradWcorr = gradgradW*term - 0.5*eps*neps*W**(neps-1)/wjoe**neps*gradW*gradW
+         dgrwdx = (grwijaniso(index1)-grwijaniso(index))*ddq2table
+         dgrgrwdx = (grgrwijaniso(index1)-grgrwijaniso(index))*ddq2table
+         gradWcorr = (grwijaniso(index) + dgrwdx*dxx)/hh**2
+         gradgradWcorr = (grgrwijaniso(index) + dgrgrwdx*dxx)/hh**3      
+     else
+        gradWcorr = gradW
+	gradgradWcorr = gradgradW
+     endif 
      sum1 = sum1 + (1. - COS(kx*dx))*gradgradW
      sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
      sum3 = sum3 + (1. - COS(kx*dx))*gradgradWcorr
-     sum4 = sum4 + W**neps*SIN(kx*dx)*gradW*dr 
+     sum4 = sum4 + SIN(kx*dx)*gradWcorr*dr
   enddo
+! 
+  priso = przero + 0.5*Bxzero**2
+  praniso = -Bxzero**2
 !
-!--normal, isothermal dispersion relation
+!--dispersion relation (adiabatic and isothermal)
+!  isotropic terms using normal kernel
 !  
-  omegasq1D = (2.*cs2*pmass/rhozero)*RR*sum1 &
-            + (1.-2.*RR)*cs2*(pmass/rhozero*sum2)**2
+  omegasq1D = (2.*pmass/rhozero)*(priso/rhozero)*sum1 &
+            + (pmass/rhozero)**2*(cs2 - 2.*priso/rhozero)*sum2**2
 !
-!--add terms from anticlumping term
+!--add anisotropic terms (using anticlumping kernel)
 !
-  if (neps.gt.0) then
-     omegasq1D = omegasq1D + eps/((neps+1.)*wjoe**neps)*(2.*pmass*cs2/rhozero)*(1.-RR)*sum3 &
-               - 2.*eps/wjoe**neps*pmass*cs2*(1.-RR)/rhozero**2*sum2*sum4
-  endif
+  omegasq1D = omegasq1D + (2.*pmass/rhozero)*praniso/rhozero*sum3  &
+            - 2.*(pmass/rhozero)**2*(praniso/rhozero)*sum2*sum4
   
 end function omegasq1D
 
