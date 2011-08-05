@@ -7,8 +7,8 @@
 
 .KEEP_STATE:
 
-F90C =  g95
-F90FLAGS =  -O3 -r8
+F90C =  gfortran
+F90FLAGS =  -O3 -fdefault-real-8
 # PGPLOT libraries
 ##LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot -lpgplot -lg2c
 
@@ -23,7 +23,7 @@ FFLAGS = $(F90FLAGS)
 
 SOURCES= multirun.f90
  
-OBJECTS = dimen1D.o variablesND.o defaults.o \
+OBJECTS = dimen1D.o variablesND.o defaults.o eos.o \
           kernelND.o readwrite_infile.o \
 	  $(SOURCES:.f90=.o)
 
@@ -33,14 +33,17 @@ multirun: $(OBJECTS)
 dimen1D.o :
 	$(F90C) -c $(F90FLAGS) ../src/dimen1D.f90 -o $@
 
+eos.o :
+	$(F90C) -c $(F90FLAGS) ../src/eos.f90 -o $@
+
+kernelND.o :
+	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
+
 variablesND.o :
 	$(F90C) -c $(F90FLAGS) ../src/variablesND.f90 -o $@
 
 defaults.o :
 	$(F90C) -c $(F90FLAGS) ../src/defaults.f90 -o $@
-
-kernelND.o :
-	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
 readwrite_infile.o :
 	$(F90C) -c $(F90FLAGS) ../src/readwrite_infile.f90 -o $@
