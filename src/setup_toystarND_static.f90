@@ -101,8 +101,64 @@ subroutine setup
  return
 end subroutine setup
 
+!----------------------------------------------------
+! this subroutine modifies the static configuration
+! (from the dumpfile) and gives it the appropriate
+! velocity perturbation for the toy star
+!
+! NB: modification is done in cartesian coords
+!----------------------------------------------------
 subroutine modify_dump
+ use dimen_mhd
+ use debug
+ use loguns
+ use eos, only:gamma,polyk
+ use part
+ use toystar2D_utils
+ use geometry
  implicit none
+ integer :: i,jmode,smode
+ real :: rr,A,cs,scalefac,sigma2,sigma
+ real, dimension(ndim) :: xcyl,velcyl,dvel
+
+ jmode = 1
+ smode = 0
+ 
+ write(iprint,*) 'MODIFYING INITIAL SETUP with toystar oscillations'
+ write(iprint,*) 'radial mode = ',jmode,' theta mode = ',smode
+ 
+ sigma2 = (gamma - 1.)*((jmode+smode)*(jmode+smode + 2./(gamma-1.)) - smode**2)
+ if (sigma2.lt.1.e-5) then
+    print*,'ERROR sigma2 < 0 in perturbation'
+ else
+    sigma = sqrt(sigma2)
+ endif
+ scalefac = polyk*gamma/(sigma*(gamma-1.))
+!
+!--work out frequency of oscillation
+!
+ do i=1,npart
+    !--get r,theta
+    call coord_transform(x(:,i),ndim,1,xcyl(:),ndim,2)
+    
+    !--set v_r
+    velcyl(1) = detadr(jmode,smode,xcyl(1),gamma)*COS(smode*xcyl(2))
+    !--set theta_dot
+    velcyl(2) = -etar(jmode,smode,xcyl(1),gamma)*smode*SIN(smode*xcyl(2))/xcyl(1)**2
+    
+    !--now transform back to get vx, vy
+    call vector_transform(xcyl(1:ndim),velcyl(1:ndim),ndim,2,dvel(1:ndim),ndim,1)
+    
+    !--now perturb v with appropriate amplitude
+    cs = sqrt(gamma*(gamma-1.)*uu(i))
+    vel(1:ndim,i) = 0.05*cs*dvel(1:ndim)
+    
+ enddo
+!
+!--add velocity perturbation
+!
+ do i=1,npart
+ enddo
 
  return
 end subroutine modify_dump

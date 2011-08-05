@@ -154,8 +154,8 @@ SUBROUTINE initialise
 !
 !--change coordinate systems if necessary
 !
+ if (ifile.ge.0) call modify_dump
  if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
- if (ifile.gt.0) call modify_dump
  
  call check_setup       ! check for errors in the particle setup
 !
