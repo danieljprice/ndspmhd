@@ -6,7 +6,7 @@
 program plotmeagraph
   implicit none
   integer :: ncol
-  integer, parameter :: maxfile=22
+  integer, parameter :: maxfile=21
   integer, parameter :: maxstep=100000
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
   integer i,iprev,nfiles,ifile,ifilesteps
@@ -17,7 +17,7 @@ program plotmeagraph
   integer nstepsfile(maxfile)
   real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real lim(maxcol,2)
-  real hpos,vpos, freq
+  real hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*20, legendtext*120
   character*23 :: filename
   character*24 :: title,label(maxcol)
@@ -137,6 +137,7 @@ program plotmeagraph
 !--open file for frequency output
 !
   if (igetfreq) then
+     print*,'opening ',trim(rootname(1))//'.freq for output'
      open(unit=8,file=trim(rootname(1))//'.freq',status='replace')
   endif
 
@@ -318,6 +319,14 @@ program plotmeagraph
   endif
   !!if (nplots.gt.2) call PGSCH(2.0)
 !
+!--open frequency file for output
+!
+  if (igetfreq) then
+     print*,'opening ',trim(rootname(1))//'.freq for output'
+     open(unit=8,file=trim(rootname(1))//'.freq',status='replace')
+  endif
+
+!
 !--plot graphs (icycle only sets up at the moment)
 !
   if (icycle) then
@@ -386,15 +395,16 @@ program plotmeagraph
            !--work out period of oscillation from spacing of minima/maxima
 	   !
            if (igetfreq .and. iplotx(i).eq.1) then
+	      print*,rootname(ifile)
 	      call getmax(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
 	                  evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
-		          nstepsfile(ifile),freq)
+		          nstepsfile(ifile),freqmax,freqmin)
 	   
  	   !
            !--output this to a file
            !
 	      print*,'writing to frequency file'
-	      write(8,*) freq,rootname(ifile)
+	      write(8,*) freqmin,freqmax,rootname(ifile)
 	   endif
 	   
 	   
@@ -404,6 +414,10 @@ program plotmeagraph
 
      enddo
   endif
+!
+!--close frequency file
+!
+  if (igetfreq) close(unit=8)
 !
 !--plot graph(s)
 !
@@ -500,7 +514,7 @@ end subroutine readev
 !  minima or two maxima
 !
 !
-subroutine getmax(datain,time,max,freq2)
+subroutine getmax(datain,time,max,freq,freq2)
   implicit none
   integer i,max,nmax,nmin
   real datain(max),time(max),timeprev,timeprev2
