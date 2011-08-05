@@ -6,7 +6,15 @@
 #
 use strict;
 
-my $xgridauth='-hostname cytosine.ex.ac.uk -auth Kerberos';
+my $machtype = $ENV{'MACHTYPE'};
+my $gid = 0;
+if ( $machtype eq 'i386' ) {
+   $gid = 1;
+   print "--- INTEL MACS (grid id = $gid) ---\n";
+} else {
+   print "--- POWERPC MACS (grid id = $gid) ---\n";
+}
+my $xgridauth="-hostname cytosine.ex.ac.uk -auth Kerberos -gid $gid";
 my @joblist= split(/,\s+/,`xgrid $xgridauth -job list `);
 my $format=" %4u | %25s | %9s | %19s | %19s | %19s \n";
 my $formath=" %4s | %25s | %9s | %19s | %19s | %19s \n";
