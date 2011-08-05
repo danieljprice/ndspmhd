@@ -130,6 +130,7 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 ######################################################################
 ########### choose the setup file in each dimension here #############
 
+ifndef SETUP1D
 #SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
@@ -146,7 +147,9 @@ SETUP1D = setup_shockND.f90
 #SETUP1D = setup_clareshk1D.f90
 #SETUP1D = setup_resist1D.f90
 #SETUP1D = setup_anyrho1Dran.f90
+endif
 
+ifndef SETUP2D
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
@@ -185,7 +188,9 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
 #SETUP2D = setup_tearingmode2D.f90
+endif
 
+ifndef SETUP3D
 #SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 #cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
@@ -202,6 +207,7 @@ SETUP2D = setup_unifdisND.f90
 #SETUP3D = setup_blastisoND.f90
 #SETUP3D = setup_resistND.f90
 SETUP3D = setup_orszagtang2D_mhd.f90
+endif
 
 ######################################################################
 ########### setup file for modify dump utility #######################
