@@ -136,10 +136,10 @@ subroutine setup
 !--extend boundaries if inflow
 !
  if (vxleft.gt.0.) then
-    xmin(1) = xmin(1) - vxleft*tmax !!- 6.*psep
+    xmin(1) = xmin(1) - vxleft*tmax - 6.*psep
  endif
  if (vxright.lt.0.) then
-    xmax(1) = xmax(1) - vxright*tmax !!+ 6.*psep
+    xmax(1) = xmax(1) - vxright*tmax + 6.*psep
  endif
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
@@ -175,7 +175,7 @@ subroutine setup
     call set_uniform_cartesian(2,psepright,xminright,xmaxright,.false.) ! set right half
     xmax = xmaxright
  else  ! set all of volume if densities are equal
-    call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
+    call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
     masspleft = densleft*volume/REAL(npart)
@@ -190,8 +190,8 @@ subroutine setup
  nbpts = 0
  if (ibound(1).eq.1) then
     do i=1,npart
-       if ((x(1,i).lt.(xmin(1) + 6.*psepleft)).or. &
-           (x(1,i).gt.(xmax(1) - 6.*psepright))) then
+       if ((x(1,i).lt.(xmin(1) + 4.*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - 4.*psepright))) then
           itype(i) = 1
 	  nbpts = nbpts + 1
        endif
@@ -235,18 +235,18 @@ subroutine setup
        pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
-       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
-       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
-       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
-!       if (delta.GT.0.) THEN
-!          vel(1,i) = vxright
-!          if (ndimV.ge.2) vel(2,i) = vyright
-!          if (ndimV.ge.3) vel(3,i) = vzright 
-!       else
-!          vel(1,i) = vxleft
-!          if (ndimV.ge.2) vel(2,i) = vyleft
-!          if (ndimV.ge.3) vel(3,i) = vzleft       
-!       endif
+!       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
+!       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
+!       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
+       if (delta.GT.0.) THEN
+          vel(1,i) = vxright
+          if (ndimV.ge.2) vel(2,i) = vyright
+          if (ndimV.ge.3) vel(3,i) = vzright 
+       else
+          vel(1,i) = vxleft
+          if (ndimV.ge.2) vel(2,i) = vyleft
+          if (ndimV.ge.3) vel(3,i) = vzleft       
+       endif
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif           

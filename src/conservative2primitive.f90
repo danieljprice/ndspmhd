@@ -72,7 +72,17 @@ subroutine conservative2primitive
         Bfield(:,i) = Bfield(:,j)
      enddo
   endif
-
+!
+!--make fixed particles exact replicas of their closest particle
+!
+  if (any(ibound.eq.1)) then
+     do i=1,npart
+        if (itype(i).eq.1) then
+	   call copy_particle(i,ireal(i))
+	endif
+     enddo
+  endif
+  
   return
 end subroutine conservative2primitive
 
