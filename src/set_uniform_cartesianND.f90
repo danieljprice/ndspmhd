@@ -148,12 +148,12 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 !--allocate memory here
 !
     ntot = npartx*nparty*npartz
-    WRITE(iprint,*) 'Cubic lattice, npart = ',ntot
+    ipart = npart
+    npart = npart + ntot	! add to particles already setup
+    WRITE(iprint,*) 'Cubic lattice, adding ',ntot,', npart = ',npart,npartx,nparty,npartz
+    WRITE(iprint,*) 'xmin = ',xmin, ' xmax = ',xmax
+    CALL alloc(npart)
 
-    CALL alloc(ntot)
-    npart = ntot
-
-    ipart = 0
     DO k=1,npartz
        DO j=1,nparty
           DO i = 1,npartx
@@ -165,10 +165,11 @@ SUBROUTINE set_uniform_cartesian(idistin,xmin,xmax,offset)
 		   xin(3,ipart) = xmin(3) + (k-1)*psep + 0.5*psep
 		ENDIF
 	     ENDIF
-          ENDDO
+!	        print*,'new particle ',ipart,'x =', xin(:,ipart)
+
+	  ENDDO
        ENDDO
     ENDDO
-     
  END SELECT
 !
 !--set total number of particles = npart
