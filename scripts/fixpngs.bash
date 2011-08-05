@@ -12,5 +12,5 @@ do if test $x != '*png_??'; then echo $x ${x/_/_0}; mv $x ${x/_/_0}; fi;
 done;
 
 for x in *_???;
-do if test $x != '_???'; then echo $x ${x/_/_0}; mv $x ${x/_/_0}.png; fi;
+do if test $x != '_???'; then echo $x ${x/_/_0}.png; mv $x ${x/_/_0}.png; fi;
 done;
