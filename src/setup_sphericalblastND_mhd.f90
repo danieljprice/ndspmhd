@@ -1,14 +1,15 @@
-!!------------------------------------------------------------------------!!
-!!                                                                        !!
-!!  Setup for spherical adiabatic (MHD) blast waves                       !!
-!!  in 1,2 and 3 dimensions                                               !!
-!!                                                                        !!
-!!  density is set to unity all over, whilst the pressure is set          !!
-!!  to 1000.0 in a small circle around the origin                         !!
-!!                                                                        !!
-!!  Magnetic field of strength 10G in the x-direction                     !!
-!!                                                                        !!                                                                        !!
-!!------------------------------------------------------------------------!!
+!!-------------------------------------------------------------------------!!
+!!                                                                         !!
+!!  Setup for spherical adiabatic (MHD) blast waves                        !!
+!!  in 1,2 and 3 dimensions                                                !!
+!!                                                                         !!
+!!  density is set to unity all over, whilst the pressure (or equivalently !!
+!!  the thermal energy) is set to some large quantity in a small circle    !!
+!!  around the origin                                                      !!
+!!                                                                         !!
+!!  Magnetic field of strength 10G in the x-direction                      !!
+!!                                                                         !!                                                                        !!
+!!-------------------------------------------------------------------------!!
 
 SUBROUTINE setup
 !
@@ -29,7 +30,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i,j,ntot,npartx,nparty,ipart
  REAL :: rhozero,przero,vzero
- REAL :: prblast,pri,rblast,radius
+ REAL :: prblast,pri,uui,rblast,radius,enblast,enzero
  REAL :: totmass,gam1,massp,const
  REAL, DIMENSION(ndim) :: xblast, dblast
  REAL, DIMENSION(ndimB) :: Bzero
@@ -37,7 +38,7 @@ SUBROUTINE setup
 !
 !--set boundaries
 !            	    
- ibound = 1	! fixed ghosts
+ ibound = 2	! fixed ghosts
  nbpts = 0
  xmin(:) = -0.5		! same xmin in all dimensions
  xmax(:) = 0.5
@@ -46,7 +47,7 @@ SUBROUTINE setup
 !--setup parameters for the problem
 ! 
  xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rblast = 0.05		! radius of the initial blast
+ rblast = 0.01		! radius of the initial blast
  rbuffer = rblast	!+20.*psep		! radius of the smoothed front
  Bzero(:) = 0.0
  IF (imhd.NE.0) THEN
@@ -55,6 +56,8 @@ SUBROUTINE setup
  przero = 1.0		! initial pressure
  rhozero = 1.0
  prblast = 1000.0	! initial pressure within rblast
+ enblast = 1.0
+ enzero = 0.
  
  gam1 = gamma - 1.
  IF (abs(gam1).lt.1.e-3) STOP 'eos cannot be isothermal for this setup'
@@ -70,7 +73,7 @@ SUBROUTINE setup
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
 !
- CALL set_uniform_cartesian(1,xmin,xmax,.false.)	! 2 = close packed arrangement
+ CALL set_uniform_cartesian(1,xmin,xmax,.true.)	! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -89,13 +92,16 @@ SUBROUTINE setup
     radius = SQRT(DOT_PRODUCT(dblast,dblast))
     IF (radius.LT.rblast) THEN
        pri = prblast
+       uui = enblast
     ELSEIF (radius.LT.rbuffer) THEN	! smooth out front
        exx = exp((radius-rblast)/(psep))
        pri = (prblast + przero*exx)/(1.0+exx)
+       uui = (enblast + enzero*exx)/(1.0+exx)
     ELSE
        pri = przero
+       uui = enzero
     ENDIF   
-    uuin(ipart) = pri/(gam1*rhozero)
+    uuin(ipart) = uui	!pri/(gam1*rhozero)
     hhin(ipart) = hfact*(massp/rhoin(ipart))**hpower	 ! ie constant everywhere
     Bin(:,ipart) = Bzero(:)
  ENDDO
