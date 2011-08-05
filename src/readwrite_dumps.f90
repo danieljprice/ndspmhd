@@ -141,7 +141,6 @@ subroutine read_dump(dumpfile,tfile)
  integer :: ierr, iformat,igeomfile
  real :: gammafile,hfactfile
  logical :: iexist
- real, dimension(ndim) :: xnew,vecnew
 
  igeomfile = 0
 !
@@ -243,42 +242,9 @@ subroutine read_dump(dumpfile,tfile)
 !
  close(unit=ireadf)
  
-!
-!--convert to appropriate coordinate system
-!
- igeom = 2
- if (igeomfile.ne.igeom) then
-    write(iprint,*) 'CONVERTING file from coord system ',igeomfile,' to ',igeom
-    do i=1,npart
-       call coord_transform(x(:,i),ndim,igeomfile,xnew(:),ndim,igeom)
-       call vector_transform(x(:,i),vel(1:ndim,i),ndim,igeomfile, &
-                                    vecnew(1:ndim),ndim,igeom)                                    
-       vel(1:ndim,i) = vecnew(1:ndim)
-       call vector_transform(x(:,i),Bfield(1:ndim,i),ndim,igeomfile, &
-                                    vecnew(1:ndim),ndim,igeom)                                    
-       Bfield(1:ndim,i) = vecnew(1:ndim)
-       x(:,i) = xnew(:)
-    enddo
-    if (ndimV.gt.ndim) write(iprint,*)'WARNING: DOES NOT DO 2.5D YET'
- endif
- 
+ igeomsetup = igeomfile
  
  write(iprint,*) 'finished reading setup file: everything is aok'
-
- if (igeom.eq.2) then
-    !!ibound(1) = 2 ! reflective in r
-    xmin(1) = 0.0
-    xmax(1) = 10000.0 ! a long way away
-    if (ndim.ge.2) then 
-       ibound(2) = 3 ! periodic in phi
-       xmin(2) = -pi ! phi min
-       xmax(2) = pi ! phi max
-    endif
- endif
-!
-!--now change things according to the specific setup required
-!
-! vel(:,:) = 0.
 
  return
 

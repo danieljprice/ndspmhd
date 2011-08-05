@@ -323,7 +323,11 @@ subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
 !
  xmin(:) = -rmax
  xmax(:) = rmax
- call set_uniform_cartesian(idist,psep,xmin,xmax)
+ if (present(perturb)) then
+    call set_uniform_cartesian(idist,psep,xmin,xmax,perturb=perturb)
+ else
+    call set_uniform_cartesian(idist,psep,xmin,xmax) 
+ endif
 !
 !--construct list of particles with r < rmax
 !  

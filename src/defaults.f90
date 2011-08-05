@@ -63,5 +63,6 @@ subroutine set_default_options
    iexternal_force = 0
    ikernel = 0
    igeom = 1
+   igeomsetup = 1
    
  end subroutine set_default_options

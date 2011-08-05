@@ -78,7 +78,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES = sphND_mhd.f90 geometry.f90 \
+SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          allocateND.f90 readwrite_dumps.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
@@ -91,7 +91,8 @@ SOURCES = sphND_mhd.f90 geometry.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 interpolate_kernel.f90\
 	 iterate_density.f90 kernelND.f90 \
-	 linkND.f90 logun.f90 outputND_mhd.f90 \
+	 linkND.f90 logun.f90 \
+         outputND_mhd.f90 \
 	 random.f90 ratesND_mhd.f90 \
 	 riemannsolver.f90 \
 	 set_fixedbound.f90 \
