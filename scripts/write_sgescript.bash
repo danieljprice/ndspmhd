@@ -19,9 +19,9 @@ echo '#$ -M dprice@ast.cam.ac.uk'	>> $sgename	 ## mail me
 echo '#$ -m ae'			>> $sgename		 ## (on abort or end)
 echo '#$ -o '$PWD'/'$filename'.output'	>> $sgename	 ## output from job in filename
 echo '#$ -e '$PWD'/'$filename'.errors'	>> $sgename	 ## errors from job in filename
-echo '#$ -l s_vmem=30M'			>> $sgename	 ## max memory requirements
-echo '#$ -l h_vmem=30M'		>> $sgename		 ##  "    "        "
-echo '#$ -N' $jobname >> $sgename	 ## name job
+echo '#$ -l s_vmem=100M'		>> $sgename	 ## max memory requirements
+echo '#$ -l h_vmem=100M'                >> $sgename	 ##  "    "        "
+echo '#$ -N' $jobname >> $sgename	## name job
 echo $PWD'/'$1'SPMHD '$filename		>> $sgename	 ## run the job
 fi
 
