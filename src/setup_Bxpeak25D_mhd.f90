@@ -24,9 +24,9 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j,ntot,npartx,nparty,ipart
+ integer :: ipart,ibump,ierr
  real :: denszero,przero
- real :: pri,rbump,rr
+ real :: pri,rbump,rr,rbump2
  real :: totmass,gam1,massp,const
  real, dimension(ndim) :: xorigin, dx
  real, dimension(ndimv) :: Bzero
@@ -45,8 +45,21 @@ subroutine setup
 !
 !--setup parameters for the problem
 ! 
- xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
- rbump = 0.0005        ! radius of the initial bump
+ xorigin(:) = 0.5 ! co-ordinates of the centre of the initial blast
+ rbump = 2./sqrt(8.)        ! radius of the initial bump
+ read(rootname(6:7),*,iostat=ierr) ibump
+ if (ierr.eq.0) then
+    print*,'ibump = ',ibump
+ else
+    read(rootname(6:6),*,iostat=ierr) ibump
+    if (ierr.eq.0) then
+       print*,'ibump = ',ibump
+    else
+       ibump = 1
+    endif
+ endif
+ rbump = rbump/ibump  !!/16.
+ rbump2 = rbump*rbump
  Bzero(:) = 0.
  if (imhd.ne.0) Bzero(3) = 1.0/const        ! uniform field in bz direction
  przero = 6.0                ! initial pressure
@@ -55,11 +68,11 @@ subroutine setup
  gam1 = gamma - 1.
 
  write(iprint,*) 'Two dimensional div B advection problem '
- write(iprint,10) denszero,rbump,bzero(3),przero
+ write(iprint,10) denszero,rbump,Bzero(3),przero
 10 format(/,' density  = ',f10.3,', size of bump = ',f6.3,/, &
             ' initial Bz   = ',f6.3,', pressure = ',f6.3,/)
 !
-!--setup uniform density grid of particles (2d) 
+!--setup uniform density grid of particles (2D) 
 !  (determines particle number and allocates memory)
 !
  call set_uniform_cartesian(1,psep,xmin,xmax,.false.)        ! 2 = close packed arrangement
@@ -77,8 +90,8 @@ subroutine setup
     dx(:) = x(:,ipart)-xorigin(:) 
     rr = dot_product(dx,dx)
     Bfield(:,ipart) = bzero(:)
-    if (rr.le.rbump) then
-       Bfield(1,ipart) = ((rr/rbump)**4 - 2.*(rr/rbump)**2 + 1.)/const
+    if (rr.le.rbump2) then
+       Bfield(1,ipart) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 + 1.)/const
     endif  
     pmass(ipart) = massp
     dens(ipart) = denszero

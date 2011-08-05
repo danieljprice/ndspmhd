@@ -10,6 +10,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
  USE loguns
  
  USE bound
+ USE hterms
  USE kernel
  USE linklist
  USE options
@@ -135,26 +136,25 @@ SUBROUTINE get_divB(divBonrho,ntot)
                    grkernj = grkernj*hfacwabj*hj1
                    !  (calculate average)            
                    wab = 0.5*(wabi + wabj)                  
-                   grkern = 0.5*(grkerni + grkernj)            
+                   grkern = 0.5*(grkerni + grkernj)
                 ENDIF
+
+                IF (ikernav.NE.3) THEN
+                   grkerni = grkern
+                   grkernj = grkern
+                ENDIF         
 !
 !--calculate div B
 !
-                term = DOT_PRODUCT((Bfield(:,i)*rho21i + Bfield(:,j)*rho21j),dr)
+                !term = DOT_PRODUCT((Bfield(:,i)*rho21i*grkerni*gradh(i) &
+                !                  + Bfield(:,j)*rho21j*grkernj*gradh(j)),dr)
                 projdB = DOT_PRODUCT(Bfield(:,i)-Bfield(:,j),dr)
-                IF (ikernav.EQ.3) THEN
-                   !               divBonrho(i) = divBonrho(i) - pmass(j)*projdB*grkerni
-                   !               divBonrho(j) = divBonrho(j) - pmass(i)*projdB*grkernj            
-                   
-                   divBonrho(i) = divBonrho(i) + pmass(j)*term*grkerni
-                   divBonrho(j) = divBonrho(j) - pmass(i)*term*grkernj            
-                ELSE
-                   !               divBonrho(i) = divBonrho(i) - pmass(j)*projdB*grkern
-                   !               divBonrho(j) = divBonrho(j) - pmass(i)*projdB*grkern            
-                   
-                   divBonrho(i) = divBonrho(i) + pmass(j)*term*grkern     
-                   divBonrho(j) = divBonrho(j) - pmass(i)*term*grkern     
-                ENDIF
+
+                divBonrho(i) = divBonrho(i) - pmass(j)*projdB*grkerni
+                divBonrho(j) = divBonrho(j) - pmass(i)*projdB*grkernj            
+
+                !divBonrho(i) = divBonrho(i) + pmass(j)*term
+                !divBonrho(j) = divBonrho(j) - pmass(i)*term
                 !      ELSE
                 !         PRINT*,' r/h > 2 '      
                 
@@ -168,9 +168,15 @@ SUBROUTINE get_divB(divBonrho,ntot)
     
  ENDDO loop_over_cells
 
-! do i=1,ntotal
-!    divBonrho(i) = divBonrho(i)/rho(i)**2
-! enddo
+ IF (ikernav.EQ.3) THEN
+    do i=1,ntotal
+       divBonrho(i) = gradh(i)*divBonrho(i)/rho(i)**2
+    enddo
+ ELSE
+    do i=1,ntotal
+       divBonrho(i) = divBonrho(i)/rho(i)**2
+    enddo
+ ENDIF
 
  RETURN
 END SUBROUTINE get_divB
