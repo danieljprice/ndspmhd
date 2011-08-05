@@ -30,7 +30,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
  IMPLICIT NONE
  INTEGER :: i,j,n
  INTEGER :: icell,icellloop,ipart,iprev,ncell,nneigh,index,index1
- INTEGER :: listneigh(nlistdim) ! up to 10% of particles in each cell
+ INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! up to 10% of particles in each cell
  INTEGER :: idone,icellprev
  INTEGER, DIMENSION(3**ndim) :: neighcell
  INTEGER, INTENT(IN) :: nlist
@@ -58,6 +58,9 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !
 !--initialise quantities
 !
+ nlistdim = ntotal
+ ALLOCATE( listneigh(nlistdim) )	! max size of neighbour list
+
  DO ipart=1,nlist
     i = ipartlist(ipart)
     rho(i) = 0.
@@ -92,6 +95,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
        
     hfacwabi = hi1**ndim
     hfacgrkerni = hfacwabi*hi1
+    dhdrhoi = -hi*dndim	! divide by  should use rho(i)!
 !
 !--loop over current particle's neighbours
 !
@@ -119,7 +123,6 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
 !	       
           dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
-	  dhdrhoi = -hi*dndim
 !
 !--calculate density
 !
