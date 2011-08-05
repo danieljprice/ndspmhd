@@ -105,7 +105,7 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
- real :: stressmax, !stressterm
+ real :: stressmax!,stressterm
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
 !
