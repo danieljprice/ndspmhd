@@ -198,6 +198,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  etot = ekin + emag + epot
  IF (iprterm.GE.0) etot = etot + etherm
  momtot = SQRT(DOT_PRODUCT(mom,mom))
+ CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
 !
 !--write line to .ev file
 !     
@@ -213,15 +214,14 @@ SUBROUTINE evwrite(t,etot,momtot)
 
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,fluxtotmag, &
-          crosshel,betamhdmin,betamhdav,betamhdmax,   &
+    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,rhomax,rhomean,&
+          fluxtotmag,crosshel,betamhdmin,betamhdav,betamhdmax,   &
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
 30  FORMAT(24(1pe18.10,1x),1pe8.2)
       
  ELSE
-    CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
     !alphatstarav = alphatstarav/FLOAT(npart)
     !betatstarav = betatstarav/FLOAT(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
