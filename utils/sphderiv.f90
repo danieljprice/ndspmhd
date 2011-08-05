@@ -10,8 +10,8 @@ program sphderiv
   integer, parameter :: npart = 16
   real, parameter :: pi = 3.1415926536
   integer :: i,j
-  real, dimension(npart) :: x,rho,h,pmass,Apart
-  real, dimension(npart) :: gradApart1,gradApart2,gradApart3
+  real, dimension(npart) :: x,rho,h,gradr,pmass,Apart,unity,gradunity
+  real, dimension(npart) :: gradApart1,gradApart2,gradApart3,gradApart4
   real :: psep,xmin,xmax,dx,dr,hfact,rhozero,rholeft,rhoright,totmass
   real :: q2,wab,grkern
   real :: psepright
@@ -57,18 +57,52 @@ program sphderiv
      h(i) = hfact*(pmass(i)/rho(i))
      Apart(i) = A(x(i))
   enddo
-
+  !
+  !--calculate unity function and its gradient 
+  !
+  do i=3,npart-3
+     unity(i) = 0.
+     gradunity(i) = 0.
+!     gradr(i) = 0.
+     do j=1,npart
+        dx = x(i)-x(j)
+        q2 = dx*dx/h(i)**2
+        call interpolate_kernel(q2,wab,grkern)
+        unity(i) = unity(i) + pmass(j)/rho(j)*wab/h(i)
+        if (j.ne.i) then
+           gradunity(i) = gradunity(i) + pmass(j)/rho(j)*dx/abs(dx)*grkern/h(i)**2
+!           gradr(i) = gradr(i) + pmass(j)/rho(j)*(x(j)-x(i))*dx/abs(dx)*grkern/h(i)**2
+        endif
+     enddo
+  enddo  
+  !
+  !--copy unity function to edge particles
+  !
+  do i=1,3
+     unity(i) = unity(4)
+     gradunity(i) = gradunity(4)
+  enddo
+  do i=npart-2,npart
+     unity(i) = unity(npart-3)
+     gradunity(i) = gradunity(npart-3)
+  enddo
+  print*,'unity = ',unity
+  print*,'gradunity = ',gradunity
   print*,'pmass = ',pmass(5)
   !
   !--calculate density on central particles
   !
   do i=3,npart-3
      rho(i) = 0.
+     gradr(i) = 0.
      do j=1,npart
         dx = x(i)-x(j)
         q2 = dx*dx/h(i)**2
-        call interpolate_kernel(q2,wab,grkern)
+       call interpolate_kernel(q2,wab,grkern)
         rho(i) = rho(i) + pmass(j)*wab/h(i)
+        if (j.ne.i) then
+           gradr(i) = gradr(i) + pmass(j)*(x(j)-x(i))*dx/abs(dx)*grkern/h(i)**2
+        endif
      enddo
   enddo
   !
@@ -76,18 +110,24 @@ program sphderiv
   !
   do i=1,3
      rho(i) = rho(4)
+     gradr(i) = gradr(4)
   enddo
   do i=npart-2,npart
      rho(i) = rho(npart-3)
+     gradr(i) = gradr(npart-3)
   enddo
   print*,'rho = ',rho
+
+  rho = rho/unity
+  print*,'rho = ',rho
   !
-  !--now estimate SPH derivative estimates of function
+  !--now compute SPH derivative estimates of function
   !
   gradApart1 = 0.
   gradApart2 = 0.
   gradApart3 = 0.
-
+  gradApart4 = 0.
+  
   do i=3,npart-3
      do j=1,npart
         if (j.ne.i) then
@@ -98,10 +138,14 @@ program sphderiv
            gradApart1(i) = gradApart1(i) &
                 + pmass(j)*Apart(j)/rho(j)*dr*grkern/h(i)**2
            gradApart2(i) = gradApart2(i) &
-                + 1./rho(i)*pmass(j)*(Apart(j) - Apart(i))*dr*grkern/h(i)**2
+                + 1./(gradr(i))*pmass(j)*(Apart(j) - Apart(i))*dr*grkern/h(i)**2
            !!print*,i,j,Apart(i),Apart(j),q2,grkern
            gradApart3(i) = gradApart3(i) &
-                + rho(i)*pmass(j)*(Apart(j)/rho(j)**2 + Apart(i)/rho(i)**2)*dr*grkern/h(i)**2
+                + rho(i)*pmass(j)*(Apart(j)/rho(j)**2  &
+		+           Apart(i)/rho(i)**2)*dr*grkern/h(i)**2
+           gradApart4(i) = gradApart4(i) &
+                + pmass(j)/unity(i)*(Apart(j)/rho(j))   &
+		  *(dr*grkern/h(i)**2 - gradunity(i)*wab/h(i)/unity(i))
 
         endif
      enddo
@@ -109,8 +153,10 @@ program sphderiv
   !
   !--plot using PGPLOT
   !
-  Amin = min(minval(Apart),minval(gradApart1),minval(gradApart2),minval(gradApart3)) - 0.1
-  Amax = max(maxval(Apart),maxval(gradApart1),maxval(gradApart2),maxval(gradApart3)) + 0.1
+  Amin = min(minval(Apart),minval(gradApart1),minval(gradApart2), &
+             minval(gradApart3),minval(gradApart4)) - 0.1
+  Amax = max(maxval(Apart),maxval(gradApart1),maxval(gradApart2), &
+             maxval(gradApart3),maxval(gradApart4)) + 0.1
   call pgbegin(0,'?',1,1)
   call pgenv(xmin,xmax,Amin,Amax,0,0)
   call pglab('x','A','SPH derivatives')
@@ -128,7 +174,6 @@ program sphderiv
   !
   !--plot derivative
   !
-  print*,'gradApart1 = ',gradApart1
   call pgsls(2)
   call pgfunx(gradA,100,xmin,xmax,1)
   call pgsls(1)
@@ -144,6 +189,9 @@ program sphderiv
   call pgpt(npart,x,gradApart3,4)
   call pgline(npart,x,gradApart3)
   read*
+  print*,'exact const (Bonet)'
+  call pgpt(npart,x,gradApart4,3)
+  call pgline(npart,x,gradApart4) 
   call pgend
 
 end program sphderiv
@@ -162,11 +210,11 @@ real function A(x)
 !
 !--step function
 !
-!  if (x < 0) then
-!     A = 0.1
-!  else
+  if (x < 0) then
+     A = 0.1
+  else
      A = 1.0
-!  endif
+  endif
 
 end function A
 !
