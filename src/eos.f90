@@ -83,7 +83,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
 !--define local variables
 !
  implicit none
- integer :: i,isize
+ integer :: isize
  real, intent(in) :: rho
  real, intent(out) :: pr
  real, intent(inout) :: uu,vsound
