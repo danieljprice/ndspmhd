@@ -56,7 +56,6 @@ SUBROUTINE initialise
     STOP 'Error ndim <0 or >3: We leave string theory for later'
  ELSE
     dndim = 1./REAL(ndim)
-    hpower = dndim 
  ENDIF
  time = 0.
  nsteps = 0

@@ -119,8 +119,8 @@ SUBROUTINE step
           ENDIF
        ENDIF
        IF (ihvar.EQ.1) THEN
-!           hh(i) = hfact(pmass(i)/rho(i))**hpower        ! my version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower                ! Joe's           
+!           hh(i) = hfact(pmass(i)/rho(i))**dndim        ! my version
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! Joe's           
        ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
           hh(i) = hhin(i) + hdt*dhdt(i)
        ENDIF
@@ -292,7 +292,7 @@ SUBROUTINE step
        IF (ihvar.EQ.2) THEN
           hhin(i) = 2.*hh(i) - hhin(i)
              hh(i) = hhin(i)
-!         hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
+!         hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim
 !          hhin(i) = hh(i)
        ENDIF             
        hhin(i) = hh(i)
@@ -314,7 +314,7 @@ SUBROUTINE step
           rhoin(i) = rho(i)          
        ENDIF
        IF (ihvar.EQ.1) THEN                ! Joe's version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim
        ELSEIF (ihvar.EQ.2 .or. (ihvar.eq.3 .and. itsdensity.eq.0)) THEN
           hhin(i) = 2.*hh(i) - hhin(i)
           hh(i) = hhin(i)

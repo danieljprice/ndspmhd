@@ -119,7 +119,7 @@ SUBROUTINE setup
 !
  vel(:,:) = 0.
  WHERE (rho > 0.)
-    hh = hfact*(pmass(i)/rho(:))**hpower
+    hh = hfact*(pmass(i)/rho(:))**dndim
  END WHERE
  
  RETURN

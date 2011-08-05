@@ -135,7 +135,7 @@ SUBROUTINE setup
           Bfield(2,ipart) = (Byleft + Byright*exx)/(1.0 + exx)
           Bfield(3,ipart) = (Bzleft + Bzright*exx)/(1.0 + exx)
        ENDIF
-       x(1,ipart) = x(1,ipart-2) + 2.*(massp/dens(ipart-1))**hpower
+       x(1,ipart) = x(1,ipart-2) + 2.*(massp/dens(ipart-1))**dndim
        x(2,ipart) = xmin(2) + (j-1)*psep + ystart
        pmass(ipart) = massp
        Bfield(1,ipart) = Bxinit

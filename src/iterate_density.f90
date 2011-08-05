@@ -22,7 +22,6 @@ subroutine iterate_density
   use hterms
   use options
   use part
-  use part_in   ! for rhoin on fixed particles
   use setup_params
   use density_summations
 !
@@ -67,7 +66,11 @@ subroutine iterate_density
     !!!!   .and. ncalc.ne.ncalcprev)
      
      itsdensity = itsdensity + 1
-     rho_old(1:npart) = rho(1:npart)
+     !
+     !--get an estimate of the density from the predicted value of h
+     !  (could also use rho from last step)
+     !
+     rho_old(1:npart) = pmass(1:npart)*(hfact/hh(1:npart))**dndim
 
      if (redolink) then
         if (any(ibound.gt.1)) call set_ghost_particles
@@ -120,7 +123,7 @@ subroutine iterate_density
 !
 !--work out new smoothing length h
 !
-              hnew = hfact*(pmass(i)/rho(i))**hpower   ! ie h proportional to 1/rho^dimen
+              hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !
@@ -179,7 +182,7 @@ subroutine iterate_density
         enddo
      endif
      
-     !!call output(0.0,1)
+     call output(0.0,1)
      
   enddo iterate
 
@@ -189,4 +192,48 @@ subroutine iterate_density
   endif
   
   return
+  
+ contains
+ 
+!------------------------------------------------------------
+! these functions define the relationship between h and rho
+!------------------------------------------------------------
+  real function hrho(hfacti,pmassi,rhoi)
+   use dimen_mhd
+   use loguns
+   implicit none
+   real :: pmassi,rhoi,hfacti
+   
+   if (rhoi.le.0.) write(iprint,*) '*** ERROR: rho < 0 in hrho'
+   hrho = hfacti*(pmassi/rhoi)**dndim
+    
+  end function hrho
+  
+  real function rhoh(hfacti,pmassi,hi)
+   use dimen_mhd
+   implicit none
+   real :: hfacti, pmassi, hi
+   
+   rhoh = pmassi*(hfacti/hi)**dndim
+  
+  end function rhoh
+  
+  real function dhdrho(hi,rhoi)
+   use dimen_mhd
+   implicit none
+   real :: hi, rhoi
+  
+   dhdrho = -hi/(ndim*rhoi)
+  
+  end function dhdrho
+  
+  real function drhodh(rhoi,hi)
+   use dimen_mhd
+   implicit none
+   real :: rhoi, hi
+   
+   drhodh = -ndim*rhoi/hi
+   
+  end function drhodh
+  
 end subroutine iterate_density

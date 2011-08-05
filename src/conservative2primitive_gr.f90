@@ -139,7 +139,7 @@ subroutine primitive2conservative
         call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,igeom)
         
         rho(i) = dens(i)*sqrtg(i)
-	hh(i) = hfact*(pmass(i)/rho(i))**hpower
+	hh(i) = hfact*(pmass(i)/rho(i))**dndim
      enddo
 !
 !--overwrite this with a direct summation
@@ -152,7 +152,7 @@ subroutine primitive2conservative
         ikernav = 3		! consistent with h for first density evaluation
         call iterate_density	! evaluate density by direct summation
         ikernav = iktemp  
-        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**hpower
+        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
      endif
 	
      do i=1,npart
