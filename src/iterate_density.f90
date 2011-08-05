@@ -31,7 +31,8 @@ subroutine iterate_density
   integer :: i,j,itsdensitymax
   integer :: ncalc,ncalcprev,ncalctotal,isize
   integer, dimension(npart) :: redolist, redolistprev
-  real :: tol,hnew,f,dfdrho,deltarho
+  real :: tol,hnew,func,dfdh,deltarho
+  real :: rhoi,dhdrhoi,omegai
   real, dimension(npart) :: rho_old
   logical :: converged,redolink
 !
@@ -66,11 +67,7 @@ subroutine iterate_density
     !!!!   .and. ncalc.ne.ncalcprev)
      
      itsdensity = itsdensity + 1
-     !
-     !--get an estimate of the density from the predicted value of h
-     !  (could also use rho from last step)
-     !
-     rho_old(1:npart) = pmass(1:npart)*(hfact/hh(1:npart))**dndim
+     rho_old(1:npart) = rho(1:npart)
 
      if (redolink) then
         if (any(ibound.gt.1)) call set_ghost_particles
@@ -107,30 +104,37 @@ subroutine iterate_density
                  endif
               endif
               
-              gradh(i) = gradh(i)/rho(i)    ! now that rho is known
-              if (abs(1.-gradh(i)).lt.1.e-5) then
-                 print*,'warning: 1-gradh < 1.e-5 ',i,1.-gradh(i),gradh(i),rho(i)
-                 if (abs(1.-gradh(i)).eq.0.) call quit
+              rhoi = pmass(i)/(hh(i)/hfact)**ndim  ! this is the rho compatible with the old h
+              dhdrhoi = -hh(i)/(ndim*rhoi)          ! deriv of this
+              omegai =  1. - dhdrhoi*gradh(i)
+              if (omegai.lt.1.e-5) then
+                 print*,'warning: omega < 1.e-5 ',i,omegai
+                 if (abs(omegai).eq.0.) call quit
               endif
+              gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
 !
-!--perform Newton-Raphson iteration on rho
+!--perform Newton-Raphson iteration to get new h
 !      
-              !f = rho_old(i) - rho(i)
-              !dfdh = dhdrho*(1.- gradh(i)
-              !deltarho = -f/dfdrho
+              func = rhoi - rho(i)
+              dfdh = omegai/dhdrhoi
               
-              !rho(i) = rho_old(i) + deltarho
-!
-!--work out new smoothing length h
-!
-              hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen
+              !hnew = hh(i) - func/dfdh
+              !if (hnew.le.0. .or. gradh(i).lt.0.) then
+              !   print*,' rapid density change on particle ',i
+                 hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen            
+              !endif
+              print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
+              print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)
+              print*,' gradh = ',gradh(i),omegai,dhdrhoi
+              !read*
+
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !
 !             PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
               
-              !!converged = abs((rho(i)-rho_old(i))/rho(i) < tol)
-              converged = abs((hnew-hh(i))/hh(i)) < tol     
+              converged = abs((rho(i)-rhoi)/rho(i)) < tol
+              !!converged = abs((hnew-hh(i))/hh(i)) < tol 
               if (.not.converged) then
                  ncalc = ncalc + 1
                  redolist(ncalc) = i
@@ -140,7 +144,7 @@ subroutine iterate_density
 !--update smoothing length only if taking another iteration
 !
                  if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) then
-!!                    print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
+                    !print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
                     hh(i) = hnew                    
                  endif
                  if (hnew.gt.hhmax) then
@@ -183,7 +187,7 @@ subroutine iterate_density
      endif
      
      call output(0.0,1)
-     
+     read*
   enddo iterate
 
 !--NB: itsdensity is also used in step  
