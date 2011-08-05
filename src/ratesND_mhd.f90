@@ -68,14 +68,16 @@ subroutine get_rates
 !  (artificial viscosity quantities)
 !      
  real :: vsig,vsigi,vsigj,viss
- real :: spsoundi,spsoundj,alphai,alphaBi
+ real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
  real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj
  real :: vsigii,vsigjj
 !
 !  (av switch)
 !
- real :: source,tdecay1,sourcedivB,sourceJ,sourceB
+ real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
+ real :: graduterm
+ real, dimension(:,:), allocatable :: gradu
 !
 !  (alternative forms)
 !
@@ -121,7 +123,7 @@ subroutine get_rates
  nlistdim = ntotal
  allocate ( listneigh(nlistdim),STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
- allocate ( phi(ntotal), STAT=ierr )
+ allocate ( phi(ntotal), gradu(ndim,ntotal), STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr  
  listneigh = 0
 !
@@ -141,6 +143,7 @@ subroutine get_rates
   divB(i) = 0.0
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
+  gradu(:,i) = 0.0
  enddo
 !
 !--set MHD quantities to zero if mhd not set
@@ -219,6 +222,7 @@ subroutine get_rates
        veli(:) = vel(:,i)
        pmassi = pmass(i)
        alphai = alpha(1,i)
+       alphaui = alpha(2,i)
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
@@ -233,7 +237,7 @@ subroutine get_rates
        if (imhd.ne.0) then
           Brho2i = dot_product(Brhoi,Brhoi)
           valfven2i = Brho2i*rhoi
-          alphaBi = alpha(2,i)
+          alphaBi = alpha(3,i)
        endif
        gradhi = 1./(1. - gradh(i))
        !if (gradhi.le.0.5) then
@@ -253,8 +257,8 @@ subroutine get_rates
 !
        loop_over_neighbours: do n = idone+1,nneigh
        
-          j = listneigh(n)
-        if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
+           j = listneigh(n)
+           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
            dx(:) = x(:,i) - x(:,j)
       !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
            hj = hh(j)
@@ -262,11 +266,11 @@ subroutine get_rates
            hj21 = hj1*hj1
            hfacwabj = hj1**ndim
            hfacgrkernj = hfacwabj*hj1
-             hav = 0.5*(hi + hj)
-             hav1 = 1./hav
-             h21 = hav1*hav1
-             hfacwab = hav1**ndim 
-             hfacgrkern = hfacwab*hav1
+           hav = 0.5*(hi + hj)
+           hav1 = 1./hav
+           h21 = hav1*hav1
+           hfacwab = hav1**ndim 
+           hfacgrkern = hfacwab*hav1
      
            rij2 = dot_product(dx,dx)
            rij = sqrt(rij2)
@@ -345,6 +349,7 @@ subroutine get_rates
        curlB(:,i) = curlB(:,i)*rho1i
        dBconsdt(:,i) = dBconsdt(:,i)*rho1i
     endif    
+    gradu(:,i) = gradu(:,i)*rho1i
 !
 !--calculate time derivative of the smoothing length from the density derivative
 !
@@ -382,31 +387,43 @@ subroutine get_rates
     vsig = sqrt(spsound(i)**2. + valfven2i)      ! approximate vsig only
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
-!--calculate time derivative of alpha (artificial viscosity coefficient)
-!  see Morris and Monaghan (1997)
+!--calculate time derivative of alpha (artificial dissipation coefficients)
+!  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
 !     
-    if (iavlim.ne.0) then
-       if (mod(iavlim,10).eq.2) then
-          source = max(drhodt(i)*rho1i,0.0)*(2.0-alpha(1,i))
-       else
-        source = max(drhodt(i)*rho1i,0.0)   ! source term is div v   
-       endif
-
+    if (iavlim.ne.0 .or. iaulim.ne.0 .or. iaBlim.ne.0) then
        tdecay1 = (avdecayconst*vsig)/hh(i)      ! 1/decay time (use vsig)
-       daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        !
-       !--also evolve resistivity parameter if iav > 10
+       !--artificial viscosity parameter
        !
-       if (iavlim.gt.10 .and. imhd.ne.0) then
+       if (iavlim.ne.0) then
+          source = max(drhodt(i)*rho1i,0.0)
+          if (iavlim.eq.2) source = source*(2.0-alpha(1,i))      
+          daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
+       else
+          daldt(1,i) = 0.
+       endif
+       !
+       !--artificial thermal conductivity parameter
+       !
+       if (iaulim.ne.0 .and. iener.gt.0) then
+          sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
+          if (iaulim.eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
+          daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
+       else
+          daldt(2,i) = 0.
+       endif
+       !
+       !--artificial resistivity parameter if iavlim > 10
+       !
+       if (iaBlim.ne.0 .and. imhd.gt.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = abs(divB(i))*SQRT(rho1i)
-          if (mod(iavlim,20).eq.2) then
-             sourceB = MAX(sourceJ,sourcedivB)*(2.0-alpha(2,i))
-          else
-             sourceB = MAX(sourceJ,sourcedivB)
-          endif
-          daldt(2,i) = (alphaBmin - alpha(2,i))*tdecay1 + sourceB
+	  sourceB = 2.0*MAX(sourceJ,sourcedivB)
+          if (iaBlim.eq.2) sourceB = sourceB*(2.0-alpha(3,i))
+          daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
+       else
+          daldt(3,i) = 0.
        endif
     else
        daldt(:,i) = 0.
@@ -436,23 +453,26 @@ subroutine get_rates
  !!print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
  !!dtcourant = 0.2*dtcourant2
 !
-!--set rates to zero on ghosts
+!--set rates to zero on ghosts/fixed particles
 !
- do i=npart+1,ntotal      ! using ntotal just makes sure they are zero for ghosts
-  force(:,i) = 0.0
-  drhodt(i) = 0.0
-  dudt(i) = 0.0
-  dendt(i) = 0.0
-  dBconsdt(:,i) = 0.0
-  dpsidt(i) = 0.0
-  fmag(:,i) = 0.0
-  divB(i) = 0.0
-  curlB(:,i) = 0.0
-  xsphterm(:,i) = 0.0
+ do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
+    if (itype(i).eq.1 .or. i.gt.npart) then
+       force(:,i) = 0.0
+       drhodt(i) = 0.0
+       dudt(i) = 0.0
+       dendt(i) = 0.0
+       dBconsdt(:,i) = 0.0
+       daldt(:,i) = 0.
+       dpsidt(i) = 0.0
+       fmag(:,i) = 0.0
+       divB(i) = 0.0
+       curlB(:,i) = 0.0
+       xsphterm(:,i) = 0.0
+    endif
  enddo
 
  if (allocated(listneigh)) deallocate(listneigh)
- if (allocated(phi)) deallocate(phi)
+ if (allocated(phi)) deallocate(phi,gradu)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
       
  return
@@ -606,7 +626,7 @@ contains
     force(:,j) = force(:,j) + pmassi*prterm*dr(:)
 !----------------------------------------------------------------------------
 !  time derivative of density (continuity equation) in generalised form
-!  compute this even if direct sum - gives divv for art vis.
+!  compute this even if direct sum - used in dudt, dhdt and av switch
 !----------------------------------------------------------------------------
 !
     !drhodt(i) = drhodt(i) + phii_on_phij*pmassj*dvdotr*grkerni
@@ -626,6 +646,16 @@ contains
 !------------------------------------------------------------------------
    
     if (iener.eq.3) call energy_equation
+
+!------------------------------------------------------------------------
+!  grad u term for dissipation switch
+!------------------------------------------------------------------------
+
+    if (iav.ne.0) then
+       graduterm = uu(j)-uu(i)
+       gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
+       gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
+    endif
 
 !----------------------------------------------------------------------------
 !  XSPH term for moving the particles
@@ -649,48 +679,42 @@ contains
   subroutine artificial_dissipation
     implicit none
     real, dimension(ndimB) :: Bvisc,dBdtvisc
-    real :: visc,alphaav,alphaB
+    real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
-    real :: eni,enj,ediff,ediffB,qdiff
+    real :: qdiff
     real :: vissv,vissB,vissu
-    real :: term,avterm,avtermB,rhoav1
+    real :: term,rhoav1
     !
     !--definitions
     !      
     alphaav = 0.5*(alphai + alpha(1,j))
-    alphaB = 0.5*(alphaBi + alpha(2,j))
-!!    alphaB = 0.5*(alphaBi + alphaB(j))
+    alphau = 0.5*(alphaui + alpha(2,j))
+    alphaB = 0.5*(alphaBi + alpha(3,j))
     rhoav1 = 2./(rhoi + rhoj)
-    
     term = 0.5*vsig*rhoav1*grkern
-    avterm = alphaav*term
-    avtermB = alphaB*term
 
     !----------------------------------------------------------------
-    !  artificial viscosity (applied only for approaching particles)
+    !  artificial viscosity in force equation
+    ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
     if (dvdotr.lt.0) then            
-       visc = avterm*viss      ! viss=abs(dvdotr) defined in rates
-       !
-       !--add this to the momentum equation (viscous force)
-       ! 
+       visc = alphaav*term*viss     ! viss=abs(dvdotr) defined in rates
        force(:,i) = force(:,i) - pmassj*visc*dr(:)
        force(:,j) = force(:,j) + pmassi*visc*dr(:)
     endif
     
     !--------------------------------------------
-    ! resistivity (applied everywhere)
+    !  resistivity in induction equation
+    !  (applied everywhere)
     !--------------------------------------------
     if (iav.eq.2) then
        Bvisc(:) = dB(:)*rhoav1
     else
        Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
     endif
-    dBdtvisc(:) = avtermB*Bvisc(:)
-    !
-    !--add this to the induction equation
-    !
+    dBdtvisc(:) = alphaB*term*Bvisc(:)
+    
     if (imhd.le.10) then            ! evolving B/rho
        dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*dBdtvisc(:)               
        dBconsdt(:,j) = dBconsdt(:,j) - rhoj*pmassi*dBdtvisc(:)
@@ -702,63 +726,65 @@ contains
     !--------------------------------------------------
     !  dissipation terms in energy equation
     !  (viscosity + resistivity + thermal conduction)
+    !
+    !   total energy equation
     !--------------------------------------------------
     if (iener.eq.3) then
+       
+       qdiff = 0.
        !
-       !--total energy equation
-       !
-       !  kinetic + thermal energy terms - applied only when particles approaching
+       !  kinetic energy terms - applied only when particles approaching
        !
        if (dvdotr.lt.0) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
-          eni = udiss_frac*uu(i) + 0.5*v2i !!!+ 0.5*B2i*rhoav1
-          enj = udiss_frac*uu(j) + 0.5*v2j !!!+ 0.5*B2j*rhoav1
-          ediff = eni - enj 
-          qdiff = -avterm*ediff
-       else
-          ediff = 0.
-          qdiff = 0.
+          qdiff = qdiff - alphaav*0.5*(v2j-v2i)
        endif
+       !
+       !  thermal energy terms - applied everywhere
+       !
+       qdiff = qdiff - alphau*(uu(i)-uu(j))
        !
        !  magnetic energy terms - applied everywhere
        !
        if (iav.eq.2) then
-          B2i = dot_product(Bi,Bi) ! magnetic energy 
-          B2j = dot_product(Bj,Bj) ! along line of sight
+          B2i = dot_product(Bi,Bi) ! total magnetic energy 
+          B2j = dot_product(Bj,Bj) 
        else
           B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
           B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
        endif
-       ediffB = 0.5*(B2i-B2j)*rhoav1      ! needed if applying Bvisc everywhere
-       qdiff = qdiff - avtermB*ediffB
+       qdiff = qdiff - alphaB*0.5*(B2i-B2j)*rhoav1
        !
        !  add to total energy equation
        !
-       dendt(i) = dendt(i) - pmassj*qdiff
-       dendt(j) = dendt(j) + pmassi*qdiff                 
-       
+       dendt(i) = dendt(i) - pmassj*term*qdiff
+       dendt(j) = dendt(j) + pmassi*term*qdiff                 
+
+    !--------------------------------------------------
+    !   thermal energy equation
+    !--------------------------------------------------       
     elseif (iener.gt.0) then
        !
-       !--thermal energy equation
-       !
-       !  kinetic + thermal energy terms
+       !  kinetic energy terms
        !
        if (dvdotr.lt.0) then
-          vissv = -avterm*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2      
-          vissu = avterm*udiss_frac*(uu(i) - uu(j))   
+          vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
        else
           vissv = 0.
-          vissu = 0.
        endif
+       !
+       !  thermal energy terms
+       !
+       vissu = alphau*(uu(i) - uu(j))        
        !
        !  add magnetic energy term - applied everywhere
        !
        if (imhd.ne.0) then
           if (iav.eq.2) then
-             vissB = -0.5*avtermB*(dot_product(dB,dB))*rhoav1 
+             vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
           else
-             vissB = -0.5*avtermB*(dot_product(dB,dB)-projdB**2)*rhoav1
+             vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
        else
           vissB = 0.
@@ -766,8 +792,8 @@ contains
        !
        !  add to thermal energy equation
        ! 
-       dudt(i) = dudt(i) + pmassj*(vissv + vissB + vissu)
-       dudt(j) = dudt(j) + pmassi*(vissv + vissB - vissu)    
+       dudt(i) = dudt(i) + pmassj*term*(vissv + vissB + vissu)
+       dudt(j) = dudt(j) + pmassi*term*(vissv + vissB - vissu)    
     endif
     
     return

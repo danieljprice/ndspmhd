@@ -30,11 +30,11 @@ SUBROUTINE read_infile(infile)
   READ(iread,*,ERR=50) psep
   READ(iread,*,ERR=50) tmax,tout,nmax,nout
   READ(iread,*,ERR=50) gamma
-  READ(iread,*,ERR=50) iener,udiss_frac,alphaBmin,polyk
+  READ(iread,*,ERR=50) iener,polyk
   READ(iread,*,ERR=50) icty,ndirect
   READ(iread,*,ERR=50) iprterm
-  READ(iread,*,ERR=50) iav,alphamin,beta
-  READ(iread,*,ERR=50) iavlim,avdecayconst
+  READ(iread,*,ERR=50) iav,alphamin,alphaumin,alphaBmin,beta
+  READ(iread,*,ERR=50) iavlim,iaulim,iaBlim,avdecayconst
   READ(iread,*,ERR=50) ikernav
   READ(iread,*,ERR=50) ihvar,hfact
   READ(iread,*,ERR=50) idumpghost
@@ -61,8 +61,8 @@ SUBROUTINE read_infile(infile)
  IF (nout.EQ.0) STOP 'error in input: nout = 0'
  IF (gamma.LT.1.) WRITE(iprint,100) 'gamma < 1.0 '
  IF (abs(gamma-1.).lt.1.e-3 .AND. iener.NE.0) STOP 'must use iener = 0 for isothermal eos'
- IF ((iener.EQ.3).AND.(udiss_frac.LT.0.).OR.(alphaBmin.LT.0.)) THEN
-    WRITE(iprint,100) 'udiss_frac or alphaBmin < 0.'
+ IF ((iener.GT.0).AND.(alphaumin.LT.0.).OR.(alphaBmin.LT.0.)) THEN
+    WRITE(iprint,100) 'alphaumin or alphaBmin < 0.'
  ELSEIF ((iener.EQ.0).AND.(polyk.LT.0.)) THEN
     WRITE(iprint,100) 'polyk < 0.'      
  ENDIF
