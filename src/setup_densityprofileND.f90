@@ -22,9 +22,9 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,iseed,idist,j
- real :: massp,totmass,ran2
- real :: rr,rmass,rsoft
+ integer :: i,iseed,idist,j,npart1,npart2
+ real :: massp,totmass,ran2,massratio
+ real :: rr,rmass,rsoft,rsoft2,rdist2
  real, dimension(ndim) :: xpos
  real :: dxij,dxmean,q,vmax,vesc,vr,rr2
  logical, parameter :: isetvelocities = .false.
@@ -42,7 +42,7 @@ subroutine setup
 !
 !--set up the uniform density grid
 !
- npart = 1000
+ npart = 10000
 ! npart = int((1./psep)**3)
 ! print*,'enter npart'
 ! read*,npart
@@ -73,6 +73,24 @@ subroutine setup
  write(iprint,*) ' Total mass = ',totmass,' rsoft = ',rsoft
  call getr_from_m(idist,0.99,rsoft,rr)
  write(iprint,*) ' Cutoff radius = ',rr
+
+!
+!--option for a satellite halo with different parameters
+!
+ massratio = 0.5  ! 1.0 for no second component, 0.0 for satellite only
+ npart1 = int(massratio*npart)
+ npart2 = npart - npart1
+ if (npart1.ne.npart) then
+    rsoft2 = 0.1   ! scale length for 2nd component
+    rdist2 = 0.0  ! distance to 2nd component (in x)
+    write(iprint,*) ' + smaller satellite, mass ratio = ',massratio
+    write(iprint,*) ' mass (1) = ',massratio*totmass,' mass(2) = ',totmass*(1.-massratio)
+    write(iprint,*) ' npart (1) = ',npart1,' npart(2) = ',npart2
+    write(iprint,*) ' rsoft (2) = ',rsoft2,' separation = ',rdist2
+    call getr_from_m(idist,0.99,rsoft2,rr)
+    write(iprint,*) ' Cutoff radius (2) = ',rr
+ endif
+
  
  do i=1,ntotal
 !
@@ -82,7 +100,11 @@ subroutine setup
 !
 !--convert mass fraction to radial position for chosen distribution
 !
-    call getr_from_m(idist,rmass,rsoft,rr)
+    if (i.le.npart1) then
+       call getr_from_m(idist,rmass,rsoft,rr)
+    else
+       call getr_from_m(idist,rmass,rsoft2,rr)
+    endif
     xpos(1) = rr
     if (rr.lt.0.) print*,i,'m = ',rmass,' r = ',rr
 !
@@ -101,7 +123,13 @@ subroutine setup
 !
 !--set other quantities
 !
-    dens(i) = densprofile(idist,rr,rsoft)
+    if (i.le.npart1) then
+       dens(i) = densprofile(idist,rr,rsoft)
+    else
+       !--offset 2nd component by specified amount (in x only)
+       x(1,i) = x(1,i) + rdist2 
+       dens(i) = densprofile(idist,rr,rsoft2)
+    endif
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.
@@ -109,6 +137,7 @@ subroutine setup
  
  if (isetvelocities) then
     write(iprint,*) 'setting particle velocities...'
+    if (npart1.ne.npart) stop 'not implemented for multiple components'
     iseed = -7854
     do i=1,ntotal
    !
