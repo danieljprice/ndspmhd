@@ -123,6 +123,7 @@ subroutine get_rates
  dtcourant = 1.e6  
  zero = 1.e-10
  vsigmax = 0.
+ dr(:) = 0.
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -270,25 +271,23 @@ subroutine get_rates
            hj21 = hj1*hj1
      
            rij2 = dot_product(dx,dx)
-           rij = sqrt(rij2)
-           if (rij.le.1.e-10) then
-              write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
-                call quit
-           endif      
            q2i = rij2*hi21
            q2j = rij2*hj21
-           dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
-
-           !do idim=1,ndim
-           !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
-           !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
-           !enddo
-           if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0.
 
              !----------------------------------------------------------------------------
              !  do pairwise interaction if either particle is within range of the other
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
+              rij = sqrt(rij2)
+              if (rij.le.1.e-10) then
+                 write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
+                 call quit
+              endif      
+              dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
+              !do idim=1,ndim
+              !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
+              !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
+              !enddo
               call rates_core
            else      ! if outside 2h
 !              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)
@@ -361,6 +360,7 @@ subroutine get_rates
        if (imagforce.eq.4) then
           call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
           force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
+          fmag(:,i) = fmagi(:)*rho1i
        else
           curlB(:,i) = curlB(:,i)*rho1i
        endif
@@ -846,7 +846,7 @@ contains
        if (imhd.gt.0) then
           dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
        else !--vector potential resistivity
-          dBdtvisc(:) = alphaB*termnonlin*(Bevol(:,i) - Bevol(:,j))*rhoav1
+          dBdtvisc(:) = alphaB*termnonlin*(Bevol(:,i) - Bevol(:,j))
        endif
        !
        !--add to d(B/rho)/dt (converted to dB/dt later if required)
