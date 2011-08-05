@@ -17,6 +17,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  use linklist, only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list
  use hterms, only:gradh
+ use setup_params, only:hfact
 !
 !--define local variables
 !
@@ -26,6 +27,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  real, dimension(idim), intent(in) :: pmass,rho,hh
  real, dimension(ndimV,idim), intent(in) :: Bvec
  real, dimension(ndimV,idim), intent(out) :: curlB
+ real :: weight
 
  integer :: i,j,n
  integer :: icell,iprev,nneigh
@@ -48,6 +50,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  listneigh = 0
  curlB = 0.
  dr(:) = 0.
+ weight = 1./hfact**ndim
 !
 !--loop over all the link-list cells
 !
@@ -106,12 +109,12 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
                 !       print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
                 !  (using hi)
                 call interpolate_kernel(q2i,wabi,grkerni)
-                wabi = wabi*hfacwabi
-                grkerni = grkerni*hfacwabi*hi1
+!                wabi = wabi*hfacwabi
+                grkerni = grkerni*hi1 !!*hfacwabi*hi1
                 !  (using hj)
                 call interpolate_kernel(q2j,wabj,grkernj)
-                wabj = wabj*hfacwabj
-                grkernj = grkernj*hfacwabj*hj1
+!                wabj = wabj*hfacwabj
+                grkernj = grkernj*hj1 !!*hfacwabj*hj1
 !
 !--calculate curl of Bvec
 !
@@ -121,7 +124,7 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
 !                   curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
 !                   curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
 !                   curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-                elseif (ndim.eq.2) then  ! just Az in 2d
+                elseif (ndim.eq.2) then  ! just Az in 2D
                    curlBi = 0.
                    curlBi(1) = -dB(1)*dr(2) ! replace dB(3) by dB(1)
                    curlBi(2) = dB(1)*dr(1)
@@ -131,10 +134,11 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
                 !
                 !--compute rho * current density j
                 !
-                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni
-                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj
-                !      else
-                !         print*,' r/h > 2 '      
+!                curlB(:,i) = curlB(:,i) + pmass(j)*curlBi(:)*grkerni
+!                curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkernj
+                curlB(:,i) = curlB(:,i) + curlBi(:)*grkerni
+                curlB(:,j) = curlB(:,j) + curlBi(:)*grkernj
+                !!print*,'weight = ',weight,' m/rho h^3 = ',pmass(j)/rho(j)*hfacwabj
                 
              endif
           endif! j .ne. i   
@@ -147,7 +151,8 @@ subroutine get_curl(npart,x,pmass,rho,hh,Bvec,curlB)
  enddo loop_over_cells
 
  do i=1,npart
-    curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
+!    curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
+    curlB(:,i) = weight*curlB(:,i)
  enddo
 
  return
