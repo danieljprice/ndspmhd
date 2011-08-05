@@ -668,17 +668,29 @@ subroutine get_ncolumns(lunit,ncolumns)
  implicit none
  integer, intent(in) :: lunit
  integer, intent(out) :: ncolumns
- integer :: ierr,i
+ integer :: ierr,i,nblanklines
  character(len=2000) :: line
  real :: dummyreal(100)
 
- read(lunit,"(a)") line
+ nblanklines = 0
+ line = ' '
+ do while (len_trim(line).eq.0)
+    read(lunit,"(a)") line
+    nblanklines = nblanklines + 1
+ enddo
+ if (nblanklines.gt.1) print*,'skipped ',nblanklines-1,' blank lines'
  rewind(lunit)
  dummyreal = -666.0
  
  ierr = 0
- read(line,*,end=10) (dummyreal(i),i=1,size(dummyreal))
+ read(line,*,iostat=ierr,end=10) (dummyreal(i),i=1,size(dummyreal))
+ if (ierr /= 0) then
+    print*,'*** ERROR: file does not contain real numbers'
+    ncolumns = 0
+    return
+ endif
 10 continue 
+
  i = 1
  ncolumns = 0
  do while(abs(dummyreal(i)+666.).gt.1.e-10)
