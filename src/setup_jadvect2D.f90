@@ -1,9 +1,7 @@
 !!------------------------------------------------------------------------!!
 !!                                                                        !!
-!!  Generic setup for the 2D current advection problem in MHD             !!
-!!                                                                        !!
-!!  Note for all MHD setups, only the magnetic field should be setup      !!
-!!  similarly the thermal energy is setup even if using total energy.     !!
+!!  Setup for the 2D current advection problem in MHD                     !!
+!!   as in Gardiner & Stone (2005) J. Comp. Phys. 205, 509                !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
@@ -27,7 +25,7 @@ subroutine setup
  implicit none
  integer :: ipart
  real :: denszero,przero,vzero,uuzero,Azero
- real :: totmass,gam1,massp,rr,rzero,angle,anglev
+ real :: totmass,gam1,massp,rr,rzero,costheta,sintheta
 !
 !--check number of dimensions is right
 !
@@ -37,16 +35,16 @@ subroutine setup
 !                        
  ibound = 3     ! periodic
  nbpts = 0      ! must use fixed particles if inflow/outflow at boundaries
- angle = 30.*pi/180.
- anglev = 60.*pi/180.
+ !costheta = 2./sqrt(5.)
+ !sintheta = 1./sqrt(5.)
  xmin(1) = -1.0  ! x
  xmax(1) = -xmin(1)
- xmin(2) = -1.0/(2.*COS(angle))  ! y
+ xmin(2) = -0.5  ! y
  xmax(2) = -xmin(2)
 !
 !--setup parameters
 !
- vzero = 1.0
+ vzero = sqrt(5.)
  przero = 1.0
  denszero = 1.0
  Azero = 1.e-3
@@ -75,8 +73,8 @@ subroutine setup
 !--now assign particle properties
 ! 
  do ipart=1,ntotal
-    vel(1,ipart) = SIN(anglev)
-    vel(2,ipart) = COS(anglev)
+    vel(1,ipart) = 2. !!vzero*costheta
+    vel(2,ipart) = 1. !!vzero*sintheta
     if (ndimv.eq.3) vel(3,ipart) = 0.
     dens(ipart) = denszero
     pmass(ipart) = massp
