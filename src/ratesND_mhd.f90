@@ -144,6 +144,12 @@ subroutine get_rates
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
   h1(i) = 1./hh(i)
+  if (icty.ge.1) then
+     drhodt(i) = 0.
+     gradh(i) = 1.
+     gradhn(i) = 0.
+     dhdt(i) = 0.
+  endif
  enddo
 
 !
@@ -396,6 +402,13 @@ subroutine get_rates
 !
     if (allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
 !
+!--make dhdt if density is not being done by summation
+!  (otherwise this is done in iterate_density)
+!
+    if (icty.ge.1) then
+       dhdt(i) = -hh(i)/(ndim*rho(i))*drhodt(i)
+    endif
+!
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
@@ -406,7 +419,7 @@ subroutine get_rates
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
+       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
     elseif (iener.gt.0 .and. iav.ge.0) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
@@ -448,6 +461,12 @@ subroutine get_rates
     forcemag = sqrt(dot_product(force(:,i),force(:,i)))   
     fonh = forcemag/hh(i)
     if (fonh.gt.fhmax .and. itype(i).ne.1) fhmax = fonh
+!
+!--calculate resistive timestep (bootstrap onto force timestep)
+!
+    if (etamhd.gt.tiny(etamhd)) then
+       fhmax = max(fhmax,etamhd/hh(i)**2)
+    endif
 
 !
 !--calculate simpler estimate of vsig for divergence cleaning and 
@@ -544,6 +563,7 @@ subroutine get_rates
     if (itype(i).eq.1 .or. i.gt.npart) then
        force(:,i) = 0.0
        drhodt(i) = 0.0
+       dhdt(i) = 0.0
        dudt(i) = 0.0
        dendt(i) = 0.0
        dBevoldt(:,i) = 0.0
@@ -842,7 +862,14 @@ contains
 !       dudt(i) = dudt(i) - 0.2*pmassj*(uu(i)-uu(j))*rhoav1*grkernalti
 !       dudt(j) = dudt(j) + 0.2*pmassi*(uu(i)-uu(j))*rhoav1*grkernaltj
     endif
-    
+!
+!  Continuity equation if density not done by summation
+!
+    if (icty.ge.1) then
+       drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
+       drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
+    endif
+       
     return
   end subroutine rates_core
 
@@ -860,7 +887,7 @@ contains
     real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
-    real :: vissv,vissB,vissu
+    real :: vissv,vissB,vissu,vissrho
     real :: term,dpmomdotr
     real :: termnonlin
     !
@@ -981,7 +1008,11 @@ contains
        !
        !  thermal energy terms
        !
-       vissu = alphau*(uu(i) - uu(j))        
+       if (iener.eq.1) then
+          vissu = 0.
+       else
+          vissu = alphau*(uu(i) - uu(j))        
+       endif
        !
        !  add magnetic energy term - applied everywhere
        !
@@ -991,15 +1022,29 @@ contains
           else
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
-       else
+       elseif (imhd.lt.0) then
           vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
 !!          vissB = 0.
+       else
+          vissB = 0.
        endif
        !
        !  add to thermal energy equation
-       ! 
+       !
        dudt(i) = dudt(i) + pmassj*(term*(vissv + vissu) + termnonlin*(vissB))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv - vissu) + termnonlin*(vissB))    
+       dudt(j) = dudt(j) + pmassi*(term*(vissv - vissu) + termnonlin*(vissB))
+       
+       !--entropy dissipation
+       if (iener.eq.1) then
+          vissu = alphau*(en(i)-en(j))
+          dendt(i) = dendt(i) + pmassj*(term*(vissu))
+          dendt(j) = dendt(j) + pmassi*(term*(-vissu))      
+       endif
+       if (icty.eq.1) then
+          vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
+          drhodt(i) = drhodt(i) + pmassj*(vissrho)
+          drhodt(j) = drhodt(j) + pmassi*(-vissrho)
+       endif
     endif
     
     return
@@ -1012,6 +1057,7 @@ contains
   subroutine mhd_terms
     implicit none
     real :: dalphaterm,termi,termj
+    real, dimension(ndimV) :: dBdtvisc
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1161,7 +1207,23 @@ contains
        termj = pmassi*projvj*grkernj
        dBevoldt(:,j) = dBevoldt(:,j) - termj*dBevol(:)
     end select
-       
+
+    !--------------------------------------------
+    !  real resistivity in induction equation
+    !--------------------------------------------
+    if (iresist.gt.0) then
+       if (imhd.gt.0) then
+          dBdtvisc(:) = -2.*etamhd*dB(:)/rij
+       else !--vector potential resistivity
+          dBdtvisc(:) = 2.*etamhd*dBevol(:)/rij
+       endif
+       !
+       !--add to dB/dt (converted to d(B/rho)/dt later if required)
+       !
+       dBevoldti(:) = dBevoldti(:) - pmassj*rho1j*dBdtvisc(:)*grkerni
+       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*rho1i*dBdtvisc(:)*grkernj
+    endif
+
     if (idivBzero.ge.2) then ! add hyperbolic correction term
        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
        gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
