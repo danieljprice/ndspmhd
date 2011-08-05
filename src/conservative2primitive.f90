@@ -60,7 +60,12 @@ subroutine conservative2primitive
      gradpsi(:,:) = 0.
      psi(:) = 0.
      zeta(:) = 0.
-     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     if (iuse_exact_derivs.gt.0) then
+        !--get an exact linear curl A (iderivtype=2 input to get_B_eulerpots)
+        call get_B_eulerpots(2,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     else
+        call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     endif
      do i=1,npart
         Binti(:) = Bfield(:,i)
         Bfieldi(:) = Binti(:) + Bconst(:)
@@ -373,7 +378,12 @@ subroutine primitive2conservative
   case(-1,-2) ! if using vector potential
      if (iprterm.ge.10) stop 'conflict with use of psi variable (iprterm=10/imhd<0)'
      write(iprint,*) 'getting B field from vector potential (init)...'
-     call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     if (iuse_exact_derivs.gt.0) then
+        !--get an exact linear curl A (iderivtype=2 input to get_B_eulerpots)
+        call get_B_eulerpots(2,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     else
+        call get_curl(1,npart,x,pmass,rho,hh,Bevol,Bfield,gradpsi)
+     endif
      do i=1,npart
         Binti(:) = Bfield(:,i)
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
