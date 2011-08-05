@@ -21,7 +21,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero
+ real :: denszero,rmin,rmax
 !
 !--allow for tracing flow
 !
@@ -29,15 +29,23 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 3	! boundaries
+ ibound = 0	! boundaries
  nbpts = 0	! use ghosts not fixed
- xmin(:) = -0.5	! set position of boundaries
- xmax(:) = 0.5
+ xmin(:) = -2.	! set position of boundaries
+ xmax(:) = 0.
 !
 !--set up the uniform density grid
 !
- call set_uniform_cartesian(11,psep,xmin,xmax,.false.)
- ntotal = npart
+! npart = int((xmax(1)-xmin(1))/psep) !!int((1./psep)**3)
+! call alloc(int(1.1*npart))
+ 
+ rmin = 0.
+ rmax = 0.5
+
+!! call cp_distribute(rmin,rmax,psep,ntotal,x(1,1:npart),x(2,1:npart),x(3,1:npart),npart)
+ call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+ npart = ntotal
+ print*,'npart =',npart
 !
 !--determine particle mass
 !
