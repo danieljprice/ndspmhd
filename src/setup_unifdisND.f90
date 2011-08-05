@@ -29,9 +29,9 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 3	! boundaries
- nbpts = 0	! use ghosts not fixed
- xmin(:) = 0.	! set position of boundaries
+ ibound = 3     ! boundaries
+ nbpts = 0      ! use ghosts not fixed
+ xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
 !
 !--set up the uniform density grid
@@ -61,8 +61,8 @@ subroutine setup
     !!!vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
-    uu(i) = 1.0	! isothermal
-    bfield(:,i) = 0.
+    uu(i) = 1.0 ! isothermal
+    Bfield(:,i) = 0.
  enddo 
 !
 !--allow for tracing flow
