@@ -32,9 +32,10 @@ subroutine conservative2primitive
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   implicit none
-  integer :: i,j,nerr
-  real :: B2i, v2i, pri, dhdrhoi, emag, emagold
+  integer :: i,j,nerr,k
+  real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
   real, dimension(ndimV) :: Binti,Bfieldi
+  real, dimension(ndim) :: dxbound
   logical, parameter :: JincludesBext = .true.
   logical :: remap
 
@@ -106,29 +107,46 @@ subroutine conservative2primitive
   case(:-3) ! generalised Euler potentials
      
      remap = .true.
+     !--set x0 correctly on ghost particles
+     if (any(ibound.gt.1)) then  ! ghost particles
+        dxbound(:) = xmax(:) - xmin(:)
+        do i=npart+1,ntotal
+           j = ireal(i)
+           do k=1,ndim
+              dx = x(k,j) - x(k,i)
+              if (abs(dx).gt.0.5*dxbound(k)) then
+                 x0(k,i) = x0(k,j) - dxbound(k)*SIGN(1.,dx)
+              else
+                 x0(k,i) = x0(k,j)              
+              endif
+           enddo
+        enddo
+     endif
+     
      write(iprint,*) 'getting B field from Generalised Euler Potentials... '
      call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+     print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
      !--add constant field component
      do i=1,npart
         Bfield(:,i) = Bfield(:,i) + Bconst(:)
      enddo
 
      if (remap) then
-        !--copy remapped Bevol onto ghosts
+        !--remap x0 for all particles
+        x0 = x
+        !--copy remapped Bevol onto boundary/ghost particles
         if (any(ibound.eq.1)) then
            do i=1,npart
-              if (itype(i).eq.1) then
+              if (itype(i).eq.1) then ! fixed particles
                  j = ireal(i)
                  Bevol(:,i) = Bevol(:,j)
-                 x0(:,i) = x(:,i)
               endif
            enddo
         endif
-        if (any(ibound.gt.1)) then
+        if (any(ibound.gt.1)) then  ! ghost particles
            do i=npart+1,ntotal
               j = ireal(i)
               Bevol(:,i) = Bevol(:,j)
-              x0(:,i) = x(:,i)
            enddo
         endif
         !
@@ -138,7 +156,7 @@ subroutine conservative2primitive
         print*,' magnetic energy before remapping = ',emagold
         call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,.false.)
         emag = emag_calc(pmass,rho,Bfield,npart)
-        print*,' magnetic energy after remapping = ',emag, ' change = ',abs(emag-emagold)/emagold
+        print*,' magnetic energy after remapping = ',emag, ' change = ',(emag-emagold)/emagold
      endif
 
      !--copy Bfield onto ghosts
