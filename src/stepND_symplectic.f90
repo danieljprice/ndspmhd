@@ -12,7 +12,7 @@
 !! current version gives slightly worse performance than the leapfrog integrator
 !! but much better than the naive predictor-corrector
 !!--------------------------------------------------------------------------------
-	 
+         
 SUBROUTINE step
  USE dimen_mhd
  USE debug
@@ -57,48 +57,38 @@ SUBROUTINE step
 !  -> this is 0.5*(dt_0 + dt_1) and is the amount of time incremented in evolve
 !
       
- hdt = 0.5*dt0		! dt0 is saved from the last timestep in the module timestep
+ hdt = 0.5*dt0                ! dt0 is saved from the last timestep in the module timestep
        
  DO i=1,npart
-    IF (itype(i).EQ.1) THEN	! fixed particles
+    IF (itype(i).EQ.1) THEN        ! fixed particles
        x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)       
        vel(:,i) = velin(:,i)
-       Bevol(:,i) = Bevolin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)             
        rho(i) = rhoin(i)
-       hh(i) = hhin(i)	    
+       hh(i) = hhin(i)            
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
     ELSE
 !
-!--x is predicted to the half timestep
+!--x, rho and en are predicted to the half timestep
 !
-       x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)          
-!
-!--also update the other quantities to the half timestep - this is not symplectic,
-!  however only x should be necessary to calculate the forces if the density is
-!  calculated by summation, there is no dissipation (and hence no energy equation)
-!  and also no mag field. Could perhaps work out a better way to do this.
-!
+       x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)
+       !!--vel is only needed at this stage for the viscosity
        vel(:,i) = velin(:,i) + hdt*force(:,i)
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
-       IF (ihvar.EQ.1) THEN
-!	   hh(i) = hfact*(pmass(i)/rho(i))**hpower	! my version
-	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**hpower		! Joe's	   
-       ELSEIF (ihvar.EQ.2) THEN
-          hh(i) = hhin(i) + hdt*dhdt(i)
-       ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
+       IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
     ENDIF
  ENDDO
 !
 !--allow particles to cross boundaries (this is final as we update x again from the predicted x)
 !
- IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions!
+ IF (ANY(ibound.NE.0)) CALL boundary        ! inflow/outflow/periodic boundary conditions!
 !
 !--set ghost particles if ghost boundaries are used
-!	 
+!         
  IF (ANY(ibound.GE.2)) CALL set_ghost_particles
 !
 !--call link list to find neighbours
@@ -113,8 +103,8 @@ SUBROUTINE step
 !   
  CALL conservative2primitive
 !
-!--calculate forces/rates of change using predicted quantities
-!	 
+!--calculate dv/dt using x, rho, P, B at half step
+!         
  CALL get_rates
 !
 !--rates also returns the timestep condition at the half time step
@@ -123,8 +113,8 @@ SUBROUTINE step
 !  1/dt_1/2 = 1/2 ( 1/dt_0 + 1/dt_1 ) -> use this to get dt_1 given dt_1/2 and dt_0
 !
  dthalf = min(C_force*dtforce,C_cour*dtcourant)
- dt1 = 2.*dthalf - dt0	! this averaging so dt0 can be = 0 to begin with  !1./(2./dthalf - 1./dt0)
- dt = 0.5*(dt1 + dt0)	! this is the total time advanced over the whole timestep
+ dt1 = 2.*dthalf - dt0        ! this averaging so dt0 can be = 0 to begin with  !1./(2./dthalf - 1./dt0)
+ dt = 0.5*(dt1 + dt0) ! this is the total time advanced over the whole timestep
  hdt = 0.5*dt1
 !
 !--Corrector step (step from the half timestep to the full timestep using the new dt)
@@ -134,33 +124,39 @@ SUBROUTINE step
     IF (itype(i).EQ.1) THEN
        vel(:,i) = velin(:,i)
        x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)
+    ELSE
+       !--this overwrites the predictor step for the velocity
+       vel(:,i) = velin(:,i) + dt*force(:,i) ! stepped through whole timestep
+       x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i) ! nb x is stepped from its current value at t^1/2
+    ENDIF              
+ ENDDO
+!
+!--cross boundaries if necessary
+!
+ IF (ANY(ibound.NE.0)) CALL boundary  ! inflow/outflow/periodic boundary conditions
+!
+!--calculate drho/dt, den/dt and du/dt using v and x at full timestep
+!  and using h, rho, P, B, at half timestep (ie. from previous calculation/call to conservative2primitive)
+!
+ IF (ANY(ibound.GE.2)) CALL set_ghost_particles
+ CALL set_linklist
+ CALL ratesvel(x,vel,rho,pr,Bevol)
+
+ DO i=1,npart
+    IF (itype(i).EQ.1) THEN
        Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
     ELSE
-!--this should be the only update for the velocity (ie. no predictor)
-       vel(:,i) = velin(:,i) + dt*force(:,i)	! stepped through whole timestep
-       x(1:ndim,i) = x(1:ndim,i) + hdt*vel(1:ndim,i)		! nb x is stepped from its current value at t^1/2
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)   ! ** CHECK THE REST **
-       IF (icty.GE.1) rho(i) = rhoin(i) + dt*drhodt(i)
-       IF (ihvar.EQ.2) THEN
-          hh(i) = hhin(i) + dt*dhdt(i)
-	  IF (hh(i).LE.0.) THEN
-	     WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
-	     CALL quit
-	  ENDIF
-       ENDIF
-       IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)
-    ENDIF 
-	      
+       IF (icty.GE.1) rho(i) = rho(i) + hdt*drhodt(i)
+       IF (iener.NE.0) en(i) = en(i) + hdt*dendt(i)
+       IF (ihvar.NE.0) hh(i) = hh(i) + hdt*dhdt(i)
+       IF (imhd.NE.0) Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
+       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
+    ENDIF
  ENDDO
-!
-!--cross boundaries if necessary
-!
- IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
