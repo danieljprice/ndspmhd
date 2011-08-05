@@ -826,7 +826,7 @@ SUBROUTINE get_rates
     ENDIF
     forcemag = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))   
     fonh = forcemag/hh(i)
-    IF (fonh.GT.fhmax) fhmax = fonh
+    IF (fonh.GT.fhmax .and. itype(i).ne.1) fhmax = fonh
 !
 !--calculate simpler estimate of dtcourant
 !
