@@ -18,6 +18,7 @@ subroutine setup
  use geometry
  
  use uniform_distributions
+ use mem_allocation, only:alloc
 !
 !--define local variables
 !            

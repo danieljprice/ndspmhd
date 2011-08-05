@@ -17,6 +17,7 @@ subroutine setup
  use setup_params
  
  use uniform_distributions
+ use mem_allocation, only:alloc
 !
 !--define local variables
 !            

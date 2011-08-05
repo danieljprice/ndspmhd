@@ -60,7 +60,9 @@ subroutine setup
     uu(i) = 1.5	! isothermal
     Bfield(:,i) = 0.
     Bfield(3,i) = 5.
- enddo 
+ enddo
+ Bconst(:) = 0.
+ Bconst(3) = Bfield(3,1)
 !
 !--allow for tracing flow
 !
