@@ -737,17 +737,21 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0) then            
+    if (dvdotr.lt.0 .and. iav.le.2) then            
        visc = alphaav*term*viss     ! viss=abs(dvdotr) defined in rates
        force(:,i) = force(:,i) - pmassj*visc*dr(:)
        force(:,j) = force(:,j) + pmassi*visc*dr(:)
+    elseif (iav.ge.3) then ! using total energy, for approaching and receding
+       visc = alphaav*term
+       force(:,i) = force(:,i) + pmassj*visc*dvel(:)
+       force(:,j) = force(:,j) - pmassi*visc*dvel(:)
     endif
     
     !--------------------------------------------
     !  resistivity in induction equation
     !  (applied everywhere)
     !--------------------------------------------
-    if (iav.eq.2) then
+    if (iav.ge.2) then
        Bvisc(:) = dB(:)*rhoav1
     else
        Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
@@ -774,9 +778,13 @@ contains
        !
        !  kinetic energy terms - applied only when particles approaching
        !
-       if (dvdotr.lt.0) then
+       if (dvdotr.lt.0 .and. iav.le.2) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
+          qdiff = qdiff + alphaav*0.5*(v2i-v2j)
+       elseif (iav.ge.3) then
+          v2i = dot_product(veli,veli)      ! total energy
+          v2j = dot_product(velj,velj)
           qdiff = qdiff + alphaav*0.5*(v2i-v2j)
        endif
        !
@@ -786,7 +794,7 @@ contains
        !
        !  magnetic energy terms - applied everywhere
        !
-       if (iav.eq.2) then
+       if (iav.ge.2) then
           B2i = dot_product(Bi,Bi) ! total magnetic energy 
           B2j = dot_product(Bj,Bj) 
        else
@@ -807,8 +815,10 @@ contains
        !
        !  kinetic energy terms
        !
-       if (dvdotr.lt.0) then
+       if (dvdotr.lt.0 .and. iav.le.2) then
           vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+       elseif (iav.ge.3) then
+          vissv = -alphaav*0.5*dot_product(dvel,dvel)       
        else
           vissv = 0.
        endif
@@ -820,7 +830,7 @@ contains
        !  add magnetic energy term - applied everywhere
        !
        if (imhd.ne.0) then
-          if (iav.eq.2) then
+          if (iav.ge.2) then
              vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
           else
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
