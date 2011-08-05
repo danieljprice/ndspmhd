@@ -33,8 +33,8 @@ print "$newdir ";
 system "cp multirun.in ./$rootname";
 system "cp 1DSPMHD ./$rootname";
 system "cp defaults ./$rootname";
-system "ln -s ./plot/supersphplot ./$rootname/supersphplot";
-system "ln -s ./evsupersph ./$rootname/evsupersph";
+##system "ln -s ./plot/supersphplot ./$rootname/supersphplot";
+##system "ln -s ./evsupersph ./$rootname/evsupersph";
 
 # call the multirun program to generate the input files
 system "cd $rootname; ../multi/multirun $rootname $nruns";

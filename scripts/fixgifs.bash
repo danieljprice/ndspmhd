@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/env bash
 # @(#) renames pgplot filenames so they are listed in the correct order
 # @(#) (replaces _ with _0 in single then double digit filenames)
 # @(#) NB: only works for < 10000 files
