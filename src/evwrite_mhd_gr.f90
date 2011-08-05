@@ -14,6 +14,7 @@ subroutine evwrite(t,etot,momtot)
  use fmagarray
  
  use grutils
+ use cons2prim, only:conservative2primitive
 !
 !--define local variables
 !
@@ -37,7 +38,7 @@ subroutine evwrite(t,etot,momtot)
  real :: omegamhdi,omegamhdav,omegamhdmax
  real :: fracdivbok
  real, parameter :: omegtol = 1.E-2
- real :: fmagabs
+ real :: fmagabs,lorentzi,lorentzmax
 !
 !--allow for tracing flow
 !      
@@ -50,6 +51,7 @@ subroutine evwrite(t,etot,momtot)
  epot = 0.0
  mom(:) = 0.0
  momtot = 0.0
+ lorentzmax=0.0
 !
 !--mhd parameters
 !     
@@ -83,7 +85,10 @@ subroutine evwrite(t,etot,momtot)
     pmassi = pmass(i)
     rhoi = dens(i)
     veli(:) = vel(:,i)  
-    mom(:) = mom(:) + pmassi*pmom(:,i)
+    !mom(:) = mom(:) + pmassi*pmom(:,i)
+    lorentzi=sqrt(1.0/(1.0-dot_product(veli,veli)))
+    lorentzmax = max(lorentzmax,lorentzi)
+    mom(:) = mom(:) + lorentzi*pmassi*vel(:,i)*(1.0+uu(i)+(pr(i)/dens(i)))
     ekin = ekin + 0.5*pmassi*dot_product_gr(veli,veli,gdiag)
     etherm = etherm + pmassi*uu(i)
 !
@@ -203,9 +208,9 @@ subroutine evwrite(t,etot,momtot)
 30  format(20(1pe18.10,1x),1pe8.2)
       
  else
-
-    write(ievfile,40) t,ekin,etherm,emag,etot,momtot
-40  format(6(1pe18.10,1x))        
+!    print* ,lorentzmax
+    write(ievfile,40) t,ekin,etherm,emag,etot,momtot,lorentzmax
+40  format(10(1pe18.10,1x))        
 
  endif
 
