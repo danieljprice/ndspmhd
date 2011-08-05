@@ -74,7 +74,8 @@ subroutine get_rates
 !
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
  real :: graduterm, graddivvmag
- real, dimension(:,:), allocatable :: gradu, graddivv
+ real, dimension(:), allocatable :: del2u
+ real, dimension(:,:), allocatable :: graddivv
 !
 !  (alternative forms)
 !
@@ -111,7 +112,7 @@ subroutine get_rates
  nlistdim = ntotal
  allocate ( listneigh(nlistdim),STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
- allocate ( phi(ntotal), gradu(ndim,ntotal), graddivv(ndimV,ntotal), STAT=ierr )
+ allocate ( phi(ntotal), del2u(ntotal), graddivv(ndimV,ntotal), STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr  
  listneigh = 0
 !
@@ -133,7 +134,7 @@ subroutine get_rates
   divB(i) = 0.0
   curlB(:,i) = 0.0
   xsphterm(:,i) = 0.0
-  gradu(:,i) = 0.0
+  del2u(i) = 0.0
   graddivv(:,i) = 0.0
  enddo
 !
@@ -343,7 +344,6 @@ subroutine get_rates
        divB(i) = divB(i)*rho1i            !*rhoi
        curlB(:,i) = curlB(:,i)*rho1i
     endif    
-    if (iavlim(2).eq.1) gradu(:,i) = gradu(:,i)*rho1i
     !!graddivv(:,i) = graddivv(:,i)
 !
 !--if using the thermal energy equation, set the energy derivative
@@ -421,21 +421,10 @@ subroutine get_rates
        !
        !--artificial thermal conductivity parameter
        !
-       if (iener.gt.0) then
-          select case(iavlim(2))
-          case(1)
-             if (uu(i).gt.0.) then
-                sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
-             else
-                sourceu = 0.
-             endif          
-             !!if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
-             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
-          case(2)
-             !--this is using h*/sqrt(u)*(del^2 u) as the source
-             sourceu = hh(i)*abs(gradu(1,i))/sqrt(uu(i))
-             daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
-          end select
+       if (iener.gt.0 .and. iavlim(2).gt.0) then
+          !--this is using h*/sqrt(u)*(del^2 u) as the source
+          sourceu = hh(i)*abs(del2u(i))/sqrt(uu(i))
+          daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + 0.2*sourceu
        endif
        !
        !--artificial resistivity parameter if iavlim > 10
@@ -494,7 +483,7 @@ subroutine get_rates
  enddo
 
  if (allocated(listneigh)) deallocate(listneigh)
- if (allocated(phi)) deallocate(phi,gradu,graddivv)
+ if (allocated(phi)) deallocate(phi,del2u,graddivv)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
       
  return
@@ -757,16 +746,11 @@ contains
 !------------------------------------------------------------------------
 
     if (iav.gt.0) then
-       select case(iavlim(2))
-       case(2)
+       if(iavlim(2).gt.0) then
           graduterm = (uu(i)-uu(j))/rij
-          gradu(1,i) = gradu(1,i) + pmassj*rho1j*graduterm*grkerni
-          gradu(1,j) = gradu(1,j) - pmassi*rho1i*graduterm*grkernj      
-       case(1)
-          graduterm = uu(j)-uu(i)
-          gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
-          gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
-       end select
+          del2u(i) = del2u(i) + pmassj*rho1j*graduterm*grkerni
+          del2u(j) = del2u(j) - pmassi*rho1i*graduterm*grkernj
+       endif
        if (iavlim(1).eq.2) then
           !!graddivvterm = 
           graddivv(:,i) = graddivv(:,i) + pmassj*rho1j/rij*dvdotr*grkerni*dr(:)
