@@ -17,13 +17,11 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i
- real :: massp,volume,totmass
- real :: denszero,rr
-!
-!--allow for tracing flow
-!
- if (trace) write(iprint,*) ' Entering subroutine setup(unifdis)'
+ integer :: i,npartphi,npartprev
+ real :: massp,volume,totmass,pindex,rindex,xi,yi
+ real :: denszero,rr,psepold,omegadot,rmin,rmax,rbuffer
+
+ write(iprint,*) 'Accretion disc setup in 2D'
 !
 !--set co-ordinate system
 !
@@ -34,19 +32,38 @@ subroutine setup
 ! 	    
  nbpts = 0	! use ghosts not fixed
  ibound(1) = 2	! reflective in r
- xmin(1) = 0.5	! rmin
- xmax(1) = 1.5  ! rmax
-
+ rmin = 0.5	! rmin
+ rmax = 1.5  ! rmax
+ rbuffer = 0.  ! size of buffer region (gaussian falloff)
+ 
+!
+!--set density profile - works for rindex <= -1 and rindex .ne. -2
+!
+ rindex = -1.5   ! density \propto r**(pindex)
+ 
+ pindex = rindex+2.
  if (ndim.ge.2)then
     ibound(2) = 3  ! periodic in phi
     xmin(2) = 0.0  ! phi_min
     xmax(2) = 2.*pi  ! phi_max
  endif
- if (ndim.ge.3) then
-    ibound(3) = 0  ! nothing in z
- endif
+ if (ndim.ge.3) ibound(3) = 0  ! nothing in z
 !
-!--set up the uniform density grid (uniform in r,phi)
+!--set bounds of \eta coordinate according to the index (-1 gives r)
+!
+ xmin(1) = min((rmin+rbuffer)**pindex,(rmax-rbuffer)**pindex)
+ xmax(1) = max((rmin+rbuffer)**pindex,(rmax-rbuffer)**pindex)
+ write(iprint,*) 'rmin, rmax = ',rmin,rmax,' coordmin,max = ',xmin(1),xmax(1)
+!
+!--make sure the particle separation is an even division of the \phi boundary
+!
+ psepold = psep
+ npartphi = INT((xmax(2)-xmin(2))/psep)
+ psep = (xmax(2)-xmin(2))/REAL(npartphi)
+ write(iprint,*) ' psep = ',psepold,' adjusted to ',psep,' npartphi = ',npartphi
+!
+!--set up the uniform density grid (uniform in \eta,phi, 
+!  where \eta = r**(-(pindex+1))
 !
  call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
  ntotal = npart
@@ -54,16 +71,50 @@ subroutine setup
 !--if not cylindrical coordinates, translate to cartesians
 !
  do i=1,npart
-    CALL coord_transform(x(:,i),ndim,igeom,x(:,i),ndim,1)
+!
+!--use coords in cylindricals to set velocities
+!
+    rr = x(1,i)**(1./pindex)
+    omegadot = SQRT(1./rr**3)
+    vel(1,i) = -rr*SIN(x(2,i))*omegadot
+    vel(2,i) = rr*COS(x(2,i))*omegadot
+    xi = rr*COS(x(2,i))
+    yi = rr*SIN(x(2,i))
+    x(1,i) = xi
+    x(2,i) = yi
+!!    CALL coord_transform(x(:,i),ndim,igeom,x(:,i),ndim,1)
  enddo
- igeom = 1
+!
+!--then set buffer regions
+! 
+ npartprev = npart
+ print*,'npartprev = ',npartprev
+! xmin(1) = 0.
+! xmax(1) = LOG((rmin+rbuffer)/rmin)
+! call set_uniform_cartesian(1,psep,xmin,xmax,.false.)
+! do i=npartprev,npart
+!
+!--use coords in cylindricals to set velocities
+!
+!    rr = (rmin+rbuffer)*exp(-x(1,i))
+!    omegadot = SQRT(1./rr**3)
+!    vel(1,i) = -rr*SIN(x(2,i))*omegadot
+!    vel(2,i) = rr*COS(x(2,i))*omegadot
+!    xi = rr*COS(x(2,i))
+!    yi = rr*SIN(x(2,i))
+!    x(1,i) = xi
+!    x(2,i) = yi
+!!    CALL coord_transform(x(:,i),ndim,igeom,x(:,i),ndim,1)
+! enddo
+
+ igeom = 0
  ibound = 0    ! no boundaries
 
 !
-!--determine particle mass (WORK THIS OUT)
+!--determine particle mass
 !
  denszero = 1.0
- volume = pi*(xmax(1)**2 - xmin(1)**2)
+ volume = pi*(rmax**2 - rmin**2)
  totmass = denszero*volume
  massp = totmass/FLOAT(ntotal) ! average particle mass
 !
@@ -76,8 +127,7 @@ subroutine setup
 !--vel is keplerian
 !
     rr = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
-    vel(:,i) = 0.
-    dens(i) = denszero*(1./rr)
+    dens(i) = denszero*(rr**rindex)
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.
