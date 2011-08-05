@@ -44,7 +44,7 @@ SUBROUTINE setup
 !--set boundaries
 !            	    
  ibound =1
- nbpts = 6	! must use fixed particles if inflow/outflow at boundaries.
+ nbpts = 6      ! must use fixed particles if inflow/outflow at boundaries.
  xmin(1) = -0.5
  xmax(1) = 0.5
  xcentre = (xmax(1) + xmin(1))/2.0
@@ -53,7 +53,7 @@ SUBROUTINE setup
 !
  gam1 = gamma - 1.
  const = SQRT(4.*pi)
- dsmooth = 0. 
+ dsmooth = 20. 
  densleft = 1.0
  densright = 1.0
  prleft = 1000.0
@@ -65,11 +65,11 @@ SUBROUTINE setup
  vleft(3) = 0.
  vright(3) = 0.
  IF (imhd.NE.0) THEN
-    Bxinit = 0.75	!2./const
-    Byleft = 1.0	!3.6/const
-    Byright = -1.0	!4.0/const
-    Bzleft = 0.		!2./const
-    Bzright = 0.	!2./const
+    Bxinit = 0.75       !2./const
+    Byleft = 1.0        !3.6/const
+    Byright = -1.0      !4.0/const
+    Bzleft = 0.         !2./const
+    Bzright = 0.        !2./const
  ELSE
     Bxinit = 0.
     Byleft = 0.
@@ -90,16 +90,16 @@ SUBROUTINE setup
   READ(ireadf,*) Byleft,Byright
   READ(ireadf,*) Bzleft,Bzright
  CLOSE (UNIT=ireadf)
- WRITE(iprint,10) densleft,densright,prleft,prright,vleft(1),vright(1),   &
-                  vleft(2),vright(2),vleft(3),vright(3),		&
-		  Bxinit,Byleft,Byright,Bzleft,Bzright
+ WRITE(iprint,10) densleft,densright,prleft,prright,vleft(1),vright(1), &
+                  vleft(2),vright(2),vleft(3),vright(3),                &
+                  Bxinit,Byleft,Byright,Bzleft,Bzright
  
 10 FORMAT( ' 1D shock: dens L: ',f16.9,' R: ',f16.9,/,   &
            '           pr  L: ',f16.9,' R: ',f16.9,/,   &
            '           vx  L: ',f16.9,' R: ',f16.9,/,   &
            '           vy  L: ',f16.9,' R: ',f16.9,/,   &
            '           vz  L: ',f16.9,' R: ',f16.9,/,   &
-           '           Bx   : ',f16.9,/,   &	   	   	   
+           '           Bx   : ',f16.9,/,                &
            '           By  L: ',f16.9,' R: ',f16.9,/,   &
            '           Bz  L: ',f16.9,' R: ',f16.9,/)
 
@@ -113,7 +113,7 @@ SUBROUTINE setup
     uuright = 3.*prright/(2.*densright)
  ENDIF
  massp = densright*psep      
- psepleft = massp/densleft			
+ psepleft = massp/densleft
 !
 ! allocate memory to start with
 !
