@@ -13,6 +13,7 @@ subroutine evwrite(t,etot,momtot)
  use rates, only:force,potengrav
  use fmagarray
  use timestep, only:dt
+ use utils,    only:cross_product3D,minmaxave
 !
 !--define local variables
 !
