@@ -21,8 +21,13 @@ LDFLAGS = -lpgplot -lX11 -lF77
 
 SOURCES= evsupersph.f90
 
-OBJECTS = $(SOURCES:.f90=.o)
+OBJECTS = $(SOURCES:.f90=.o) danpgtile.o
 
 ../evsupersph: $(OBJECTS)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
+danpgtile.o :
+	$(F90C) -c $(F90FLAGS) ../plot/danpgtile.f -o $@ 
+	
+clean: 
+	rm *.o
