@@ -60,6 +60,9 @@ visualisation tools has enabled me to pick up on effects present in my
 simulation results that I would not otherwise have noticed (in particular the
 difference between a raw particle plot and a rendered image can be substantial).
 
+\subsection{Version History}
+ This is the pre-public-release (Guinea-pig) version.
+
 \section{Gallery}
 
 \begin{figure}
@@ -119,15 +122,26 @@ Failing that, ask your system administrator!!
 
 \subsection{Environment variables}
  Several useful environment variables can be set for PGPLOT and several of them
-are very useful for SUPERSPHPLOT. In particular using
+are very useful for SUPERSPHPLOT. In a tcsh shell type:
+\begin{verbatim}
+setenv PGPLOT_DEV /xwin
+setenv PGPLOT_BACKGROUND white
+setenv PGPLOT_FOREGROUND black
+\end{verbatim}
+The first command sets the default device to the X-window, rather than the /null
+device. The latter two commands set the background and foreground colours of the
+plotting page. Note that these environment variables should be set \emph{before}
+invoking supersphplot (it is simplest to set them upon starting the shell by placing
+them in your .tcshrc or bash/sh equivalent file). For other environment
+variables which can be set, refer to the PGPLOT user guide.
 
 \subsection{System dependent routines}
 The only system dependent subroutine is the call to $getarg$ in supersphplot.f90 which
 reads the run name(s) from the command line. A standardised format for performing this
 task is included in the standards for the next release of Fortran (Fortran 2003),
 however in the meantime this call may require some adjustment depending on the
-particular system you are compiling the code on. The program will still run without
-this call working, but it does make things convenient.
+particular system you are compiling the code on. The program is still fully
+functional without this call working, but it does make things convenient.
 
 \section{Reading data}
 
@@ -484,6 +498,8 @@ In three dimensions, we must either take a cross section or a projection
 through the data.
 
 \subsection{Cross sections}
+
+\subsubsection{Cross sections of 3D data}
  A cross section can be taken of SPH data by summing the
 contributions to each pixel in the cross section plane from all particles within
 $2h$ of the plane. This is done in the subroutine interpolate\_3D\_fastxsec. In
@@ -495,7 +511,59 @@ sections can be taken by rotating the particles first.
 cross sections) (interpolate2D\_xsec). In this case the cross-section line can be arbitrarily
 specified. I will hopefully write an interactive version of this one day.
 
+\subsubsection{Cross sections of 2D data}
+The cross-sectioning algorithm for 2D data (giving a 1D line) is slightly
+different, in that it also works for oblique cross sections. The
+cross-sectioning is done in the subroutine interpolate2D\_xsec. The cross
+section is defined by two points (x1,y1) and (x2,y2) through which the line
+should pass. These points are converted to give the equation of the line in the
+form
+\begin{equation}
+y = mx + c
+\end{equation}
+This line is then divided evenly into pixels to which the particles
+may contribute. The contributions along this line from the particles is computed
+as follows: 
 
+ For each particle, the points at which the cross section line intersects the
+smoothing circle are calculated (illustrated in Figure \ref{fig:xsec2D}). The
+smoothing circle of particle $i$ is defined by the equation
+\begin{equation}
+(x-x_i)^2 + (y-y_i)^2 = (2h)^2
+\end{equation}
+The x-coordinates of the points of intersection are the solutions to the quadratic equation
+\begin{equation}
+(1 + m^2) x^2 + 2 (m (c - y_i) - x_i) x + (x_i^2 + y_i^2 - 2cy_i + c^2 - (2h)^2)= 0
+\end{equation}
+For particles which do not contribute to the cross section line, the determinant
+is negative. For the particles that do, it is then a simple matter of looping
+over the pixels which lie between the two points of intersection, calculating
+the contribution using the SPH summation interpolant
+\begin{equation}
+\phi = \sum_b m_b \frac{\phi_b}{\rho_b} W(x - x_b, h_b)
+\end{equation}
+
+\begin{figure}
+\begin{center}
+%%\begin{turn}{270}\epsfig{file=xsec2D.ps,height=\textwidth}\end{turn}
+\label{fig:xsec2D}
+\end{center}
+\end{figure}
+ 
+ An example of a 1D cross section through 2D data is shown in Figure
+\ref{fig:xsec2Dexample}.
+\begin{figure}
+\begin{center}
+%%\begin{turn}{270}\epsfig{file=xsec2Dexample.ps,height=\textwidth}\end{turn}
+\label{fig:xsec2Dexample}
+\end{center}
+\end{figure}
+
+ In principle a similar method could be used for oblique cross sections
+through 3D data. In this case we would need to find the intersection
+between the smoothing sphere and the cross section plane. However
+in 3D it is simpler just to rotate the particles first and then take
+a straight cross section as described above.
 \subsection{Projections}
 
 
@@ -555,7 +623,9 @@ although check that this email address is current because I am still a postdoc!
 
 \section*{Acknowledgements}
  Several of the routines were developed from ideas used by Matthew Bate. The
-polytrope exact solution is from a routine by Joe Monaghan.
+polytrope exact solution is from a routine by Joe Monaghan. I am indebted to one
+Thomas S. Ullrich at the University of Heidelberg who wrote the prompting module
+which is used throughout the program.
 
 \newpage
 \appendix
