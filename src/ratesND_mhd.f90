@@ -70,7 +70,7 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj !!,vsignonlin
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin
 !! real :: vsigii,vsigjj
 !
 !  (av switch)
@@ -498,8 +498,11 @@ subroutine get_rates
        if (iavlim(3).ne.0 .and. imhd.ne.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
+!          B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))
+!          sourceJ = SQRT(vsig2*DOT_PRODUCT(curlB(:,i),curlB(:,i))/B2i)
           sourcedivB = 10.*abs(divB(i))*SQRT(rho1i)
           sourceB = MAX(sourceJ,sourcedivB)
+          !sourceB = max(sqrt(drhodt(i)*rho1i*sourceJ),0.0)
           if (iavlim(3).eq.2) sourceB = sourceB*(2.0-alpha(3,i))
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
        endif
@@ -713,11 +716,12 @@ contains
     vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
     vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
-    vsig = vsigi + vsigj + beta*abs(dvdotr) ! also used where dvdotr>0 in MHD
-    !!vsignonlin = vsigi + vsigj !!!beta*abs(dvdotr)
-    
+    vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
+    !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
+    vsignonlin = 0.5*max(vsigi + vsigj - 10.*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+ 
     ! vsigdtc is the signal velocity used in the timestep control
-    vsigdtc = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
+    vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
     dvsigdtc = 1./vsigdtc
     vsigmax = max(vsigmax,vsigdtc)
     !
@@ -850,10 +854,13 @@ contains
     else
        dpmomdotr = -dvdotr
     endif
-    term = 0.5*vsig*rhoav1*grkern
-    termnonlin = term
-    !!termnonlin = 0.5*vsignonlin*rhoav1*grkern
-
+    term = vsig*rhoav1*grkern
+    termnonlin = vsignonlin*rhoav1*grkern
+!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)/ &
+!                (vsigi*alphaBi + vsigj*alpha(3,j))*rhoav1*grkern
+!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
+!                (rhoi*vsigi*alphaBi*grkerni + rhoj*vsigj*alpha(3,j)*grkernj)
+    !termnonlin = vsignonlin*rhoav1*grkern
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
     ! (applied only for approaching particles)
@@ -874,12 +881,12 @@ contains
     !  (applied everywhere)
     !--------------------------------------------
     if (imhd.ne.0) then
-       if (iav.ge.2) then
-          Bvisc(:) = dB(:)*rhoav1
-       else
-          Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
-       endif
        if (imhd.gt.0) then
+          if (iav.ge.2) then
+             Bvisc(:) = dB(:)*rhoav1
+          else
+             Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
+          endif
           dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
        else !--vector potential resistivity
           dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
@@ -963,13 +970,14 @@ contains
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
        else
-          vissB = 0.
+          vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
+!!          vissB = 0.
        endif
        !
        !  add to thermal energy equation
        ! 
-       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termnonlin*(vissB + vissu))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv) + termnonlin*(vissB - vissu))    
+       dudt(i) = dudt(i) + pmassj*(term*(vissv + vissu) + termnonlin*(vissB))
+       dudt(j) = dudt(j) + pmassi*(term*(vissv - vissu) + termnonlin*(vissB))    
     endif
     
     return
@@ -1092,8 +1100,8 @@ contains
           
           if (imagforce.eq.6) then
           !--subtract B(div B) term from magnetic force
-             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
-             forcej(:) = forcej(:) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcei(:) = forcei(:) - 0.5*Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcej(:) = forcej(:) + 0.5*Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
           endif
        end select
     endif
