@@ -4,7 +4,7 @@
 !!
 !! for ND case only periodic boundaries implemented
 !!-------------------------------------------------------------------------
-	 
+         
 subroutine boundary
  use dimen_mhd, only:ndim
  use debug, only:trace
@@ -13,6 +13,7 @@ subroutine boundary
  use bound, only:xmin,xmax
  use options, only:ibound
  use part, only:x,vel,npart
+ use part_in, only:velin
  use timestep, only:time
  use setup_params, only:Omega0,domegadr
 ! use rates, only:force
@@ -42,21 +43,26 @@ subroutine boundary
 !----------------------------------------------------------------------
 ! periodic boundary conditions - allow particles to cross the domain
 !----------------------------------------------------------------------
- if (any(ibound.eq.3)) then   
+ if (any(ibound.eq.3)) then
+    ncross = 0 
     do i=1,npart
        do jdim=1,ndim
           if (ibound(jdim).eq.3) then
-	     if (x(jdim,i).gt.xmax(jdim)) then
-!	        print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
-	        x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-	     elseif(x(jdim,i).lt.xmin(jdim)) then
-!	        print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
-!	        read*
+             if (x(jdim,i).gt.xmax(jdim)) then
+!                print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
+                x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
+                ncross = ncross + 1
+             elseif(x(jdim,i).lt.xmin(jdim)) then
+!                print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)             
+!                read*
                 x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-             endif	  
-	  endif
-       enddo    
+                ncross = ncross + 1
+             endif          
+          endif
+       enddo
     enddo
+    if (ncross.gt.0 .and. ibound(1).eq.5) &
+       write(iprint,*) ncross,' particles crossing y (shearing box)'
  endif
 !----------------------------------------------------------------------------
 ! shearing box boundary in the x (=r) direction
@@ -65,13 +71,14 @@ subroutine boundary
     ncross = 0
     do i=1,npart
        if (x(1,i).gt.xmax(1)) then
-	  x(1,i) = x(1,i) - (xmax(1)-xmin(1))
+          x(1,i) = x(1,i) - (xmax(1)-xmin(1))
           x(2,i) = x(2,i) !+ domegadr*Omega0*(xmax(1)-xmin(1))*time
           x(2,i) = xmodbound(x(2,i),xmin(2),xmax(2),0.)
 !          if (x(2,i).gt.xmax(2)) then
 !             x(2,i) = xmin(2) + (x(2,i)-xmax(2))
 !          endif
           vel(3,i) = vel(3,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+          velin(3,i) = velin(3,i) + domegadr*Omega0*(xmax(1)-xmin(1))
           ncross = ncross + 1
        elseif(x(1,i).lt.xmin(1)) then
           x(1,i) = x(1,i) + (xmax(1) - xmin(1))
@@ -81,10 +88,12 @@ subroutine boundary
 !             x(2,i) = xmax(2) - (xmin(2) - x(2,i))
 !          endif
           vel(3,i) = vel(3,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+          velin(3,i) = velin(3,i) - domegadr*Omega0*(xmax(1)-xmin(1))
           ncross = ncross + 1
        endif
     enddo
-    if (ncross.gt.0) print*,ncross,' particles crossing x'
+    if (ncross.gt.0) print*,ncross,' particles crossing x (shearing box)'
+    return
  endif
 
 !-------------------------------------------------------------------------
@@ -103,7 +112,7 @@ subroutine boundary
 !                force(jdim,i) = -force(jdim,i)
                 ncorrect = ncorrect + 1
 !                print*,'xmax',jdim,i,'xnew = ',x(jdim,i),vel(jdim,i)
-	     elseif(x(jdim,i).lt.xmin(jdim)) then
+             elseif(x(jdim,i).lt.xmin(jdim)) then
 !                print*,'xminold',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
                 !--move particle back inside boundary
                 x(jdim,i) = xmin(jdim) + (xmin(jdim) - x(jdim,i))
