@@ -109,7 +109,7 @@ subroutine get_rates
 !
 !--div B correction
 ! 
- real :: gradpsiterm,vsig2,vsig2max,vsigmax,dtcourant2
+ real :: gradpsiterm,vsig2,vsigmax,dtcourant2
 
 !
 !--allow for tracing flow
@@ -391,10 +391,15 @@ subroutine get_rates
 !  
     if (imhd.ge.11) then  ! evolving B
        dBevoldt(:,i) = dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
-    elseif (imhd.gt.0) then ! just divide by rho
+       if (idivBzero.ge.2) then
+          gradpsi(:,i) = gradpsi(:,i)*rho1i              
+       endif
+    elseif (imhd.gt.0) then ! evolving B/rho
        dBevoldt(:,i) = dBevoldt(:,i)*rho1i
+       if (idivBzero.ge.2) then
+          gradpsi(:,i) = gradpsi(:,i)*rho1i**2      
+       endif
     endif
-    
 !
 !--calculate maximum force/h for the timestep condition
 !  also check for errors in the force
@@ -495,6 +500,7 @@ subroutine get_rates
        divB(i) = 0.0
        curlB(:,i) = 0.0
        xsphterm(:,i) = 0.0
+       gradpsi(:,i) = 0.0
     endif
  enddo
 
@@ -1054,8 +1060,8 @@ contains
        
     if (idivBzero.ge.2) then ! add hyperbolic correction term
        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-       gradpsi(:,i) = gradpsi(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
-       gradpsi(:,j) = gradpsi(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
+       gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
+       gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
     endif
 
     return
