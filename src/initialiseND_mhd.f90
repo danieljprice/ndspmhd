@@ -57,6 +57,8 @@ SUBROUTINE initialise
  ELSE
     logfile = 'screen   '
  ENDIF
+ PRINT*,'dndim = ',dndim,hpower
+ READ*
 !
 !--start tracing flow into logfile
 !

@@ -27,7 +27,7 @@ SUBROUTINE setkern
  USE anticlumping
  IMPLICIT NONE			!  define local variables
  INTEGER :: i,j,iteration,iC
- REAL :: q,q2,q4,cnormk,term1
+ REAL :: q,q2,q4,cnormk
  REAL, DIMENSION(0:ikern) :: dqkern,grwijplot,grgrwij 	! only to plot kernel
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
@@ -213,10 +213,10 @@ SUBROUTINE setkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-!   gamma = 0.5
-!   beta = 1.0	!2./3.
-!   alpha = 1.5	!4./3.
-!   C =0.
+   gamma = 0.5
+   beta = 1.0	!2./3.
+   alpha = 1.5	!4./3.
+    C =0.
 !   A = -6.
 !   B = 25.
 !   C = 1.    

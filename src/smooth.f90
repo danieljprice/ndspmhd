@@ -32,7 +32,7 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
  REAL, DIMENSION(nsize), INTENT(IN) :: xinput
  REAL, DIMENSION(nsize), INTENT(OUT) :: xsmooth
  REAL, DIMENSION(ndim) :: dx
- REAL :: termi,termj,hav,hi,hav,hav1,h21,hfacwab
+ REAL :: termi,termj,hav,hi,hav1,h21,hfacwab
  REAL :: q2,rij,rij2,weight,wab,grkern
 !
 !--allow for tracing flow

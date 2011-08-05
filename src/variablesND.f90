@@ -198,8 +198,7 @@ MODULE setup_params
  USE dimen_mhd
  IMPLICIT NONE
  REAL, PARAMETER :: pi = 3.1415926536
- REAL, PARAMETER :: hpower = 1./FLOAT(ndim)
- REAL :: psep,hfact
+ REAL :: psep,hfact,hpower   ! hpower set in initialise
 END MODULE setup_params
 
 !-------------------------------------------------------------------

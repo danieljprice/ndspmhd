@@ -8,8 +8,17 @@
 .KEEP_STATE:
 
 FORTRAN = f90
-FC = f90
+F90C = lf95 ###!`cat ../f90_compiler`
+####FC = `cat ../f90_compiler`
 EDITOR = nedit
+
+# define the rule to make a .o file from a .f90 file
+
+%.o : %.f90
+	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
+
+##.SUFFIXES:
+##.SUFFIXES:.f90 .o
 
 # -C gives array out-of-bounds checking
 # -u forces implicit none
@@ -20,7 +29,7 @@ EDITOR = nedit
 
 #F90FLAGS = -O4 
 # use the following instead for double precision
-F90FLAGS = -C -O4 -xtypemap=real:64,double:64,integer:32
+F90FLAGS = ###-C -O4 -xtypemap=real:64,double:64,integer:32
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
 # error in the flush commands, just means output is buffered).
 # NOTE: cannot use the double precision flags when compiling with PGPLOT
@@ -89,6 +98,10 @@ OBJECTS1D = $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP1D:.f90=.o)
 OBJECTS2D = $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP2D:.f90=.o)
 OBJECTS25D = $(SOURCES25D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP25D:.f90=.o)
 OBJECTS3D = $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SETUP3D:.f90=.o)
+
+crap:
+	echo $(OBJECTS1D) 
+	echo $(F90C)
 
 1D: $(OBJECTS1D)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
