@@ -131,6 +131,7 @@ MODULE options
  INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
+ INTEGER :: igeom
  INTEGER, DIMENSION(ndim) :: ibound  
  REAL :: damp
 END MODULE

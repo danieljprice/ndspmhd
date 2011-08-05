@@ -698,7 +698,7 @@ SUBROUTINE get_rates
 !
 !--add self-gravity force
 !
-    IF (igravity.NE.0) force(1:ndim,i) = force(1:ndim,i) + fgrav(:,i)
+    IF (igravity.NE.0) force(1:ndim,i) = force(1:ndim,i) + fgrav(1:ndim,i)
 !
 !--damp force if appropriate
 !

@@ -50,7 +50,8 @@ SUBROUTINE setup
  ibound = 3	! periodic boundaries
  nbpts = 0	! no fixed particles
  xmin(:) = 0.0	! set position of boundaries
- xmax(:) = 1.0		!/runit(:)
+ xmax(:) = 1.0
+!! xmax(1) = 1.0		!/runit(:)
  PRINT*,'xmin,xmax = ',xmin,xmax
 !
 !--read/set wave parameters
@@ -87,7 +88,7 @@ SUBROUTINE setup
 !--initially set up a uniform density grid (also determines npart)
 !
  PRINT*,' setting up uniform density grid'
- CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)	! 2 = close packed
+ CALL set_uniform_cartesian(1,psep,xmin,xmax,.false.)	! 2 = close packed
 !
 !--determine particle mass
 !
