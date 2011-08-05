@@ -105,7 +105,7 @@ subroutine step
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
        velin(:,i) = velin(:,i) + 0.5*dt*forcein(:,i)
-       if (imhd.ne.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
+       if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        if (ihvar.eq.1) then
 !           hh(i) = hfact*(pmass(i)/rho(i))**dndim        ! my version
@@ -141,7 +141,13 @@ subroutine step
        psi(i) = psiin(i)
     else
        vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
-       if (imhd.ne.0) Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))          
+       if (imhd.ne.0) then
+          if (iresist.eq.2) then
+             Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
+          else
+             Bevol(:,i) = Bevolin(:,i) + hdt*(dBevoldt(:,i)+dBevoldtin(:,i))
+          endif
+       endif
        if (icty.ge.1) rho(i) = rhoin(i) + hdt*(drhodt(i)+drhodtin(i))
        if (ihvar.eq.2) then
           hh(i) = hhin(i) + hdt*(dhdt(i)+dhdtin(i))
