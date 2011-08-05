@@ -5,13 +5,12 @@
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim)
   use options, only:geom
-  use setup_params, only:R_grav
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
-  real :: rr,rr2,drr,drr2
+  real :: rr2,drr,drr2
 
   fext(:) = 0.
   
@@ -37,26 +36,30 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
      select case(geom(1:6))
      case('sphrpt','sphrtp') ! spherical
         rr2 = xpart(1)**2
+        drr = 1./sqrt(rr2)
         drr2 = drr*drr
         dr(1) = xpart(1)*drr
         fext(:) = -dr(:)*drr2
      case('cylrpz') ! cylindrical r-phi-z
-        rr2 = xpart(1)**2 + xpart(3)**2
-        drr2 = drr*drr
+        rr2 = xpart(1)**2
+        if (ndim.ge.3) rr2 = rr2 + xpart(3)**2
+        drr = 1./sqrt(rr2)
+        drr2 = drr*drr 
         dr(1) = xpart(1)*drr
-        dr(3) = xpart(3)*drr
+        if (ndim.ge.3) dr(3) = xpart(3)*drr
         fext(:) = -dr(:)*drr2
      case('cylrzp') ! cylindrical r-z-phi
         rr2 = xpart(1)**2 + xpart(2)**2
+        drr = 1./sqrt(rr2)
         drr2 = drr*drr
         dr(1) = xpart(1)*drr
         dr(2) = xpart(2)*drr
         fext(:) = -dr(:)*drr2
      case ('cartes') ! cartesian
         rr2 = DOT_PRODUCT(xpart,xpart) 
-        rr = SQRT(rr2)
-        drr2 = 1./rr2
-        dr(:) = xpart(:)/rr
+        drr = 1./sqrt(rr2)
+        drr2 = drr*drr
+        dr(:) = xpart(:)*drr
         fext(:) = - dr(:)*drr2
      case default
         stop 'error: external force not implemented'
@@ -81,28 +84,6 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         !
 !        fext(:) = fext(:) - dr(:)*drr2
 !     enddo
-  case(10)
-!
-!--quasi-Kerr metric same as Nelson & Papaloizou (2000), MNRAS 315,570
-!
-     select case(geom(1:6))
-     case('cylrpz') ! cylindrical
-        rr2 = xpart(1)**2 + xpart(3)**2
-        drr = 1./sqrt(rr)
-        drr2 = drr*drr
-        dr(1) = xpart(1)*drr
-        dr(2) = 0.
-        dr(3) = xpart(3)*drr
-        fext(:) = -dr(:)*drr2*(1. + 6.*drr*R_grav)
-     case('cartes')
-        rr2 = dot_product(xpart,xpart)
-        drr = 1./sqrt(rr)
-        drr2 = drr*drr
-        dr(:) = xpart(:)*drr
-        fext(:) = -dr(:)drr2*(1. + 6.*drr*R_grav)
-     case default
-        stop 'ERROR: external force not implemented'
-     end select
   case default
      
      fext(:) = 0.
@@ -143,7 +124,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
        epot = -1./abs(xpart(1))
     case('cylrpz')
        if (ndim.eq.3) then
-          epot = -1./sqrt(xpart(1)**2 + xpart(3)**2))
+          epot = -1./sqrt(xpart(1)**2 + xpart(3)**2)
        else
           epot = -1./abs(xpart(1))
        endif
