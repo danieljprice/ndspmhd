@@ -220,7 +220,7 @@ subroutine primitive2conservative
      !
      !--call equation of state to get pressure (needed for source terms)
      !
-     call equation_of_state(pr(i),spsound(i),uu(i),rho(i)/sqrtg(i))
+     call equation_of_state(pr(i),spsound(i),uu(i),dens(i))
 !     print*,i,'pr = ',pr(i),rho(i)/sqrtg(i)
      !
      !--calculate source terms (spatial derivatives of metric)
