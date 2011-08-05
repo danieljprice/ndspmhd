@@ -12,6 +12,7 @@ contains
 !--iderivtype:
 !  1: compute B = \nabla\alpha x \nabla\beta
 !  2: compute B = curl (alpha)
+!  3: compute B.grad beta = Bevol (i.e, B/rho.grad X^0 = B/rho_0)
 !
 subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfield,remap)
  use dimen_mhd,    only:ndim,ndimV,idim
@@ -27,6 +28,8 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
  use bound,        only:ireal
  use options,      only:iuse_exact_derivs,ibound
+ use utils,        only:cross_product3D, curl3D_epsijk, matrixinvert3D
+ use timestep, only:time
 !
 !--define local variables
 !
@@ -40,7 +43,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  logical, intent(in) :: remap
  real :: weight
 
- integer :: i,j,n,k
+ integer :: i,j,n,k,ierr
  integer :: icell,iprev,nneigh
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
@@ -53,6 +56,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real, dimension(ndimV,ndimV) :: gradalphai,gradbetai
  real, dimension(ndxdx) :: dxdxi
  real, dimension(6) :: rmatrix
+ real, dimension(3,3) :: dxdx0i
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
  real :: rho21i,rho21gradhi,denom,ddenom
  real, dimension(ntotal) :: h1
@@ -207,9 +211,14 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           !--remapping of B/rho
           !  (alphapot is B/rho_0, send out B/rho new as Bfield)
           alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
-          do k=1,ndimV
-             Bfield(k,i) = dot_product(alphapoti(:),gradbeta(:,k,i))
-          enddo
+          call matrixinvert3D(gradbeta(:,:,i),dxdx0i,ierr)
+          !print*,'matrix inverse = ',matmul(gradbeta(:,:,i),dxdx0i)
+          if (ierr.ne.0) stop 'could not invert matrix in remapping'
+          
+          Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
+!          do k=1,ndimV
+!             Bfield(k,i) = dot_product(alphapoti(:),dxdx0i(:,k))
+!          enddo
           if (remap) then
              alphapot(:,i) = Bfield(:,i)
              betapot(1:ndim,i) = x(1:ndim,i)
