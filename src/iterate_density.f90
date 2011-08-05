@@ -42,7 +42,8 @@ subroutine iterate_density
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni
   real, dimension(size(rho)) :: hhin,densn,dndt
-  logical :: converged,redolink,usenumdens
+  logical :: converged,redolink
+  logical, parameter :: usenumdens = .false.
   
 !!  integer :: itest
 !
@@ -64,7 +65,6 @@ subroutine iterate_density
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
-  usenumdens = .false.
   ncalcprev = 0
   gradh = 0.
   gradhn = 0.
