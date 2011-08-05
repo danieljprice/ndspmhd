@@ -173,6 +173,8 @@ subroutine primitive2conservative
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
      endif
+     !--set density same as rho
+     dens = rho
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
