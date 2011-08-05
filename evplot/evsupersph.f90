@@ -10,13 +10,13 @@ program plotmeagraph
   integer, parameter :: maxstep=100000
   integer, parameter :: maxcol=21	! (6)21 (non)MHD	maximum number of columns
   integer nstep,npart,i,j,iprev,nfiles,ifile,ifilesteps
-  integer mysteps,ipick,ipickx
+  integer mysteps,ipick,ipickx,nacross,ndown
   integer iplotx(maxcol),iploty(maxcol), nplots
   integer multiplotx(maxcol),multiploty(maxcol),nplotsmulti
   integer nstepsfile(maxfile)
   real evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real lim(maxcol,2),time(maxstep),ekin(maxstep)
-  character*20, dimension(maxfile) :: rootname
+  character, dimension(maxfile) :: rootname*20, legendtext*120
   character*23 :: filename
   character*24 :: title,label(maxcol),dummy
   character*40 :: labely
@@ -78,6 +78,23 @@ program plotmeagraph
      !endif
   enddo
 !
+!--read legend text from the legend file, if it exists
+!
+  open(unit=50,file='legend',status='old',ERR=22)
+  print*,'reading labels from legend file...'
+  do ifile=1,nfiles  
+     read(50,"(a)",ERR=21) legendtext(ifile)
+  enddo
+  close(unit=50)
+  goto 23
+21 continue
+   print*,'error reading from legend file'
+   close(unit=50)
+22 continue
+   legendtext(1:nfiles) = rootname(1:nfiles)
+23 continue
+
+!
 !--set plot limits
 !
   print*,'setting plot limits'
@@ -93,6 +110,7 @@ program plotmeagraph
         lim(i,1) = lim(i,1) - 0.05*lim(i,2)
         if (lim(i,2).eq.0.0) lim(i,2) = 1.0
      endif
+     if (i.gt.1) lim(i,2) = lim(i,2)*1.1
   enddo
   lim(1,1) = 0.0
 
@@ -221,9 +239,18 @@ program plotmeagraph
 ! initialise PGPLOT
 !
   if (nplots.eq.1) then
-     call PGBEGIN(0,'?',1,2)
+     if (nfiles.gt.1) then
+        call PGBEGIN(0,'?',1,1)
+     else
+        call PGBEGIN(0,'?',1,2)
+     endif
   else
-     call PGBEGIN(0,'?',1,nplots)
+     ndown = nplots/2
+     nacross = nplots/ndown
+     call PGBEGIN(0,'?',nacross,ndown)
+     if (nacross.eq.2 .and. ndown.eq.1) then
+        call pgpap(11.7,0.5/sqrt(2.))
+     endif
   endif
   if (nplots.gt.2) call PGSCH(2.0)
 !
@@ -242,11 +269,12 @@ program plotmeagraph
         !
         !--setup plotting page
         !
-        if (all(iplotx(1:nplots).eq.iplotx(1))) then
+        if (all(iplotx(1:nplots).eq.iplotx(1)).and.ndown.gt.1 ) then
            call pgpage
            !
            !--if all plots have same x axis, draw axes together
            !
+           call pgsls(1)
            call pgsvp(0.05,0.98,0.0,1.0)
            call pgswin(lim(iplotx(i),1),lim(iplotx(i),2), &
                 lim(iploty(i),1),lim(iploty(i),2))  		    
@@ -267,19 +295,31 @@ program plotmeagraph
            !
            !--for one plot just use standard PGENV routine
            !
-           call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
-                lim(iploty(i),1),lim(iploty(i),2),0,1)
-           call PGLABEL(label(iplotx(i)),label(iploty(i)),title)
+           call pgsls(1)
+           if (nplots.gt.1) call pgsch(1.5) ! increase character height
+           call pgpage
+           call pgsvp(0.2,0.99,0.2,0.99)
+           call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
+           call pgswin(lim(iplotx(i),1),lim(iplotx(i),2), &
+                lim(iploty(i),1),lim(iploty(i),2))
+           !call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
+           !     lim(iploty(i),1),lim(iploty(i),2),0,1)
+            call pgmtxt('l',3.0,0.5,0.5,label(iploty(i)))
+            call pglabel(label(iplotx(i)),' ',' ')
+            !!call pglabel(label(iplotx(i)),label(iploty(i)),title)
         endif
         !
         !--draw the line
         !
+        call pgslw(3)
         do ifile=1,nfiles
-           !call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
-           call PGSCI(ifile) ! or change line colour between plots
+           call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
+           if (i.eq.1) call legend(ifile,legendtext(ifile))
+           !call PGSCI(ifile) ! or change line colour between plots
            call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
                 evdata(1:nstepsfile(ifile),iploty(i),ifile))
         enddo
+        call pgslw(1)
 
      enddo
   endif
@@ -428,4 +468,39 @@ subroutine getmax(datain,time,max)
   return
 end subroutine getmax
 
+!
+!--draw a legend for different line styles
+!  uses current line style and colour
+!
+subroutine legend(icall,text)
+  implicit none
+  integer, intent(in) :: icall
+  character(len=*), intent(in) :: text
+  real, dimension(2) :: xline,yline
+  real :: xch, ych, xmin, xmax, ymin, ymax
+  real :: vspace, hpos, vpos
 
+  call pgstbg(0)           ! opaque text to overwrite previous
+!
+!--set horizontal and vertical position and spacing
+!  in units of the character height
+!
+  vspace = 1.5  
+  hpos = 10.0
+  vpos = 8.0 + (icall-1)*vspace  ! distance from top
+
+  call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
+  call pgqcs(4,xch,ych) ! query character height in x and y units 
+
+  yline = ymax - ((vpos - 0.5)*ych)
+  xline(1) = xmin + hpos*xch
+  xline(2) = xline(1) + 3.*xch
+
+  call pgline(2,xline,yline)            ! draw line segment
+  call PGTEXT(xline(2) + 0.5*xch,yline(1)-0.25*ych,trim(text))
+
+!!  call pgmtxt('T',vpos,0.1,0.0,trim(text))  ! write text
+
+  call pgstbg(-1) ! reset text background to transparent
+
+end subroutine legend
