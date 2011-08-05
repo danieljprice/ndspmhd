@@ -38,7 +38,7 @@ subroutine conservative2primitive
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
-  elseif (imhd.lt.0) then ! if using vector potential
+  elseif (imhd.eq.-1) then ! if using vector potential
      !write(iprint,*) 'getting B field from vector potential...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
      do i=1,npart
@@ -189,7 +189,7 @@ subroutine primitive2conservative
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
-  elseif (imhd.lt.0) then ! if using vector potential
+  elseif (imhd.eq.-1) then ! if using vector potential
      write(iprint,*) 'getting B field from vector potential (init)...'
      call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
      do i=1,npart
