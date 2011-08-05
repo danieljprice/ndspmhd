@@ -1,35 +1,36 @@
-#!/bin/tcsh
+#!/bin/bash
 #
 # @(#) build script for SPLASH releases
 # @(#) -- Daniel Price
 #
-if $# != 2 then
+if [ $# -ne 2 ]; then
    echo Usage: $0 version description
    echo "(NB: run cvs -q tag 'v1_x_x--`date +%d/%m/%y`' and modify splash.f90 *first* before doing build)"
    nedit ~/ndspmhd/plot/splash.f90 &
 else
-   set date=`date '+%d/%m/%y'`
-   set vernum=$1
+   date=`date '+%d/%m/%y'`
+   vernum=$1
    echo 'date = '$date
    echo 'version = '$vernum
-   echo 'comment = '$argv[2]
-   set builddir='splash'
-   set webdir='~/web/splash'
+   echo 'comment = '$2
+   builddir='splash'
+   webdir=$HOME'/web/splash'
    echo 'creating build in directory '/tmp/$builddir
 #
 #--update release history
 #
 #--add comment line to version history file (text)
-   cd ~/Documents/splash-releases
+   cd $HOME/Documents/splash-releases
    echo $vernum':' > version-$vernum
-   echo $argv[2] >> version-$vernum
+   echo $2 >> version-$vernum
    echo ' ' >> version-$vernum
-   cat version-* > version_history
+   cat version-0* version-1.?.* version-1.??.* > version_history
    cp version_history ~/ndspmhd/plot/docs
    cp version_history $webdir/download/
 #--add comment to latex version for documentation
-   echo $vernum" & "$date" & "$argv[2] "\\" > versiontex-$vernum.tex
-   cat versiontex-*.tex > version_history_tex.tex
+   echo $vernum' & '$date' & '$2 '\\' > versiontex-$vernum.tex
+   cat versiontex-0*.tex versiontex-1.?.*.tex versiontex-*.??.*.tex > version_history_tex.tex
+   tail version_history_tex.tex
 #--commit the new version history files to the cvs repository
    cp version_history_tex.tex ~/ndspmhd/plot/docs/
    cp version_history ~/ndspmhd/plot/docs/
@@ -40,8 +41,8 @@ else
 #--get current cvs copy from the repository and rename directory
 #
    cd /tmp
-   rm -r /tmp/ndspmhd
-   rm -r /tmp/splash
+   rm -rf /tmp/ndspmhd
+   rm -rf /tmp/splash
    cvs export -Dtoday ndspmhd/plot
    mv ./ndspmhd/plot $builddir
    rmdir ndspmhd
@@ -53,12 +54,12 @@ else
    echo splash, version $vernum, built on `date` > VERSION
 #--changelog
    cd ~/ndspmhd/plot
-   cvs2cl -t
+   ~/cvsutils/cvs2cl.pl -t
    cp ChangeLog /tmp/$builddir
    cp /tmp/$builddir/ChangeLog $webdir/download
 #--tar file of directory
    cd /tmp
-   set tarfile = $builddir-$vernum.tar
+   tarfile=$builddir-$vernum.tar
    tar cf $tarfile $builddir
    gzip $tarfile
    echo 'copying '$tarfile' to download directory'
@@ -78,7 +79,7 @@ else
    echo 'checking build...'
    cd /tmp/$builddir
    make clean
-   make all
+   make DEBUG=yes all
 #
 #  build the docs for the website
 #
@@ -97,15 +98,26 @@ else
 #   cp splash.ps.gz $webdir/userguide
    cp splash.pdf $webdir/userguide
    echo 'building html documentation...'
-   nedit $webdir/index.html &
-   latex2html splash.tex
-   rm -r $webdir/userguide/html
-   mv splash $webdir/userguide/html
-   rm *.aux *.blg *.dvi *.log *.toc
-#
+   nedit $webdir/rightmenu.html $webdir/newslatest.html $webdir/newsclip.html $webdir/download.html $webdir/news.html &
+   latex2html -local_icons -image_type gif splash.tex
+   rm -r $webdir/userguide/html;
+   mv splash $webdir/userguide/html;
+   rm *.aux *.blg *.dvi *.log *.toc;
+
+#  add style to html pages
+   cd $webdir/userguide/html
+   mv splash.css crap.css
+   cat crap.css $HOME/web/dan.css > splash.css
+   for x in *.html; do
+       echo 'adding style to '$x;
+       cat $x | sed 's/\<\/BODY\>/\<\/div\>&/g' | sed 's/\<BODY \>/&\<div id="wrap"\>/g' | sed 's/\<BODY\>/&\<div id="wrap"\>/g' > crap.html;
+       mv crap.html $x;
+   done
+   nedit $webdir/userguide/html/index.html &
+
 #  fix permissions (just in case)
 #
-   cd ~/web
+   cd $HOME/web;
    chmod -R a+r *
    
-endif
+fi
