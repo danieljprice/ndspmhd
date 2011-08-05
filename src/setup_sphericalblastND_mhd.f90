@@ -37,12 +37,12 @@ subroutine setup
 !
 !--set boundaries
 !            	    
- ibound = 3	! fixed ghosts
+ ibound = 3     ! fixed ghosts
  nbpts = 0
- xmin(:) = -0.5		! same xmin in all dimensions
+ xmin(:) = -0.5     ! same xmin in all dimensions
  xmax(:) = 0.5
-! xmin(2) = -0.75
-! xmax(2) = 0.75
+ !xmin(2) = -0.75
+ !xmax(2) = 0.75
  denszero = 1.0
  przero = 0.1
  
@@ -53,14 +53,14 @@ subroutine setup
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
 !
- call set_uniform_cartesian(1,psep,xmin,xmax,offset=.true.)	! 2 = close packed arrangement
+ call set_uniform_cartesian(1,psep,xmin,xmax,offset=.true.) ! 2 = close packed arrangement
 
  ntotal = npart
 !
 !--determine particle mass
 !
- totmass = denszero*product(xmax(:)-xmin(:))	! assumes cartesian boundaries
- massp = totmass/float(ntotal) ! average particle mass
+ totmass = denszero*product(xmax(:)-xmin(:))    ! assumes cartesian boundaries
+ massp = totmass/float(ntotal)                  ! average particle mass
 !
 !--now assign particle properties
 ! 
@@ -99,7 +99,7 @@ subroutine modify_dump
  real, dimension(ndimV) :: Bzero
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
- logical, parameter :: dosedov = .false.
+ logical, parameter :: dosedov = .true.
  
  write(iprint,*) 'modifying dump by adding blast'
 
@@ -108,8 +108,8 @@ subroutine modify_dump
 !
 !--setup parameters for the problem
 ! 
- xblast(:) = 0.0	! co-ordinates of the centre of the initial blast
- rbuffer = rblast	!+10.*psep		! radius of the smoothed front
+ xblast(:) = 0.0        ! co-ordinates of the centre of the initial blast
+ rbuffer = rblast       !+10.*psep      ! radius of the smoothed front
  bzero(:) = 0.0
  const = 1./sqrt(4.*pi) 
  if (imhd.ne.0) then
@@ -117,16 +117,16 @@ subroutine modify_dump
 !    bzero(2) = sqrt(2.*pi)
  endif
  if (dosedov) then
-    rblast = 2.*hfact*psep		! radius of the initial blast
-    przero = 0.1		! initial pressure
+    rblast = 2.*hfact*psep      ! radius of the initial blast
+    przero = 0.0                ! initial pressure
     enblast = 1.0
     enzero = 0.
     prblast = gam1*enblast/(4./3.*pi*rblast**3)
     !enblast = enblast/massp   ! enblast is now the energy to put in a single particle
  else
-    rblast = 0.1 		! radius of the initial blast
-    przero = 0.1		! initial pressure
-    prblast = 10.0	! initial pressure within rblast
+    rblast = 0.1                ! radius of the initial blast
+    przero = 0.1                ! initial pressure
+    prblast = 10.0              ! initial pressure within rblast
  endif
 
  denszero = 1.0
@@ -159,7 +159,7 @@ subroutine modify_dump
     if (radius.le.rblast) then
        pri = prblast
        !uui = enblast
-    elseif (radius.lt.rbuffer) then	! smooth out front
+    elseif (radius.lt.rbuffer) then ! smooth out front
        exx = exp((radius-rblast)/(psep))
        pri = (prblast + przero*exx)/(1.0+exx)
       !uui = (enblast + enzero*exx)/(1.0+exx)
