@@ -219,29 +219,30 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,re
           alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
           call matrixinvert3D(gradx0(:,:,i),dxdx0i,ierr)
           !print*,'matrix inverse = ',matmul(gradx0(:,:,i),dxdx0i)
-          if (ierr.ne.0) stop 'could not invert matrix in remapping'
-
-          detJ1 = det(dxdx0i)
+          detJ1 = det(gradx0(:,:,i))
+          if (ierr.ne.0) then ! NB, this is non-fatal (just means B = 0)
+             print*,'WARNING: could not invert matrix in remapping, det = ',detJ1
+          endif
 !          if (detJ1.le.0.) then
 !             print*,'ERROR: determinant collapsed in remapping, particle ',i
 !             print*,'J = ',detJ1, 'should be rho0/rho = ',rho0(i)/rho(i)
 !          endif                
-          detJ2 = rho0(i)/rho(i)
+          detJ2 = rho(i)/rho0(i)
           err = abs(detJ1-detJ2)
           errtot = errtot + err
           if (err.gt.errmax) then             
              errmax = err
              ierrmax = i
           endif
-          if (1./detJ1.gt.detJmax) then
-             detJmax = 1./detJ1
+          if (detJ1.gt.detJmax) then
+             detJmax = detJ1
              iJmax = i
           endif
              !print*,' abs error in J vs rho0/rho = ',abs(detJ1-detJ2)
 !          print*,'J = det(dx/dx0) = ',detJ1,' rho_0/rho = ',detJ2
 
           if (iderivtype.eq.4) then
-             Bfield(:,i) = matmul(alphapoti,dxdx0i)/detJ1  ! this is B (new)
+             Bfield(:,i) = matmul(alphapoti,dxdx0i)*detJ1  ! this is B (new)
           else
              Bfield(:,i) = matmul(alphapoti,dxdx0i)  ! this is B/rho (new)
           endif
