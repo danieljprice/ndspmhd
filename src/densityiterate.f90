@@ -32,7 +32,7 @@ subroutine densityiterate
  real :: const,sum1,sum2,dwdhterm1,hi,hi1,hi21,hnew,dwdhi
  real :: func0,func,dfunc,dfdh,dhdrhoi,omegai,rhomin,rhoi
  real, dimension(ndim) :: dx
- real :: rij2,q2i,pmassj,wabi,grkerni,grgrkerni
+ real :: rij2,q2i,pmassj,wabi,grkerni !,grgrkerni
  logical :: converged
 !
 !--allow for tracing flow
