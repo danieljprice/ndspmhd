@@ -37,9 +37,10 @@ SOURCES25D = dimen25D.f90
 #SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
-SETUP1D = setup_shock1DND_mhd2.f90
+#SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
-#SETUP1D = setup_wave_x_ND_mhd.f90	 
+#SETUP1D = setup_wave_x_ND_mhd.f90
+SETUP1D = setup_turbulenceND_mhd.f90	 
 
 SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -68,6 +69,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 ratesND_mhd.f90 \
 	 read_infile_mhd.f90 \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
+	 set_velfield1D.f90 \
 	 smooth.f90 stepND_mhd.f90 \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
