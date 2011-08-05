@@ -137,3 +137,48 @@ subroutine setup
             
  return
 end
+
+subroutine modify_dump
+ use loguns, only:iprint
+ use part
+ use timestep, only:time
+ use setup_params, only:pi
+ use eos, only:gamma
+ implicit none
+ integer :: ipart
+ real :: rblast,radius,dblast(ndim),przero,prblast,pri,gam1,denszero
+!
+!--now assign particle properties
+!
+ write(iprint,*) 'modifying dump with velocities/B field'
+!
+!--now assign particle properties
+! 
+ rblast = 0.1
+ prblast = 10.0
+ przero = 0.1
+ gam1 = gamma - 1.0
+ denszero = 1.0
+ do ipart=1,ntotal
+    vel(:,ipart) = 0.
+
+    dblast(:) = x(:,ipart)
+    radius = sqrt(dot_product(dblast,dblast))
+!
+!--smooth energy injection using the sph kernel
+!    
+!    q2 = radius**2/hsmooth**2
+!    call interpolate_kernel(q2,wab,grkern)
+!    uui = enblast*wab/hsmooth**ndim
+    if (radius.lt.rblast) then
+       pri = prblast
+       !uui = enblast
+    else
+       pri = przero
+       !uui = enzero
+    endif   
+    uu(ipart) = pri/(gam1*denszero)
+ enddo
+ time = 0.
+ 
+end subroutine modify_dump
