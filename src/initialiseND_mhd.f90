@@ -158,8 +158,6 @@ SUBROUTINE initialise
 !
 !--Error control
 !
-666   WRITE(iprint,*) 'Initialise: Error reading filenames, exiting...'
-      CALL quit
 667   WRITE(iprint,*) 'Initialise: Error opening data file, exiting...'
       CALL quit 
 668   WRITE(iprint,*) 'Initialise: Error opening ev file, exiting...'

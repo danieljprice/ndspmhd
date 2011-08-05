@@ -83,7 +83,17 @@ MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
  REAL, DIMENSION(:), ALLOCATABLE :: gradh
-END MODULE
+END MODULE hterms
+
+!-------------------------------------------------------------------
+!  correction terms to make linear functions exact
+!-------------------------------------------------------------------     
+
+MODULE matrixcorr
+ IMPLICIT NONE
+ REAL, DIMENSION(:,:,:), ALLOCATABLE :: gradmatrix
+END MODULE matrixcorr
+
 
 !-------------------------------------------------------------------
 !  kernel tables
