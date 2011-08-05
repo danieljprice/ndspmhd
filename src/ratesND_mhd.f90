@@ -488,7 +488,7 @@ subroutine get_rates
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu
        endif
        !
-       !--artificial resistivity parameter if iavlim > 10
+       !--artificial resistivity parameter
        !
        if (iavlim(3).ne.0 .and. imhd.ne.0) then
           !--calculate source term for the resistivity parameter
