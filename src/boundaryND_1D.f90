@@ -3,7 +3,7 @@
 !! domain) and inflow/outflow (adds / subtracts particles from the domain)
 !!
 !! for ND case only periodic boundaries implemented
-!!
+!! NOTE: AT THE MOMENT THIS DOES *NOT* DO MEMORY REALLOCATION IF npart > ARRAY SIZE
 !!-------------------------------------------------------------------------
 	 
 SUBROUTINE boundary
@@ -12,13 +12,10 @@ SUBROUTINE boundary
  USE loguns
  
  USE bound
- USE derivB
- USE fmagarray
  USE options
  USE part
  USE part_in
- USE rates
- USE xsph
+
 ! USE setup_params
 !
 !--define local variables
@@ -71,27 +68,8 @@ SUBROUTINE boundary
 !          print*,' particle ',i+1,' = ',i
 !--copy both primitive and conservative variables
 	  x(1,i+1) = x(1,i)		! (must copy all particle properties)
-	  vel(:,i+1) = vel(:,i)
-	  rho(i+1) = rho(i)
-	  hh(i+1) = hh(i)
-	  uu(i+1) = uu(i)
-	  en(i+1) = en(i)
-	  Bfield(:,i+1) = Bfield(:,i)
-	  Bcons(:,i+1) = Bcons(:,i)
-	  alpha(i+1) = alpha(i)
-	  pmass(i+1) = pmass(i)
-        
-	  force(:,i+1) = force(:,i)
-          drhodt(i+1) = drhodt(i)
-          dudt(i+1) = dudt(i)
-          dendt(i+1) = dendt(i)
-          dBconsdt(:,i+1) = dBconsdt(:,i)
-	  dhdt(i+1) = dhdt(i)
-	  daldt(i+1) = daldt(i)
-          xsphterm(:,i+1) = xsphterm(:,i)	! after here not crucial
-          fmag(:,i+1) = fmag(:,i)
-          divB(i+1) = divB(i)
-          curlB(:,i+1) = curlB(:,i)
+	  itype(i+1) = itype(i)	  
+	  call copy_particle(i+1,i)
        ENDDO       
 !
 !--now make new particle number 1
@@ -99,16 +77,10 @@ SUBROUTINE boundary
 !
        npart = npart + 1	! add new particle
        x(1,1) = x(1,1) - psepleft
-       vel(:,1) = vel(:,2)	! copy quantities from particle 2
-       rho(1) = rho(2)
-       hh(1) = hh(2)
-       uu(1) = uu(2)
-       en(1) = en(2)
-       Bcons(:,1) = Bcons(:,2)
-       Bfield(:,1) = Bfield(:,2)
-       alpha(1) = alpha(2)
-       pmass(1) = pmass(2)
-       
+       call copy_particle(1,2)  ! copy quantities from particle 2
+       itype(1:nbpts) = 1
+       itype(nbpts+1) = 0
+!
 !       PRINT*,' new particle x(',1,') = ',x(1)
 !
 !--outflow from left boundary
@@ -118,29 +90,9 @@ SUBROUTINE boundary
        IF (debugging) 	&
           WRITE(iprint,*) 'outflow from left boundary npart = ',npart-nsub,nsub
        npart = npart - nsub	! subtract particle(s)
-       DO i=1,npart		! relabel particles
+       DO i=1,npart		! relabel particles         
           x(1,i) = x(1,i+nsub)		! (must copy all particle properties)
-	  vel(:,i) = vel(:,i+nsub)
-	  rho(i) = rho(i+nsub)
-	  hh(i) = hh(i+nsub)
-	  uu(i) = uu(i+nsub)
-	  en(i) = en(i+nsub)
-	  Bcons(:,i) = Bcons(:,i+nsub)
-	  Bfield(:,i) = Bfield(:,i+nsub)
-	  alpha(i) = alpha(i+nsub)
-	  pmass(i) = pmass(i+nsub)
-
-	  force(:,i) = force(:,i+nsub)
-          drhodt(i) = drhodt(i+nsub)
-          dudt(i) = dudt(i+nsub)
-          dendt(i) = dendt(i+nsub)	  
-          dBconsdt(:,i) = dBconsdt(:,i+nsub)
-	  dhdt(i) = dhdt(i+nsub)
-	  daldt(i) = daldt(i+nsub)
-          xsphterm(:,i) = xsphterm(:,i+nsub)	! after here not crucial
-          fmag(:,i) = fmag(:,i+nsub)
-          divB(i) = divB(i+nsub)
-          curlB(:,i) = curlB(:,i+nsub)
+	  call copy_particle(i,i+nsub)
        ENDDO
               
     ENDIF
@@ -178,15 +130,10 @@ SUBROUTINE boundary
 !   particle to start with)
 !
        x(1,npart) = x(1,npart-1) + psepright
-       pmass(npart) = pmass(npart-1)
-       rho(npart) = rho(npart-1)
-       vel(:,npart) = vel(:,npart-1)
-       hh(npart) = hh(npart-1)
-       uu(npart) = uu(npart-1)
-       en(npart) = en(npart-1)
-       Bcons(:,npart) = Bcons(:,npart-1)
-       Bfield(:,npart) = Bfield(:,npart-1)
-       alpha(npart) = alpha(npart-1)         
+       call copy_particle(npart,npart-1)
+       itype(npart) = 1
+       itype(npart-nbpts-1) = 0
+       
     ENDIF
  
     ntotal = npart
@@ -212,11 +159,12 @@ SUBROUTINE boundary
         
     ENDIF
 
+ ENDIF
 !----------------------------------------------------------------------
 ! periodic boundary conditions - allow particles to cross the domain
 !----------------------------------------------------------------------
 
- ELSEIF (ANY(ibound.EQ.3)) THEN
+ IF (ANY(ibound.EQ.3)) THEN
     
     DO i=1,npart
 ! -- this is very f77 but I can't get it right using where statements        
