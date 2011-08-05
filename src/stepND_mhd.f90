@@ -105,7 +105,7 @@ SUBROUTINE step
        ENDIF
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	 
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	 
        psi(i) = psiin(i) + hdt*dpsidt(i)  
     ENDIF
 !
@@ -184,7 +184,7 @@ SUBROUTINE step
           ENDIF
        ENDIF
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
        IF (imhd.NE.0) Bcons(:,i) = Bconsin(:,i) + hdt*dBconsdt(:,i)
        psi(i) = psiin(i) + hdt*dpsidt(i)	  
     ENDIF 
@@ -232,7 +232,7 @@ SUBROUTINE step
 	  enin(i) = 2.*en(i) - enin(i)
 	  en(i) = enin(i)
        ENDIF
-       IF (iavlim.NE.0) THEN
+       IF (ANY(iavlim.NE.0)) THEN
 	  alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
           alpha(:,i) = alphain(:,i)
        ENDIF
@@ -271,7 +271,7 @@ SUBROUTINE step
           ENDIF       
        ENDIF
        hhin(i) = hh(i)	        
-       IF (iavlim.NE.0) THEN
+       IF (ANY(iavlim.NE.0)) THEN
 	  alphain(:,i) = 2.*alpha(:,i) - alphain(:,i)
 	  alpha(:,i) = alphain(:,i)
        ENDIF	     

@@ -117,7 +117,7 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !     
     IF (iav.NE.0) THEN
        WRITE (iprint,80) alphamin,alphaumin,alphaBmin,beta, &
-                         iavlim,iaulim,iaBlim,avdecayconst,avfact
+                         iavlim(:),avdecayconst,avfact
 80  FORMAT(' Artificial dissipative terms: ',/,			&
          6x,' alpha (min) = ',f6.2,f6.2,f6.2,' beta = ',f6.2,/,		&
          6x,' viscosity limiter   : ',i2,/, &

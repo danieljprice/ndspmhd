@@ -34,7 +34,7 @@ SUBROUTINE read_infile(infile)
   READ(iread,*,ERR=50) icty,ndirect,maxdensits
   READ(iread,*,ERR=50) iprterm
   READ(iread,*,ERR=50) iav,alphamin,alphaumin,alphaBmin,beta
-  READ(iread,*,ERR=50) iavlim,iaulim,iaBlim,avdecayconst
+  READ(iread,*,ERR=50) iavlim(:),avdecayconst
   READ(iread,*,ERR=50) ikernav
   READ(iread,*,ERR=50) ihvar,hfact
   READ(iread,*,ERR=50) idumpghost
@@ -69,10 +69,10 @@ SUBROUTINE read_infile(infile)
  IF ((iav.NE.0).AND.(alphamin.LT.0. .OR. beta.LT.0.) ) THEN
     WRITE(iprint,100) 'AV alpha or beta < 0.'      
  ENDIF
- IF ((iavlim.GT.0).AND.(alphamin.GE.1.)) THEN
+ IF ((iavlim(1).GT.0).AND.(alphamin.GE.1.)) THEN
     WRITE(iprint,100) 'using AV limiter, but alphamin set > 1.0'
  ENDIF
- IF ((iavlim.GT.0).AND.((avdecayconst.LE.0.01).OR.(avdecayconst.GT.0.5))) THEN
+ IF (ANY(iavlim.GT.0).AND.((avdecayconst.LE.0.01).OR.(avdecayconst.GT.0.5))) THEN
     WRITE(iprint,100) 'AV decay constant not in range 0.01-0.5'
  ENDIF     
  IF ((ikernav.LE.0).OR.(ikernav.GT.3)) THEN

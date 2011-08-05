@@ -126,13 +126,14 @@ END MODULE loguns
 MODULE options
  use dimen_mhd
  IMPLICIT NONE
- INTEGER :: iener,icty,iav,iavlim,iaulim,iaBlim,ikernav
+ INTEGER :: iener,icty,iav,ikernav
  INTEGER :: iprterm,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
  INTEGER :: igeom,maxdensits
- INTEGER, DIMENSION(ndim) :: ibound  
+ INTEGER, DIMENSION(ndim) :: ibound
+ INTEGER, DIMENSION(3) :: iavlim
  REAL :: damp,psidecayfact
 END MODULE
 

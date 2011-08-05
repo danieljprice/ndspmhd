@@ -187,7 +187,11 @@ subroutine get_rates
  !--calculate kernel for the MHD anticlumping term
  !
  if (ianticlump.eq.1) then
-  q2joe = (1./1.5)**2      ! 1/hfact is initial particle spacing in units of h 
+  if (ikernav.eq.3) then
+     q2joe = (1./hfact)**2      ! 1/hfact is initial particle spacing in units of h 
+  else
+     q2joe = (1./1.5)**2
+  endif
   call interpolate_kernel(q2joe,wabjoe_fixed,grkernjoe)
  endif
  ! print*,'wabjoe = ',wabjoe_fixed
@@ -391,33 +395,33 @@ subroutine get_rates
 !  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
 !     
     daldt(:,i) = 0.   
-    if (iavlim.ne.0 .or. iaulim.ne.0 .or. iaBlim.ne.0) then
+    if (any(iavlim.ne.0)) then
        tdecay1 = (avdecayconst*vsig)/hh(i)      ! 1/decay time (use vsig)
        !
        !--artificial viscosity parameter
        !
-       if (iavlim.ne.0) then
+       if (iavlim(1).ne.0) then
           source = max(drhodt(i)*rho1i,0.0)
-          if (iavlim.eq.2) source = source*(2.0-alpha(1,i))      
+          if (iavlim(1).eq.1) source = source*(2.0-alpha(1,i))      
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        endif
        !
        !--artificial thermal conductivity parameter
        !
-       if (iaulim.ne.0 .and. iener.gt.0) then
+       if (iavlim(2).ne.0 .and. iener.gt.0) then
           sourceu = 0.5*sqrt(dot_product(gradu(:,i),gradu(:,i))/uu(i))
-          if (iaulim.eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
+          if (iavlim(2).eq.2) sourceu = sourceu*(2.0-alpha(2,i)) 
           daldt(2,i) = (alphaumin - alpha(2,i))*tdecay1 + sourceu       
        endif
        !
        !--artificial resistivity parameter if iavlim > 10
        !
-       if (iaBlim.ne.0 .and. imhd.gt.0) then
+       if (iavlim(3).ne.0 .and. imhd.gt.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = abs(divB(i))*SQRT(rho1i)
 	  sourceB = MAX(sourceJ,sourcedivB)
-          if (iaBlim.eq.2) sourceB = sourceB*(2.0-alpha(3,i))
+          if (iavlim(3).eq.2) sourceB = sourceB*(2.0-alpha(3,i))
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
        endif
     endif
@@ -644,7 +648,7 @@ contains
 !  grad u term for dissipation switch
 !------------------------------------------------------------------------
 
-    if (iav.ne.0 .and. iaulim.ne.0) then
+    if (iav.ne.0 .and. iavlim(2).ne.0) then
        graduterm = uu(j)-uu(i)
        gradu(:,i) = gradu(:,i) + pmassj*graduterm*grkerni*dr(:)
        gradu(:,j) = gradu(:,j) + pmassi*graduterm*grkernj*dr(:)
@@ -752,7 +756,7 @@ contains
        !  add to total energy equation
        !
        dendt(i) = dendt(i) + pmassj*term*qdiff
-       dendt(j) = dendt(j) - pmassi*term*qdiff                 
+       dendt(j) = dendt(j) - pmassi*term*qdiff
 
     !--------------------------------------------------
     !   thermal energy equation
@@ -849,13 +853,13 @@ contains
           endif   
           !!if (Rjoei.gt.0.1) print*,'Rjoei,Rjoej = ',Rjoei,Rjoej,wabi/wabjoei,wabj/wabjoej
 
-          faniso(1:ndimV) = Brhoi(1:ndimV)*projBrhoi*phij_on_phii*grkerni*(1.-Rjoei)  &
-                         + Brhoj(1:ndimV)*projBrhoj*phii_on_phij*grkernj*(1.-Rjoej)               
+          faniso(1:ndim) = Brhoi(1:ndim)*projBrhoi*phij_on_phii*grkerni*(1.-Rjoei)  &
+                         + Brhoj(1:ndim)*projBrhoj*phii_on_phij*grkernj*(1.-Rjoej)               
           
-          !if (ndimV.gt.ndim) then
-          !   faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
-          !                      + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
-          !endif
+          if (ndimV.gt.ndim) then
+             faniso(ndim+1:ndimV) = Brhoi(ndim+1:ndimV)*projBrhoi*phij_on_phii*grkerni  &
+                                  + Brhoj(ndim+1:ndimV)*projBrhoj*phii_on_phij*grkernj               
+          endif
 
        else
           faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
@@ -938,8 +942,14 @@ contains
        !   (evolving B)
        !
     elseif (imhd.ge.11) then      ! note divided by rho later              
+       
        dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
+        
+       if (imhd.eq.12) then
+        dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(-veli(:)*projdB)*grkerni   
+        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(-velj(:)*projdB)*grkernj
+       endif
        
        if (idivBzero.ge.2) then  ! add hyperbolic correction term
           gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve rho*grad psi)   
@@ -959,38 +969,41 @@ contains
   subroutine energy_equation
     implicit none
     real, dimension(ndimV) :: prvterm
-    real :: Bidotvj, Bidotvi, Bjdotvj, Bjdotvi
+    real :: Brhoidotvj, Brhoidotvi, Brhojdotvj, Brhojdotvi
     real :: prvaniso, projprv, prvanisoi, prvanisoj
              
-    Bidotvj = dot_product(Brhoi,velj)
-    Bjdotvi = dot_product(Brhoj,veli)
+    Brhoidotvj = dot_product(Brhoi,velj)
+    Brhojdotvi = dot_product(Brhoj,veli)
     !
     ! (isotropic stress)
     !
     prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*sqrtgi*grkerni &
                + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
+    projprv = dot_product(prvterm,dr)
     !
     ! (anisotropic stress)
     !
-    prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni      & 
-                - Bjdotvi*projBrhoj*phij_on_phii*grkernj
-    projprv = dot_product(prvterm,dr)               
+    prvaniso =  - Brhoidotvj*projBrhoi*phii_on_phij*grkerni      & 
+                - Brhojdotvi*projBrhoj*phij_on_phii*grkernj
     !
     ! (add source term for anticlumping term)               
     !
     if (imhd.ne.0 .and. ianticlump.eq.1 .and. imagforce.eq.2) then
        ! prvaniso = prvaniso - Rjoe*prvaniso
        ! (if applied in x-direction only)
-       Bidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
-       Bjdotvi = dot_product(Brhoj(1:ndim),veli(1:ndim))
+       Brhoidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
+       Brhojdotvi = dot_product(Brhoj(1:ndim),veli(1:ndim))
        
-       Bidotvj = dot_product(Brhoi(1:ndim),velj(1:ndim))
-       Bjdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
+       Brhoidotvj = dot_product(Brhoi(1:ndim),velj(1:ndim))
+       Brhojdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
        
-       prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phii_on_phij*grkerni &
-                          -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
-       prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phii_on_phij*grkerni &
-                          -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
+       prvanisoi = Brhoidotvi*projBrhoi*phii_on_phij*grkerni*Rjoei &
+                 + Brhojdotvi*projBrhoj*phij_on_phii*grkernj*Rjoej
+       prvanisoj = Brhoidotvj*projBrhoi*phii_on_phij*grkerni*Rjoei &
+                 + Brhojdotvj*projBrhoj*phij_on_phii*grkernj*Rjoej
+    else
+       prvanisoi = 0.
+       prvanisoj = 0.
     endif
        
     dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
