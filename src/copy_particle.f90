@@ -56,5 +56,12 @@ subroutine copy_particle(i,j)
   
   if (allocated(rho0)) rho0(i) = rho0(j)
   !gradmatrix(:,:,i) = gradmatrix(:,:,j)
- 
+!
+!  Note to self: don't forget, that if you *really*
+!  need to reassign particles, then you may also need
+!  to copy the part_in arrays used in the timestepping
+!  as well (I've spent a few days rediscovering this
+!  several times)
+! 
+
 end subroutine copy_particle
