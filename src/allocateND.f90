@@ -51,7 +51,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
- real, dimension(ndim + (ndim*ndim - ndim)/2,newsizein) :: dumdxdx
+ real, dimension(ndxdx,newsizein) :: dumdxdx
 
  logical :: reallocate, isortparts
 !
@@ -288,7 +288,8 @@ subroutine alloc(newsizein,sortlist)
    if (geom(1:4).ne.'cart') then
       allocate(sourceterms(ndimv,newsize))
    endif
-   allocate(dxdx(ndim + (ndim*ndim - ndim)/2,newsize))
+   print*,' allocating dxdx with size ',ndxdx
+   allocate(dxdx(ndxdx,newsize))
  endif
  
  if (reallocate .or. isortparts) then

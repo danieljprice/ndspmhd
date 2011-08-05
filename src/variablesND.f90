@@ -73,7 +73,11 @@ end module hterms
 !-------------------------------------------------------------------     
 
 module matrixcorr
+ use dimen_mhd, only:ndim
  implicit none
+ integer, parameter :: ndxdx = ndim + (ndim*ndim - ndim)/2
+ integer, dimension(6), parameter :: idxdx = (/1,1,2,1,2,3/)
+ integer, dimension(6), parameter :: jdxdx = (/1,2,2,3,3,3/)
  real, dimension(:,:), allocatable :: dxdx
 end module matrixcorr
 

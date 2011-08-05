@@ -15,13 +15,13 @@ contains
 
   subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                      gradh,gradhn,gradsoft,gradgradh,npart)
-    use dimen_mhd, only:ndim,ndimV
-    use debug, only:trace
-    use loguns, only:iprint
-    use kernels, only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
-    use linklist, only:ll,ifirstincell,numneigh,ncellsloop
-    use options, only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    !use matrixcorr
+    use dimen_mhd,  only:ndim,ndimV
+    use debug,      only:trace
+    use loguns,     only:iprint
+    use kernels,    only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
+    use linklist,   only:ll,ifirstincell,numneigh,ncellsloop
+    use options,    only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
+    use matrixcorr, only:dxdx,idxdx,jdxdx,ndxdx
     use part, only:Bfield,ntotal,uu,psi
     use setup_params, only:hfact
     use rates, only:dBevoldt
@@ -86,7 +86,7 @@ contains
        gradsoft(i) = 0.
        gradgradh(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
-       !gradmatrix(:,:,i) = 0.
+       dxdx(:,i) = 0.
        if (imhd.eq.0) then
           psi(i) = 0.
           unity(i) = 0.
@@ -288,15 +288,10 @@ contains
                    endif
                 endif
                 
-                !if (i.ne.j) then
-                !do idim=1,ndim
-                !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-                !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
-                !   gradmatrix(:,idim,j) = gradmatrix(:,idim,j) &
-                !               + 2.*pmass(i)*(dx(:))*dx(idim)/rij*grkernj
-                !enddo
-                !endif
-
+                if (i.ne.j) then
+                   dxdx(:,i) = dxdx(:,i) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkerni
+                   dxdx(:,j) = dxdx(:,j) + 2.*pmass(i)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkernj
+                endif
 !        ELSE
 !           PRINT*,' r/h > 2 '      
         
@@ -354,16 +349,16 @@ contains
   
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                              gradh,gradhn,gradsoft,gradgradh,ntotal,nlist,ipartlist)
-    use dimen_mhd, only:ndim,ndimV
-    use debug, only:trace
-    use loguns, only:iprint
+    use dimen_mhd,  only:ndim,ndimV
+    use debug,      only:trace
+    use loguns,     only:iprint
  
-    use kernels, only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
-    use linklist, only:iamincell,numneigh
-    use options, only:igravity,imhd,ikernel,ikernelalt,iprterm
-    !use matrixcorr
-    use part, only:Bfield,uu,psi
-    use rates, only:dBevoldt
+    use kernels,      only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
+    use linklist,     only:iamincell,numneigh
+    use options,      only:igravity,imhd,ikernel,ikernelalt,iprterm
+    use matrixcorr,   only:dxdx,idxdx,jdxdx,ndxdx
+    use part,         only:Bfield,uu,psi
+    use rates,        only:dBevoldt
     use setup_params, only:hfact
 !
 !--define local variables
@@ -386,7 +381,7 @@ contains
     real :: rij,rij2
     real :: hi,hi1,hi2,hi21
     real :: hfacwabi,hfacgrkerni,pmassj
-    real, dimension(ndim) :: dx,xi
+    real, dimension(ndim)  :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(nlist) :: rhoin
     real :: dvdotr,projBi
@@ -418,7 +413,7 @@ contains
        gradhn(i) = 0.
        gradsoft(i) = 0.
        gradgradh(i) = 0.
-!       gradmatrix(:,:,i) = 0.
+       dxdx(:,i) = 0.
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        if (imhd.eq.0 .and. iprterm.eq.10) psi(i) = 0.
@@ -535,12 +530,10 @@ contains
                 psi(i) = psi(i) + pmassj*wabi*uu(j)
                 unityi = unityi + wconst*wabi/hfacwabi
              endif
-          
-             !do idim=1,ndim
-             !   gradmatrix(:,idim,i) = gradmatrix(:,idim,i) &
-             !               + 2.*pmass(j)*(dx(:))*dx(idim)/rij*grkerni
-             !enddo
-       
+
+             if (i.ne.j) then
+                dxdx(:,i) = dxdx(:,i) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkerni
+             endif       
           endif
           
        enddo loop_over_neighbours
