@@ -30,7 +30,7 @@ subroutine set_ghost_particles
   integer :: i
   integer :: imaxmin,imaxminprev,imaxminprevprev
   integer :: idimen,idimenprev,idimenprevprev
-  integer :: jpart,jtemp
+  integer :: jpart!,jtemp
   real, dimension(ndim) :: dxbound,xpart
   real, dimension(ndim,maxbound) :: xnew
   real, dimension(ndimV) :: vpart
