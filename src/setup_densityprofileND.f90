@@ -14,6 +14,7 @@ subroutine setup
  use part
  use setup_params, only:pi,psep
  use geometry, only:coord_transform
+ use timestep, only:iseedMC
  
  use uniform_distributions
 !
@@ -21,10 +22,11 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,idist,j
- real :: massp,totmass,ran1
+ real :: massp,totmass,ran2
  real :: rr,rmass,rsoft
  real, dimension(ndim) :: xpos
- real :: dxij,dxmean,q,vmax,vesc,vr
+ real :: dxij,dxmean,q,vmax,vesc,vr,rr2
+ logical, parameter :: isetvelocities = .true.
 !
 !--allow for tracing flow
 !
@@ -39,9 +41,10 @@ subroutine setup
 !
 !--set up the uniform density grid
 !
- npart = int((1./psep)**3)
- print*,'enter npart'
- read*,npart
+ npart = 1000
+! npart = int((1./psep)**3)
+! print*,'enter npart'
+! read*,npart
  call alloc(npart)
  
  ntotal = npart
@@ -56,6 +59,8 @@ subroutine setup
 ! 
 !--initialise random number generator
  iseed = -26588
+! iseed = iseedMC
+ write(iprint,*) ' iseed = ',iseed
  idist = 1 ! choice of distribution
  select case(idist)
  case(1)
@@ -70,7 +75,7 @@ subroutine setup
 !
 !--choose random number for mass fraction (0->0.99)
 !
-    rmass = 0.99*ran1(iseed)
+    rmass = 0.99*ran2(iseed)
 !
 !--convert mass fraction to radial position for chosen distribution
 !
@@ -80,38 +85,16 @@ subroutine setup
 !
 !--choose random number for (spherical) angle phi (-pi -> pi)
 !
-    if (ndim.ge.2) xpos(2) = 2.*pi*(ran1(iseed) - 0.5)
+    if (ndim.ge.2) xpos(2) = 2.*pi*(ran2(iseed) - 0.5)
 !
 !--choose random number for (spherical) angle theta (0 -> pi)
 !  use ACOS to get even spread, not bunched near poles
 !
-    if (ndim.ge.3) xpos(3) = ACOS(2.*ran1(iseed) - 1.)
+    if (ndim.ge.3) xpos(3) = ACOS(2.*ran2(iseed) - 1.)
 !
 !--transform to cartesian coords
 !
     call coord_transform(xpos(:),ndim,3,x(:,i),ndim,1)
- enddo
- 
- iseed = -7854
- do i=1,ntotal
-!
-!--set velocities following Aarseth, Henon & Wielen (1974)
-!
-    q = 0.0
-    vmax = 0.1
-    
-    do while (vmax.gt.distfn(q,idist))
-       q = ran1(iseed)
-       vmax = 0.1*ran1(iseed)
-       !!print*,i
-    enddo
-    vesc = sqrt(2.)*(1. + rr**2)**(-0.25)
-    vr = q*vesc
-    
-    vel(1,i) = (1. - 2.*ran1(iseed))*vr
-    q = ran1(iseed)
-    vel(2,i) = sqrt(vr**2 - vel(1,i)**2)*COS(2.*pi*q)
-    vel(3,i) = sqrt(vr**2 - vel(1,i)**2)*SIN(2.*pi*q)
 !
 !--set other quantities
 !
@@ -119,11 +102,37 @@ subroutine setup
     pmass(i) = massp
     uu(i) = 1.0	! isothermal
     Bfield(:,i) = 0.
-!
-!--set velocities to some fraction of equilibrium value
-!
-!    vel(:,i) = 1.2*vel(:,i)
  enddo
+ 
+ if (isetvelocities) then
+    write(iprint,*) 'setting particle velocities...'
+    iseed = -7854
+    do i=1,ntotal
+   !
+   !--set velocities following Aarseth, Henon & Wielen (1974)
+   !
+       q = 0.0
+       vmax = 0.1
+
+       do while (vmax.gt.distfn(q,idist))
+          q = ran2(iseed)
+          vmax = 0.1*ran2(iseed)
+          !!print*,i
+       enddo
+       rr2 = dot_product(x(:,i),x(:,i))
+       vesc = sqrt(2.)*(1. + rr2)**(-0.25)
+       vr = q*vesc
+
+       vel(1,i) = (1. - 2.*ran2(iseed))*vr
+       q = ran2(iseed)
+       vel(2,i) = sqrt(vr**2 - vel(1,i)**2)*COS(2.*pi*q)
+       vel(3,i) = sqrt(vr**2 - vel(1,i)**2)*SIN(2.*pi*q)
+   !
+   !--set velocities to some fraction of equilibrium value
+   !
+   !    vel(:,i) = 1.2*vel(:,i)
+    enddo
+ endif
 !
 !--find mean particle separation
 ! 
@@ -137,6 +146,8 @@ subroutine setup
  dxmean = dxmean/real((ntotal**2 - ntotal)/2)
  write(iprint,*) 'mean particle spacing = ',dxmean
  write(iprint,*) 'suggested softening h = ',dxmean/40.,' to ',dxmean/35.
+
+ call reset_centre_of_mass(x,pmass)
 !
 !--allow for tracing flow
 !
