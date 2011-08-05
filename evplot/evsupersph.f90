@@ -32,7 +32,7 @@ program plotmeagraph
   character(len=40) :: labely,text
   character(len=1) :: ans
   character(len=2) :: ioption
-  logical :: icycle, igetfreq, isameXaxis, isameYaxis, ishowopts, imhd
+  logical :: icycle, igetfreq, isameXaxis, isameYaxis, ishowopts
 
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
@@ -44,12 +44,13 @@ program plotmeagraph
   iongraph = 1
   igetfreq = .false.
   ishowopts = .false.
-  imhd = .true.
   ipickx = 1
   do i=1,maxcol
      multiploty(i) = i+1
   enddo
   itrans = 0
+  nplotsmulti = 1
+  multiplotx(:) = 2
   
   !
   !--get filename(s)
@@ -120,12 +121,24 @@ program plotmeagraph
      print*,'legend file not found'
      legendtext(1:nfiles) = rootname(1:nfiles)
 23   continue
-
-     open(unit=51,file='legendpos',status='old',ERR=33)
-     read(51,*,ERR=31,END=31) hpos,vpos,iongraph
-31   continue
-     close(51)     
-33   continue
+   endif
+!
+!--read defaults file
+!
+   open(unit=51,file='.evsupersph_defaults',status='old',iostat=ierr)
+   if (ierr==0) then
+      read(51,*,iostat=ierr) hpos,vpos,iongraph,igetfreq,nplotsmulti
+      read(51,*,iostat=ierr) itrans(1:maxcol)
+      read(51,*,iostat=ierr) multiplotx(1:maxcol)
+      read(51,*,iostat=ierr) multiploty(1:maxcol)      
+      if (ierr /= 0) then
+         print*,'error reading default options from file'
+      else 
+         print*,'read default options from file'
+      endif
+      close(51)
+   else
+      print*,'defaults file not found'
    endif
 !
 !--set plot limits
@@ -219,10 +232,11 @@ program plotmeagraph
      print 14,'l','Adjust plot limits'
      print 14,'a','Do auto update'          
      print 14,'h','toggle help'
+     print 14,'s','Save settings'
      print 14,'q','Exit supersphplotev'
   else
      print*,' d(ata) t(imesteps) f(requencies) l(imits)'
-     print*,' c(olumns) le(g)end a(uto update) h(elp) q(uit)'
+     print*,' le(g)end a(uto update) h(elp) s(ave) q(uit)'
   endif
   print 12
 11 format(1x,i2,')',1x,a20,1x,i2,')',1x,a)
@@ -301,10 +315,6 @@ program plotmeagraph
      call prompt('Enter horizontal position as fraction of x axis:',hpos,0.0,1.0)
      call prompt('Enter vertical offset from top of graph in character heights:',vpos)
      call prompt('Enter number of plot on page to place legend ',iongraph,1)
-     open(unit=51,file='legendpos',status='replace',ERR=43)
-         write(51,*) hpos,vpos,iongraph
-     close(51)         
-43   continue     
      cycle menuloop
   case('l','L')
      ichange = 0
@@ -319,13 +329,17 @@ program plotmeagraph
 !     ichange = 0
 !     call prompt('Enter plot number to apply transformation',ichange,0,ncol)
      
-  case('c','C')
-     imhd = .not.imhd
-     print "(a,L1)", ' MHD data = ',imhd
-     if (imhd) then
-        ncol = 21
+  case('s','S')
+     open(unit=51,file='.evsupersph_defaults',status='replace',iostat=ierr)
+     if (ierr /= 0) then
+        print*,'*** error opening defaults file *** '
      else
-        ncol = 6
+        write(51,*,iostat=ierr) hpos,vpos,iongraph,igetfreq,nplotsmulti
+        write(51,*,iostat=ierr) itrans(1:maxcol)
+        write(51,*,iostat=ierr) multiplotx(1:maxcol)
+        write(51,*,iostat=ierr) multiploty(1:maxcol)
+        if (ierr /= 0) print*,'*** error writing to defaults file ***'
+        close(51)
      endif
      cycle menuloop
   case('a','A')
