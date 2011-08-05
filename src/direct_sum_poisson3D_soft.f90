@@ -36,10 +36,10 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
  real, dimension(ndim,ntot), intent(inout) :: fgrav
  real, intent(out) :: phitot
  integer :: i,j
- real, dimension(ndim) :: dx,dr
+ real, dimension(ndim) :: dx,dr,fgravi,xi
  real :: rij,rij1,rij2,rij21,pmassi,pmassj
  real :: gradhi,gradhni,gradsofti,grkerni,grkernj,dsofti,dsoftj
- real :: phii,phij,phiterm,fm,fmi,fmj
+ real :: phii,phij,phiterm,fm,fmi,fmj,phitemp
  real :: hi1,hj1,hi21,hj21,q2i,q2j
 !
 !--allow for tracing flow
@@ -59,9 +59,14 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
     gradhi = gradh(i)
     gradhni = gradhn(i)
     gradsofti = gradsoft(i)
+    fgravi(:) = 0.
+    xi(:) = x(:,i)
+    phitemp = 0.
     
     do j=i+1,ntot
-       dx = x(:,i) - x(:,j)
+       dx(1) = xi(1) - x(1,j)
+       dx(2) = xi(2) - x(2,j)
+       dx(3) = xi(3) - x(3,j)
        rij2 = dot_product(dx,dx)
        rij = sqrt(rij2)
        rij1 = 1./rij
@@ -80,7 +85,7 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
           if (igravity.ge.4) then
              grkerni = grkerni*hi1**(ndim+1)*gradhi !!(1. + gradhni*gradhi/pmassj)
              dsofti = 0.5*grkerni*gradsofti
-             fgrav(:,i) = fgrav(:,i) - pmassj*dsofti*dr(:)
+             fgravi(:) = fgravi(:) - pmassj*dsofti*dr(:)
              fgrav(:,j) = fgrav(:,j) + pmassi*dsofti*dr(:)
           endif
        else
@@ -94,8 +99,10 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
           if (igravity.ge.4) then
              grkernj = grkernj*hj1**(ndim+1)*gradh(j) !!(1. + gradhn(j)*gradh(j)/pmassi)
              dsoftj = 0.5*grkernj*gradsoft(j)
-             fgrav(:,i) = fgrav(:,i) - pmassj*dsoftj*dr(:)
-             fgrav(:,j) = fgrav(:,j) + pmassi*dsoftj*dr(:)
+             fgravi(:) = fgravi(:) - pmassj*dsoftj*dr(:)
+             fgrav(1,j) = fgrav(1,j) + pmassi*dsoftj*dr(1)
+             fgrav(2,j) = fgrav(2,j) + pmassi*dsoftj*dr(2)
+             fgrav(3,j) = fgrav(3,j) + pmassi*dsoftj*dr(3)
           endif
        else
           phij = -rij1
@@ -103,17 +110,22 @@ subroutine direct_sum_poisson_soft(x,pmass,hh,phi,fgrav,phitot,ntot)
        endif
 
        phiterm = 0.5*(phii + phij)
-       phi(i) = phi(i) + pmassj*phiterm
+       phitemp = phitemp + pmassj*phiterm
        phi(j) = phi(j) + pmassi*phiterm
 
        fm = 0.5*(fmi + fmj)
-       fgrav(:,i) = fgrav(:,i) - pmassj*dr(:)*fm
-       fgrav(:,j) = fgrav(:,j) + pmassi*dr(:)*fm
+       fgravi(1) = fgravi(1) - pmassj*dr(1)*fm
+       fgravi(2) = fgravi(2) - pmassj*dr(2)*fm
+       fgravi(3) = fgravi(3) - pmassj*dr(3)*fm
+       fgrav(1,j) = fgrav(1,j) + pmassi*dr(1)*fm
+       fgrav(2,j) = fgrav(2,j) + pmassi*dr(2)*fm
+       fgrav(3,j) = fgrav(3,j) + pmassi*dr(3)*fm
     enddo
 !
 !--add self contribution to potential
 !
-    phi(i) = phi(i) + pmassi*potensoft(0)*hi1
+    fgrav(:,i) = fgrav(:,i) + fgravi(:)
+    phi(i) = phitemp + pmassi*potensoft(0)*hi1
  enddo
 
  phitot = 0.
