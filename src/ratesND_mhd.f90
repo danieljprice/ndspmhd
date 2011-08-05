@@ -226,10 +226,11 @@ subroutine get_rates
        endif
        ! mhd definitions
        if (imhd.ne.0) then
+	  Bconsti(:) = Bconst(:,i)
           Brho2i = dot_product(Brhoi,Brhoi)
+	  !Brho2i = dot_product((Bi + Bconsti)*rho1i,(Bi + Bconsti)*rho1i)
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
-	  Bconsti(:) = Bconst(:,i)
        endif
        gradhi = 1./(1. - gradh(i))
        gradhanisoi = 1./(1.-gradhaniso(i))
@@ -481,7 +482,6 @@ contains
 ! Note that local variables are used from get_rates
 !--------------------------------------------------------------------------------------
   subroutine rates_core
-!!    use unityfunc
     implicit none
 !
 !--calculate both kernels if using anticlumping kernel
@@ -587,9 +587,10 @@ contains
        Brhoj(:) = Bj(:)*rho1j
     elseif (imhd.ne.0) then      ! if B/rho is mag field variable
        Brhoj(:) = Bevol(:,j)
-       Bj(:) = Bfield(:,j)                                
+       Bj(:) = Bfield(:,j)
     endif
     if (imhd.ne.0) then
+       Bconstj(:) = Bconst(:,j)
        dB(:) = Bi(:) - Bj(:)
        projBi = dot_product(Bi,dr)
        projBj = dot_product(Bj,dr)
@@ -597,8 +598,8 @@ contains
        projBrhoi = dot_product(Brhoi,dr)
        projBrhoj = dot_product(Brhoj,dr)
        Brho2j = dot_product(Brhoj,Brhoj)
+       !Brho2j = dot_product((Bj+Bconstj)*rho1j,(Bj+Bconstj)*rho1j)
        valfven2j = Brho2j*rhoj
-       Bconstj(:) = Bconst(:,j)
        projBconsti = dot_product(Bconsti,dr)
        projBconstj = dot_product(Bconstj,dr)
     endif
@@ -627,8 +628,8 @@ contains
     !
     vsig2i = spsoundi**2 + valfven2i
     vsig2j = spsoundj**2 + valfven2j                                    
-    vsigproji = vsig2i**2 - 4.*(spsoundi*projBi)**2*rho1i
-    vsigprojj = vsig2j**2 - 4.*(spsoundj*projBj)**2*rho1j
+    vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
+    vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
     if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
        write(iprint,*) ' rates: vsig det < 0 ', &
        'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i,      &
@@ -665,8 +666,8 @@ contains
     !
     !--add pressure terms to force
     !
-    force(:,i) = force(:,i) - pmassj*prterm*dr(:) !!!- grkerncorri*gradunity(:,i))
-    force(:,j) = force(:,j) + pmassi*prterm*dr(:) !!!- grkerncorrj*gradunity(:,j))
+    force(:,i) = force(:,i) - pmassj*prterm*dr(:)
+    force(:,j) = force(:,j) + pmassi*prterm*dr(:)
 !----------------------------------------------------------------------------
 !  time derivative of density (continuity equation) in generalised form
 !  compute this even if direct sum - used in dudt, dhdt and av switch
@@ -875,14 +876,31 @@ contains
        curlBi(2) = 0.
     endif
     
-    if (imagforce.eq.1) then      ! vector form (dot products)
+    select case(imagforce)
+    case(1)      ! vector form (dot products)
        
        BidotdB = dot_product(Brhoi,dB)
        BjdotdB = dot_product(Brhoj,dB)
        fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))
        fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
        
-    elseif (imagforce.eq.2) then      ! tensor formalism in generalised form
+    case(3)  ! alternative symmetric formulation on aniso
+
+       rhoij = rhoi*rhoj
+       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+       ! faniso is        B*div B        +    B dot grad B
+       faniso(:) = (Bi(:)*projBj*grkerni + Bj(:)*projBi*grkernj)/rhoij
+       fmagi(:) = faniso(:) - fiso*dr(:)   
+    
+    case(5)      ! Morris' Hybrid form
+       
+       rhoij = rhoi*rhoj
+       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
+!--note that I have tried faniso with grkerni and grkernj but much worse on mshk2
+       faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
+       fmagi(:) = faniso(:) - fiso*dr(:)          
+       
+    case default   ! tensor formalism in generalised form
        !
        !--isotropic mag force (pressure gradient)
        !              
@@ -907,34 +925,22 @@ contains
           endif
 
        else
-          faniso(:) = ((Bconsti(:)*projBrhoi + Brhoi(:)*projBconsti)*rho1i &
-	                + Brhoi(:)*projBrhoi)*phij_on_phii*grkerni         &
-                    + ((Bconstj(:)*projBrhoj + Brhoi(:)*projBconstj)*rho1j &
-		        + Brhoj(:)*projBrhoj)*phii_on_phij*grkernj
+!         faniso(:) = ((Bconsti(:)*projBrhoi + Brhoi(:)*projBconsti)*rho1i &
+! 	              + Brhoi(:)*projBrhoi)*phij_on_phii*grkerni         &
+!                   + ((Bconstj(:)*projBrhoj + Brhoi(:)*projBconstj)*rho1j &
+! 	              + Brhoj(:)*projBrhoj)*phii_on_phij*grkernj
+          faniso(:) = (Brhoi(:)*projBrhoi   +Bconsti(:)*rho1i*projBrhoi &
+	              +Brhoi(:)*projBconsti*rho1i)*phij_on_phii*grkerni &
+                    + (Brhoj(:)*projBrhoj   +Bconstj(:)*rho1j*projBrhoj &
+		      +Brhoj(:)*projBconstj*rho1j)*phii_on_phij*grkernj
        endif
 
        !
        !--add contributions to magnetic force
        !        
        fmagi(:) = faniso(:) - fiso*dr(:)
-    
-    elseif (imagforce.eq.3) then  ! alternative symmetric formulation on aniso
-
-       rhoij = rhoi*rhoj
-       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
-       ! faniso is        B*div B        +    B dot grad B
-       faniso(:) = (Bi(:)*projBj*grkerni + Bj(:)*projBi*grkernj)/rhoij
-       fmagi(:) = faniso(:) - fiso*dr(:)   
-    
-    elseif (imagforce.eq.5) then      ! Morris' Hybrid form
        
-       rhoij = rhoi*rhoj
-       fiso = 0.5*(Brho2i*grkerni + Brho2j*grkernj)
-!--note that I have tried faniso with grkerni and grkernj but much worse on mshk2
-       faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
-       fmagi(:) = faniso(:) - fiso*dr(:)              
-       
-    endif
+    end select
     !
     !--compute rho * divergence of B
     !
@@ -950,22 +956,23 @@ contains
     !
     !--add Lorentz force to total force
     !              
-    if (imagforce.eq.1) then
+    select case(imagforce)
+    case(1)
        fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
        fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
        force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
        force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
-    elseif (imagforce.eq.5) then      ! Morris' Hybrid force
+    case(5)    ! Morris' Hybrid force
        fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
        fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
        force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
        force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
-    else       ! symmetric forces fmagxi = -fmagxj
+    case default       ! symmetric forces fmagxi = -fmagxj
        fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
        fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
        force(:,i) = force(:,i) + pmassj*(fmagi(:))
        force(:,j) = force(:,j) - pmassi*(fmagi(:))
-    endif
+    end select
     
     !--------------------------------------------------------------------------------
     !  time derivative of magnetic field (divide by rho later) - in generalised form
