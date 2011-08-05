@@ -305,12 +305,25 @@ subroutine get_rates
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
 
- phi(1:npart) = 0.1
-! if (igravity.ne.0) call direct_sum_poisson_soft( &
-!                    x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),poten(1:npart), &
-!                    force(1:ndim,1:npart),npart)
- if (igravity.ne.0) call direct_sum_poisson( &
-    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),hsoft,npart)
+ if (igravity.ne.0) then
+    select case(igravity)
+    case(1) ! fixed plummer
+       call direct_sum_poisson(x(1:ndim,1:npart),pmass(1:npart), &
+            potengrav,force(1:ndim,1:npart),hsoft,npart)
+    case(2) ! fixed cubic spline
+       phi(1:npart) = hsoft
+       call direct_sum_poisson_soft(x(1:ndim,1:npart),pmass(1:npart), &
+            phi(1:npart),poten(1:npart),force(1:ndim,1:npart),potengrav,npart)
+    case(3) ! adaptive cubic spline (no extra term)
+       call direct_sum_poisson_soft(x(1:ndim,1:npart),pmass(1:npart), &
+            hh(1:npart),poten(1:npart),force(1:ndim,1:npart),potengrav,npart)    
+    case(4:) ! adaptive cubic spline with energy conservation
+       call direct_sum_poisson_soft(x(1:ndim,1:npart),pmass(1:npart), &
+            hh(1:npart),poten(1:npart),force(1:ndim,1:npart),potengrav,npart)         
+    case default
+        stop 'unknown igravity setting in forces'
+    end select
+ endif
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -672,10 +685,10 @@ contains
        if (iav.lt.0) then
           !!if (abs(pri-prj).gt.1.e-2) then
              call riemannsolver(gamma,pri,prj,-projvi,-projvj, &
-               spsoundi,spsoundj,prstar,vstar)
-             if (prstar.gt.1.00001*max(pri,prj) .or. prstar.lt.0.99999*min(pri,prj)) then
-                print*,'error, pstar = ',prstar,'i,j = ',pri,prj,projvi,projvj
-             endif
+               rhoi,rhoj,prstar,vstar)
+!             if (prstar.gt.1.00001*max(pri,prj) .or. prstar.lt.0.99999*min(pri,prj)) then
+!                print*,'error, pstar = ',prstar,'i,j = ',pri,prj,projvi,projvj
+!             endif
              !prstar = 0.5*(pri + prj)
              prterm = prstar*(phii_on_phij*rho21i*sqrtgi*grkerni &
                          + phij_on_phii*rho21j*sqrtgj*grkernj)
