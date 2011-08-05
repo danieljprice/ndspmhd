@@ -21,7 +21,7 @@ SUBROUTINE boundary
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,nnew,nsub,nsubtemp,jdim
+ INTEGER :: i,nnew,nsub,nsubtemp,jdim
  REAL :: psepleft,psepright
  LOGICAL :: debugging
 !

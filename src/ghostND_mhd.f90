@@ -25,10 +25,10 @@ subroutine set_ghost_particles
   implicit none
   integer, parameter :: maxbound = 2	! maximum no. of boundaries in each dim.
   integer, dimension(ndim) :: nbound	! number of boundaries in each dim.
-  integer :: i,j,ighostprev,istart,ighostx
+  integer :: i,j
   integer :: imaxmin,imaxminprev,imaxminprevprev
   integer :: idimen,idimenprev,idimenprevprev
-  integer :: ipart,jpart,jprev,jtemp
+  integer :: jpart,jtemp
   real, dimension(ndim) :: dxbound,xpart
   real, dimension(ndim,maxbound) :: xnew
   real :: dx,dxshift,xbound,xperbound

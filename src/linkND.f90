@@ -20,7 +20,7 @@
 !! 17/10/03 - Bug fix for 1D fixed particle boundaries
 !!--------------------------------------------------------------------------
 
-SUBROUTINE link
+SUBROUTINE set_linklist
 ! USE dimen_mhd
  USE debug
  USE loguns
@@ -159,5 +159,5 @@ SUBROUTINE link
 	 read*
     ENDDO     
  ENDIF    
-END SUBROUTINE link
+END SUBROUTINE set_linklist
       

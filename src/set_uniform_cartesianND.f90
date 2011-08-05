@@ -32,9 +32,9 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  
  INTEGER :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  INTEGER :: idist
- REAL :: gam1,const,xstart,ystart,deltax,deltay
- REAL :: psepx,psepy,ampl
- REAL :: ran1
+ REAL :: xstart,ystart,deltax,deltay
+ REAL :: psepx,psepy
+ REAL :: ran1,ampl
  REAL, DIMENSION(ndim) :: xran
 !
 !--allow for tracing flow
@@ -154,7 +154,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !  (uses random number generator ran1 in module random)
 ! 
  CASE(4,14)
-    ntot = PRODUCT((xmax(:)-xmin(:))/psep)
+    ntot = INT(PRODUCT((xmax(:)-xmin(:))/psep))
     npart = ntot
     WRITE(iprint,*) 'Random particle distribution, npart = ',ntot 
     CALL alloc(ntot)

@@ -25,14 +25,14 @@ SUBROUTINE density
 !
  IMPLICIT NONE
  INTEGER :: i,j,n
- INTEGER :: icell,icellloop,ipart,iprev,ncell,nneigh
+ INTEGER :: icell,iprev,nneigh
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
  INTEGER :: idone
  INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
- REAL :: rij,rij2,rho1i
+ REAL :: rij,rij2
  REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
  REAL :: hfacwab,hfacwabi,hfacwabj
  REAL, DIMENSION(ndim) :: dx

@@ -22,7 +22,7 @@ SUBROUTINE output(t,nstep)
 ! REAL, PARAMETER :: pi=3.1415926536
  INTEGER, INTENT(IN) :: nstep
  INTEGER :: nprint,ndata
- INTEGER :: i,ierr(3),istat
+ INTEGER :: i,ierr(3)
  INTEGER, EXTERNAL :: flush
 !
 !--allow for tracing flow

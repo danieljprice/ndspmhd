@@ -30,12 +30,12 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
  INTEGER, INTENT(IN) :: ntot
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
  REAL, DIMENSION(ntot), INTENT(IN) :: source
- REAL, DIMENSION(ntot) :: phi
+ !!REAL, DIMENSION(ntot) :: phi
  REAL, DIMENSION(ndim,ntot), INTENT(OUT) :: gradphi
  REAL, INTENT(OUT) :: phitot
  INTEGER :: i,j
- REAL, DIMENSION(ndim) :: dx,term
- REAL :: rij2,sourcei
+ REAL, DIMENSION(ndim) :: dx
+ REAL :: sourcei
 !
 !--allow for tracing flow
 !      
@@ -44,7 +44,7 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
 !--reset forces initially
 !
  gradphi = 0.
- phi = 0.
+ !!phi = 0.
 !
 !--calculate gravitational force by direct summation
 !

@@ -28,10 +28,14 @@ SUBROUTINE evolve
 !
  dt = 0.
  dt0 = 0.
- tprint = 0.0
- time = 0.0
+ tprint = 0.
+ t_start = 0.
+ t_end = 0.
+ time = 0.
  nsteps = 0
  nevwrite = 1	! frequency of writing to .ev file (could be read as parameter)
+ detot = 0.
+ dmomtot = 0.
 !
 !--calculate initial values of conserved quantities
 !

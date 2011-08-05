@@ -29,24 +29,24 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !
  IMPLICIT NONE
  INTEGER :: i,j,n
- INTEGER :: icell,icellloop,ipart,iprev,ncell,nneigh,index,index1
+ INTEGER :: icell,ipart,nneigh
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! up to 10% of particles in each cell
- INTEGER :: idone,icellprev
+ INTEGER :: icellprev
  INTEGER, DIMENSION(3**ndim) :: neighcell
  INTEGER, INTENT(IN) :: nlist
  INTEGER, INTENT(IN), DIMENSION(*) :: ipartlist
 !
 !  (particle properties - local copies)
 !      
- REAL :: rij,rij2,rho1i
- REAL :: hi,hi1,hi2,hi3
+ REAL :: rij,rij2
+ REAL :: hi,hi1,hi2
  REAL :: hfacwabi,hfacgrkerni
  REAL, DIMENSION(ndim) :: dx
 !
 !  (kernel quantities)
 !
  REAL :: q2i      
- REAL :: wabi,grkerni,weight      
+ REAL :: wabi,grkerni    
 !
 !  (grad h terms)
 !
@@ -60,6 +60,7 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !
  nlistdim = ntotal
  ALLOCATE( listneigh(nlistdim) )	! max size of neighbour list
+ listneigh = 0
 
  DO ipart=1,nlist
     i = ipartlist(ipart)
@@ -90,7 +91,6 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !   PRINT*,'Doing particle ',i,nneigh,' neighbours',pmass(i)
     hi = hh(i)
     hi2 = hi*hi
-    hi3 = hi*hi2
     hi1 = 1./hi
        
     hfacwabi = hi1**ndim
