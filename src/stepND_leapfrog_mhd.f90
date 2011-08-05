@@ -93,7 +93,7 @@ SUBROUTINE step
           Bevol(:,i) = Bevolin(:,i) + dt*vcrossB(:)
           dBevoldtin(:,i) = vcrossB(:)
        else
-          Bevol(:,i) = Bevolin(:,i)             
+          Bevol(:,i) = Bevolin(:,i)
        endif
        rho(i) = rhoin(i)
        hh(i) = hhin(i)            
@@ -131,10 +131,8 @@ SUBROUTINE step
           call cross_product3D(vel(:,i),Bconst(:),vcrossB)
           Bevol(:,i) = Bevolin(:,i) + hdt*(vcrossB(:) + dBevoldtin(:,i))
        else
-          Bevol(:,i) = Bevolin(:,i)             
+          Bevol(:,i) = Bevolin(:,i)
        endif
-
-       Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
        hh(i) = hhin(i)
        en(i) = enin(i)
