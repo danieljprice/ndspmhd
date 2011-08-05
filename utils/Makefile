@@ -74,7 +74,7 @@ dimen3D.o :
 variablesND.o :
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/variablesND.f90 -o $@
 
-kernelND.o :
+kernelND.o : ../src/kernelND.f90
 	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
 danpgtile.o :
