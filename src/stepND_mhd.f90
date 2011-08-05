@@ -52,6 +52,7 @@ SUBROUTINE step
  USE setup_params
  USE xsph
  USE kernels, only:eps
+ USE utils, only:cross_product3D
 !
 !--define local variables
 !
