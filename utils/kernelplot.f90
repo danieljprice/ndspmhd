@@ -1,37 +1,31 @@
 program kernelplot
- use debug
- use kernel
- use kernelextra
- use options
- use loguns
- use anticlumping
- use setup_params
-
+ use kernels
  implicit none
- integer :: i,j,nkernels,nacross,ndown,ilinestyle,nepszero,ipos
+ integer :: i,j,ikernel,ndim
+ integer :: nkernels,nacross,ndown,nepszero,ipos,i1,i2
  integer, dimension(10) :: iplotorder
- real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos
+ real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
- character(len=50) :: text
+!! character(len=50) :: text
 
- data iplotorder /101, 102, 0, 7, 5, 6, 4, 2, 8, 21/   ! order in which kernels are plotted
+ data iplotorder /1, 6, 31, 21, 16, 16, 16, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 3
- iprint = 6   ! make sure output from kernel setup goes to screen
+ nkernels = 4
  ianticlump = 0
  epszero = 0.0
  nepszero = 4
- hfact = 1.5
  samepage = .false.
- trace = .true.
- nacross = 1
- ndown = 3
+ nacross = 4
+ ndown = 1
  xmin = 0.0
  xmax = 3.2
- ymin = 0.01 !!-2.0  !!3.5
- ymax = 2.4 !!1.7
+!! ymin = 0.01
+ ymin = -3.5  !!3.5
+!! ymax = 2.4
+ ymax = 2.7
  ipos = 1
+ ndim = 1
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
@@ -40,7 +34,7 @@ program kernelplot
     call pgbegin(0,'?',1,1) 
     if (nacross.eq.2 .and. ndown.eq.1) call pgpap(11.7,0.6/sqrt(2.))  ! change paper size
     !!call pgenv(xmin,xmax,ymin,ymax,0,1)
-    call pgsch(1.5)
+    call pgsch(1.)
     !!call pgenv(xmin,xmax,ymin,ymax,0,1)
     !!if (nkernels.gt.1) call pglabel('r/h',' ','Smoothing kernels')
     !!call pglabel('r/h',' ',' ')
@@ -64,7 +58,7 @@ program kernelplot
     endif
     
     ikernel = iplotorder(j)
-    call setkern
+    call setkern(ikernel,ndim)
 !
 !--setup x axis
 !
@@ -107,10 +101,10 @@ program kernelplot
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
        
     else
-       call pgsch(1.5)
+       !!call pgsch(1.5)
        if (mod(j,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
-       ymax = maxval(wij(1:ikern))*1.5
+       !!ymax = maxval(wij(1:ikern))*1.5
        if (ikernel.eq.101) ymax = maxval(abs(wij(1:ikern)))*1.5
        if (ikernel.eq.102) ymax = maxval(wij(1:ikern)/dqkern(1:ikern)**2)*1.5
        print*,'max = ',ymax
@@ -123,7 +117,17 @@ program kernelplot
        call pgsci(1)
        ipos = 1
     endif
-
+!
+!--test kernel normalisation if 1D
+!  assume h=1, h=1.2*psep, rho=1, equispaced particles
+!  so 2h = 2.4, neighbours at 1/1.2 and 2.0/1.2
+!
+   if (ndim.eq.1) then
+      i1 = int((1./1.2)**2*ddq2table)
+      i2 = int((2./1.2)**2*ddq2table)
+      rhoi = (wij(0) + 2.*(wij(i1) + wij(i2)))/1.2
+      print*,'rhoi = ',rhoi
+   endif
 !
 !--BEWARE! program will crash here if compiled incorrectly. This can happen
 !  if compiled in double precision - e.g. if kernelND.f90 has been
@@ -155,30 +159,33 @@ program kernelplot
 !
 !--kernel gradient
 !    
-    call pgsls(2)
-!    call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
-   !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
-    if (ianticlump.ne.0) then
-!       call pgsls(j+2)
-       !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
-       !!call legend(ipos,text,0.5,3.0)
-       call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))
-      !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijaniso(0:ikern))    
+    if (ikernel.lt.100) then
+       call pgsls(2)
+       call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+       !!call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
+       if (ianticlump.ne.0) then
+   !       call pgsls(j+2)
+          !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
+          !!call legend(ipos,text,0.5,3.0)
+          call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))
+         !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijaniso(0:ikern))    
+       endif
     endif
 !
 !--second derivative
 !
-!    call pgsls(3)
-!    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-!    if (ianticlump.ne.0) then
-!       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
-!    endif
-    call pgsls(1)
+    if (ikernel.lt.100) then
+       call pgsls(3)
+       call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+       if (ianticlump.ne.0) then
+          call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+       endif
+       call pgsls(1)
 !    call pgsci(1)
+    endif
  enddo
  
- call pgend
- stop
+!! call pgend
 !
 !--plot stability separately
 !
@@ -193,13 +200,11 @@ program kernelplot
        if (ianticlump.ne.0) then
 !          if (j.eq.2) then
 !	     eps = epszero
-!	     hfact = 1.2
 !	     call pgsls(2)
 !	  endif
           eps = eps + 0.4
        endif
-       ikernel = iplotorder(j)
-       call setkern
+       call setkern(iplotorder(j),ndim)
        call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo
 
