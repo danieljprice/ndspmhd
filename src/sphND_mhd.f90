@@ -61,11 +61,14 @@ PROGRAM SUPERSPMHD_ND
 !
 !--version number
 !
-   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
-!   *** versioning now done with CVS ***
-!   use 'make tag' to tag a working copy of the code in CVS
+    version = 'NDSPMHD-v4-1'
 !   * equations use general alternative formulation
 !   * compiles in 3D
+!   * set_ghosts totally rewritten -> works in up to 3D
+!   * 3D neighbour finding fixed - density calculated OK in 3D
+!   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
+!   *** versioning now done with CVS ***
+!   use 'make tag' to tag a working copy of the code in CVS
 !   version = 'SPMHD-ND-v3.6_22_10_2003'
 !   * bug fix in thermal conductivity in thermal energy equation
 !   * bug fix in source term for artificial stress in total energy equation

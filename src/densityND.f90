@@ -2,7 +2,7 @@
 !! Computes the density by direct summation over the particles neighbours
 !! ie. rho_a = sum_b m_b W_ab (h_a)
 !!
-!! Also computes the variable smoothing length terms sum_b m_b dWdh_b dhdrho_B
+!! Also computes the variable smoothing length terms sum_b m_b dWdh_b dhdrho_b
 !!
 !! This version computes the density on all particles
 !! and therefore only does each pairwise interaction once
@@ -28,7 +28,7 @@ SUBROUTINE density
  INTEGER :: icell,icellloop,ipart,iprev,ncell,nneigh
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
  INTEGER :: idone
- INTEGER, DIMENSION(3*2**(ndim-1) - 1) :: neighcell
+ INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -168,7 +168,7 @@ SUBROUTINE density
 	 ENDIF
 	    
        ENDDO loop_over_neighbours
-	    
+
        iprev = i
        IF (iprev.NE.-1) i = ll(i)		! possibly should be only IF (iprev.NE.-1)
     ENDDO loop_over_cell_particles
