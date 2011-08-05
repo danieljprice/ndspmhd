@@ -34,7 +34,6 @@ SUBROUTINE equation_of_state(pr,vsound,uu,rho,gamma,polyk,isize)
  ELSEIF ((iener.NE.0).AND.ANY(uu.LT.0.)) THEN
     WRITE(iprint,*) 'eos: u_therm -ve, exiting',isize
     DO i=1,isize
-       print*,i,rho(i)
        IF (uu(i).LT.0.) WRITE(iprint,*) i,rho(i),uu(i)
     ENDDO    
     CALL quit      
