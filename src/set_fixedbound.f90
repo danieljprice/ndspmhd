@@ -51,7 +51,7 @@ subroutine set_fixedbound
 !    
      nbpts = 0
      do i=1,npart
-        if (itype(i).eq.1) nbpts = nbpts + 1
+        if (itype(i).eq.1 .or. itype(i).eq.2) nbpts = nbpts + 1
      enddo
      write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
@@ -67,6 +67,7 @@ subroutine set_fixedbound
                  endif
               endif
            enddo
+           !ireal(i) = 0
            if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
