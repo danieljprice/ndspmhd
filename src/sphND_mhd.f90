@@ -64,6 +64,7 @@ PROGRAM SUPERSPMHD_ND
 !   * potential energy from external forces
 !   * symplectic integrator (not yet for MHD, not as good as leapfrog)
 !   * ihvar = 3 predictor step only in h update
+!   * setup_unifsph
 !    version = 'NDSPMHD-3D-v5-0'
 !   *** saved as working 3D version ***
 !   * equations use general alternative formulation
