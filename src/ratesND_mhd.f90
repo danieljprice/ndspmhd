@@ -752,7 +752,7 @@ contains
 
     drhodt(i) = drhodt(i) + pmassj*dvdotr*grkerni
     drhodt(j) = drhodt(j) + pmassi*dvdotr*grkernj
-
+     
 !------------------------------------------------------------------------
 !  Lorentz force and time derivative of B terms
 !------------------------------------------------------------------------
@@ -815,7 +815,11 @@ contains
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
     rhoav1 = 2./(rhoi + rhoj)
-    dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
+    if (igeom.gt.1) then
+       dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
+    else
+       dpmomdotr = abs(dvdotr)
+    endif
     term = 0.5*vsig*rhoav1*grkern
 
     !----------------------------------------------------------------
