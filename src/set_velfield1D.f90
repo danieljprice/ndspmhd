@@ -52,7 +52,7 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
 !--set parameters of the turbulent velocity field
 !
- pindex = 17./3.		! index of power spectrum
+ pindex = -2		! index of power spectrum
  Lbox = xmax(1)-xmin(1)		! assumes cube in > 1D
  amplin = 1.0			! normalisation factor of power spectrum
  dxgrid = Lbox/REAL(ngrid)	! separation of grid points
@@ -84,10 +84,10 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !    
     phase(ifreq) = -pi + twopi*ran1(iseed)
 !
-!--then choose a random amplitude
+!--then choose a random amplitude from a gaussian with dispersion sigma
 !
     amplk(ifreq) = sigma*SQRT(-log(ran1(iseed2)))
-    PRINT*,ifreq,amplk(ifreq),sigma
+    PRINT*,ifreq,amplk(ifreq),sigma,phase(ifreq)
 
  ENDDO
 !
@@ -102,16 +102,16 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
  WRITE(iprint,*) ' Constructing velocity field'
  
- DO i=1,ngrid
-    xgrid(i) = xmin(1) + (i-1)*dxgrid + 0.5*dxgrid
-    DO ifreq=1,nfreq
-       wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
-       wkdotx = wk*(xgrid(i)-xmin(i))
-       vperp(i) = vperp(i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
-    ENDDO
- ENDDO
+! DO i=1,ngrid
+!    xgrid(i) = xmin(1) + (i-1)*dxgrid + 0.5*dxgrid
+!    DO ifreq=1,nfreq
+!       wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
+!       wkdotx = wk*(xgrid(i)-xmin(1))
+!       vperp(i) = vperp(i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
+!    ENDDO
+! ENDDO
 
- WRITE(iprint,*) ' Interpolating to particles...'
+! WRITE(iprint,*) ' Interpolating to particles...'
 !
 !--now interpolate from the fixed grid to the SPH particles
 !
@@ -121,14 +121,22 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
 !
 !--work out nearest grid point
 !    
-    igrid = INT((xin(1,i) - xmin(1))/dxgrid) + 1 	! closest grid point
-    PRINT*,'particle ',i,' grid = ',igrid,xin(1,i)
-    dxx = xin(1,i) - xgrid(igrid) 		! distance of particle from pt 
-    dvel = (vperp(igrid+1) - vperp(igrid))/dxgrid
+!    igrid = INT((xin(1,i) - xmin(1))/dxgrid) + 1 	! closest grid point
+!    PRINT*,'particle ',i,' grid = ',igrid,xin(1,i)
+!    dxx = xin(1,i) - xgrid(igrid) 		! distance of particle from pt 
+!    dvel = (vperp(igrid+1) - vperp(igrid))/dxgrid
+!
 !
 !--interpolate contribution from neighbouring grid points
 !   
-    velin(2,i) = velin(2,i) + (vperp(igrid) + dxx*dvel)
+!    velin(2,i) = velin(2,i) + (vperp(igrid) + dxx*dvel)
+
+    DO ifreq=1,nfreq
+       wk = REAL(ifreq)*wk_min	! this is the wavenumber (kx,ky,kz)
+       wkdotx = wk*(xin(1,i)-xmin(1))
+       velin(2,i) = velin(2,i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
+    ENDDO
+
     ekin = ekin + 0.5*velin(2,i)**2   
  
  ENDDO
