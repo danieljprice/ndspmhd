@@ -6,9 +6,9 @@
 
 subroutine get_rates
 ! USE dimen_mhd
- use debug, only:trace
+ use debug,  only:trace
  use loguns, only:iprint
- use bound, only:pext
+ use bound,  only:pext
  use artvi
  use eos
  use hterms
@@ -23,10 +23,11 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
- use grutils, only:metric_diag,dot_product_gr
+ use grutils,       only:metric_diag,dot_product_gr
  use getBeulerpots, only:compute_rmatrix,exactlinear
- use matrixcorr, only:dxdx,idxdx,jdxdx,ndxdx
- use utils, only:cross_product3D
+ use matrixcorr,    only:dxdx,idxdx,jdxdx,ndxdx
+ use utils,         only:cross_product3D
+ use resistivity,   only:etafunc
 !
 !--define local variables
 !
@@ -72,7 +73,7 @@ subroutine get_rates
  real, dimension(:), allocatable :: divBsym
  real, dimension(:,:,:), allocatable :: dveldx
  real, dimension(6) :: rmatrix
- real :: denom,ddenom
+ real :: denom,ddenom,etai,etaj
 !
 !  (artificial viscosity quantities)
 !      
@@ -86,7 +87,7 @@ subroutine get_rates
 !  (av switch)
 !
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
- real :: graduterm, graddivvmag,etai,curr2
+ real :: graduterm, graddivvmag,curr2
  real, dimension(:), allocatable :: del2u
  real, dimension(:,:), allocatable :: graddivv
 !
@@ -306,6 +307,11 @@ subroutine get_rates
           valfven2i = B2i*rho1i
           alphaBi = alpha(3,i)
           if (imhd.lt.0) Bevoli(:) = Bevol(:,i)
+          if (iresist.eq.1) then
+             etai = etamhd
+          elseif (iresist.eq.3) then
+             etai = etafunc(x(1,i),etamhd)
+          endif
        endif
        gradhi = gradh(i)
        gradhni = gradhn(i)
@@ -481,7 +487,7 @@ subroutine get_rates
 !--calculate resistive timestep (bootstrap onto force timestep)
 !
     if (iresist.gt.0 .and. iresist.ne.2 .and. etamhd.gt.tiny(etamhd)) then
-       fhmax = max(fhmax,etamhd/hh(i)**2)
+       fhmax = max(fhmax,etai/(hh(i)**2))
     endif
 
 !
@@ -869,6 +875,11 @@ contains
        projBconst = dot_product(Bconst,dr)
        if (imhd.lt.0) then
           dBevol(:) = Bevoli(:) - Bevol(:,j)
+       endif
+       if (iresist.eq.1) then
+          etaj = etamhd
+       elseif (iresist.eq.3) then
+          etaj = etafunc(x(1,j),etamhd)
        endif
     endif
     forcej(:) = 0.
@@ -1484,7 +1495,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
-    real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm
+    real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm,etaij
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1762,10 +1773,12 @@ contains
     !  real resistivity in induction equation
     !--------------------------------------------
     if (iresist.gt.0 .and. iresist.ne.2) then
+       !etaij = 0.5*(etai + etaj)
+       etaij = 2.*etai*etaj/(etai + etaj)
        if (imhd.gt.0) then
-          dBdtvisc(:) = -2.*etamhd*dB(:)/rij
+          dBdtvisc(:) = -2.*etaij*dB(:)/rij
        else !--vector potential resistivity
-          dBdtvisc(:) = 2.*etamhd*dBevol(:)/rij
+          dBdtvisc(:) = 2.*etaij*dBevol(:)/rij
        endif
        !
        !--add to dB/dt (converted to d(B/rho)/dt later if required)
@@ -1778,7 +1791,7 @@ contains
        if (iener.eq.3 .or. iener.eq.1) then
           stop 'unimplemented iener for physical resistivity'
        elseif (iener.gt.0) then
-          term = -etamhd*rho1i*rho1j*dot_product(dB,dB)*grkern/rij
+          term = -etaij*rho1i*rho1j*dot_product(dB,dB)*grkern/rij
           dudt(i) = dudt(i) + pmassj*term
           dudt(j) = dudt(j) + pmassi*term
        endif
