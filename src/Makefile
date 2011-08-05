@@ -41,10 +41,10 @@ SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
-SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
+#SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-#SETUP1D = setup_shockND.f90
+SETUP1D = setup_shockND.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -76,7 +76,7 @@ SETUP3D = setup_sphericalblastND_mhd.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES = sphND_mhd.f90   \
-         boundaryND_1D.f90 check_setup.f90 \
+         boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \

@@ -47,10 +47,10 @@ SUBROUTINE read_infile(infile)
  CLOSE(UNIT=iread)
 
  GOTO 55
-50 WRITE(iprint,*) 'Error reading infile: re-writing with current options'
+50 WRITE(iprint,*) 'Error reading '//TRIM(infile)//': re-writing with current options'
    CLOSE(UNIT=iread)
    ians = 'y'
-   GOTO 1001
+   CALL write_infile(infile)
 55 CONTINUE
 !
 !--check options for possible errors
@@ -90,11 +90,11 @@ SUBROUTINE read_infile(infile)
             
 999   WRITE(iprint,1000) infile      
 1000  FORMAT (' Input file ',a20,' not found')
-      WRITE(*,*) ' Would you like to create one with default options?'
-      READ*,ians
-
-1001  CONTINUE
-      IF (ians.EQ.'y'.OR.ians.EQ.'Y') CALL write_infile(infile)
+      IF (ADJUSTL(infile(1:1)).ne.' ') THEN 
+         WRITE(*,*) ' Would you like to create one with default options?'
+         READ*,ians
+         IF (ians.EQ.'y'.OR.ians.EQ.'Y') CALL write_infile(infile)
+      ENDIF
 
       STOP 'exiting...'
       
