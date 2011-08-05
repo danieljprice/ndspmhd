@@ -580,7 +580,7 @@ subroutine get_rates
        select case(iavlim(1))
        case(1,2)
           source = max(drhodt(i)*rho1i,0.0)
-          if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))      
+          if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        case(3)
           graddivvmag = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
