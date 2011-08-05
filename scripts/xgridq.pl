@@ -15,7 +15,8 @@ if ( $machtype eq 'i386' ) {
    $gid = 2;
    print "--- POWERPC MACS (grid id = $gid) ---\n";
 }
-my $xgridauth="-hostname cytosine.ex.ac.uk -auth Kerberos -gid $gid";
+my $xgridauth="-hostname cytosine.ex.ac.uk -auth Kerberos -gid $gid @ARGV";
+print "xgrid $xgridauth -job list \n";
 my @joblist= split(/,\s+/,`xgrid $xgridauth -job list `);
 my $format=" %4u | %25s | %9s | %19s | %19s | %19s \n";
 my $formath=" %4s | %25s | %9s | %19s | %19s | %19s \n";
