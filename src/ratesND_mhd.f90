@@ -144,7 +144,7 @@ subroutine get_rates
  stressmax = 0.
  if (imhd.ne.0) then
     do i=1,ntotal
-       B2i = sqrt(dot_product(Bfield(:,i),Bfield(:,i)))
+       B2i = dot_product(Bfield(:,i),Bfield(:,i))
        stressterm = max(0.5*B2i - pr(i),0.)
        stressmax = max(stressterm,stressmax)
     enddo
@@ -300,12 +300,9 @@ subroutine get_rates
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
 
- force = 0.
-! phi = 1.0
  if (igravity.ne.0) call direct_sum_poisson_soft( &
                     x(1:ndim,1:npart),pmass(1:npart),hh(1:npart),poten(1:npart), &
-                    force(1:ndim,1:npart),psi(1:npart),npart)
-! phi = 0.
+                    force(1:ndim,1:npart),npart)
 ! if (igravity.ne.0) call direct_sum_poisson( &
 !    x(1:ndim,1:npart),pmass(1:npart),potengrav,force(1:ndim,1:npart),1.0,npart)
 
@@ -344,7 +341,7 @@ subroutine get_rates
 !--add external (body) forces
 !
     if (iexternal_force.ne.0) then
-       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim)
+       call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndim),ndim,pmom(ndimV,i))
        force(1:ndim,i) = force(1:ndim,i) + fexternal(1:ndim)
     endif
 !
@@ -364,16 +361,16 @@ subroutine get_rates
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
-    if (iener.gt.0 .and. iav.ge.0) then
-       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
-    endif
     if (iener.eq.3) then
        ! could do this in principle but does not work with
        ! faniso modified by subtraction of Bconst
        !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
+    elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
+       dendt(i) = (gamma-1.)/rho(i)**(gamma-1.)*dudt(i)      
     elseif (iener.gt.0) then
+       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     endif
 !
@@ -390,6 +387,8 @@ subroutine get_rates
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2      
        endif
+    elseif (imhd.lt.0) then ! vector potential evolution
+       dBevoldt(:,i) = dBevoldt(:,i)*rho1i
     else
        dBevoldt(:,i) = 0.
     endif
@@ -628,7 +627,7 @@ contains
     rho21j = rho1j*rho1j
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
-    rhoav1 = 2./(rhoi + rhoj)
+    rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     prj = pr(j)        
     Prho2j = pr(j)*rho21j
     spsoundj = spsound(j)
@@ -837,14 +836,17 @@ contains
     !  resistivity in induction equation
     !  (applied everywhere)
     !--------------------------------------------
-    if (imhd.gt.0) then
+    if (imhd.ne.0) then
        if (iav.ge.2) then
           Bvisc(:) = dB(:)*rhoav1
        else
           Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
        endif
-       dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
-
+       if (imhd.gt.0) then
+          dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
+       else !--vector potential resistivity
+          dBdtvisc(:) = alphaB*termnonlin*(Bevol(:,i) - Bevol(:,j))*rhoav1
+       endif
        !
        !--add to d(B/rho)/dt (converted to dB/dt later if required)
        !
@@ -1076,7 +1078,7 @@ contains
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
-    case (:0) ! non-conservative (usual) form
+    case(1,11) ! surface flux-conservative (usual) form
        dBevoldt(:,i) = dBevoldt(:,i)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
