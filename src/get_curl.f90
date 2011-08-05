@@ -9,17 +9,16 @@ module getcurl
 contains
 
 subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
- use dimen_mhd, only:ndim,ndimV,idim
- use debug, only:trace
- use loguns, only:iprint
- 
- use kernels, only:interpolate_kernel_curl,radkern2
- use linklist, only:ll,ifirstincell,ncellsloop
+ use dimen_mhd,           only:ndim,ndimV,idim
+ use debug,               only:trace
+ use loguns,              only:iprint
+ use kernels,             only:interpolate_kernel_curl,radkern2
+ use linklist,            only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list
- use hterms, only:gradh
- use setup_params, only:hfact
- use part, only:itype,ntotal
- use bound, only:ireal
+ use hterms,              only:gradh
+ use setup_params,        only:hfact
+ use part,                only:itype,ntotal
+ use bound,               only:ireal
 !
 !--define local variables
 !
@@ -182,7 +181,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        curlB(:,i) = curlB(:,i) + curlBi(:)
        if (present(curlBgradh)) then
           curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
-       endif       
+       endif
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
