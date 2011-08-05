@@ -32,7 +32,7 @@ SUBROUTINE initialise
  IMPLICIT NONE
  CHARACTER(LEN=len(rootname)+3) :: infile,evfile,dumpfile
  CHARACTER(LEN=len(rootname)+6) :: logfile   ! rootname is global in loguns
- INTEGER :: i,j,idash,idot,ierr
+ INTEGER :: i,j,idash,idot,ierr,idotin
  LOGICAL :: iexist
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
@@ -58,6 +58,11 @@ SUBROUTINE initialise
     !!ifile = ifile - 1
     !stop
  else
+    !
+    !--trim the .in if present
+    !
+    idotin = index(rootname,'.in')
+    if (idotin.gt.0) rootname = rootname(1:idotin-1)
     ifile = -1
  endif
 !
@@ -154,7 +159,7 @@ SUBROUTINE initialise
 !
 !--change coordinate systems if necessary
 !
- if (ifile.ge.0) call modify_dump
+ !!if (ifile.ge.0) call modify_dump
  print*,'igeom = ',igeomsetup,igeom
  if (igeomsetup.ne.igeom) call convert_setup(igeomsetup,igeom)
  
