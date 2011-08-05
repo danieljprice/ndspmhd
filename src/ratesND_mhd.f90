@@ -40,7 +40,8 @@ subroutine get_rates
  real :: rhoi,rho1i,rho2i,rho21i,rhoj,rho1j,rho2j,rho21j,rhoav,rhoav1,rhoij
  real :: pmassi,pmassj
  real :: Prho2i,Prho2j,prterm
- real :: hi,hi1,hj,hj1,hi21,hj21
+ real :: hi,hi1,hj,hj1,hi21,hj21    
+ real :: hav,hav1,h21
  real :: drhodti,drhodtj
  real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
  real, dimension(ndim) :: dx
@@ -71,14 +72,14 @@ subroutine get_rates
 !  (artificial viscosity quantities)
 !      
  real :: vsig,vsigi,vsigj,viss
- real :: spsoundi,spsoundj,alphai
+ real :: spsoundi,spsoundj,alphai,alphaBi
  real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj
  real :: vsigii,vsigjj
 !
 !  (av switch)
 !
- real :: source,tdecay1,sourcedivB,sourceJ
+ real :: source,tdecay1,sourcedivB,sourceJ,sourceB
 !
 !  (alternative forms)
 !
@@ -87,7 +88,7 @@ subroutine get_rates
 !
 !  (kernel related quantities)
 !
- real :: q2i,q2j
+ real :: q2,q2i,q2j
  real :: wab,wabi,wabj
  real :: grkern,grkerni,grkernj
 
@@ -138,6 +139,7 @@ subroutine get_rates
   dudt(i) = 0.0
   dendt(i) = 0.0
   dBconsdt(:,i) = 0.0
+  daldt(:,i) = 0.0
   dpsidt(i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
@@ -202,7 +204,7 @@ subroutine get_rates
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
        pmassi = pmass(i)
-       alphai = alpha(i)
+       alphai = alpha(1,i)
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
@@ -216,6 +218,7 @@ subroutine get_rates
        ! mhd definitions
        Brho2i = dot_product(Brhoi,Brhoi)
        valfven2i = Brho2i*rhoi
+       if (imhd.ne.0) alphaBi = alpha(2,i)
               
        gradhi = 1./(1. - gradh(i))
        !if (gradhi.le.0.5) then
@@ -238,18 +241,25 @@ subroutine get_rates
           j = listneigh(n)
 	  if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then		! don't count particle with itself
 	     dx(:) = x(:,i) - x(:,j)
+    !  print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
 	     hj = hh(j)
 	     hj1 = 1./hj
 	     hj21 = hj1*hj1
 	     hfacwabj = hj1**ndim
 	     hfacgrkernj = hfacwabj*hj1
-	     
+             hav = 0.5*(hi + hj)
+             hav1 = 1./hav
+             h21 = hav1*hav1
+             hfacwab = hav1**ndim 
+             hfacgrkern = hfacwab*hav1
+     
 	     rij2 = dot_product(dx,dx)
 	     rij = sqrt(rij2)
 	     if (rij.eq.0.) then
 	        write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                 call quit
 	     endif	
+	     q2 = rij2*h21	
 	     q2i = rij2*hi21
 	     q2j = rij2*hj21
 	     dr(1:ndim) = dx(1:ndim)/rij	! unit vector
@@ -317,6 +327,7 @@ subroutine get_rates
 !
     if (imhd.ne.0) then
        divB(i) = divB(i)*rho1i		!*rhoi
+       curlB(:,i) = curlB(:,i)*rho1i
        dBconsdt(:,i) = dBconsdt(:,i)*rho1i
     endif    
 !
@@ -329,8 +340,10 @@ subroutine get_rates
     endif
 !
 !--if using the thermal energy equation, set the energy derivative
+!  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
     if (iener.ne.3 .and. iener.ne.0) then
+       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)
        dendt(i) = dudt(i)
     endif
 !
@@ -354,23 +367,29 @@ subroutine get_rates
     vsig = sqrt(spsound(i)**2. + valfven2i)	! approximate vsig only
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
 !
-!--calculate time derivative of alpha (artificial dissipation coefficient)
+!--calculate time derivative of alpha (artificial viscosity coefficient)
 !  see Morris and Monaghan (1997)
 !     
     if (iavlim.ne.0) then
        if (iavlim.eq.2) then
-	  source = max(drhodt(i)*rho1i*(2.0-alpha(i)),0.0)    ! source term is div v
+	  source = max(drhodt(i)*rho1i*(2.0-alpha(1,i)),0.0)    ! source term is div v
+          !--calculate source term for the resistivity parameter
+          sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
+          sourcedivB = abs(divB(i))*SQRT(rho1i)
+          sourceB = MAX(sourceJ,sourcedivB)*(2.0-alpha(2,i))
        else
           source = max(drhodt(i)*rho1i,0.0)    ! source term is div v
-          !sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i**3)
-	  !sourcedivB = abs(divB(i))*SQRT(rho1i)
-	  !source = MAX(sourceJ,sourcedivB)
+          !--calculate source term for the resistivity parameter  
+          sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
+          sourcedivB = abs(divB(i))*SQRT(rho1i)
+          sourceB = MAX(sourceJ,sourcedivB)
        endif
+              
        tdecay1 = (avdecayconst*vsig)/hh(i)	! 1/decay time (use vsig)
-       daldt(i) = (alphamin - alpha(i))*tdecay1 + avfact*source
-!!       dalBdt(i) = (alphamin - alpha(i))*tdecay1 + sourceB
+       daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
+       if (imhd.ne.0) daldt(2,i) = (alphaBmin - alpha(2,i))*tdecay1 + sourceB
     else
-       daldt(i) = 0.
+       daldt(:,i) = 0.
     endif
 !
 !--calculate time derivative of divergence correction parameter psi
@@ -432,22 +451,10 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine rates_core
     implicit none
-    real :: hav,hav1,h21,hfacwab,q2
-    !  print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
-!    
-!--calculate average of smoothing length and related quantities			 
-!  (need these in anticlumping term, even if ikernav.ne.1)
-!
-    hav = 0.5*(hi + hj)
-    hav1 = 1./hav
-    h21 = hav1*hav1
-    hfacwab = hav1**ndim 
 !
 !--use either average h, average kernel gradient or Springel/Hernquist type
 !
     if (ikernav.eq.1) then
-       hfacgrkern = hfacwab*hav1
-       q2 = rij2*h21
        call interpolate_kernel(q2,wab,grkern)
        wab = wab*hfacwab
        grkern = grkern*hfacgrkern
@@ -602,136 +609,7 @@ contains
     drhodt(j) = drhodt(j) + drhodtj
 
     if (imhd.ne.0) then
-!----------------------------------------------------------------------------		
-!  Lorentz force
-!----------------------------------------------------------------------------
-!
-!--calculate curl B for current (only if field is 3D)
-!  this is used in the switch for the artificial resistivity term
-!
-       if (ndimB.eq.3) then
-          curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
-          curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
-          curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-       elseif (ndimB.eq.2) then  ! just Jz in 2D
-          curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
-          curlBi(2) = 0.
-       endif
-       
-       if (imagforce.eq.1) then	! vector form (dot products)
-          
-          BidotdB = dot_product(Brhoi,dB)
-          BjdotdB = dot_product(Brhoj,dB)
-          fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))		  
-          fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
-          
-       elseif (imagforce.eq.2) then	! tensor formalism in generalised form
-!
-!--isotropic mag force (pressure gradient)
-!		  
-          fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
-!
-!--anisotropic force (including variable smoothing length terms)
-!
-          faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
-                    + Brhoj(:)*projBrhoj*phii_on_phij*grkernj		   
-!
-!--Joe's correction term (preserves momentum conservation)
-!  in 1D we only do this in the x-direction
-!
-          if (ianticlump.eq.1) then
-             wabjoe = wabjoei*hfacwab
-             Rjoe = 0.5*eps*(wab/wabjoe)**neps
-             !if (Rjoe.gt.0.1) print*,'Rjoe = ',Rjoe,i,j,wab,wabjoe
-             !faniso(:) = faniso(:) - Rjoe*faniso(:)  
-             faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
-          endif
-!
-!--add contributions to magnetic force
-!	  
-          fmagi(:) = faniso(:) - fiso*dr(:)
-          
-       elseif (imagforce.eq.5) then	! Morris' Hybrid form
-          
-          rhoij = rhoi*rhoj
-          fiso = grkern*0.5*(Brho2i + Brho2j)
-          faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
-          fmagi(:) = faniso(:) - fiso*dr(:)		  
-          
-       endif
-!
-!--compute divergence of B
-!
-       divB(i) = divB(i) - pmassj*projdB*grkern
-       divB(j) = divB(j) - pmassi*projdB*grkern
-!
-!--compute current density J
-!
-       curlB(:,i) = curlB(:,i) - pmassj*curlBi(:)*grkern
-       curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkern
-!
-!--add Lorentz force to total force
-!        	
-       if (imagforce.eq.1) then
-          fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
-          fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
-          force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
-          force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
-       elseif (imagforce.eq.5) then	! Morris' Hybrid force
-          fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-          fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
-          force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-          force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:)) 			        
-       else 	! symmetric forces fmagxi = -fmagxj
-          fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)
-          fmag(:,j) = fmag(:,j) - pmassi*fmagi(:)
-          force(:,i) = force(:,i) + pmassj*fmagi(:)
-          force(:,j) = force(:,j) - pmassi*fmagi(:) 
-       endif
-
-!--------------------------------------------------------------------------------
-!  time derivative of magnetic field (divide by rho later) - in generalised form
-!---------------------------------------------------------------------------------
-!
-!   (evolving B/rho)
-!
-       if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
-          if (imhd.eq.3) then   ! conservative form (explicitly symmetric)
-             dBconsdt(:,i) = dBconsdt(:,i)		&
-                  + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-             dBconsdt(:,j) = dBconsdt(:,j) 		&
-                  - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj             
-          elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
-             dBconsdt(:,i) = dBconsdt(:,i)		&
-                  - phii_on_phij*pmassj*(dvel(:)*projBrhoi + rho1i*veli(:)*projdB)*grkerni 
-             dBconsdt(:,j) = dBconsdt(:,j) 		&
-                  - phij_on_phii*pmassi*(dvel(:)*projBrhoj + rho1j*velj(:)*projdB)*grkernj
-          else                 ! non-conservative (usual) form
-             dBconsdt(:,i) = dBconsdt(:,i)		&
-                  - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-             dBconsdt(:,j) = dBconsdt(:,j) 		&
-                  - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
-          endif
-          
-          if (idivBzero.ge.2) then ! add hyperbolic correction term
-             gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-             dBconsdt(:,i) = dBconsdt(:,i) + pmassj*gradpsiterm*dr(:)
-             dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
-          endif
-!
-!   (evolving B)
-!
-       elseif (imhd.ge.11) then	! note divided by rho later		  
-          dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
-          dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
-          
-          if (idivBzero.ge.2) then  ! add hyperbolic correction term
-             gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)   
-             dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*gradpsiterm*dr(:)
-             dBconsdt(:,j) = dBconsdt(:,j) + rhoj*pmassi*gradpsiterm*dr(:)
-          endif
-       endif
-		
+       call mhd_terms
     else	! if no mhd
        Brho2j = 0.
        Brho2i = 0.  
@@ -740,60 +618,13 @@ contains
        projBrhoi = 0.
        projBrhoj = 0.
     endif
-!----------------------------------------------------------------------------
-!  energy equation (total or thermal)
-!----------------------------------------------------------------------------
-            
-    if (iener.ge.3) then	! total energy/particle (generalised form)
-       Bidotvj = dot_product(Brhoi,velj)
-       Bjdotvi = dot_product(Brhoj,veli)
-       !
-       ! (isotropic stress)
-       !
-       prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*sqrtgi*grkerni &
-                  + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
-       !
-       ! (anisotropic stress)
-       !
-       prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
-                   - Bjdotvi*projBrhoj*phij_on_phii*grkernj
-       projprv = dot_product(prvterm,dr)		   
-       !
-       ! (add source term for anticlumping term)		   
-       !
-       if (ianticlump.eq.1 .and. imagforce.eq.2) then
-          ! prvaniso = prvaniso - Rjoe*prvaniso
-          ! (if applied in x-direction only)
-          Bidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
-          Bjdotvi = dot_product(Brhoj(1:ndim),veli(1:ndim))
-          
-          Bidotvj = dot_product(Brhoi(1:ndim),velj(1:ndim))
-          Bjdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
-          
-          prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phii_on_phij*grkerni &
-                             -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
-          prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phii_on_phij*grkerni &
-                             -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
-       endif
 
-       dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
-       dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj)
-       !
-       ! (source term for hyperbolic divergence correction)		
-       !
-       if (idivBzero.ge.2) then
-          dendt(i) = dendt(i) + pmassj*projBi*gradpsiterm
-          dendt(j) = dendt(j) + pmassi*projBj*gradpsiterm
-       endif
-		
-    endif
-    !
-    !--compute thermal energy derivative even if using total energy equation
-    !		
-    if (iener.ne.0) then	!  1st law of thermodynamics
-       dudt(i) = dudt(i) + Prho2i*drhodti
-       dudt(j) = dudt(j) + Prho2j*drhodtj
-    endif
+!------------------------------------------------------------------------
+!  total energy equation (thermal energy equation terms calculated
+!                         outside loop and in artificial_dissipation)
+!------------------------------------------------------------------------
+   
+    if (iener.eq.3) call energy_equation
 
 !----------------------------------------------------------------------------
 !  XSPH term for moving the particles
@@ -822,12 +653,11 @@ contains
     real :: eni,enj,ediff,ediffB,qdiff
     real :: vissv,vissB,vissu
     real :: term,avterm,avtermB,rhoav1
-
     !
     !--definitions
     !	
-    alphaav = 0.5*(alphai + alpha(j))
-    alphaB = alphaBmin !! 0.5*(alphai + alpha(j))
+    alphaav = 0.5*(alphai + alpha(1,j))
+    alphaB = 0.5*(alphaBi + alpha(2,j))
 !!    alphaB = 0.5*(alphaBi + alphaB(j))
     rhoav1 = 2./(rhoi + rhoj)
     
@@ -949,9 +779,189 @@ contains
   subroutine mhd_terms
     implicit none
 
+    !----------------------------------------------------------------------------		
+    !  Lorentz force
+    !----------------------------------------------------------------------------
+    !
+    !--calculate curl B for current (only if field is 3D)
+    !  this is used in the switch for the artificial resistivity term
+    !
+    if (ndimB.eq.3) then
+       curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
+       curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
+       curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
+    elseif (ndimB.eq.2) then  ! just Jz in 2D
+       curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
+       curlBi(2) = 0.
+    endif
     
+    if (imagforce.eq.1) then	! vector form (dot products)
+       
+       BidotdB = dot_product(Brhoi,dB)
+       BjdotdB = dot_product(Brhoj,dB)
+       fmagi(:) = grkern*(dr(:)*BidotdB - projBrhoi*dB(:))		  
+       fmagj(:) = grkern*(dr(:)*BjdotdB - projBrhoj*dB(:))
+       
+    elseif (imagforce.eq.2) then	! tensor formalism in generalised form
+       !
+       !--isotropic mag force (pressure gradient)
+       !		  
+       fiso = 0.5*(Brho2i*phij_on_phii*grkerni + Brho2j*phii_on_phij*grkernj)
+       !
+       !--anisotropic force (including variable smoothing length terms)
+       !
+       faniso(:) = Brhoi(:)*projBrhoi*phij_on_phii*grkerni  &
+            + Brhoj(:)*projBrhoj*phii_on_phij*grkernj		   
+       !
+       !--Joe's correction term (preserves momentum conservation)
+       !  in 1D we only do this in the x-direction
+       !
+       if (ianticlump.eq.1) then
+          wabjoe = wabjoei*hfacwab
+          Rjoe = 0.5*eps*(wab/wabjoe)**neps
+          !if (Rjoe.gt.0.1) print*,'Rjoe = ',Rjoe,i,j,wab,wabjoe
+          !faniso(:) = faniso(:) - Rjoe*faniso(:)  
+          faniso(1:ndim) = faniso(1:ndim) - Rjoe*faniso(1:ndim)  
+       endif
+       !
+       !--add contributions to magnetic force
+       !	  
+       fmagi(:) = faniso(:) - fiso*dr(:)
+       
+    elseif (imagforce.eq.5) then	! Morris' Hybrid form
+       
+       rhoij = rhoi*rhoj
+       fiso = grkern*0.5*(Brho2i + Brho2j)
+       faniso(:) = grkern*(Bj(:)*projBj - Bi(:)*projBi)/rhoij
+       fmagi(:) = faniso(:) - fiso*dr(:)		  
+       
+    endif
+    !
+    !--compute rho * divergence of B
+    !
+    divB(i) = divB(i) - pmassj*projdB*grkern
+    divB(j) = divB(j) - pmassi*projdB*grkern
+    !
+    !--compute rho * current density J
+    !
+    curlB(:,i) = curlB(:,i) - pmassj*curlBi(:)*grkern
+    curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkern
+    !
+    !--add Lorentz force to total force
+    !        	
+    if (imagforce.eq.1) then
+       fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
+       fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
+       force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
+       force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
+    elseif (imagforce.eq.5) then	! Morris' Hybrid force
+       fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
+       fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
+       force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
+       force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:)) 			        
+    else 	! symmetric forces fmagxi = -fmagxj
+       fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)
+       fmag(:,j) = fmag(:,j) - pmassi*fmagi(:)
+       force(:,i) = force(:,i) + pmassj*fmagi(:)
+       force(:,j) = force(:,j) - pmassi*fmagi(:) 
+    endif
+    
+    !--------------------------------------------------------------------------------
+    !  time derivative of magnetic field (divide by rho later) - in generalised form
+    !---------------------------------------------------------------------------------
+    !
+    !   (evolving B/rho)
+    !
+    if (imhd.gt.0.and. imhd.le.10) then   ! divided by rho later
+       if (imhd.eq.3) then   ! conservative form (explicitly symmetric)
+          dBconsdt(:,i) = dBconsdt(:,i)		&
+               + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
+          dBconsdt(:,j) = dBconsdt(:,j) 		&
+               - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj             
+       elseif (imhd.eq.2) then  ! conservative form (no change for 1D)
+          dBconsdt(:,i) = dBconsdt(:,i)		&
+               - phii_on_phij*pmassj*(dvel(:)*projBrhoi + rho1i*veli(:)*projdB)*grkerni 
+          dBconsdt(:,j) = dBconsdt(:,j) 		&
+               - phij_on_phii*pmassi*(dvel(:)*projBrhoj + rho1j*velj(:)*projdB)*grkernj
+       else                 ! non-conservative (usual) form
+          dBconsdt(:,i) = dBconsdt(:,i)		&
+               - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
+          dBconsdt(:,j) = dBconsdt(:,j) 		&
+               - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
+       endif
+       
+       if (idivBzero.ge.2) then ! add hyperbolic correction term
+          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
+          dBconsdt(:,i) = dBconsdt(:,i) + pmassj*gradpsiterm*dr(:)
+          dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
+       endif
+       !
+       !   (evolving B)
+       !
+    elseif (imhd.ge.11) then	! note divided by rho later		  
+       dBconsdt(:,i) = dBconsdt(:,i) + pmassj*(Bi(:)*dvdotr - dvel(:)*projBi)*grkerni   
+       dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
+       
+       if (idivBzero.ge.2) then  ! add hyperbolic correction term
+          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)   
+          dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*gradpsiterm*dr(:)
+          dBconsdt(:,j) = dBconsdt(:,j) + rhoj*pmassi*gradpsiterm*dr(:)
+       endif
+    endif
+		   
 
     return
   end subroutine mhd_terms
-
+ 
+!----------------------------------------------------------------------------
+!  energy equation if evolving the total energy/particle
+!
+!---------------------------------------------------------------------------- 
+  subroutine energy_equation
+    implicit none
+             
+    Bidotvj = dot_product(Brhoi,velj)
+    Bjdotvi = dot_product(Brhoj,veli)
+    !
+    ! (isotropic stress)
+    !
+    prvterm(:) = (Prho2i+0.5*Brho2i)*phii_on_phij*velj(:)*sqrtgi*grkerni &
+         + (Prho2j+0.5*Brho2j)*phij_on_phii*veli(:)*sqrtgj*grkernj
+    !
+    ! (anisotropic stress)
+    !
+    prvaniso =  - Bidotvj*projBrhoi*phii_on_phij*grkerni	& 
+         - Bjdotvi*projBrhoj*phij_on_phii*grkernj
+    projprv = dot_product(prvterm,dr)		   
+    !
+    ! (add source term for anticlumping term)		   
+    !
+    if (ianticlump.eq.1 .and. imagforce.eq.2) then
+       ! prvaniso = prvaniso - Rjoe*prvaniso
+       ! (if applied in x-direction only)
+       Bidotvi = dot_product(Brhoi(1:ndim),veli(1:ndim))
+       Bjdotvi = dot_product(Brhoj(1:ndim),veli(1:ndim))
+       
+       Bidotvj = dot_product(Brhoi(1:ndim),velj(1:ndim))
+       Bjdotvj = dot_product(Brhoj(1:ndim),velj(1:ndim))
+       
+       prvanisoi = -Rjoe*(-Bidotvi*projBrhoi*phii_on_phij*grkerni &
+            -Bjdotvi*projBrhoj*phij_on_phii*grkernj)
+       prvanisoj = -Rjoe*(-Bidotvj*projBrhoi*phii_on_phij*grkerni &
+            -Bjdotvj*projBrhoj*phij_on_phii*grkernj)
+    endif
+       
+    dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi)
+    dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj)
+    !
+    ! (source term for hyperbolic divergence correction)		
+    !
+    if (idivBzero.ge.2) then
+       dendt(i) = dendt(i) + pmassj*projBi*gradpsiterm
+       dendt(j) = dendt(j) + pmassi*projBj*gradpsiterm
+    endif
+    
+    return
+  end subroutine energy_equation
+    
 end subroutine get_rates
