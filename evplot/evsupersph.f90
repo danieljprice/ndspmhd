@@ -153,7 +153,7 @@ program plotmeagraph
   label(6) = 'E_total        '
   label(7) = 'Linear momentum'
 
-  if (ncol.gt.9) then
+  if (ncol.gt.10) then
      label(8) = 'Total flux     '
      label(9) = 'Cross helicity '
      label(10) = 'Plasma beta (min)'
