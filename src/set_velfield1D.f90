@@ -112,7 +112,7 @@ SUBROUTINE set_vperp(xmin,xmax,ekin_in)
        vel(2,i) = vel(2,i) + amplk(ifreq)*SIN(wkdotx + phase(ifreq))
     ENDDO
 
-    ekin = ekin + 0.5*velin(2,i)**2   
+    ekin = ekin + 0.5*vel(2,i)**2   
  
  ENDDO
  
