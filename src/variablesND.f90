@@ -157,7 +157,7 @@ MODULE options
  INTEGER :: igeom,maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
- REAL :: damp,psidecayfact
+ REAL :: damp,psidecayfact,tolh
 END MODULE
 
 !-------------------------------------------------------------------
@@ -196,6 +196,7 @@ MODULE rates
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: drhodt,dudt,dendt,dhdt,dpsidt
  REAL, DIMENSION(:,:), ALLOCATABLE :: force,dBevoldt,daldt,gradpsi
+ REAL :: potengrav
 END MODULE rates
 
 !-------------------------------------------------------------------

@@ -32,7 +32,7 @@ subroutine iterate_density
   integer :: i,j,itsdensitymax
   integer :: ncalc,ncalcprev,ncalctotal
   integer, dimension(npart) :: redolist, redolistprev
-  real :: tol,hnew,htemp,func,dfdh,deltarho
+  real :: hnew,htemp,func,dfdh,deltarho
   real :: rhoi,dhdrhoi,omegai
   real, dimension(npart) :: rhoin
   logical :: converged,redolink
@@ -56,7 +56,6 @@ subroutine iterate_density
 !--Loop to find rho and h self-consistently (if using Springel/Hernquist)
 !
   itsdensity = 0
-  tol = 1.e-2
   ncalctotal = 0
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
@@ -180,7 +179,7 @@ subroutine iterate_density
               !!   hnew = 2.*hh(i)
               !!endif
               
-              converged = abs(func)/rhoin(i) < tol .and. omegai > 0.
+              converged = abs(func)/rhoin(i) < tolh .and. omegai > 0.
               !!converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 0.
               
               testconvergence: if (.not.converged) then

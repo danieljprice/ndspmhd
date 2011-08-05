@@ -170,14 +170,20 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
 !--print out smoothing length information
 !
-    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim
+    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh
 240 FORMAT(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,')')
+      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',1pe8.2)
 
+    WRITE(iprint,*)
     CALL minmaxave(hh(1:npart),hmin,hmax,have,npart)
-    WRITE(iprint,250) hmin,hmax,have
-250 FORMAT (6x,' h min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
+    WRITE(iprint,250) 'h',hmin,hmax,have
+    CALL minmaxave(rho(1:npart),hmin,hmax,have,npart)
+    WRITE(iprint,250) 'rho',hmin,hmax,have
+    CALL minmaxave(uu(1:npart),hmin,hmax,have,npart)
+    WRITE(iprint,250) 'u',hmin,hmax,have
+250 FORMAT (1x,a3,' min = ',1pe9.2,' max = ',1pe9.2,' ave = ',1pe9.2)
+    WRITE(iprint,*)
 
  ENDIF
       

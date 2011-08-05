@@ -23,7 +23,7 @@ subroutine set_default_options
 !--set default options
 !         
    psep = 0.01
-   C_cour = 0.8
+   C_cour = 0.3
    C_force = 0.25
    dtforce = 0.
    dtcourant = 0.
