@@ -68,14 +68,14 @@ SUBROUTINE evwrite(t)
     fluxtotmag = 0.
     crosshel = 0.      
  ENDIF 
-      
- DO i=1,npart
+
 !
 !--should really recalculate the thermal energy from the total energy here
 !  (otherwise uu is from the half time step and same with Bfield)
 ! 
-    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
-                                Bfield(:,i),Bcons(:,i),ierr)
+ CALL conservative2primitive
+      
+ DO i=1,npart
 
     pmassi = pmass(i)
     rhoi = rho(i)

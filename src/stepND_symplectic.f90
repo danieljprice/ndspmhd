@@ -111,30 +111,7 @@ SUBROUTINE step
 !
 !--calculate primitive variables (u,B) from conservative variables (en,B/rho)
 !   
- DO i=1,npart
-    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
-    				Bfield(:,i),Bcons(:,i),ierr)
-    IF (ierr.EQ.1) THEN ! negative thermal energy
-       WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-       uu(i) = 0.	!uuin(i) + dt*dudt(i)
-    ENDIF
-!
-!--calculate the pressure using the equation of state
-!
-    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
- ENDDO
-!
-!--copy these quantities onto the ghost particles
-! 
- IF (ANY(ibound.GT.1)) THEN
-    DO i=npart+1,ntotal
-       j = ireal(i)
-       uu(i) = uu(j)
-       spsound(i) = spsound(j)
-       pr(i) = pr(j)
-       Bfield(:,i) = Bfield(:,j)
-    ENDDO
- ENDIF
+ CALL conservative2primitive
 !
 !--calculate forces/rates of change using predicted quantities
 !	 

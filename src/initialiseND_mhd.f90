@@ -30,6 +30,7 @@ SUBROUTINE initialise
  CHARACTER(LEN=20) :: datfile,logfile	! rootname is global in loguns
  INTEGER :: ntot,ierr
  INTEGER :: i,j,iktemp,npart1
+ REAL :: hmin,hmax,have
  LOGICAL :: set_fixed_particles
 !
 !--try reading rootname from the command line
@@ -103,20 +104,30 @@ SUBROUTINE initialise
  CALL setup    		! setup particles, allocation of memory is called
  			! could replace this with a call to read_dump
 !
+!--calculate conservative quantities (needs to be here for rho -> h)
+! 
+ CALL primitive2conservative
+!
 !--set particle properties that are not set in setup 
 !  (initial smoothing length, dissipation parameter, gradh terms)
-!    
+!
+ hmin = 1.e6
+ hmax = 0.
+ have = 0.
  DO i=1,npart
     hh(i) = hfact*(pmass(i)/rho(i))**hpower   ! set using density
+    hmin = min(hmin,hh(i))
+    hmax = max(hmax,hh(i))
+    have = have + hh(i)
     hhin(i) = hh(i)
     IF (hh(i).LE.0) WRITE(iprint,*) 'Error in setup: h <= 0 :',i,hh(i)
-    alpha(i) = alphamin      ! remove if set in setup
+    alpha(i) = alphamin
     gradh(i) = 0.
-    !!--set conservative variables = primitive variables
-    !!  for the call to ghosts. This is overwritten later
-    en(i) = uu(i)
-    Bcons(:,i) = Bfield(:,i)
+    sqrtg(i) = 1.
  ENDDO
+ have = have/REAL(npart)
+ WRITE(iprint,20) hmin,hmax,have
+20 FORMAT (/,' Smoothing lengths: min = ',1pe8.2,' max = ',1pe8.2,' ave = ',1pe8.2,/)
  divB = 0.
  curlB = 0.
  fmag = 0.
@@ -151,39 +162,37 @@ SUBROUTINE initialise
     WRITE(iprint,*) 'Calculating initial density...'
     CALL iterate_density	! evaluate density by direct summation
     ikernav = iktemp
+    !! CALL smooth_initial_conditions(uuin(:),uu(:),SIZE(uuin))
+
+    DO i=1,npart	! not ghosts
+    !
+    !--for 1D fixed particle boundaries, set values of rho, h for the boundary
+    !  particles
+    !
+       IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
+          IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
+             rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
+             hh(i) = hh(nbpts+1)
+             gradh(i) = gradh(nbpts+1)
+          ELSEIF (i.GT.(npart-nbpts)) THEN
+             rho(i) = rho(npart-nbpts)
+             hh(i) = hh(npart-nbpts)
+             gradh(i) = gradh(npart-nbpts)
+          ENDIF
+       ENDIF
+       rhoin(i) = rho(i)		! set initial rho and h equal to values calculated  
+       hhin(i) = hh(i)
+       !
+       !--set initial pressure, vsound from eos (also u if polytropic)
+       !      
+       CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
+       
+    ENDDO	! (note energy and B/rho are not set for ghosts yet)
+    !
+    !--recalculate the conserved variables since rho has changed
+    !
+    CALL primitive2conservative
  ENDIF
-!! CALL smooth_initial_conditions(uuin(:),uu(:),SIZE(uuin))
-
-
- DO i=1,npart	! not ghosts
-!
-!--for 1D fixed particle boundaries, set values of rho, h for the boundary
-!  particles
-!
-    IF (itype(i).EQ.1 .AND. ndim.EQ.1) THEN	! only for 1D fixed particles
-       IF (i.LE.nbpts) THEN	! set fixed particles to value of density,h
-          rho(i) = rho(nbpts+1)	! calculated just outside fixed zone
-          hh(i) = hh(nbpts+1)
-          gradh(i) = gradh(nbpts+1)
-       ELSEIF (i.GT.(npart-nbpts)) THEN
-          rho(i) = rho(npart-nbpts)
-          hh(i) = hh(npart-nbpts)
-          gradh(i) = gradh(npart-nbpts)
-       ENDIF 
-    ENDIF
-    rhoin(i) = rho(i)		! set initial rho and h equal to values calculated  
-    hhin(i) = hh(i)
-!
-!--set initial pressure, vsound from eos (also u if polytropic)
-!      
-    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
-!
-!--calculate the conserved variables from the primitive variables
-!  (this calculates en, B/rho from the thermal energy and B)
-!
-    CALL primitive2conservative(rho(i),vel(:,i),uu(i),en(i), &
-    				Bfield(:,i),Bcons(:,i),ierr)
- ENDDO	! (note energy and B/rho are not set for ghosts yet)
 !
 !--make sure ghost particle quantities are the same
 !  (copy both conservative and primitive here)
@@ -210,25 +219,13 @@ SUBROUTINE initialise
 !
 !--Set derivatives to zero until calculated
 !      
- DO i=1,ntotal
-    drhodt(i) = 0.
-    dudt(i) = 0.
-    dendt(i) = 0.
-    force(:,i) = 0.
-    dhdt(i) = 0.
-    daldt(i) = 0.    
-    dBconsdt(:,i) = 0.
-!
-!--also set initial values of conservative quantities equal to main quantities
-!
-    xin(:,i) = x(:,i)
-    velin(:,i) = vel(:,i)
-    rhoin(i) = rho(i)
-    enin(i) = en(i)		! " " and not set in setup
-    hhin(i) = hh(i)
-    alphain(i) = alpha(i)
-    Bconsin(:,i) = Bcons(:,i)	! if using midpoint
- ENDDO
+ drhodt = 0.
+ dudt = 0.
+ dendt = 0.
+ force = 0.
+ dhdt = 0.
+ daldt = 0.    
+ dBconsdt = 0.
 !
 !--write second header to logfile/screen
 !

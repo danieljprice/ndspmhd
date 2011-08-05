@@ -32,7 +32,16 @@ SUBROUTINE step
 !--Mid-point Predictor step
 !      
  hdt = 0.5*dt
-      
+ DO i=1,npart
+    xin(:,i) = x(:,i)
+    velin(:,i) = vel(:,i)
+    Bconsin(:,i) = Bcons(:,i)
+    rhoin(i) = rho(i)
+    hhin(i) = hh(i)
+    enin(i) = en(i)
+    alphain(i) = alpha(i)
+ ENDDO         
+ 
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
@@ -88,34 +97,10 @@ SUBROUTINE step
 !--calculate density by direct summation
 !
  IF (icty.LE.0) CALL iterate_density
-
- DO i=1,npart
 !
 !--calculate primitive variables from conservative variables
 !   
-    CALL conservative2primitive(rho(i),vel(:,i),uu(i),en(i), &
-    				Bfield(:,i),Bcons(:,i),ierr)
-    IF (ierr.EQ.1) THEN ! negative thermal energy
-       WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
-       uu(i) = 0.		!uuin(i) + hdt*dudt(i)
-    ENDIF
-!
-!--calculate the pressure using the equation of state
-!
-    CALL equation_of_state(pr(i),spsound(i),uu(i),rho(i),gamma)
- ENDDO
-!
-!--copy these quantities onto the ghost particles
-! 
- IF (ANY(ibound.GT.1)) THEN
-    DO i=npart+1,ntotal
-       j = ireal(i)
-       uu(i) = uu(j)
-       spsound(i) = spsound(j)
-       pr(i) = pr(j)
-       Bfield(:,i) = Bfield(:,j)
-    ENDDO
- ENDIF
+ CALL conservative2primitive
 !
 !--calculate forces/rates of change using predicted quantities
 !	 

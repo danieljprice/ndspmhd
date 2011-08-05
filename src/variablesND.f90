@@ -144,10 +144,10 @@ MODULE part
  IMPLICIT NONE
  INTEGER :: npart,nbpts,ntotal
  INTEGER, DIMENSION(:), ALLOCATABLE :: itype
- REAL, DIMENSION(:), ALLOCATABLE :: pmass
+ REAL, DIMENSION(:), ALLOCATABLE :: pmass,sqrtg
  REAL, DIMENSION(:,:), ALLOCATABLE :: x   
- REAL, DIMENSION(:), ALLOCATABLE :: rho,pr,uu,en,hh,alpha
- REAL, DIMENSION(:,:), ALLOCATABLE :: vel
+ REAL, DIMENSION(:), ALLOCATABLE :: dens,rho,pr,uu,en,hh,alpha
+ REAL, DIMENSION(:,:), ALLOCATABLE :: vel,pmom,sourceterms
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bfield, Bcons
 END MODULE part 
 
@@ -158,7 +158,7 @@ END MODULE part
 MODULE part_in
  IMPLICIT NONE
  REAL, DIMENSION(:), ALLOCATABLE :: rhoin,prin,hhin,enin,alphain
- REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin
+ REAL, DIMENSION(:,:), ALLOCATABLE :: xin,velin,pmomin
  REAL, DIMENSION(:,:), ALLOCATABLE :: Bconsin
 END MODULE
 
