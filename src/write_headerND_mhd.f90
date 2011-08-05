@@ -26,13 +26,13 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,Nneigh
+ INTEGER :: i
  INTEGER, INTENT(IN) :: icall
  CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,logfile
  CHARACTER(LEN=21) :: boundtype
  CHARACTER(LEN=5), DIMENSION(3) :: coord
  CHARACTER(LEN=10) :: startdate, starttime
- REAL :: have,hmin,hmax,v2i,B2i
+ REAL :: have,hmin,hmax,v2i,B2i,fNneigh
  REAL, DIMENSION(npart) :: dummy
 !
 !--allow for tracing flow
@@ -207,18 +207,18 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
 !
     select case(ndim)
     case(1)
-       Nneigh = nint(2.*radkern*hfact)     
+       fNneigh = 2.*radkern*hfact 
     case(2)
-       Nneigh = nint(4.*pi*(radkern*hfact)**2)
+       fNneigh = pi*(radkern*hfact)**2
     case(3)
-       Nneigh = nint(4./3.*pi*(radkern*hfact)**3)
+       fNneigh = 4./3.*pi*(radkern*hfact)**3
     end select
     
-    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh, Nneigh
+    WRITE (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh, fNneigh
 240 FORMAT(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',1pe8.2,/ &
-      6x,' Number of neighbours = ',i4)
+      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',es8.2,/ &
+      6x,' Number of neighbours = ',f8.2)
 !
 !--print out diagnostics of run
 !
