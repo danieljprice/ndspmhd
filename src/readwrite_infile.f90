@@ -51,7 +51,7 @@ subroutine write_infile(infile)
   write(iread,200) C_cour, C_force
   write(iread,210) usenumdens
   write(iread,220) isplitpart,rhocrit
-  write(iread,230) iuse_exact_derivs
+  write(iread,230) iuse_exact_derivs, nsteps_remap
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -60,8 +60,8 @@ subroutine write_infile(infile)
 40 format(i2,1x,f5.3,28x,'! type of energy equation, polyk(for iener=0)')
 50 format(i2,1x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv), ndirect, maxdensits')
 60 format(i2,36x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
-70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphab(min), beta')
-80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, ab limiter, constant for this(0.1-0.2)')
+70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphaB(min), beta')
+80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, aB limiter, decay constant for this(0.1-0.2)')
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
 100 format(i2,1x,f5.3,2x,1pe10.3,16x,'! variable h, initial h factor, h tolerance')
 110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
@@ -76,7 +76,7 @@ subroutine write_infile(infile)
 200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
 210 format(l1,35x,'! Use number density formulation of gradh')
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
-230 format(i2,34x,'! use exact derivatives for MHD (0:off 1:on)')
+230 format(i2,2x,i4,30x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -144,7 +144,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) C_Cour, C_force
   read(iread,*,err=50,end=50) usenumdens
   read(iread,*,err=50,end=50) isplitpart,rhocrit
-  read(iread,*,err=50,end=50) iuse_exact_derivs
+  read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
  close(unit=iread)
 
  goto 55
@@ -203,6 +203,10 @@ subroutine read_infile(infile)
  if (isplitpart.lt.0) stop 'invalid choice for isplitpart'
  if (isplitpart.ge.0 .and. rhocrit.le.0.) then
     write(iprint,100) 'critical density <= 0 in particle splitting'
+ endif
+ if (nsteps_remap.lt.0.) then
+    write(iprint,100) 'nsteps_remap < 0 invalid remapping interval'
+    stop
  endif
 100   format(/' read_infile: warning: ',a)
  return

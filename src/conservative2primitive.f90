@@ -69,15 +69,16 @@ subroutine conservative2primitive
 !--calculate magnetic flux density B from the conserved variable
 !
   remap = .false.
+  if (imhd.eq.10 .or. imhd.eq.20 .or. imhd.eq.-3 .and. &
+      nsteps_remap.gt.0 .and. mod(nsteps,nsteps_remap).eq.0) then
+     remap = .true.
+     print*,' REMAPPING...'
+  endif
+
   select case(imhd)
   case(11:19, 21:) ! if using B as conserved variable
      Bfield = Bevol
   case(20)  ! remapped B
-     remap = .false.
-     !if (mod(nsteps,50).eq.0) then
-        remap = .true.
-        print*,' REMAPPING...'
-     !endif
      !--remap B_0 to current B
      call get_B_eulerpots(4,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      if (remap) then
@@ -95,8 +96,6 @@ subroutine conservative2primitive
         print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)
      endif
   case(10)  ! remapped B/rho
-     remap = .false.
-
      !--remap B/rho to current B/rho
      call get_B_eulerpots(3,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      do i=1,npart
@@ -177,8 +176,6 @@ subroutine conservative2primitive
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   case(:-3) ! generalised Euler potentials
-     
-     remap = .false.
      write(iprint,*) 'getting B field from Generalised Euler Potentials... '
      call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      print*,' magnetic energy = ',emag_calc(pmass,rho,Bfield,npart)

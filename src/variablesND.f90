@@ -117,7 +117,7 @@ module options
  integer :: imhd,imagforce,idivbzero   !  (mhd options)
  integer :: iexternal_force,ixsph,isplitpart
  integer :: igravity,ikernel,ikernelalt,iresist
- integer :: maxdensits,iuse_exact_derivs
+ integer :: maxdensits,iuse_exact_derivs,nsteps_remap
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
