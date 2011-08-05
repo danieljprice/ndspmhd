@@ -1,9 +1,10 @@
-subroutine kernelstability1D(iplot,nacross,ndown)
+subroutine kernelstability1D(iplot,nacrossin,ndownin)
   use kernel
   implicit none
-  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 100
-  integer, intent(in) :: iplot, nacross, ndown
-  integer :: i,j,ipart,mm,pp,nc
+  integer, parameter :: ny = 100, nkx = 100, npart = 20, ncont = 40
+  integer, intent(in) :: iplot, nacrossin, ndownin
+  integer :: i,j,ipart,mm,pp,nc,neps
+  integer :: iplotpos, iloop, nplots, nacross, ndown
   real, parameter :: pi = 3.1415926536
   real, dimension(nkx,ny) :: dat
   real, dimension(ny) :: yaxis
@@ -11,12 +12,12 @@ subroutine kernelstability1D(iplot,nacross,ndown)
   real, dimension(npart) :: x
   real, dimension(ncont) :: levels
   real, dimension(6) :: trans
-  real :: xmin, psep, pmass, rhozero, cs2, R
+  real :: xmin, psep, pmass, rhozero, cs2, R, eps
   real :: ymin, ymax, dy, dkx, kxmin, kxmax, h, kx
   real :: datmin, datmax, dcont, omegasq, omegasq1D
-  real :: charheight
+  real :: charheight, hpos, vpos
   character(len=5) :: string,labely
-  character(len=50) :: filename, text
+  character(len=50) :: filename, text,title
   logical :: negstress, contours
   
   cs2 = 1.0
@@ -27,9 +28,27 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !--set various options
 !  
   contours = .true.     ! plot whole dispersion relation or just kx=0
-  negstress = .false.    ! plot vs h or R
-  R = -100.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
+  negstress = .true.    ! plot vs h or R
+  R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
+  eps = 0.4
+  neps = 0
+  nplots = 6
+  nacross = nacrossin
+  ndown = ndownin
+  nacross = nplots/2
+  ndown = nplots/nacross
+
+!  nacross = 1
+!  ndown = 1
+
+!
+!--iplotpos is plot position on page (= iplot if kernelstability being called
+!  multiple times with different kernels, but different if multiple plots are
+!  being drawn on the page within this subroutine).
+!  
+  iplotpos = iplot
+  title = trim(kernelname)
 !
 !--set up an array of particle positions to sum over
 !
@@ -42,7 +61,7 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !--set up an array of smoothing length values for the y axis
 !
   if (negstress) then   ! y axis is negative stress parameter R
-     ymin = -100.
+     ymin = -10.
      ymax = 1.
      labely = 'R'
   else                  ! y axis is h
@@ -53,7 +72,7 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
 !--set up y axis
 !
-  dy = (ymax - ymin)/REAL(ny)
+  dy = (ymax - ymin)/REAL(ny-1)
   do i=1,ny
      yaxis(i) = (ymin + (i-1)*dy)
   enddo 
@@ -66,6 +85,12 @@ subroutine kernelstability1D(iplot,nacross,ndown)
   do i=1,nkx
      kxarray(i) = kxmin + i*dkx
   enddo
+
+  do iloop=1,nplots
+     if (nplots.gt.1) iplotpos = iloop
+     neps = neps + 1
+     print*,'eps = ',eps,' neps = ',neps
+     write(title,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
 !
 !--calculates the 1D dispersion relation for SPH (no av)
 !  
@@ -77,7 +102,7 @@ subroutine kernelstability1D(iplot,nacross,ndown)
      endif
      do i=1,nkx
         kx = kxarray(i)/psep
-	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,R,x,npart,ipart)
+	omegasq = omegasq1D(h,kxarray(i),cs2,pmass,rhozero,R,eps,neps,x,npart,ipart)
         dat(i,j) = omegasq/(kx**2*cs2)
 !!       print*,i,j,' kx = ',kx,' h = ',h,' R = ',R,' dat = ',dat(i,j)
      enddo
@@ -85,12 +110,19 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
 !--now plot this using PGPLOT
 !
-  if (contours .or. negstress) then
+  if (contours) then
 !!  call pgbegin(0,'?',1,1)
-     call pgsch(1.2)
-     if (mod(iplot,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
-     call danpgtile(iplot,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
-                 'kx',TRIM(labely),TRIM(kernelname),0,0)
+     if (nacross*ndown.eq.1) call pgsch(1.2)
+     if (mod(iplotpos,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
+     call danpgtile(iplotpos,nacross,ndown,kxmin,kxmax,ymin,ymax-0.001, &  ! tiled plots
+                 'kx',TRIM(labely),' ',0,0)
+!
+! plot eps/neps on plot
+!
+     write(text,"(a,f3.1)") '\ge = ',eps
+     call pgmtxt('T',-1.5,0.96,1.0,trim(text))
+     write(text,"(a,i1)") 'n = ',neps     
+     call pgmtxt('T',-3.0,0.96,1.0,trim(text))
 !  call pgenv(kxmin,kxmax,ymin,ymax,0,0)            ! use this for movie
 !  call pglabel('kx',TRIM(labely),TRIM(kernelname)) ! use this for movie
 
@@ -119,6 +151,7 @@ subroutine kernelstability1D(iplot,nacross,ndown)
         !!print*,'level = ',levels(i),string
         call pgqch(charheight) ! query character height
         call pgsch(0.5*charheight)   ! shrink character height
+	!!call pgsch(0.5)
         call pgconl(dat,nkx,ny,1,nkx,1,ny,levels(i),trans,TRIM(string),35,14)
         call pgsch(charheight) ! restore character height
      enddo
@@ -127,12 +160,26 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 !
 !--plot just the line along kx = 0
 !
-     call pgsch(1.0)
-     if (iplot.eq.1) call pgpage
-     call danpgtile(iplot,nacross,ndown, &
-          1.0,1.99,0.8,1.11, &  ! tiled plots
-          'h','cs',' ',0,0)
-     call pgline(ny,yaxis(1:ny),sqrt(dat(1,1:ny)))
+     call pgsch(1.2)
+     if (iplotpos.eq.1) call pgpage
+     datmin = 1.0
+     datmax = 3.5 !!sqrt(maxval(dat(1,1:ny)))
+     call danpgtile(iplotpos,nacross,ndown, &
+          ymin,ymax,datmin,datmax,labely,'cs',trim(kernelname),0,0)
+     if (nplots.gt.1) call pgsls(iplotpos)
+     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(1,1:ny))))
+     
+     !
+     !--set legend position
+     !
+     hpos = 0.1   ! horizontal position as % of viewport
+     vpos = 3.0  ! vertical position in character heights from top
+     write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
+     if (nplots.gt.1) then
+        call legend(iloop,trim(text),hpos,vpos)   
+     else
+        call legend(0,trim(text),hpos,vpos)  
+     endif
      !
      !--plot line from file
      !
@@ -146,36 +193,78 @@ subroutine kernelstability1D(iplot,nacross,ndown)
 	      call plotfreq(filename)
 	      read(11,"(a)",end=21) text
 21            continue
-	      print*,trim(text),filename
-              call legend(i,trim(text),0.6,25.0)
+	      print*,trim(text),': ',filename
+              call legend(i,trim(text),hpos,vpos)
 	   endif
 	enddo
         close(unit=11)
      else
-        call legend(5,trim(kernelname)//', fixed h',0.6,25.0)     
+        call legend(5,trim(kernelname)//', fixed h',hpos,vpos)     
      endif
 
      call pgsch(charheight)
      call pgsls(1)
   endif
 
-end subroutine kernelstability1D
+  enddo
 
-real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,x,npart,ipart)
+end subroutine kernelstability1D
+!
+! function to calculate the dispersion relation for a given
+! smoothing length, wavenumber, sound speed, density and particle mass
+! 
+! calculates this using the analytic dispersion relation but evaluates
+! the summations by summing over an array of particles
+! In principle could be used for non-uniform particle setups but I have
+! never done so.
+!
+! arguments:
+!           x(npart) : array of particle positions
+!           ipart    : position of central particle in the array
+!           npart    : number of particles
+!           RR       : negative stress parameter (RR=1 gives hydro)
+!
+real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,eps,neps,x,npart,ipart)
   use kernel
   implicit none
-  integer :: i,index,index1, ipart, npart
+  integer :: i,index,index1, ipart, npart, neps
   real, dimension(npart) :: x
   real :: hh,kx,cs2,pmass,rhozero,RR
-  real :: sum1, sum2
+  real :: sum1, sum2, sum3, sum4
   real :: dxx, dgrwdx, dgrgrwdx, gradW, gradgradW
-  real :: dx, q2
+  real :: Wjoe, W, dWdx, gradgradWcorr
+  real :: dx, dr, q2, eps
 
   sum1 = 0.
   sum2 = 0.
-
+  sum3 = 0.
+  sum4 = 0.
+!
+!--calculate kernel in denominator of anticlumping term
+!
+  q2 = (1./1.5)**2
+  index = INT(q2*ddq2table)
+  index1 = index + 1
+  IF (index.GT.ikern) index = ikern
+  IF (index1.GT.ikern) index1 = ikern
+  dxx = q2 - index*dq2table  
+  dWdx = (wij(index1)-wij(index))*ddq2table
+  Wjoe = (wij(index) + dWdx*dxx)/hh 
+!!  print*,'wjoe = ',wjoe,q2,index,hh,1./hh
+  if (wjoe.lt.1.e-5) then
+     wjoe = 1.0
+     eps = 0.0
+  endif
+!
+!--calculate summation terms
+!
   do i=1,npart
-     dx = abs(x(i) - x(ipart))
+     dx = x(i) - x(ipart)
+     if (i.ne.ipart) then
+        dr = dx/abs(dx)  ! unit vector in x direction
+     else
+        dr = 0.
+     endif
 !
 !--find nearest index in kernel table
 ! 
@@ -190,11 +279,29 @@ real function omegasq1D(hh,kx,cs2,pmass,rhozero,RR,x,npart,ipart)
      gradW = (grwij(index) + dgrwdx*dxx)/hh**2
      gradgradW = (grgrwij(index) + dgrgrwdx*dxx)/hh**3 
      
-     sum1 = sum1 + (1. - COS(kx*dx))*gradgradW  ! times unit vector in x dir (=1)
-     sum2 = sum2 + SIN(kx*dx)*gradW
+     dWdx = (wij(index1)-wij(index))*ddq2table
+     W = (wij(index) + dWdx*dxx)/hh 
+     !--calculate dW^n+1/dx^2 for anticlumping term
+     if (neps.gt.0) gradgradWcorr = (neps+1.)*(neps*(W**(neps-1))*gradW*gradW + (W**neps)*gradgradW)
+     
+     sum1 = sum1 + (1. - COS(kx*dx))*gradgradW
+     sum2 = sum2 + SIN(kx*dx)*gradW*dr ! times unit vector in x dir
+     sum3 = sum3 + (1. - COS(kx*dx))*gradgradWcorr
+     sum4 = sum4 + W**neps*SIN(kx*dx)*gradW*dr 
   enddo
-  omegasq1D = (2.*cs2*pmass/rhozero)*RR*sum1 + (1.-2.*RR)*cs2*(pmass/rhozero*sum2)**2
-
+!
+!--normal, isothermal dispersion relation
+!  
+  omegasq1D = (2.*cs2*pmass/rhozero)*RR*sum1 &
+            + (1.-2.*RR)*cs2*(pmass/rhozero*sum2)**2
+!
+!--add terms from anticlumping term
+!
+  if (neps.gt.0) then
+     omegasq1D = omegasq1D + eps/((neps+1.)*wjoe**neps)*(2.*pmass*cs2/rhozero)*(1.-RR)*sum3 &
+               - 2.*eps/wjoe**neps*pmass*cs2*(1.-RR)/rhozero**2*sum2*sum4
+  endif
+  
 end function omegasq1D
 
 !
@@ -222,11 +329,11 @@ subroutine plotfreq(filename)
  close(1)
  npts = i-1
 
- if (filename(1:3).eq.'hfi') then
+! if (filename(1:3).eq.'hfi') then
     call pgpt(npts,hfact(1:npts),freq(1:npts),17)
- else
-    call pgline(npts,hfact(1:npts),freq(1:npts))
- endif
+! else
+!    call pgline(npts,hfact(1:npts),freq(1:npts))
+! endif
 ! call pgpt(npts,hfact(1:npts),freq(1:npts),17)
 20 continue
 
