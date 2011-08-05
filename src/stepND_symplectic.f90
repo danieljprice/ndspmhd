@@ -73,8 +73,8 @@ SUBROUTINE step
 !--x, rho and en are predicted to the half timestep
 !
        x(1:ndim,i) = xin(1:ndim,i) + hdt*velin(1:ndim,i)
-       !!--vel is only needed at this stage for the viscosity
-       vel(:,i) = velin(:,i) !!!+ hdt*force(:,i))/(1.+damp)
+       !!--vel is only needed at this stage for the viscosity (do not damp)
+       vel(:,i) = velin(:,i) + hdt*force(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
        !!IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
@@ -106,6 +106,8 @@ SUBROUTINE step
 !--calculate dv/dt using x, rho, P, B at half step
 !         
  CALL get_rates
+ 
+ !!CALL output(time,nsteps)
 !
 !--rates also returns the timestep condition at the half time step
 !  we work out the new timestep by setting this timestep condition as an
@@ -113,9 +115,17 @@ SUBROUTINE step
 !  1/dt_1/2 = 1/2 ( 1/dt_0 + 1/dt_1 ) -> use this to get dt_1 given dt_1/2 and dt_0
 !
  dthalf = min(C_force*dtforce,C_cour*dtcourant)
- dt1 = 2.*dthalf - dt0        ! this averaging so dt0 can be = 0 to begin with  !1./(2./dthalf - 1./dt0)
- dt = 0.5*(dt1 + dt0) ! this is the total time advanced over the whole timestep
+ dt1 = 1./(2./dthalf - 1./dt0)!!! 2.*dthalf - dt0   !!
+ IF (dt1.GT.dtcourant) THEN
+    WRITE(iprint,*) 'WARNING: dt1>dtcourant, re-syncing steps ',dt1,dtcourant
+    dt1 = dthalf
+ ENDIF
+ 
+ dt = 0.5*(dt0 + dt1) ! this is the total time advanced over the whole timestep
  hdt = 0.5*dt1
+ 
+ print*,'dt 0 ',dt0,' dt1 = ',dt1, 'dthalf = ',dthalf,' 0.5*(dt0 + dt1) = ',dt
+
 !
 !--Corrector step (step from the half timestep to the full timestep using the new dt)
 !  so total time advanced is 0.5*dt_0 + 0.5*dt_1
