@@ -61,10 +61,56 @@ subroutine equation_of_state(pr,vsound,uu,rho)
     where (rho > 0.)
       pr = gamma1*uu*rho
       vsound = sqrt(gamma*pr/rho)
-    end where  
+    end where
  endif
       
  return
 end subroutine equation_of_state
+
+subroutine equation_of_state1(pr,vsound,uu,rho)
+ use options, only:iener
+ use loguns
+!
+!--define local variables
+!
+ implicit none
+ integer :: i,isize
+ real, intent(in) :: rho
+ real, intent(out) :: pr
+ real, intent(inout) :: uu,vsound
+ real :: gamma1
+ 
+ gamma1 = gamma - 1.
+!
+!--exit gracefully if rho is negative
+!
+ if (rho.lt.0.) then
+    write(iprint,*) 'eos: rho -ve, exiting'
+    call quit
+ elseif ((iener.ne.0).and.uu.lt.0.) then
+    write(iprint,*) 'eos: u_therm -ve, exiting',isize    
+    call quit
+ endif
+
+ if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
+    if (rho > 0.) then
+      pr = polyk*rho**gamma
+      vsound = sqrt(gamma*pr/rho)
+    endif
+    if (abs(gamma1).gt.1.e-3) then       
+       if (rho > 0.) then
+       uu = pr/(gamma1*rho)
+       endif
+    endif   
+ else      ! adiabatic
+    if (rho > 0.) then
+      pr = gamma1*uu*rho
+      vsound = sqrt(gamma*pr/rho)
+    endif
+    print *,'here ',uu,rho
+ endif
+      
+ return
+end subroutine equation_of_state1
 
 end module eos
