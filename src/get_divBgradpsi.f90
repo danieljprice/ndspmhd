@@ -17,6 +17,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  USE kernel
  USE linklist
  USE options
+ USE get_neighbour_lists
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npart,ntot
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x

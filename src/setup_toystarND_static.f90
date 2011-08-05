@@ -32,12 +32,12 @@ SUBROUTINE setup
 !--set bounds of initial setup
 !                   
  rmax = 1.0
- ibound = 0	! no boundaries 
- iexternal_force = 1	! use toy star force
+ ibound = 0        ! no boundaries 
+ iexternal_force = 1        ! use toy star force
 !
 !--setup a uniform sphere of particles
 ! 
- CALL set_uniform_spherical(4,0.0,rmax)	! 4 = random
+ CALL set_uniform_spherical(4,0.0,rmax)        ! 4 = random
 !
 !--set particle properties
 ! 
@@ -50,10 +50,10 @@ SUBROUTINE setup
     totvol = 4./3.*pi*rmax**3
  END SELECT
   
- denscentre = 1.0		! toy star central density 
+ denscentre = 1.0                ! toy star central density 
  totmass = 2*pi*polyk*denscentre**(gamma-1.)  ! mass of the toy star 
  
- denszero = totmass/totvol	! initial density
+ denszero = totmass/totvol        ! initial density
  massp = totmass/REAL(npart)
  uuzero = 0.1
  WRITE(iprint,10) denscentre,totmass

@@ -15,6 +15,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
  USE options
  USE part
  USE setup_params
+ USE get_neighbour_lists
 !
 !--define local variables
 !
