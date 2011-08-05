@@ -137,7 +137,7 @@ subroutine iterate_density
 !
 !--update smoothing length only if taking another iteration
 !
-                 if (itsdensity.lt.itsdensitymax) hh(i) = hnew
+                 if (itsdensity.lt.itsdensitymax .and. itype(i).ne.1) hh(i) = hnew
                  if (hnew.gt.hhmax) then
                     redolink = .true.
                  endif
@@ -158,10 +158,10 @@ subroutine iterate_density
            hh(i) = hh(j)
            gradh(i) = gradh(j)       
         enddo
-     elseif (any(ibound.eq.1)) then		! update fixed particles
+     endif
+     if (any(ibound.eq.1)) then		! update fixed particles
         where (itype(:).eq.1)
-           rho(:) = rhoin(:)
-	   hh(:) = hhin(:)
+           rho(:) = rho_old(:)  ! h should not have changed
         end where
      endif
      
