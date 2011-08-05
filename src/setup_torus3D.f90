@@ -15,6 +15,7 @@ subroutine setup
  use setup_params
  use eos
  use rates, only:force
+ use geometry
  
  use uniform_distributions
 !
@@ -24,9 +25,10 @@ subroutine setup
  integer :: i,nrings,iring,ipart,npartphi
  real :: Rtorus,dfac,Mstar,Mtorus
  real :: massp,r_in,r_out,deltar,polyn,sumA
- real :: ri,zi,rhofac,deltaphi,densi,phii,pri
+ real :: ri,zi,rhofac,deltaphi,densi,pri
  real :: deltartemp,denstemp,rtemp,deltar0,dens0
- real :: rhat(3), omegai,rpart,frad,v2onr,deltarprev
+ real :: rhat(3), omegai,rpart,frad,v2onr,rcyl2,rcyl,rsph
+ real :: beta,Bzi
 !
 !--allow for tracing flow
 !
@@ -38,7 +40,7 @@ subroutine setup
  nbpts = 0	! use ghosts not fixed
  xmin(:) = 0.	! set position of boundaries
  xmax(:) = 0.
- iexternal_force = 6
+ iexternal_force = 2
 !
 !--set up the uniform density grid
 !
@@ -48,7 +50,7 @@ subroutine setup
  Mtorus = 4.e-4
   
  write(iprint,*) 'Setup for beer-related torus thing (Owen, Laure)'
- write(iprint,*) 'enter particle number '
+ write(iprint,*) 'enter approximate particle number '
  read*,npart
  ntotal = npart
 
@@ -87,44 +89,42 @@ subroutine setup
  zi = 0.
  densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
 !--calculate delta r and delta phi from rho
- deltar = sqrt(massp/densi)
+ deltar = (massp/densi)**dndim
  deltaphi = deltar/ri
  npartphi = int(2.*pi/deltaphi)
 !--correct deltaphi to integer number of particles
  deltaphi = 2.*pi/npartphi
 !--correct deltar to match new deltaphi
  deltar = ri*deltaphi
-!--now setup ring of particles
- do i = 1,npartphi
-    ipart = ipart + 1
-    phii = (i-1)*deltaphi
-    x(1,ipart) = ri*COS(phii)
-    x(2,ipart) = ri*SIN(phii)
-    dens(ipart) = densi
-    pmass(ipart) = massp
-    pri = polyk*densi**gamma
-    uu(ipart) = pri/(densi*(gamma-1.))
- enddo
+!--setup particles in z and phi at this r
+ call setring(npartphi,ipart,ri,deltar,deltaphi,densi)
  deltar0 = deltar
  dens0 = densi
 
 !
 !--setup rings from Rtorus outwards until dens < 0
 !
+ ri = Rtorus
  do while (densi > tiny(dens))
+    zi = 0.
     !--take half step in r using current deltar
     rtemp = ri + 0.5*deltar
     !--get density
     denstemp = rhofac*rhofunc(rtemp,zi,polyn,dfac,Mstar,Rtorus)
     !--calculate delta r and delta phi from rho
-    deltartemp = sqrt(massp/denstemp)
-    !--corrector step on r using midpoint density
-    ri = ri + deltartemp
-    !--get density
-    densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    if (denstemp.gt.tiny(denstemp)) then
+       deltartemp = (massp/denstemp)**dndim
+       !--corrector step on r using midpoint density
+       ri = ri + deltartemp
+       !--get density
+       densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    else
+       densi = 0.
+    endif
     if (densi.gt.tiny(densi)) then
+       zi = 0.
        !--get new deltar at new position
-       deltar = sqrt(massp/densi)    
+       deltar = (massp/densi)**dndim 
        deltaphi = deltar/ri
        npartphi = int(2.*pi/deltaphi)
        !--correct deltaphi to integer number of particles
@@ -133,17 +133,7 @@ subroutine setup
        if (ri*deltaphi.lt.2.0*deltartemp) then
           !--correct deltar to match new deltaphi
           deltar = ri*deltaphi
-          !--now setup ring of particles
-          do i = 1,npartphi
-             ipart = ipart + 1
-             phii = (i-1)*deltaphi
-             x(1,ipart) = ri*COS(phii)
-             x(2,ipart) = ri*SIN(phii)
-             dens(ipart) = densi
-             pmass(ipart) = massp
-             pri = polyk*densi**gamma
-             uu(ipart) = pri/(densi*(gamma-1.))
-          enddo
+          call setring(npartphi,ipart,ri,deltar,deltaphi,densi)
        else
           deltar = ri*deltaphi
           print*,'skipping ring, too few particles : ',npartphi
@@ -158,19 +148,24 @@ subroutine setup
  deltar = deltar0
  densi = dens0
  do while (densi > tiny(dens))
+    zi = 0.
     !--take half step in r using current deltar
     rtemp = ri - 0.5*deltar
     !--get density
     denstemp = rhofac*rhofunc(rtemp,zi,polyn,dfac,Mstar,Rtorus)
-    !--calculate delta r and delta phi from rho
-    deltartemp = sqrt(massp/denstemp)
-    !--corrector step on r using midpoint density
-    ri = ri - deltartemp
-    !--get density
-    densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    if (denstemp.gt.tiny(denstemp)) then
+       !--calculate delta r and delta phi from rho
+       deltartemp = (massp/denstemp)**dndim
+       !--corrector step on r using midpoint density
+       ri = ri - deltartemp
+       !--get density
+       densi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+    else
+       densi = 0.
+    endif
     if (densi.gt.tiny(densi)) then
        !--get new deltar at new position
-       deltar = sqrt(massp/densi)    
+       deltar = (massp/densi)**dndim   
        deltaphi = deltar/ri
        npartphi = int(2.*pi/deltaphi)
        !--correct deltaphi to integer number of particles
@@ -178,17 +173,7 @@ subroutine setup
        if (ri*deltaphi.lt.2.0*deltartemp) then
           !--correct deltar to match new deltaphi
           deltar = ri*deltaphi
-          !--now setup ring of particles
-          do i = 1,npartphi
-             ipart = ipart + 1
-             phii = (i-1)*deltaphi
-             x(1,ipart) = ri*COS(phii)
-             x(2,ipart) = ri*SIN(phii)
-             dens(ipart) = densi
-             pmass(ipart) = massp
-             pri = polyk*densi**gamma
-             uu(ipart) = pri/(densi*(gamma-1.))
-          enddo
+          call setring(npartphi,ipart,ri,deltar,deltaphi,densi)
        else
           deltar = ri*deltaphi
           print*,'skipping ring, too few particles : ',npartphi
@@ -199,24 +184,64 @@ subroutine setup
  ntotal = ipart
 
  call primitive2conservative
+ call set_linklist
+ call iterate_density
+ call conservative2primitive
  !
  !--balance pressure forces with centripedal acceleration
  !
  vel = 0.
-! do i=1,npart
-!    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
-!    rhat(1:2) = x(1:2,i)/rpart
-!    rhat(3) = 0.
-!    frad = abs(dot_product(force(:,i),rhat(:)))
-!    omegai = sqrt(frad)/rpart
-!    vel(1,i) = -omegai*x(2,i)
-!    vel(2,i) = omegai*x(1,i)
-!    if (ndimV.ge.3) vel(3,i) = 0.
-    !!print*,'forcez = ',force(3,i),force(2,i)
-    !v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
-    !print*,'v2onr = ',v2onr*rhat(2),force(2,i),v2onr*rhat(1),force(1,i)
-    
-! enddo
+ !--set magnetic field using plasma beta
+ beta = 1.e4
+ Bzi = sqrt(2.*pr(1)/beta)
+ if (imhd.ne.0) then
+    print*,'initial Bz field = ',Bzi
+ else
+    Bzi = 0.
+ endif
+ 
+ if (iexternal_force.eq.2) then
+    print*,'setting v to balance pressure gradients'
+!    do i=1,npart
+!       rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+!       rhat(1:2) = x(1:2,i)/rpart
+!       rhat(3) = 0.
+!       frad = abs(dot_product(force(1:2,i),rhat(1:2)))
+!       omegai = sqrt(frad/rpart)
+!       vel(1,i) = -omegai*x(2,i)
+!       vel(2,i) = omegai*x(1,i)
+!       if (ndimV.ge.3) vel(3,i) = 0.
+       !!print*,'forcez = ',force(3,i),force(2,i)
+       !v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
+       !print*,'v2onr = ',v2onr*rhat(2),force(2,i),v2onr*rhat(1),force(1,i)
+
+!    enddo
+    !
+    !--analytic velocities
+    !
+    do i=1,npart
+       rcyl2 = DOT_PRODUCT(x(1:2,i),x(1:2,i))
+       rcyl = SQRT(rcyl2)
+       if (ndim.eq.3) then
+          rsph = sqrt(rcyl2 + x(3,i)*x(3,i))
+       else
+          rsph = rcyl
+       endif
+       v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+       !--compare to frad from SPH forces
+       frad = abs(dot_product(force(1:2,i),x(1:2,i)/rcyl))
+       
+       omegai = sqrt(v2onr/rcyl)
+       vel(1,i) = -omegai*x(2,i)
+       vel(2,i) = omegai*x(1,i)
+!       call vector_transform(x(1:2,i),vel(1:2,i),2,1,rhat(1:2),2,2)
+!       print*,'omegai = ',omegai,rhat(2)
+       if (ndimV.ge.3) then
+          vel(3,i) = 0.
+          Bfield(3,i) = Bzi
+       endif
+    enddo
+ endif
 
 !
 !--allow for tracing flow
@@ -243,5 +268,147 @@ real function rhofunc(rr,zz,polyn,dd,Mstar,R0)
 
 end function rhofunc
 
+!
+!--sets several ring of particles above and below the midplane
+!  and around in phi
+!
+subroutine setring(npartphi,ipart,ri,deltar,deltaphi,densi)
+ implicit none
+ integer, intent(in) :: npartphi
+ integer, intent(inout) :: ipart
+ real, intent(in) :: ri,deltar,deltaphi,densi
+ real :: deltaz,phii,zi,ztemp,denszi,denstemp,deltaztemp
+ integer :: i
+ 
+ deltaz = deltar
+ denszi = densi
+ zi = 0.
+!--upwards from and including the midplane
+ do while (denszi > tiny(denszi))
+   !--now setup ring of particles
+    do i = 1,npartphi
+       ipart = ipart + 1
+       phii = (i-1)*deltaphi
+       x(1,ipart) = ri*COS(phii)
+       x(2,ipart) = ri*SIN(phii)
+       if (ndim.ge.3) x(3,ipart) = zi
+       dens(ipart) = denszi
+       pmass(ipart) = massp
+       pri = polyk*densi**gamma
+       uu(ipart) = pri/(densi*(gamma-1.))
+    enddo
+    !--take half step in r using current deltaz
+    ztemp = zi + 0.5*deltaz
+    denstemp = rhofac*rhofunc(ri,ztemp,polyn,dfac,Mstar,Rtorus)
+    if (denstemp.gt.tiny(denstemp)) then
+       deltaztemp = massp/(denstemp*deltar**2)
+       zi = zi + deltaztemp
+       !--get density
+       denszi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+       deltaz = massp/(denstemp*deltar**2)
+    else
+       denszi = 0.
+    endif
+    print*,'zi = ',ri,zi,denszi,ipart
+ enddo
+ deltaz = deltar
+ denszi = densi
+ zi = 0.
+!--downwards from midplane
+ do while (denszi > tiny(denszi))
+   !--take half step in r using current deltaz
+    ztemp = zi - 0.5*deltaz
+    denstemp = rhofac*rhofunc(ri,ztemp,polyn,dfac,Mstar,Rtorus)
+    if (denstemp.gt.tiny(denstemp)) then
+       deltaztemp = massp/(denstemp*deltar**2)
+       zi = zi - deltaztemp
+       !--get density
+       denszi = rhofac*rhofunc(ri,zi,polyn,dfac,Mstar,Rtorus)
+       deltaz = massp/(denstemp*deltar**2)
+    else
+       denszi = 0.
+    endif
+    if (denszi > tiny(dens)) then
+       !--now setup ring of particles
+        do i = 1,npartphi
+           ipart = ipart + 1
+           phii = (i-1)*deltaphi
+           x(1,ipart) = ri*COS(phii)
+           x(2,ipart) = ri*SIN(phii)
+           if (ndim.ge.3) x(3,ipart) = zi
+           dens(ipart) = denszi
+           pmass(ipart) = massp
+           pri = polyk*densi**gamma
+           uu(ipart) = pri/(densi*(gamma-1.))
+        enddo
+    endif
+     print*,'zi = ',ri,zi,denszi,ipart
+ enddo
+
+end subroutine setring
+
 end subroutine setup
 
+!----------------------------------------------------
+! this subroutine modifies the static configuration
+! (from the dumpfile) and gives it the appropriate
+! velocity perturbation for the rotating torus
+!----------------------------------------------------
+subroutine modify_dump
+ use dimen_mhd
+ use debug
+ use loguns
+ use options, only:iexternal_force
+ use part, only:x,vel,npart
+ use rates, only:force
+ use timestep, only:time
+ implicit none
+ integer :: i
+ real :: omegai,rcyl2,rcyl,rsph,v2onr
+ real, parameter :: Rtorus = 1.0
+
+ 
+ write(iprint,*) 'MODIFYING INITIAL SETUP with torus rotation '
+ if (iexternal_force.ne.2) then
+    write(iprint,*) '*** setting external force to 1/r^2 ***'
+ endif
+ iexternal_force = 2
+ time = 0.
+
+ call primitive2conservative
+ !
+ !--balance pressure forces with centripedal acceleration
+ !
+! do i=1,npart
+!    rpart = sqrt(dot_product(x(1:2,i),x(1:2,i)))
+!    rhat(1:2) = x(1:2,i)/rpart
+!    rhat(3) = 0.
+!    frad = abs(dot_product(force(:,i),rhat(:)))
+!    omegai = sqrt(frad/rpart)
+!    vel(1,i) = -omegai*x(2,i)  !!/sqrt(rpart)
+!    vel(2,i) = omegai*x(1,i) !!!/sqrt(rpart)
+!    if (ndimV.ge.3) vel(3,i) = 0.
+    !!print*,'forcez = ',force(3,i),force(2,i)
+    !!v2onr = dot_product(vel(1:2,i),vel(1:2,i))/rpart
+    !!print*,'v2onr = ',v2onr*rhat(2),force(2,i)
+! enddo
+ !
+ !--analytic velocities
+ !
+ do i=1,npart
+    rcyl2 = DOT_PRODUCT(x(1:2,i),x(1:2,i))
+    rcyl = SQRT(rcyl2)
+    if (ndim.eq.3) then
+       rsph = sqrt(rcyl2 + x(3,i)*x(3,i))
+    else
+       rsph = rcyl
+    endif
+    v2onr = 1./(Rtorus)*(-Rtorus*rcyl/rsph**3 + Rtorus**2/(rcyl2*rcyl)) + 1./rsph**2
+    omegai = sqrt(v2onr/rcyl)
+    vel(1,i) = -omegai*x(2,i)
+    vel(2,i) = omegai*x(1,i)
+    if (ndimV.ge.3) vel(3,i) = 0.
+ enddo
+
+
+end subroutine modify_dump
