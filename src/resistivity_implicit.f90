@@ -14,7 +14,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  use debug,        only:trace
  use loguns,       only:iprint
  
- use kernels,      only:interpolate_kernel,radkern2
+ use kernels,      only:interpolate_kernels,radkern2
  use linklist,     only:ll,ifirstincell,ncellsloop,numneigh
  use get_neighbour_lists, only:get_neighbour_list_partial
  use hterms,       only:gradh
@@ -33,16 +33,19 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  real, dimension(ndimV,idim), intent(inout) :: dBevoldt
  real, intent(in) :: dt
 
- integer :: i,j,n,isweep,nsweeps
+ integer, parameter :: maxsweeps = 1000
+ integer :: i,j,n,nsweeps
  integer :: icell,iprev,nneigh,nneighi
  integer, dimension(npart) :: listneigh ! neighbour list
  real :: rij,rij2
  real :: hi1,hi21
  real :: hfacwabi,rho1j,sumdenom
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr,Bi,dB,sumB,sumBin
- real :: q2i,grkerni,wabi,dB2,dBmax,term
+ real, dimension(ndimV) :: dr,Bi,dB,sumB,sumBin,lhs,rhs
+ real :: q2i,grkerni,wabi,dB2,dBmax,term,fac,errmax
+ real :: grkernalti,grgrkernalti,grgrkerni
  real, dimension(ndimV,ntotal) :: Bfieldnew
+ logical :: converged
 !
 !--allow for tracing flow
 !      
@@ -55,9 +58,19 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  do i=1,ntotal
     Bfieldnew(:,i) = Bfield(:,i)
  enddo
- nsweeps = 10
+ nsweeps = 0
+ converged = .false.
+!
+!--fac is the explicit/implicit factor
+!  fac = 0 gives fully explicit (forwards Euler)
+!  fac = 1 gives fully implicit (backwards Euler)
+!  fac = 1/2 gives mix (Crank-Nicolson)
  
- sweeps: do isweep = 1,nsweeps 
+ fac = 1.
+ 
+ sweeps: do while (.not.converged .and. nsweeps.lt.maxsweeps)
+ 
+ nsweeps = nsweeps + 1
 !
 !--update Bfieldnew on ghosts
 !
@@ -69,6 +82,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  endif
 
  dBmax = 0.
+ errmax = 0.
 !
 !--loop over all the link-list cells
 !
@@ -123,13 +137,24 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 !
                 !       print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
                 !  (using hi)
-                call interpolate_kernel(q2i,wabi,grkerni)
+                !call interpolate_kernel(q2i,wabi,grkerni)
+                call interpolate_kernels(q2i,wabi,grkerni,grkernalti,grgrkernalti)
 !
 !--calculate nabla^2 B
 !
                 grkerni = grkerni*hfacwabi*hi1
+                grkernalti = grkernalti*hfacwabi*hi1
+
+                !--usual 2nd deriv
+                grgrkerni = -2.*grkerni/rij
                 
-                term = -2.*etamhd*pmass(j)*rho1j*grkerni/rij
+                !--uncomment following lines to use alt kernel
+                !grgrkerni = -2.*grkernalti/rij
+                
+                !--uncomment following lines to use 2nd deriv of alternative kernel
+                !grgrkerni = grgrkernalti*hfacwabi*hi1*hi1
+                
+                term = etamhd*pmass(j)*rho1j*grgrkerni
                 sumdenom = sumdenom + term
                 sumB(:) = sumB(:) + term*Bfieldnew(:,j)
                 sumBin(:) = sumBin(:) + term*Bfield(:,j)
@@ -139,30 +164,55 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
           endif! j .ne. i   
        enddo loop_over_neighbours
 
-       Bi(:) = Bfieldnew(:,i)
- 
-       if (nsweeps.eq.1) then
-          !--explicit
-          Bfieldnew(:,i) = Bfield(:,i) - dt*(Bfield(:,i)*sumdenom - sumBin(:))
-       else
-          !--implicit
-          Bfieldnew(:,i) = (Bfield(:,i) + dt*sumB(:))/(1. + dt*sumdenom)
-       endif
+       Bi(:) = Bfieldnew(:,i) 
+       Bfieldnew(:,i) = (Bfield(:,i)*(1. - (1.-fac)*dt*sumdenom) &
+                         + fac*dt*sumB(:) + (1.-fac)*dt*sumBin(:))/&
+                        (1. + fac*dt*sumdenom)
        !print*,' particle ',i,' numneigh = ',numneigh(i),nneighi
        
        dB = Bfieldnew(:,i) - Bi(:)
        dB2 = dot_product(dB,dB)
        dBmax = max(dBmax,dB2)
+       
+       !
+       !--check LHS=RHS convergence
+       !
+       if (dt.gt.0.) then
+          lhs = (Bfieldnew(:,i) - Bfield(:,i))/dt
+          rhs = (1.-fac)*(sumBin(:) - sumdenom*Bfield(:,i)) &
+                   + fac*(sumB(:) - sumdenom*Bfieldnew(:,i))
+          errmax = max(maxval(abs(rhs-lhs)),errmax)
+       endif
 
        iprev = i
        if (iprev.ne.-1) i = ll(i) ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
     
  enddo loop_over_cells
-
- !print*,' end of sweep ',isweep,' dBmax = ',dBmax,' dt =  ',dt
+ 
+ converged = (dBmax < 1.e-20 .and. errmax < 1.e-1)
+ !print*,nsweeps,' errmax = ',errmax
+ !print*,' end of sweep ',nsweeps,' dBmax = ',dBmax,' dt =  ',dt
+ if (fac < 1. .and. nsweeps.eq.maxsweeps .and. .not.converged) then
+    print*,' NOT CONVERGED setting fac = 1 and retrying: press enter to continue'
+    stop
+    !read*
+    do i=1,ntotal
+       Bfieldnew(:,i) = Bfield(:,i)
+    enddo
+    fac = 1.
+    nsweeps = 0
+ endif
 
  enddo sweeps
+ 
+ if (converged) then
+   ! print*,' converged in ',nsweeps,' sweeps'
+ else
+    print*,' ERROR: resistivity not converged, max error = ',dBmax
+    !stop
+ endif
+ !read*
 
 !
 !--what we actually return from this routine is an extra contribution to
