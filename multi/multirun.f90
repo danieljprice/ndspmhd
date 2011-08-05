@@ -20,6 +20,7 @@ program multirun
  integer :: ierr
  character :: filename*115,infile*120,tstarfile*120,filenum*2,charnruns*3
  real :: h,c,a,sigma2,sigma,gamm1,period,omegasq
+ real :: alpha,betatstar
  
  nruns = 0
  iread = 11
@@ -48,6 +49,9 @@ program multirun
   
  jmode = 0
  mmode = 0 
+ alpha = 1.0
+ betatstar = 2.*pi
+ 
  do i=1,nruns
     if (i.ge.10) then
        filenum = achar(48+i/10)//achar(48+mod(i,10))
@@ -63,7 +67,8 @@ program multirun
     h = 1.0
     c = 1.0
     a = 0.05/sqrt(2.)
-    jmode = jmode + 2
+    !!jmode = jmode + 2
+    mmode = mmode + 2
 
     gamm1 = gamma - 1.
     if (gamm1.lt.1.e-5) then
@@ -89,7 +94,7 @@ program multirun
     print*,'writing ',trim(tstarfile),' with initial left/right states'
     open(unit=11,file=tstarfile,status='replace',form='formatted')
        write(11,*) h,c,a
-       write(11,*) sigma
+       write(11,*) alpha,betatstar
        write(11,*) jmode,mmode
     close(unit=11)
     
