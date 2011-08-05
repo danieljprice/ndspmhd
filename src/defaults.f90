@@ -53,7 +53,7 @@ subroutine set_default_options
    imagforce = 2
    idivBzero = 0
    psidecayfact = 0.1
-   ianticlump = 1
+   ianticlump = 0
    eps = 0.8
    neps = 4
    ixsph = 0

@@ -37,7 +37,7 @@ SUBROUTINE setup
 !
 !--setup a uniform sphere of particles
 ! 
- CALL set_uniform_spherical(1,0.0,rmax)	! 4 = random
+ CALL set_uniform_spherical(4,0.0,rmax)	! 4 = random
 !
 !--set particle properties
 ! 
