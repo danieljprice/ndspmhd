@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS = -O3 -ffast-math -r8 -Wall
+F90FLAGS = -O3 -ffast-math -r8 -Wall -Wextra
 LDFLAGS =  #-L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
@@ -74,6 +74,7 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
 
+#SETUP3D = setup_polytropeND.f90
 #SETUP3D = setup_unifdisND.f90 cp_distribute.f
 #SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -102,7 +103,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
 	 copy_particle.f90 \
-	 defaults.f90 \
+	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
           grutils_gr.f90 \
          density_sums.f90 \
