@@ -189,12 +189,10 @@ SUBROUTINE boundary
              IF (x(jdim,i).GT.xmax(jdim)) THEN
 !               print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
                 x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-                xin(jdim,i) = x(jdim,i)
              ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
 !              print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)           
 !                read*
                 x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-                xin(jdim,i) = x(jdim,i)
              ENDIF        
         ENDIF
        ENDDO
