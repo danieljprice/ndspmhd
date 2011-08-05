@@ -342,7 +342,7 @@ subroutine makeghost(jpart,xghost,vghost)
   use loguns
   use part
   use eos, only:gamma
-  use options, only:geom,ibound
+  use options, only:geom,ibound,imhd
   use mem_allocation, only:alloc
   implicit none
   integer, intent(in) :: jpart ! index of particle to be ghosted
@@ -374,6 +374,12 @@ subroutine makeghost(jpart,xghost,vghost)
      pri = 2.5 - 0.1*dens(ipart)*x(2,ipart)
      uu(ipart) = pri/((gamma-1.)*dens(ipart))
      en(ipart) = uu(ipart)
+  endif
+!
+!--for ghosts, copy everything including Bevol
+!
+  if (imhd.lt.0) then
+     Bevol(:,ipart) = Bevol(:,jpart)
   endif
 !
 !--overwrite velocities if reflecting
