@@ -21,8 +21,8 @@ program plotmeagraph
   real :: evdata(maxstep,maxcol,maxfile),evplot(maxstep)
   real :: lim(maxcol,2)
   real :: hpos,vpos, freqmin, freqmax
-  character, dimension(maxfile) :: rootname*20, legendtext*120
-  character(len=23) :: filename
+  character, dimension(maxfile) :: rootname*120, legendtext*120
+  character(len=125) :: filename
   character(len=24) :: title,label(maxcol)
   character(len=40) :: labely,text
   character(len=1) :: ans
@@ -76,7 +76,7 @@ program plotmeagraph
      else
         filename = trim(rootname(ifile))
      endif
-     print*,' opening ',filename
+     print "(a,a)",' opening ',trim(filename)
      ifilesteps = maxstep
      mysteps = 0
      call readev(ifilesteps,evdata(1:ifilesteps,1:ncol,ifile),ncol,filename)
@@ -527,8 +527,8 @@ subroutine readev(nsteps,evdata,ncols,rootname)
   integer, intent(in) :: ncols
   integer, intent(inout) :: nsteps
   real, dimension(nsteps,ncols), intent(out) :: evdata
-  character(len=20), intent(in) :: rootname
-  character(len=20) :: evname
+  character(len=*), intent(in) :: rootname
+  character(len=len_trim(rootname)) :: evname
   logical iexist
   
   evname = trim(rootname)
