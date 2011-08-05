@@ -191,8 +191,10 @@ contains
     enddo loop_over_cells
     
     !print*,'end of density, rho, gradh = ',rho(1),gradh(1),hh(1),numneigh(1)
-    print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
-    print*,'minimum number of neighbours = ',MINVAL(numneigh),MINLOC(numneigh),rho(MINLOC(numneigh))
+    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
+    !print*,'minimum number of neighbours = ', &
+    !       MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
+    !       rho(MINLOC(numneigh(1:npart)))
 
     return
   end subroutine density
@@ -337,20 +339,20 @@ contains
     enddo loop_over_particles
 
     !print*,'finished density_partial, rho, gradh, h =',rho(1),gradh(1),hh(1),numneigh(1)
-    print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
+    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
     print*,'minimum number of neighbours = ',MINVAL(numneigh(1:npart)), &
            MINLOC(numneigh(1:npart)),rho(MINLOC(numneigh(1:npart)))
 
-    minneigh = 100000
-    minpart = 1
-    do i=1,nlist
-       j = ipartlist(i)
-       if (numneigh(j).lt.minneigh) then
-          minneigh = numneigh(j)
-          minpart = j
-       endif
-    enddo
-    print*,'minimum number of neighbours = ',minneigh,minpart,rho(minpart)
+    !minneigh = 100000
+    !minpart = 1
+    !do i=1,nlist
+    !   j = ipartlist(i)
+    !   if (numneigh(j).lt.minneigh) then
+    !      minneigh = numneigh(j)
+    !      minpart = j
+    !   endif
+    !enddo
+    !print*,'minimum number of neighbours = ',minneigh,minpart,rho(minpart)
 
     return
   end subroutine density_partial

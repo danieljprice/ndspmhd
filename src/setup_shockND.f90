@@ -255,7 +255,8 @@ subroutine setup
 !
 !--setup const component of mag field which can be subtracted
 !
- Bconst(:) = Bzero(:)
+ Bconst(:) = 0.
+ Bconst(1) = Bxinit
 
  return
 end subroutine setup

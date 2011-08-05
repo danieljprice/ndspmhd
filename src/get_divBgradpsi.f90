@@ -132,6 +132,8 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
                    CALL interpolate_kernel(q2,wab,grkern)
                    wab = wab*hfacwab
                    grkern = grkern*hfacwab*hj1
+                   grkerni = grkern
+                   grkernj = grkern
                 ELSE
                    !  (using hi)
                    CALL interpolate_kernel(q2i,wabi,grkerni)
