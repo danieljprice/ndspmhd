@@ -20,14 +20,15 @@ LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-f
 # Fortran flags same as F90
 FC = $(F90C)
 FFLAGS = $(F90FLAGS)
+CC = $(F90C)
 
 # define the implicit rule to make a .o file from a .f90 file
 %.o : %.f90
-	$(F90C) -c $(F90FLAGS) $< -o $@
+	$(F90C) -c $(F90FLAGS) $(LDFLAGS) $< -o $@
 
 # define the implicit rule for compiling directly from a single .f90 file
 #%.f90 :
-#	$(F90C) -c $(F90FLAGS) $< -o $@
+#	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
 OBJECTS = dimen1D.o variablesND.o kernelND.o  \
 	  kernelplot.o kernelstability1D.o danpgtile.o
@@ -42,6 +43,12 @@ kernelplot : $(OBJECTS)
 
 sametime : sametime.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ sametime.o
+
+plotfreq : plotfreq.o
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ plotfreq.o
+
+plotfreq.o : plotfreq.f90
+	$(F90C) -c $(F90FLAGS) plotfreq.f90 -o $@
 
 sphderiv : $(OBJSPHDERIV)
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJSPHDERIV)
