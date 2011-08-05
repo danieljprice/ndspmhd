@@ -170,7 +170,7 @@ subroutine iterate_density
               endif
               if (numneigh(i).le.1) then
                  !print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
-                 print*,' WARNING: particle ',i,' has no neighbours, increasing h'
+                 write(iprint,*) ' WARNING: particle ',i,' has no neighbours, increasing h'
                  hnew = max(hh(i),hnew) + psep
               endif
 !

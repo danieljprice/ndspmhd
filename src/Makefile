@@ -84,7 +84,7 @@ SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP3D = setup_disc3D.f90
 #SETUP3D = setup_torus3D.f90
 #SETUP3D = setup_fromfile.f90
-SETUP3D = setup_densityprofileND.f90
+SETUP3D = setup_densityprofileND.f90 
 
 ######################################################################
 ########### setup file for modify dump utility #######################
@@ -106,8 +106,8 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
           grutils_gr.f90 \
-         density_sums.f90 \
-	 eos.f90 evolve.f90 external_forces_gr.f90 \
+         density_sums.f90 exact_densityprofiles.f90 errors.f90 \
+	 eos.f90 evolve_montecarlo.f90 external_forces_gr.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \
 	 iterate_density.f90 \
 	 linkND.f90 logun.f90 \
@@ -168,6 +168,13 @@ prompting.o:
 
 geometry.o:
 	$(F90C) -c $(F90FLAGS) ../plot/geometry.f90 -o $@
+
+exact_densityprofiles.o:
+	$(F90C) -c $(F90FLAGS) ../plot/exact_densityprofiles.f90 -o $@
+
+errors.o:
+	$(F90C) -c $(F90FLAGS) ../plot/errors.f90 -o $@
+
 
 ## modify dump utility
 
