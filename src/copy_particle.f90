@@ -54,6 +54,7 @@ subroutine copy_particle(i,j)
   divB(i) = divB(j)
   curlB(:,i) = curlB(:,j)
   
+  if (allocated(rho0)) rho0(i) = rho0(j)
   !gradmatrix(:,:,i) = gradmatrix(:,:,j)
  
 end subroutine copy_particle

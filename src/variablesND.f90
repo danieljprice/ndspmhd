@@ -139,6 +139,7 @@ module part
  real, dimension(:), allocatable :: dens,rho,pr,uu,en,hh,psi,spsound
  real, dimension(:,:), allocatable :: vel,pmom,sourceterms,alpha
  real, dimension(:,:), allocatable :: Bfield, Bevol, x0
+ real, dimension(:), allocatable :: rho0
  real, dimension(ndimB) :: Bconst
 end module part 
 

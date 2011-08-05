@@ -40,7 +40,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
  real, dimension(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  real, dimension(3,newsizein) :: dumalpha,dumalphain,dumdaldt
- real, dimension(newsizein) :: dumpsi
+ real, dimension(newsizein) :: dumpsi,dumrho0
  real, dimension(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumgradgradh,dumpr,dumspsound
  real, dimension(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt,dumpoten
  real, dimension(ndim,newsizein) :: dumxin,dumx
@@ -165,6 +165,7 @@ subroutine alloc(newsizein,sortlist)
     
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
     dumx0(:,1:idumsize) = x0(:,1:idumsize)
+    if (allocated(rho0)) dumrho0(1:idumsize) = rho0(1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -224,6 +225,7 @@ subroutine alloc(newsizein,sortlist)
     
     if (allocated(dxdx)) deallocate(dxdx)
     if (allocated(x0)) deallocate(x0)
+    if (allocated(rho0)) deallocate(rho0)
 
     endif
 
@@ -294,6 +296,7 @@ subroutine alloc(newsizein,sortlist)
    endif
    allocate(dxdx(ndxdx,newsize))
    allocate(x0(ndim,newsize))
+   allocate(rho0(newsize))
  endif
  
  if (reallocate .or. isortparts) then
@@ -356,6 +359,7 @@ subroutine alloc(newsizein,sortlist)
     endif    
     dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize)
     x0(:,1:idumsize) = dumx0(:,1:idumsize)
+    rho0(1:idumsize) = dumrho0(1:idumsize)
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
