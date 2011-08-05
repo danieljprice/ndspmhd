@@ -681,15 +681,15 @@ contains
 !----------------------------------------------------------------------------
     if (iprterm.ge.0) then
        if (iav.lt.0) then
-          if (abs(pri-prj).gt.1.e-2) then
+          !!if (abs(pri-prj).gt.1.e-2) then
              call riemannsolver(gamma,pri,prj,projvi,projvj, &
                spsoundi,spsoundj,prstar,vstar)
              prterm = prstar*(phii_on_phij*rho21i*sqrtgi*grkerni &
                          + phij_on_phii*rho21j*sqrtgj*grkernj)
-          else
-            prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
-                 + phij_on_phii*Prho2j*sqrtgj*grkernj
-          endif
+          !!else
+          !!  prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
+          !!       + phij_on_phii*Prho2j*sqrtgj*grkernj
+          !!endif
        else
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
