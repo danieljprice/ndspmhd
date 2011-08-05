@@ -2,12 +2,9 @@
 !!                                                                         !!
 !!  setup for 2D high explosives test                                      !!
 !!                                                                         !!
-!!  density is set to unity all over, whilst the pressure (or equivalently !!
-!!  the thermal energy) is set to some large quantity in a small circle    !!
-!!  around the origin                                                      !!
+!!  dense, high pressure blob at the origin,                               !!
+!!  get lovely Richtmeyer-Meshkov instabilities                            !!
 !!                                                                         !!
-!!  magnetic field of strength 10g in the x-direction                      !!
-!!                                                                         !!                                                                        !!
 !!-------------------------------------------------------------------------!!
 
 subroutine setup
@@ -40,24 +37,29 @@ subroutine setup
  ibound = 2     ! fixed ghosts
  nbpts = 0
  xmin(:) = 0.     ! same xmin in all dimensions
- xmax(:) = 2.
+ xmax(:) = 2.5
  denszero = 1.293
  densc = 1630.
  rc = 0.0527
- przero = 10.1325   ! 1 atm in pascal
- prc = 27603.94
- uuc = prc/densc  !4.29e6 J ! should 
+ !
+ !--choose time unit in ms, so pressure unit is 10^6 Pa
+ !
+ przero = 0.101325   ! 1 atm = 101325 in pascal
+ prc = 27603.94*przero
  
-
  write(iprint,10) ndim
- write(iprint,20) uuc,rc,denszero,przero
+ write(iprint,20) prc,rc,denszero,przero
 10 format(/,1x,i1,'-dimensional high explosives test')
-20 format(/,' central energy  = ',f10.3,', blast radius = ',f6.3,/, &
-            ' ext. density = ',f6.3,', ext. pressure = ',f6.3,/)
- 
+20 format(/,' central pressure  = ',f12.3,', blast radius = ',f6.3,/, &
+            ' ext. density = ',f6.3,', ext. pressure = ',f9.3)
+
  gam1 = gamma - 1.
  if (abs(gam1).lt.1.e-3) stop 'eos cannot be isothermal for this setup'
  uuzero = przero/(gam1*denszero)
+ uuc = prc/(gam1*densc)  !4.29e6 J ! should 
+ write(iprint,30) uuc,uuzero
+30 format(' central energy = ',f9.3,', ext. energy = ',f9.3,/)
+
 !
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
