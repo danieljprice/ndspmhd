@@ -30,6 +30,7 @@ subroutine evolve
 !
  dt = 0.
  dt0 = min(C_cour*dtcourant,C_force*dtforce)
+ dtrho = huge(dtrho)
  tprint = 0.
  t_start = 0.
  t_end = 0.

@@ -25,6 +25,7 @@ subroutine set_default_options
    psep = 0.01
    C_cour = 0.3
    C_force = 0.25
+   C_rho = 0.05
    dtforce = 0.
    dtcourant = 0.
    tmax = 1.0

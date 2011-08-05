@@ -26,7 +26,7 @@
 !! Energy, smoothing length, alpha and magnetic field follow density
 !!
 !! Gives good results (and good stability) on wave and shock-type problems
-!! with a very modest courant number (C_cour = 0.8 seems to be enough).
+!! with a reasonable courant number (C_cour = 0.4 seems to be enough).
 !! On these problems seems to do much better than leapfrog/symplectic,
 !! mainly related to the derivatives which depend on velocity (for which the
 !! other two methods are not reversible/symplectic).
@@ -57,7 +57,8 @@ SUBROUTINE step
 !
  IMPLICIT NONE
  INTEGER :: i,j,jdim
- REAL :: hdt, maxdivB,crap1,crap2,divBlam,divBlammax
+ REAL :: hdt, maxdivB
+ REAL :: dtrhoi
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
 !
@@ -245,6 +246,14 @@ SUBROUTINE step
        psi(i) = psiin(i)
     ENDDO
  ENDIF
+ dtrho = huge(dtrho)
+ DO i=1,npart
+    dtrhoi = abs(rho(i)/(drhodt(i) + 1.e-8))
+    dtrho = min(dtrho,dtrhoi)
+ ENDDO
+ if (C_rho*dtrho/dtcourant .lt. C_cour) then
+    write(iprint,*) 'dtrho equiv courant number = ',C_rho*dtrho/dtcourant
+ endif
 !
 !--do substepping on corrector for div B correction
 !
