@@ -12,7 +12,9 @@ program kernelplot
 !! character(len=50) :: text
 
  !data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
- data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
+! data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
+
+ data iplotorder /0, 3, 61, 62, 31, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 4
  ianticlump = 0
@@ -265,8 +267,9 @@ program kernelplot
           eps = eps + 0.4
        endif
 !       call setkern(iplotorder(j),ndim,ierr)
+       !call setkernels(j,j,ndim,ierr,ierr2)
        call setkernels(iplotorder(j),iplotorder(j),ndim,ierr,ierr2)
-       print*,trim(kernelname)
+       print*,iplotorder(j),trim(kernelname)
        call kernelstability1D(j,nacross,ndown,eps,neps)
     enddo
 
