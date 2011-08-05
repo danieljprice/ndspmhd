@@ -21,6 +21,7 @@ subroutine setup
  use part
  use setup_params
  use timestep, only:tmax
+ use kernels, only:radkern
  
  use uniform_distributions
  use cons2prim, only:primitive2conservative
@@ -28,7 +29,7 @@ subroutine setup
  integer :: i,npartold,nparty
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
- real :: dsmooth, exx, delta, const
+ real :: dsmooth, exx, delta, const, fac
  real :: massp,masspleft,masspright,Bxinit,Byleft,Byright,Bzleft,Bzright
  real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
  real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
@@ -147,15 +148,16 @@ subroutine setup
 !
 !--extend boundaries if inflow
 !
+ fac = 3.
  if (vxleft.gt.tiny(vxleft)) then
-    xmin(1) = xmin(1) - vxleft*tmax - 6.*psep
+    xmin(1) = xmin(1) - vxleft*tmax - fac*radkern*psep
  else
-    xmin(1) = xmin(1) - 6.*psep
+    xmin(1) = xmin(1) - fac*radkern*psep
  endif
  if (vxright.lt.-tiny(vxright)) then
-    xmax(1) = xmax(1) - vxright*tmax + 6.*psep
+    xmax(1) = xmax(1) - vxright*tmax + fac*radkern*psep
  else
-    xmax(1) = xmax(1) + 6.*psep
+    xmax(1) = xmax(1) + fac*radkern*psep
  endif
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
@@ -230,8 +232,8 @@ subroutine setup
  nbpts = 0
  if (ibound(1).eq.1) then
     do i=1,npart
-       if ((x(1,i).lt.(xmin(1) + 2.*hfact*psepleft)).or. &
-           (x(1,i).gt.(xmax(1) - 2.*hfact*psepright))) then
+       if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
           itype(i) = 1
           nbpts = nbpts + 1
        endif
@@ -301,6 +303,12 @@ subroutine setup
 !    Bconst(2) = Byleft
 !    write(iprint,*) 'treating constant y-field as external'
 ! endif
+
+ if (abs(Bzleft - Bzright).lt.tiny(Bzleft)) then
+    Bconst(3) = Bzleft
+    write(iprint,*) 'treating constant z-field as external'
+ endif
+
 !
 !--setup vector potential if necessary
 !
@@ -308,7 +316,7 @@ subroutine setup
     do i=1,npart
        Bevol(:,i) = 0.
        Bevol(3,i) = -Bfield(2,i)*x(1,i)
-       Bevol(2,i) = Bfield(3,i)*x(1,i)
+       if (abs(Bzleft - Bzright).gt.tiny(Bzleft)) Bevol(2,i) = Bfield(3,i)*x(1,i)
     enddo
  endif
 !
