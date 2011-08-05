@@ -1129,11 +1129,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        q2 = i*dq2table
        q4 = q2*q2
        q = sqrt(q2)
-       term1 = -5.*(3.-q)**4.
        if (q.lt.1.0) then
           wkern(i) = q2*(66.-60.*q2 + 30.*q4 - 10.*q4*q)
           grwkern(i) = 2.*q*(-35.*q4*q + 90.*q4 - 120.*q2 + 66.)
-          grgrwkern(i) = -12.*(-35.*q4*q - 75.*q4 + 60.*q2 - 11.)
+          grgrwkern(i) = -12.*(35.*q4*q - 75.*q4 + 60.*q2 - 11.)
        elseif ((q.ge.1.0).and.(q.lt.2.0)) then
           wkern(i) = q2*((3.-q)**5. - 6.*(2.-q)**5.)
           grwkern(i) = q*(35.*q4*q - 270.*q4 + 750.*q2*q - 840.*q2 + 225.*q + 102)
@@ -1141,7 +1140,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        elseif ((q.ge.2.0).and.(q.le.3.0)) then
           wkern(i) = q2*(3.-q)**5.
           grwkern(i) = -q*(7.*q - 6.)*(3.-q)**4
-          grgrwkern(i) = -6.*(3. - q)^3*(7.*q2 - 12.*q + 3.)
+          grgrwkern(i) = 6.*(3.-q)**3*(7.*q2 - 12.*q + 3.)
        else
           wkern(i) = 0.0
           grwkern(i) = 0.0
