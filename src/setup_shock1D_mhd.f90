@@ -181,23 +181,9 @@ SUBROUTINE setup
        ELSE
           velin(:,i) = vleft(:)
        ENDIF
-!       velin(:,i) = (vleft(:) + vright(:)*exx)/(1.0 + exx)
-!       B2rhoi = (B2rholeft + B2rhoright*exx)/(1.0 + exx)
-!       Bin(2,i) = SQRT(B2rhoi*rhoin(i) - Bxinit**2)
-       
-!       B2y = (B2yrholeft + B2yrhoright*exx)/(1.0 + exx)
-!        B2y = B2yleft*(0.5-exx) + B2yright*(0.5+exx)
-!	Bin(2,i) = SQRT(B2y*rhoin(i))
-
        Bin(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
        Bin(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
        enin(i) = (enleft + enright*exx)/(1.0 + exx)       
-!       enin(i) = (enright + enleft*exp(-delta))/(1.0 + exp(-delta))       
-!       enin(i) = uuin(i) + 0.5*(Bxinit**2 + Bin(2,i)**2)/rhoin(i)
-!       PRINT*,i,' By2/rho = ',(Bin(2,i)**2 + Bin(1,i)**2)/rhoin(i),B2rhoi
-!       PRINT*,i,' en =',enin(i),uuin(i) + 0.5*(Bin(1,i)**2 + Bin(2,i)**2)/rhoin(i)
-!       PRINT*,i,' enleft = ',enleft/(1.+ exx),(uuleft + 0.5*(Bxinit**2 + Byleft**2)/rholeft)/(1. + exx)
-!       PRINT*,i,' enright = ',enright*exx/(1.+exx),(uuright + 0.5*(Bxinit**2 + Byright**2)/rhoright)*exx/(1.+exx)
        enin(i) = uuin(i) + 0.5*(Bin(1,i)**2 + Bin(2,i)**3)/rhoin(i)
     ENDIF
     xin(1,i) = xin(1,i-2) + 2.*massp/rhoin(i-1)

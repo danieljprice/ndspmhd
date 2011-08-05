@@ -138,22 +138,21 @@ SUBROUTINE write_header(icall,infile,datfile,evfile,logfile)
 !
 !--boundary options
 !
-    IF (ibound.EQ.0) boundtype = 'No boundaries      '
-    IF (ibound.EQ.1) boundtype = 'Fixed boundaries   '
-    IF (ibound.EQ.2) boundtype = 'Reflective ghosts  '
-    IF (ibound.EQ.3) boundtype = 'Periodic boundaries'     
-    WRITE (iprint, 99006) boundtype
-
-    coord(1) = 'x'
+    coord(1) = 'x'	! this should change with different co-ordinate systems
     coord(2) = 'y'
     coord(3) = 'z'
     DO i=1,ndim
+       IF (ibound(i).EQ.0) boundtype = 'None'
+       IF (ibound(i).EQ.1) boundtype = 'Fixed particles'
+       IF (ibound(i).EQ.2) boundtype = 'Reflective ghosts'
+       IF (ibound(i).EQ.3) boundtype = 'Periodic (ghosts)'     
+       WRITE (iprint, 99006) coord(i),TRIM(boundtype)             
        WRITE (iprint, 99007) coord(i),xmin(i),coord(i),xmax(i)
     ENDDO
     WRITE (iprint, 99008) nbpts
-99006 FORMAT(' Boundaries: ',/,5x,a20)
-99007 FORMAT(6x,a1,'min = ',f10.6,1x,a1,'max = ',f10.6)
-99008 FORMAT(6x,'Number of fixed particles = ',i4,/)      
+99006 FORMAT(1x,a1,' boundary:',1x,a)
+99007 FORMAT(13x,a1,'min = ',f10.6,1x,a1,'max = ',f10.6)
+99008 FORMAT(/,1x,'Number of fixed particles = ',i4,/)      
 
       
 !

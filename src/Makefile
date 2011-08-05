@@ -19,7 +19,7 @@ FC = f90
 
 #F90FLAGS = -O4 
 # use the following instead for double precision
-F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
+F90FLAGS = -C -O4 -xtypemap=real:64,double:64,integer:32
 # PGPLOT libraries (note linking with the -lF77 libraries causes an 
 # error in the flush commands, just means output is buffered).
 # NOTE: cannot use the double precision flags when compiling with PGPLOT
@@ -36,6 +36,7 @@ SOURCES3D = dimen3D.f90
 ######################################################################
 ########### choose the setup file in each dimension here #############
 
+SETUP1D = setup_unifdis1D.f90
 #SETUP1D = setup_unifdisND.f90
 #SETUP1D = setup_toystar1D_pmass.f90
 #SETUP1D = setup_toystar1D.f90
@@ -43,7 +44,7 @@ SOURCES3D = dimen3D.f90
 #SETUP1D = setup_advection1D_mhd.f90
 #SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90	 
-SETUP1D = setup_sphericalblastND_mhd.f90
+#SETUP1D = setup_sphericalblastND_mhd.f90
 
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
@@ -55,7 +56,8 @@ SETUP2D = setup_unifdisND.f90
 SETUP25D = setup_alfvenwaveND.f90
 
 #SETUP3D = setup_unifdisND.f90
-SETUP3D = setup_sphericalblastND_mhd.f90
+#SETUP3D = setup_sphericalblastND_mhd.f90
+SETUP3D = setup_shockND.f90
 
 ######################################################################
 

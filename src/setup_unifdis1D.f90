@@ -10,6 +10,7 @@ SUBROUTINE setup
  USE debug
  USE loguns
  USE bound
+ USE eos
  USE options
  USE part
  USE part_in
@@ -20,7 +21,7 @@ SUBROUTINE setup
  IMPLICIT NONE
  INTEGER :: i
  INTEGER :: imax
- REAL :: sigma,massp,totmass
+ REAL :: sigma,massp,totmass,pri
 !
 !--allow for tracing flow
 !
@@ -29,8 +30,8 @@ SUBROUTINE setup
 !
 !--initially set up a uniform density grid
 ! 	    
- ibound = 0	! periodic boundaries
- nbpts = 0		! use ghosts not fixed
+ ibound = 1	! boundary type
+ nbpts = 6	! use ghosts not fixed
  xmin(1) = -0.5	! set position of boundaries
  xmax(1) = 0.5
  imax = INT((xmax(1)-xmin(1))/psep)
@@ -47,10 +48,16 @@ SUBROUTINE setup
  DO i=1,imax
     xin(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
     velin(:,i) = 0.
-    rhoin(i) = 1.0
-    pmass(i) = massp
-    uuin(i) = 0.3
-    hhin(i) = hfact*(massp/rhoin(i))**hpower	 ! ie constant everywhere
+    IF (xin(1,i).LT.0.) THEN
+       rhoin(i) = 10.0
+       pmass(i) = 10.0*massp
+    ELSE
+       rhoin(i) = 1.0
+       pmass(i) = massp
+    ENDIF
+    pri = 1.0
+    uuin(i) = pri/((gamma-1.)*rhoin(i))
+    hhin(i) = hfact*(pmass(i)/rhoin(i))**hpower	 ! ie constant everywhere
     IF (imhd.NE.0) THEN 
        Bin(1,i) = 0.
        Bin(2,i) = sigma*rhoin(i)

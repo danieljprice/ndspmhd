@@ -22,7 +22,7 @@ END MODULE artvi
 MODULE bound
  USE dimen_mhd
  IMPLICIT NONE
- INTEGER, DIMENSION(:), ALLOCATABLE :: ireal 
+ INTEGER, DIMENSION(:), ALLOCATABLE :: ireal
  REAL, DIMENSION(ndim) :: xmin, xmax 
  REAL :: hhmax    
 END MODULE bound
@@ -124,12 +124,14 @@ END MODULE loguns
 !-------------------------------------------------------------------
 
 MODULE options
+ use dimen_mhd
  IMPLICIT NONE
- INTEGER :: iener,icty,iav,ibound,iavlim,ikernav
+ INTEGER :: iener,icty,iav,iavlim,ikernav
  INTEGER :: ialtform,idumpghost,ihvar
  INTEGER :: imhd,imagforce,idivBzero		!  (mhd options)
  INTEGER :: itoystar,ixsph,ianticlump
  INTEGER :: igravity,ikernel
+ INTEGER, DIMENSION(ndim) :: ibound  
  REAL :: damp
 END MODULE
 

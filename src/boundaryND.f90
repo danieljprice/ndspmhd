@@ -33,28 +33,30 @@ SUBROUTINE boundary
 !---------------------------------------------------------------------------
 !  inflow/outflow when fixed particles are used.
 !---------------------------------------------------------------------------     
- IF (ibound.EQ.1) THEN
+ IF (ANY(ibound.EQ.1)) THEN
     IF (ndim.GT.1) WRITE(iprint,*) ' inflow/outflow not implemented in ND'
 
 !----------------------------------------------------------------------
 ! periodic boundary conditions - allow particles to cross the domain
 !----------------------------------------------------------------------
 
- ELSEIF (ibound.EQ.3) THEN
+ ELSEIF (ANY(ibound.EQ.3)) THEN
     
     DO i=1,npart
 
        DO jdim=1,ndim
-          IF (x(jdim,i).GT.xmax(jdim)) THEN
-!	     print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
-	     x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
-	     xin(jdim,i) = x(jdim,i)
-	  ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
-!	     print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
-!	     read*
-             x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
-	     xin(jdim,i) = x(jdim,i)
-          ENDIF	  
+          IF (ibound(jdim).EQ.3) THEN
+	     IF (x(jdim,i).GT.xmax(jdim)) THEN
+!	        print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
+	        x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
+	        xin(jdim,i) = x(jdim,i)
+	     ELSEIF(x(jdim,i).LT.xmin(jdim)) THEN
+!	        print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)	     
+!	        read*
+                x(jdim,i) = xmax(jdim) - (xmin(jdim) - x(jdim,i))
+	        xin(jdim,i) = x(jdim,i)
+             ENDIF	  
+	  ENDIF
        ENDDO
     
     ENDDO   
