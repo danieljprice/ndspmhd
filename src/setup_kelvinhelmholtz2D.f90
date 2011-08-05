@@ -21,8 +21,8 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,j,iseed
- real :: massp,volume,totmass,xran,ran1
+ integer :: i,iseed
+ real :: massp,volume,totmass,ran1
  real :: denszero,densmedium,przero,psepmedium
  real, dimension(ndim) :: xminregion,xmaxregion
 !
@@ -40,7 +40,7 @@ subroutine setup
 !--set up the uniform density grid
 !
  denszero = 1.0
- densmedium = 1.0
+ densmedium = 2.0
  przero = 2.5
 !
 !--setup -0.5 < y < -0.25 and 0.25 < y < 0.5
@@ -75,7 +75,6 @@ subroutine setup
 !
  ibound = 3	! boundaries
  iseed = -23864
- xran = ran1(iseed)
 !
 !--now assign particle properties
 ! 
@@ -95,9 +94,8 @@ subroutine setup
 !
 !--add random velocity perturbation
 !
-    do j=1,ndim
-       vel(j,i) = vel(j,i)*(1.0 + 0.01*ran1(iseed))
-    enddo
+    vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
+    vel(2,i) = 0.01*(ran1(iseed)-0.5)
  enddo
 !
 !--get rho from a sum and then set u to give a
