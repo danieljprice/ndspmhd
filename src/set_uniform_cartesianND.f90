@@ -40,6 +40,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--allow for tracing flow
 !
  IF (trace) WRITE(iprint,*) ' Entering subroutine uniform_cartesian ',idistin
+ WRITE(iprint,*) 'Uniform cartesian distribution '
 
  IF (ndim.EQ.1) THEN 
     idist = 1	! in 1D use default version
@@ -70,7 +71,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--adjust psep so that particles fill the volume
 !
-    PRINT*,'npartx,y = ',npartx,nparty,deltax,deltay
+    PRINT*,' npartx,y = ',npartx,nparty  !!,deltax,deltay
 !    deltax = (xmax(1)-xmin(1))/(FLOAT(npartx))
 !    deltay = (xmax(2)-xmin(2))/(FLOAT(nparty))
 !    PRINT*,' adjusted ',deltax,deltay
@@ -89,7 +90,7 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
     ntot = npartx*nparty + npartin
     
-    WRITE(iprint,*) 'Close packed distribution, npart = ',ntot
+    WRITE(iprint,*) ' hexagonal close packed distribution, npart = ',ntot
     
     CALL alloc(ntot)
     npart = ntot
@@ -104,8 +105,6 @@ SUBROUTINE set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
              ipart = ipart + 1		!(k-1)*nparty + (j-1)*npartx + i
              x(1,ipart) = xmin(1) + (i-1)*deltax + xstart
              IF (ndim.GE.2) x(2,ipart) = xmin(2) + (j-1)*deltay + ystart
-	     if (ipart.eq.1) print*,' x1 -xmin = ',x(1,ipart)-xmin(1),psep,0.25*psep
-	     if (ipart.eq.32) print*,'xmax -x32 = ',xmax(1)-x(1,ipart),0.5*psep
           ENDDO
        ENDDO
     ENDDO 
