@@ -9,8 +9,8 @@ program plotmeagraph
   use prompting
   implicit none
   integer :: ncol
-  integer, parameter :: maxfile=101
-  integer, parameter :: maxstep=3000
+  integer, parameter :: maxfile=10
+  integer, parameter :: maxstep=6000
   integer, parameter :: maxcol=22        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,iprev,nfiles,ifile,ifilesteps, iargc
   integer :: mysteps,ipick,ipickx,nacross,ndown
@@ -388,6 +388,7 @@ program plotmeagraph
      endif
      
   endif
+  call pgslw(3)
   !!if (nplots.gt.2) call PGSCH(2.0)
 !
 !--open frequency file for output
@@ -427,7 +428,6 @@ program plotmeagraph
            !--tiled plots
            !
            call pgsls(1)
-           call pgslw(3)
            call danpgtile(i,nacross,ndown,  &
                xmin,xmax,ymin,ymax, &
                label(iplotx(i)),label(iploty(i)),title,0,0)
@@ -450,7 +450,6 @@ program plotmeagraph
         !
         !--draw the line
         !
-        call pgslw(3)
         do ifile=1,nfiles
            call PGSLS(MOD(ifile-1,5)+1)  ! change line style between plots
            if (i.eq.iongraph .and. nfiles.gt.1) call legend(ifile,legendtext(ifile),hpos,vpos)
@@ -483,7 +482,7 @@ program plotmeagraph
            !
            !--work out period of oscillation from spacing of minima/maxima
            !
-           if (igetfreq .and. iplotx(i).eq.1) then
+           if (igetfreq .and. iplotx(i).eq.2) then
               print*,rootname(ifile)
               call getmax(evdata(1:nstepsfile(ifile),iploty(i),ifile), &
                           evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
@@ -498,7 +497,6 @@ program plotmeagraph
            
            
         enddo
-        call pgslw(1)
 
      enddo
   endif
@@ -512,23 +510,37 @@ program plotmeagraph
   ans = ' '
   if (icycle) then
      do while(ans.ne.'q')
-        mysteps = maxstep  
         do ifile=1,nfiles 
+           mysteps = 0
+           ifilesteps = maxstep
            if (index(rootname(ifile),'.ev').eq.0) then
               filename = trim(rootname(ifile))//'.ev'
            else
               filename = trim(rootname(ifile))
            endif
            print*,'reading file ',filename
-           call readev(nstepsfile(ifile),evdata(1:nstepsfile(ifile),1:ncol,ifile),ncol,filename)
+           call readev(ifilesteps,evdata(1:ifilesteps,1:maxcol,ifile), &
+                maxcol,ncol,filename)
+           nstepsfile(ifile) = ifilesteps
         enddo
 
         do i=1,nplots
-           call PGPANL(1,i)
            do ifile=1,nfiles
               call PGSLS(MOD(ifile-1,5)+1)
-              call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
-                   evdata(1:nstepsfile(ifile),iploty(i),ifile))
+           !
+           !--apply transformations to plot data
+           !
+           xplot(1:nstepsfile(ifile)) = evdata(1:nstepsfile(ifile),iplotx(i),ifile)
+           yplot(1:nstepsfile(ifile)) = evdata(1:nstepsfile(ifile),iploty(i),ifile)
+
+           call transform(xplot(1:nstepsfile(ifile)),itrans(iplotx(i)))
+           call transform(yplot(1:nstepsfile(ifile)),itrans(iploty(i)))
+           
+           call PGLINE(nstepsfile(ifile),xplot(1:nstepsfile(ifile)), &
+                yplot(1:nstepsfile(ifile)))
+
+!              call PGLINE(nstepsfile(ifile),evdata(1:nstepsfile(ifile),iplotx(i),ifile), &
+!                   evdata(1:nstepsfile(ifile),iploty(i),ifile))
            enddo
         enddo
         
@@ -660,7 +672,6 @@ subroutine get_ncolumns(lunit,ncolumns)
  dummyreal = -666.0
  
  ierr = 0
- print*,trim(line)
  read(line,*,end=10) (dummyreal(i),i=1,size(dummyreal))
 10 continue 
  i = 1
