@@ -598,8 +598,12 @@ contains
       wabalt = 0.5*(wabalti + wabaltj)
       !  (grad h terms)  
       if (ikernav.eq.3) then  ! if using grad h corrections
-         grkerni = grkerni*gradhi !!!(1. + gradhni*gradhi/pmassj)
-         grkernj = grkernj*gradh(j) !!!(1. + gradhn(j)*gradh(j)/pmassi)
+         !--use these two lines for usual formulation
+         grkerni = grkerni*gradhi
+         grkernj = grkernj*gradh(j)
+         !--use these two lines for number density formulation
+         !grkerni = grkerni*(1. + gradhni*gradhi/pmassj)
+         !grkernj = grkernj*(1. + gradhn(j)*gradh(j)/pmassi)
          grkern = 0.5*(grkerni + grkernj)
       else  ! if not using grad h correction               
          grkern = 0.5*(grkerni + grkernj)

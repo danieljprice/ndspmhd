@@ -140,6 +140,7 @@ subroutine iterate_density
                  gradh(i) = gradh(i)*dhdni
                  func = densnumi - densn(i)
                  dfdh = omegai/dhdni
+                 gradsoft(i) = gradsoft(i)*dhdni
               else
                  rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
                  dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
@@ -151,8 +152,8 @@ subroutine iterate_density
                  gradh(i) = 1./omegai   ! this is what *multiplies* the kernel gradient in rates etc
                  func = rhoi - rho(i)
                  dfdh = omegai/dhdrhoi
+                 gradsoft(i) = gradsoft(i)*dhdrhoi
               endif
-              gradsoft(i) = gradsoft(i)*dhdrhoi
 !
 !--perform Newton-Raphson iteration to get new h
 !                    
@@ -206,8 +207,9 @@ subroutine iterate_density
 !--normalise arrays
 !                 
                  if (usenumdens) then
-                    dhdt(i) = dhdrhoi*dndt(i)*gradh(i)
-                    drhodt(i) = drhodt(i) + gradhn(i)*dndt(i)
+                    dndt(i) = dndt(i)*gradhn(i)
+                    dhdt(i) = dhdni*dndt(i)
+                    drhodt(i) = drhodt(i) + gradh(i)*dndt(i)
                  else
                     if (ikernav.eq.3) drhodt(i) = drhodt(i)*gradh(i)
                     dhdt(i) = dhdrhoi*drhodt(i)
