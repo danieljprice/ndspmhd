@@ -59,13 +59,16 @@ PROGRAM SUPERSPMHD_ND
 !   * hyperbolic/parabolic divergence cleaning
 !   * div B = 0 by projection method in 2D - poisson eq. by direct sum in 2D,3D
 !   * accretion disc setups
-!   * big bug fix in step (predictor-corrector) for disks
+!   * step (predictor-corrector) fixed for disks, but now screws up shocks
+!     (ie use leapfrog at all times!!)
 !   * lots of crap to do with MHD AV/switches in rates
 !   * lots of things for GR code (grutils, conservative2primitive_gr etc)
 !   * tested on shear flows
 !   * preliminary riemann solver routine
 !   * compiler warnings fixed in lots of subroutines (mostly unused variables)
 !     -> link renamed so doesn't conflict with internal function
+!   * kernel plotting utility, more kernels added
+!   * quite a few changes to supersphplot
 !    version = 'NDSPMHD-3D-v5-1'
 !   * smoothing length iteration on single particles works 
 !   * conservative2primitive and primitive2conservative
@@ -286,7 +289,7 @@ SUBROUTINE quit
  IMPLICIT NONE
 
  WRITE(iprint,*) 'performing graceful exit...'
- CALL output(time,nsteps) ! dump particles before crashing
+ CALL output(time,-nsteps) ! dump particles before crashing
 !
 !--Close all open files and exit
 !
