@@ -72,7 +72,7 @@ SUBROUTINE evolve
 !--write log every step in 2D/3D
 !
     IF (ndim.GE.2) THEN
-       WRITE(iprint,10) time,dtforce,dtcourant
+       WRITE(iprint,10) time,C_force*dtforce,C_cour*dtcourant
 10     FORMAT(' t = ',f9.4,' dtforce = ',1pe10.3,' dtcourant = ',1pe10.3)
     ENDIF
     
