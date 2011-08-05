@@ -41,8 +41,7 @@ subroutine get_rates
  real :: pmassi,pmassj
  real :: Prho2i,Prho2j,prterm,pri,prj
  real :: hi,hi1,hj,hj1,hi21,hj21
- real :: hav,hav1,h21
- real :: hfacwab,hfacwabi,hfacwabj,hfacgrkern,hfacgrkerni,hfacgrkernj
+ real :: hfacwabi,hfacgrkerni
  real, dimension(ndim) :: dx, fexternal  !!,dri,drj
 !
 !--gr terms
@@ -67,11 +66,11 @@ subroutine get_rates
 !
 !  (artificial viscosity quantities)
 !      
- real :: vsig,vsigi,vsigj,viss
+ real :: vsig,vsigi,vsigj
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
- real :: rhoi5,rhoj5
+!! real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj
- real :: vsigii,vsigjj
+!! real :: vsigii,vsigjj
 !
 !  (av switch)
 !
@@ -106,7 +105,7 @@ subroutine get_rates
 !
 !--div B correction
 ! 
- real :: gradpsiterm,vsig2,vsigmax,dtcourant2
+ real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
 
 !
 !--allow for tracing flow
@@ -207,7 +206,7 @@ subroutine get_rates
        idone = idone + 1
        rhoi = rho(i)
        rho2i = rhoi*rhoi
-       rhoi5 = sqrt(rhoi)
+!!       rhoi5 = sqrt(rhoi)
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
        pri = pr(i)
@@ -255,13 +254,6 @@ subroutine get_rates
            hj = hh(j)
            hj1 = 1./hj
            hj21 = hj1*hj1
-           hfacwabj = hj1**ndim
-           hfacgrkernj = hfacwabj*hj1
-           hav = 0.5*(hi + hj)
-           hav1 = 1./hav
-           h21 = hav1*hav1
-           hfacwab = hav1**ndim 
-           hfacgrkern = hfacwab*hav1
      
            rij2 = dot_product(dx,dx)
            rij = sqrt(rij2)
@@ -269,7 +261,6 @@ subroutine get_rates
               write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                 call quit
            endif      
-           q2 = rij2*h21      
            q2i = rij2*hi21
            q2j = rij2*hj21
            dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
@@ -284,9 +275,9 @@ subroutine get_rates
              !  do pairwise interaction if either particle is within range of the other
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
-                call rates_core
+              call rates_core
            else      ! if outside 2h
-!              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2)
+!              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)
            endif      ! r < 2h or not
 
          endif            ! j.ne.i
@@ -311,7 +302,7 @@ subroutine get_rates
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
  dtforce = 1.e6
- dtcourant2 = 1.e6
+!! dtcourant2 = 1.e6
 
 !----------------------------------------------------------------------------
 !  loop over the particles again, subtracting external forces and source terms
@@ -552,11 +543,19 @@ contains
     implicit none
     real :: prstar, vstar
     real :: projvi, projvj, dvsigdtc
+    real :: hav,hav1,h21
+    real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
 !
 !--calculate both kernels if using anticlumping kernel
 !
    if (imhd.ne.0 .and. imagforce.eq.2 .and. ianticlump.eq.1) then
       if (ikernav.eq.1) then
+         hav = 0.5*(hi + hj)
+         hav1 = 1./hav
+         h21 = hav1*hav1
+         hfacwab = hav1**ndim 
+         hfacgrkern = hfacwab*hav1
+         q2 = rij2*h21        
          call interpolate_kernels(q2,wab,grkern,wabaniso,grkernaniso)
          wab = wab*hfacwab
          grkern = grkern*hfacgrkern
@@ -566,6 +565,8 @@ contains
          grkernanisoi = grkernaniso
          grkernanisoj = grkernaniso
       else
+         hfacwabj = hj1**ndim
+         hfacgrkernj = hfacwabj*hj1
          !  (using hi)
          call interpolate_kernels(q2i,wabi,grkerni,wabanisoi,grkernanisoi)
          wabi = wabi*hfacwabi
@@ -597,6 +598,12 @@ contains
 !--or just calculate the usual kernel
 !
       if (ikernav.eq.1) then
+         hav = 0.5*(hi + hj)
+         hav1 = 1./hav
+         h21 = hav1*hav1
+         hfacwab = hav1**ndim
+         hfacgrkern = hfacwab*hav1
+         q2 = rij2*h21
          call interpolate_kernel(q2,wab,grkern)
          wab = wab*hfacwab
          grkern = grkern*hfacgrkern
@@ -637,7 +644,7 @@ contains
     rho1j = 1./rhoj
     rho2j = rhoj*rhoj
     rho21j = rho1j*rho1j
-    rhoj5 = sqrt(rhoj)
+!!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 2./(rhoi + rhoj)
     prj = pr(j)        
@@ -674,13 +681,10 @@ contains
     !            vsigdtc = vmag + spsoundi + spsoundj        &
     !                         + sqrt(valfven2i) + sqrt(valfven2j)
     vsig = 0.
-    viss = 0.
 !----------------------------------------------------------------------------
 !  calculate signal velocity (this is used for timestep control
 !  and also in the artificial viscosity)
 !----------------------------------------------------------------------------
-
-    if (dvdotr.lt.0) viss = abs(dvdotr)
     !
     !--max signal velocity (Joe's)
     !
