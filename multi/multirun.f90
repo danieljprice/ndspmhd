@@ -48,7 +48,7 @@ program multirun
  print*,' initial psep = ',psep
   
  jmode = 0
- mmode = 0 
+ mmode = 2
  alpha = 1.0
  betatstar = 2.*pi
  
@@ -67,8 +67,13 @@ program multirun
     h = 1.0
     c = 1.0
     a = 0.05/sqrt(2.)
-    !!jmode = jmode + 2
-    mmode = mmode + 2
+    
+    jmode = jmode + 2
+    if (jmode.eq.20) then
+       jmode = 2
+       mmode = mmode + 2
+    endif
+!    mmode = mmode + 2
 
     gamm1 = gamma - 1.
     if (gamm1.lt.1.e-5) then
@@ -88,7 +93,7 @@ program multirun
 !
     period = 2.*pi/sigma
     tout = 0.25*period
-    tmax = 10.*period
+    tmax = 4.*period
     print*,'jmode = ',jmode,' smode = ',mmode,' period = ',period
     
     print*,'writing ',trim(tstarfile),' with initial left/right states'
