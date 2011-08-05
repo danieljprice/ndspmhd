@@ -38,12 +38,12 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  integer :: icell,iprev,nneigh,nneighi
  integer, dimension(npart) :: listneigh ! neighbour list
  real :: rij,rij2
- real :: hi1,hi21
+ real :: hi1,hi21,etaij,etai,etaj
  real :: hfacwabi,rho1j,sumdenom
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr,Bi,dB,sumB,sumBin,lhs,rhs
  real :: q2i,grkerni,wabi,dB2,dBmax,term,fac,errmax
- real :: grkernalti,grgrkernalti,grgrkerni
+ real :: grkernalti,grgrkernalti,grgrkerni,dti
  real, dimension(ndimV,ntotal) :: Bfieldnew
  logical :: converged
 !
@@ -66,7 +66,14 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 !  fac = 1 gives fully implicit (backwards Euler)
 !  fac = 1/2 gives mix (Crank-Nicolson)
  
- fac = 1.
+ fac = 0.5
+ if (abs(dt) > 0.) then
+    dti = dt
+ else
+    !--if dt=0, return explicit derivative
+    dti = 1.
+    fac = 0.
+ endif
  
  sweeps: do while (.not.converged .and. nsweeps.lt.maxsweeps)
  
@@ -113,6 +120,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
        sumdenom = 0.
        sumB(:) = 0.
        sumBin(:) = 0.
+       etai = etafunc(x(1,i),etamhd)
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -131,6 +139,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
                 rij = sqrt(rij2)
                 dr(1:ndim) = dx(1:ndim)/(rij + tiny(rij))  ! unit vector
                 rho1j = 1./rho(j)
+                etaj = etafunc(x(1,j),etamhd)
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
@@ -142,7 +151,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 !
 !--calculate nabla^2 B
 !
-                grkerni = grkerni*hfacwabi*hi1
+                grkerni = grkerni*hfacwabi*hi1*gradh(i)
                 grkernalti = grkernalti*hfacwabi*hi1
 
                 !--usual 2nd deriv
@@ -154,7 +163,15 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
                 !--uncomment following lines to use 2nd deriv of alternative kernel
                 !grgrkerni = grgrkernalti*hfacwabi*hi1*hi1
                 
-                term = etamhd*pmass(j)*rho1j*grgrkerni
+                !--constant resistivity
+                !etaij = etamhd
+                !--arithmetic average
+                !etaij = 0.5*(etai + etaj)
+                !--geometric average
+                etaij = 2.*etai*etaj/(etai + etaj)
+
+                term = etaij*pmass(j)*rho1j*grgrkerni
+                !term = etamhd*pmass(j)*rho1j*grgrkerni
                 sumdenom = sumdenom + term
                 sumB(:) = sumB(:) + term*Bfieldnew(:,j)
                 sumBin(:) = sumBin(:) + term*Bfield(:,j)
@@ -164,10 +181,10 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
           endif! j .ne. i   
        enddo loop_over_neighbours
 
-       Bi(:) = Bfieldnew(:,i) 
-       Bfieldnew(:,i) = (Bfield(:,i)*(1. - (1.-fac)*dt*sumdenom) &
-                         + fac*dt*sumB(:) + (1.-fac)*dt*sumBin(:))/&
-                        (1. + fac*dt*sumdenom)
+       Bi(:) = Bfieldnew(:,i)
+       Bfieldnew(:,i) = (Bfield(:,i)*(1. - (1.-fac)*dti*sumdenom) &
+                         + fac*dti*sumB(:) + (1.-fac)*dti*sumBin(:))/&
+                        (1. + fac*dti*sumdenom)
        !print*,' particle ',i,' numneigh = ',numneigh(i),nneighi
        
        dB = Bfieldnew(:,i) - Bi(:)
@@ -178,9 +195,9 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
        !--check LHS=RHS convergence
        !
        if (dt.gt.0.) then
-          lhs = (Bfieldnew(:,i) - Bfield(:,i))/dt
-          rhs = (1.-fac)*(sumBin(:) - sumdenom*Bfield(:,i)) &
-                   + fac*(sumB(:) - sumdenom*Bfieldnew(:,i))
+          lhs = Bfieldnew(:,i) ! - Bfield(:,i))/dt
+          rhs = Bfield(:,i) + dt*((1.-fac)*(sumBin(:) - sumdenom*Bfield(:,i)) &
+                   + fac*(sumB(:) - sumdenom*Bfieldnew(:,i)))
           errmax = max(maxval(abs(rhs-lhs)),errmax)
        endif
 
@@ -190,7 +207,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
     
  enddo loop_over_cells
  
- converged = (dBmax < 1.e-20 .and. errmax < 1.e-1)
+ converged = (dBmax < 1.e-12 .and. errmax < 1.e-12)
  !print*,nsweeps,' errmax = ',errmax
  !print*,' end of sweep ',nsweeps,' dBmax = ',dBmax,' dt =  ',dt
  if (fac < 1. .and. nsweeps.eq.maxsweeps .and. .not.converged) then
@@ -207,7 +224,7 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  enddo sweeps
  
  if (converged) then
-   ! print*,' converged in ',nsweeps,' sweeps'
+    print*,' converged in ',nsweeps,' sweeps'
  else
     print*,' ERROR: resistivity not converged, max error = ',dBmax
     !stop
@@ -218,13 +235,31 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
 !--what we actually return from this routine is an extra contribution to
 !  dBevoldt, as if it had been computed with the B^(n+1) in it.
 !
- if (dt.gt.0.) then
+    !dBevoldt(:,:) = 0.
+ if (dti.gt.0.) then
     do i=1,npart
-       dBevoldt(:,i) = dBevoldt(:,i) + (Bfieldnew(:,i) - Bfield(:,i))/dt
+       dBevoldt(:,i) = dBevoldt(:,i) + (Bfieldnew(:,i) - Bfield(:,i))/dti
     enddo
  endif
 
  return
 end subroutine Bdiffusion
+
+!
+!--diffusion parameter as a function of x
+!
+real function etafunc(x,eta)
+ implicit none
+ real, parameter :: pi = 3.1415926536
+ real, intent(in) :: x,eta
+ 
+! if (x > 0.25 .and. x < 0.75) then
+!    etafunc = 10000.*eta
+! else
+!    etafunc = 0.01*eta
+! endif
+ etafunc = eta*cos(2.*pi*x)**2
+ 
+end function etafunc
 
 end module resistivity
