@@ -44,9 +44,9 @@ PROGRAM multirun
  PRINT*,' initial psep = ',psep
  iener_default = iener
  
- psidecayfact = -0.1
- hfact = 1.0
- j = 0
+ psidecayfact = 0.0
+ !hfact = 1.0
+ !j = 0
  
  DO i=1,nruns
     IF (i.GE.10) THEN
@@ -57,15 +57,15 @@ PROGRAM multirun
        infile = TRIM(filename)//filenum(1:1)//'.in'
     ENDIF
     
-    j = j + 1
-    IF (j.GT.9) THEN
-       j = 0
-       psep = 0.5*psep
-       psidecayfact = -0.1
-    ENDIF
-    psidecayfact = psidecayfact + 0.1
+    !j = j + 1
+    !IF (j.GT.9) THEN
+    !!   j = 0
+    !   hfact = hfact + 0.1
+    !   psidecayfact = 0.0
+    !ENDIF
+    psidecayfact = psidecayfact + 0.01
     
-    PRINT*,'Writing input file ',infile, ' psep = ',psep,' sigma = ',psidecayfact
+    PRINT*,'Writing input file ',infile, ' hfact = ',hfact,' sigma = ',psidecayfact
     
     CALL write_infile(infile)
 

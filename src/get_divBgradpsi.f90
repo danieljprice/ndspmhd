@@ -14,6 +14,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
  USE debug
  USE loguns
  
+ USE bound
  USE kernel
  USE linklist
  USE options
@@ -51,7 +52,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine get_divBgradpsi, ntot=',ntot  
+ IF (trace) WRITE(iprint,*) ' Entering subroutine get_divBgradpsi, npart,ntot=',npart,ntot 
 !
 !--initialise quantities
 !
@@ -77,7 +78,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 
     loop_over_cell_particles: DO WHILE (i.NE.-1) ! loop over home cell particles
 
-       !       PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i)
+       !PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i),Bin(:,i)
        idone = idone + 1
        hi = hh(i)
        hi1 = 1./hi
@@ -110,11 +111,9 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
              q2 = rij2/h2
              q2i = rij2/hi2
              q2j = rij2/hj2
-             IF (j.EQ.i) THEN
-                dr = 0.
-             ELSE    
+             dr = 0.
+             IF (j.NE.i) THEN
                 dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
-                if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0. 
              ENDIF
              !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
 !     
@@ -127,7 +126,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
 !
-                !       PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
+                !PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
                 IF (ikernav.EQ.1) THEN          
                    CALL interpolate_kernel(q2,wab,grkern)
                    wab = wab*hfacwab
@@ -163,6 +162,10 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
                 divB(j) = divB(j) - pmassi*projdB*grkernj            
                 gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
                 gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
+                   
+                !print*,' Bi,j = ',Bin(:,i),Bin(:,j)
+                !print*,' projdB,dr = ',projdB,dr(:)
+                !read*
                    
                 weight = 1.0
                 if (j.eq.i) weight = 0.5
@@ -200,11 +203,17 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
     else
        write(*,*) 'ERROR: get_divBgradpsi: rho < 0.'
     endif
+    !print*,'divB, rho = ',divB(i),rho(i),Bin(:,i)
+    !if (mod(i,20).eq.0) read*
  ENDDO
  
  DO i=npart+1,ntot
+    j = ireal(i)
+    rho(i) = rho(j)
     gradpsi(:,i) = 0.
+    !print*,i,Bin(:,i),rho(i)
  ENDDO
+! read*
 
  RETURN
 END SUBROUTINE get_divBgradpsi
