@@ -2,27 +2,36 @@
 ! these subroutines calculates the primitive variables from the
 ! conservative variables and vice versa.
 !
-! This version is for non-relativistic, cylindrical hydro (no MHD yet).
+! This version is for non-relativistic hydro in arbitrary co-ordinate
+! systems (no MHD yet).
 ! The thermal energy is calculated from the
-! total energy, whilst the magnetic field B is calculated from
+! total energy
+! In cartesian coords the magnetic field B is calculated from
 ! the conserved variable B/rho.
+!
+! The equation of state is called to calculate the pressure
 !
 ! also returns the source terms for the momentum equations
 ! and the determinant of the metric sqrtg
 !
-! These subroutines would be used in the GR case, for all the 
-! variables. The evaluation would be far more complicated, however.
+! The calculation of the primitive variables from the conservative ones
+! is a bit more complicated in the relativistic case since the 
+! Lorentz factor is involved everywhere.
 !---------------------------------------------------------------------
-subroutine conservative2primitive(rho,vel,uu,en,Bfield,Bcons,ierr)
+subroutine conservative2primitive( &
+     x,rho,pmom,en,Bcons,dens,vel,uu,Bfield, &
+     pr,sqrtg,sourceterms,ierr)
   use dimen_mhd
   use options
   use loguns  
+  use eos
   implicit none
   integer, intent(out) :: ierr  ! error code
-  real, intent(in) :: en,rho
-  real, intent(in), dimension(ndimV) :: vel,Bcons 
-  real, intent(out) :: uu
-  real, intent(out), dimension(ndimV) :: Bfield
+  real, intent(in) :: rho,en
+  real, intent(in) :: x
+  real, intent(in), dimension(ndimV) :: pmom,Bcons 
+  real, intent(out) :: dens,uu,pr
+  real, intent(out), dimension(ndimV) :: vel,Bfield,sourceterms
   real :: B2i, v2i
 
   ierr = 0
@@ -30,46 +39,107 @@ subroutine conservative2primitive(rho,vel,uu,en,Bfield,Bcons,ierr)
 !--calculate co-ordinate velocities (x derivatives) from the
 !  conserved momentum variable
 !
+  sourceterms = 0.
+
   select case (igeom)
-  case(1)   ! cylindrical
+!
+!--cylindrical metric
+!
+  case(1)
      sqrtg = x(1)
      dens = rho/sqrtg
      vel(:) = pmom(:)
-     if (ndimV.ge.2) vel(2) = pmom(2)/x(1)
-  case(2)   ! spherical
+     if (ndimV.ge.2) vel(2) = pmom(2)/(x(1)**2)
+     if (iener.eq.3) then     ! total energy is evolved
+        v2i = DOT_PRODUCT(vel,vel)
+        uu = en - 0.5*v2i - 0.5*B2i
+     else   ! thermal energy is evolved
+        uu = en
+     endif
+     !
+     !--call equation of state to get pressure
+     !
+     call equation_of_state(pr,vsound,uu,dens,gamma)
+     !!--compute source terms (derivatives of metric) for momentum equation
+     sourceterms(1) = pr/rho
+     if (ndimV.ge.2) sourceterms(1) = sourceterms(1) + pmom(2)
+!
+!--spherical polars
+!
+  case(2)
      if (ndim.eq.1) then
         sqrtg = x(1)**2
      else
-        sqrtg = (x(1)**2)*SIN(x(2))
+        sqrtg = SIN(x(2))*x(1)**2
      endif
      vel(1) = pmom(1)
-     vel(2) = pmom(2)/x(1)
-     vel(3) = pmom(3)/(x(1)*
-  case (default) ! cartesian
+     vel(2) = pmom(2)/(x(1)**2)
+     vel(3) = pmom(3)/sqrtg
+     if (iener.eq.3) then     ! total energy is evolved
+        v2i = DOT_PRODUCT(vel,vel)
+        uu = en - 0.5*v2i - 0.5*B2i
+     else       ! thermal energy is evolved
+        uu = en
+     endif
+     !
+     !--call equation of state to get pressure
+     !
+     call equation_of_state(pr,vsound,uu,dens,gamma)
+     !!--compute source terms (derivatives of metric) for momentum equation
+     sourceterms(1) = pr/rho
+     if (ndimV.ge.2) sourceterms(1) = sourceterms(1) + x(1)**2*vel(2)
+     if (ndimV.ge.3) sourceterms(2) = x(1)**2*vel(3)
+!
+!--spherical polars with logarithmic radial co-ordinate
+!
+  case(3)
+     rr = exp(x(1))
+     if (ndim.eq.1) then
+        sqrtg = rr**3
+     else
+        sqrtg = SIN(x(2))*rr**3
+     endif
+     vel(1) = pmom(1)
+     vel(2) = pmom(2)/(x(1)**2)
+     vel(3) = pmom(3)/sqrtg
+     if (iener.eq.3) then     ! total energy is evolved
+        v2i = DOT_PRODUCT(vel,vel)
+        uu = en - 0.5*v2i - 0.5*B2i
+     else       ! thermal energy is evolved
+        uu = en
+     endif     
+!
+!--Minkowski metric (special relativity)
+!
+  case(10)
+     stop 'special rel not yet implemented'
+!
+!--cartesian co-ordinates
+!
+  case (default)
      sqrtg = 1.
+     sourceterms = 0.
      dens = rho
      vel(:) = pmom(:)
-  if (iener.eq.3) then     ! total energy is evolved
-     v2i = DOT_PRODUCT(vel,vel)
-     uu = en - 0.5*v2i - 0.5*B2i
-  elseif (iener.ge.1) then ! thermal energy is evolved
-     uu = en
-  endif
-
+     if (iener.eq.3) then     ! total energy is evolved
+        v2i = DOT_PRODUCT(vel,vel)
+        uu = en - 0.5*v2i - 0.5*B2i
+     else       ! thermal energy is evolved
+        uu = en
+     endif
+     !
+     !--calculate magnetic flux density B from the conserved variable
+     !  
+     if (imhd.ge.11) then    ! if using B as conserved variable
+        Bfield(:) = Bcons(:)
+        B2i = DOT_PRODUCT(Bcons,Bcons)/rho
+     elseif (imhd.ne.0) then ! if using B/rho as conserved variable
+        Bfield(:) = Bcons(:)*rho
+        B2i = DOT_PRODUCT(Bcons,Bcons)*rho
+     else
+        B2i = 0.
+     endif
   end select
-
-!
-!--calculate magnetic flux density B from the conserved variable
-!  
-  if (imhd.ge.11) then    ! if using B as conserved variable
-     Bfield(:) = Bcons(:)
-     B2i = DOT_PRODUCT(Bcons,Bcons)/rho
-  elseif (imhd.ne.0) then ! if using B/rho as conserved variable
-     Bfield(:) = Bcons(:)*rho
-     B2i = DOT_PRODUCT(Bcons,Bcons)*rho
-  else
-     B2i = 0.
-  endif
 
   if (uu.lt.0.) then
      write(iprint,*) 'Warning: utherm -ve'
