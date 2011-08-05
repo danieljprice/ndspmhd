@@ -101,17 +101,17 @@ subroutine setup
     phi = atan2(x(2,ipart),x(1,ipart))
     vel(:,ipart) = 0.
     if (ri.le.rdisk) then
-       itype(ipart) = 2
+       itype(ipart) = itypebnd2
        nbpts = nbpts + 1
        vphi = omega*ri
        vel(1,ipart) = -vphi*sin(phi)
        vel(2,ipart) = vphi*cos(phi)
     elseif (ri.ge.rmax) then
-       itype(ipart) = 1
+       itype(ipart) = itypebnd
        nbpts = nbpts + 1
        vel(:,ipart) = 0.
     else
-       itype(ipart) = 0
+       itype(ipart) = itypegas
        vel(:,ipart) = 0.
     endif
     hh(ipart) = 1.2*psep

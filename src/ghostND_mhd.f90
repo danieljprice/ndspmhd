@@ -317,9 +317,8 @@ subroutine set_ghost_particles
    
   enddo over_part
 !
-!--set type of ghost particles to zero
-!
-  itype(npart+1:ntotal) = 0
+!--set type of ghost particles to be same as gas
+  itype(npart+1:ntotal) = itype(ireal(npart+1:ntotal))
 !
 !--set unused elements of the array to zero (can cause errors in eos)
 ! 

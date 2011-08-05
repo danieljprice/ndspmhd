@@ -47,7 +47,7 @@ subroutine step
 !--Mid-point Predictor step
 !      
  do i=1,npart
-    if (itype(i).EQ.1 .or. itype(i).EQ.2) then        ! fixed particles
+    if (itype(i).EQ.1 .or. itype(i).EQ.11) then        ! fixed particles
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)     
@@ -87,7 +87,7 @@ subroutine step
 !--Mid-point Corrector step
 !
  do i=1,npart
-    if (itype(i).EQ.1 .or. itype(i).eq.2) then
+    if (itype(i).EQ.1 .or. itype(i).eq.11) then
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)

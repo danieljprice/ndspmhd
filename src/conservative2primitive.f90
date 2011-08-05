@@ -153,7 +153,7 @@ subroutine conservative2primitive
         !--copy Bfield onto ghosts
         if (any(ibound.eq.1)) then
            do i=1,npart
-              if (itype(i).eq.1) then
+              if (itype(i).eq.itypebnd) then
                  j = ireal(i)
                  Bfield(:,i) = Bfield(:,j)
               endif
@@ -201,7 +201,7 @@ subroutine conservative2primitive
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
         do i=1,npart
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               Bfield(:,i) = Bfield(:,j)
            endif
@@ -282,7 +282,7 @@ subroutine conservative2primitive
 !
   if (any(ibound.eq.1)) then
      do i=1,npart
-        if (itype(i).eq.1) then
+        if (itype(i).eq.itypebnd) then
            j = ireal(i)
            call copy_particle(i,j)
            !vel(:,i) = vel(:,j)
@@ -465,7 +465,7 @@ subroutine primitive2conservative
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
         do i=1,npart
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               Bfield(:,i) = Bfield(:,j)
            endif
@@ -494,7 +494,7 @@ subroutine primitive2conservative
            !--copy remapped Bevol onto boundary/ghost particles
            if (any(ibound.eq.1)) then
               do i=1,npart
-                 if (itype(i).eq.1) then ! fixed particles
+                 if (itype(i).eq.itypebnd) then ! fixed particles
                     j = ireal(i)
                     Bevol(:,i) = Bevol(:,j)
                  endif
@@ -522,7 +522,7 @@ subroutine primitive2conservative
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
         do i=1,npart
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               Bfield(:,i) = Bfield(:,j)
            endif
@@ -589,7 +589,7 @@ subroutine primitive2conservative
 !
   if (any(ibound.eq.1) .and. imhd.lt.0) then
      do i=1,npart
-        if (itype(i).eq.1) then
+        if (itype(i).eq.itypebnd) then
            j = ireal(i)
            call copy_particle(i,j)
            vel(:,i) = vel(:,j)

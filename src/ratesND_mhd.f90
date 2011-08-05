@@ -48,6 +48,7 @@ subroutine get_rates
  real, dimension(ndim) :: xi, dx
  real, dimension(ndimV) :: fexternal  !!,dri,drj
  real, dimension(ntotal) :: h1
+ integer :: itypei
 !
 !--gr terms
 !
@@ -273,6 +274,7 @@ subroutine get_rates
        !!print*,'Doing particle ',i,'of',npart,x(:,i),rho(i),hh(i)
        idone = idone + 1
        xi(:) = x(:,i)
+       itypei = itype(i)
        rhoi = rho(i)
        rho2i = rhoi*rhoi
 !!       rhoi5 = sqrt(rhoi)
@@ -348,7 +350,7 @@ subroutine get_rates
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
               rij = sqrt(rij2)
-              if (rij.le.1.e-8) then
+              if (rij.le.1.e-8 .and. itype(j).eq.itypei) then
                  nclumped = nclumped + 1
                  if (rij.lt.tiny(rij)) then
                     write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
@@ -360,7 +362,11 @@ subroutine get_rates
               !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
               !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
               !enddo
-              call rates_core
+              if (itype(j).eq.itypei .or. itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) then              
+                 call rates_core
+              else
+!                 call drag_term
+              endif
            else      ! if outside 2h
 !              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)
            endif      ! r < 2h or not

@@ -133,6 +133,10 @@ module part
  use dimen_mhd
  implicit none
  integer :: npart,nbpts,ntotal
+ integer, parameter :: itypegas = 0
+ integer, parameter :: itypebnd = 1
+ integer, parameter :: itypedust = 2
+ integer, parameter :: itypebnd2 = 11
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable :: pmass,sqrtg
  real, dimension(:,:), allocatable :: x   

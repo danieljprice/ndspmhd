@@ -174,7 +174,7 @@ SUBROUTINE step
  ENDIF
    
  DO i=1,npart
-    IF (itype(i).EQ.1 .OR. itype(i).EQ.2) THEN        ! fixed particles
+    IF (itype(i).EQ.itypebnd .OR. itype(i).EQ.itypebnd2) THEN        ! fixed particles
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
        if (imhd.lt.0) then
@@ -251,7 +251,7 @@ SUBROUTINE step
 !--Mid-point Corrector step
 !
  DO i=1,npart
-    IF (itype(i).EQ.1 .or. itype(i).EQ.2) THEN
+    IF (itype(i).EQ.itypebnd .or. itype(i).EQ.itypebnd2) THEN
        vel(:,i) = velin(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i)
        if (imhd.lt.0) then

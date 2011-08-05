@@ -23,16 +23,18 @@ subroutine setup
  implicit none
  integer :: i
  integer, parameter :: itsmax = 100
+ integer, parameter :: ntypes = 2
 ! real, parameter :: pi = 3.1415926536
  real, parameter :: tol = 1.e-8
- integer :: its,iwave
+ integer :: its,iwave,ngas,ndust,jtype
  real, dimension(ndimV) :: Bzero
- real :: massp
+ real :: massp,masspdust
  real :: ampl,wk,xlambda,dxmax,denom
  real :: dxi,dxprev,xmassfrac,func,fderiv
  real :: spsoundi,valfven2i,vamplx,vamply,vamplz
  real :: vfast,vslow,vcrap,vwave,term,dens1
- real :: denszero,uuzero,przero,Rzero
+ real :: denszero,uuzero,przero,Rzero,denszerodust
+ real :: dust_to_gas_ratio
 !
 !--allow for tracing flow
 !
@@ -57,7 +59,7 @@ subroutine setup
     if (imhd.ne.0) Bzero(1:3) = 0.5  
     write(iprint,10) 'MHD fast wave'
  else                        ! Sound wave
-    ampl = 0.05
+    ampl = 0.0001
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
        uuzero = 1.0/((gamma-1.)*gamma)
@@ -83,16 +85,33 @@ subroutine setup
  xmin(:) = 0.   ! set position of boundaries
  xmax(1) = 1.0 
  if (ndim.GE.2) then
-    xmax(2:ndim) = 6.*psep ! would need to adjust this depending on grid setup
+    xmax(2:ndim) = 11.*psep ! would need to adjust this depending on grid setup
  endif
 !
 !--initially set up a uniform density grid (also determines npart)
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
- call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
+ ngas = 0
+ ndust = 0
+ do jtype=1,ntypes
+    call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+    if (jtype.eq.1) then
+       ngas = npart
+       itype(1:ngas) = itypegas
+    elseif (jtype.eq.2) then
+       ndust = npart - ngas
+       itype(ngas+1:ngas+ndust) = itypedust
+    endif
+ enddo
  
 ! npart = INT((xmax(1)-xmin(1))/psep)
- massp = 1.0/FLOAT(npart)        ! average particle mass
+ massp = 1.0/FLOAT(ngas)        ! average particle mass
+ 
+ masspdust = 0.
+ dust_to_gas_ratio = 1.
+ if (ndust.gt.0) masspdust = dust_to_gas_ratio*1.0/FLOAT(ndust) ! average particle mass
+ denszerodust = dust_to_gas_ratio*denszero
+ if (ntypes.gt.1) print*,' ngas = ',ngas,' ndust = ',ndust
 !
 !--allocate memory here
 !
@@ -103,9 +122,15 @@ subroutine setup
  do i=1,npart
 !    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
     vel(:,i) = 0.
-    dens(i) = denszero
-    pmass(i) = massp
-    uu(i) = uuzero
+    if (itype(i).eq.itypedust) then
+       dens(i) = denszerodust
+       pmass(i) = masspdust
+       uu(i) = 0. 
+    else
+       dens(i) = denszero
+       pmass(i) = massp
+       uu(i) = uuzero
+    endif
     if (imhd.GT.0) then 
        Bfield(:,i) = Bzero
     else
@@ -209,7 +234,9 @@ subroutine setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)        ! if not polytropic
+    if (itype(i).eq.itypegas) then
+       uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)        ! if not polytropic
+    endif
 !    
 !--perturb density if not using summation
 !

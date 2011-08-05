@@ -27,7 +27,7 @@ subroutine iterate_density
   use hterms
   use linklist, only:numneigh
   use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens
-  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho
+  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,itypebnd
   use setup_params
   use density_summations
   use rates, only:dhdt,drhodt
@@ -123,7 +123,7 @@ subroutine iterate_density
         do j=1,ncalcprev
            i = redolistprev(j)
 
-           if (itype(i).ne.1) then
+           if (itype(i).ne.itypebnd) then
               if (rho(i).le.1.e-6) then
                  if (rho(i).le.0.) then
                     write(iprint,*) 'error: rho(',i,') = ',rho(i),hh(i),pmass(i)
@@ -210,7 +210,7 @@ subroutine iterate_density
 !
 !--update smoothing length only if taking another iteration
 !
-                 if (itsdensity.le.itsdensitymax .and. itype(i).ne.1) then
+                 if (itsdensity.le.itsdensitymax .and. itype(i).ne.itypebnd) then
                     !print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
                     hh(i) = hnew
                  elseif (itsdensity.eq.itsdensitymax .and. .not.converged) then
@@ -270,7 +270,7 @@ subroutine iterate_density
 !     
      if (any(ibound.eq.1)) then
         do i=1,npart      ! update fixed parts and ghosts
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               if (j.ne.0) then
                  rho(i) = rho(j)

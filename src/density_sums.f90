@@ -21,7 +21,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    use part,         only:Bfield,ntotal,uu,psi
+    use part,         only:Bfield,ntotal,uu,psi,itype
     use setup_params, only:hfact
     use rates,        only:dBevoldt
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -52,6 +52,7 @@ contains
     real :: dvdotr,pmassi,pmassj,projBi,projBj
     real, dimension(ndxdx) :: dxdxi
     real, dimension(ndimV) :: dr
+    integer :: itypei
 !
 !  (kernel quantities)
 !
@@ -126,11 +127,15 @@ contains
           hfacwabi = hi1**ndim
           hi21 = hi1*hi1
           dxdxi(:) = 0.
+          itypei = itype(i)
 !
 !--for each particle in the current cell, loop over its neighbours
 !
           loop_over_neighbours: do n = idone+1,nneigh
              j = listneigh(n)
+             !--skip particles of different type
+             if (itype(j).ne.itypei .and. itype(j).ne.1) cycle loop_over_neighbours
+
              dx(:) = xi(:) - x(:,j)
 
              hj = hh(j)
@@ -363,7 +368,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:iamincell,numneigh
     use options,      only:igravity,imhd,ikernel,ikernelalt,iprterm
-    use part,         only:Bfield,uu,psi
+    use part,         only:Bfield,uu,psi,itype
     use rates,        only:dBevoldt
     use setup_params, only:hfact
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -394,6 +399,7 @@ contains
     real :: dvdotr,projBi
     real, dimension(ndxdx) :: dxdxi
     real, dimension(ndimV) :: dr
+    integer :: itypei
 !
 !  (kernel quantities)
 !
@@ -461,11 +467,15 @@ contains
        xi = x(:,i)
        veli(:) = vel(:,i) 
        dxdxi(:) = 0.
+       itypei = itype(i)
 !
 !--loop over current particle's neighbours
 !
        loop_over_neighbours: do n = 1,nneigh
           j = listneigh(n)
+          !--skip particles of different type
+          if (itype(j).ne.itypei .and. itype(j).ne.1) cycle loop_over_neighbours
+
           dx(:) = xi(:) - x(:,j)
 !
 !--calculate averages of smoothing length if using this averaging

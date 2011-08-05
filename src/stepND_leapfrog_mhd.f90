@@ -75,11 +75,11 @@ subroutine step
 !      
       
  do i=1,npart
-    if (itype(i).eq.1 .or. itype(i).eq.2) then ! fixed particles
-       if (ireal(i).ne.0 .and. itype(i).eq.1) then
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
+       if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
           j = ireal(i)
           x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
-       elseif (itype(i).eq.2) then  ! velocities are vr, vphi
+       elseif (itype(i).eq.itypebnd2) then  ! velocities are vr, vphi
           call coord_transform(xin(1:ndim,i),ndim,1,xcyl(:),ndim,2)
           velcyl(1) = 0.
           velcyl(2) = xcyl(1)*omegafixed
@@ -126,8 +126,8 @@ subroutine step
 !--Leapfrog Corrector step
 !
  do i=1,npart
-    if (itype(i).eq.1 .or. itype(i).eq.2) then
-       if (itype(i).eq.1) vel(:,i) = velin(:,i)
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then
+       if (itype(i).eq.itypebnd) vel(:,i) = velin(:,i)
        if (imhd.lt.0) then
           call cross_product3D(vel(:,i),Bconst(:),vcrossB)
           Bevol(:,i) = Bevolin(:,i) + hdt*(vcrossB(:) + dBevoldtin(:,i))
