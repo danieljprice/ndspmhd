@@ -1,0 +1,25 @@
+Time
+E\dkin
+E\dtherm
+E\dmag
+E\dpot
+Total Energy
+Linear Momentum
+Angular Momentum
+Max. Density
+Mean Density
+dt
+E\dmag (Poloidal)
+Cross Helicity
+\gb\dmin
+\gd\dmean
+div B (average)
+div B (max)
+\(2205) div B dV
+F.B (average)
+F.B (max)
+Force error (average)
+Force error (max)
+h (div B)/B (average)
+h (div B)/B (max)
+% h (div B)/B < 0.01
