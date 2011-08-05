@@ -66,6 +66,7 @@ subroutine get_rates
  real :: valfven2i,valfven2j
  real :: BidotdB,BjdotdB,Brho2i,Brho2j,BdotBexti
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
+ real, dimension(:,:), allocatable :: curlBsym
 !
 !  (artificial viscosity quantities)
 !      
@@ -79,7 +80,7 @@ subroutine get_rates
 !  (av switch)
 !
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
- real :: graduterm, graddivvmag
+ real :: graduterm, graddivvmag,etai,curr2
  real, dimension(:), allocatable :: del2u
  real, dimension(:,:), allocatable :: graddivv
 !
@@ -120,7 +121,11 @@ subroutine get_rates
  allocate ( listneigh(nlistdim),STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
  allocate ( phi(ntotal), del2u(ntotal), graddivv(ndimV,ntotal), STAT=ierr )
- if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr  
+ if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr
+ if (imhd.lt.0) then
+    allocate( curlBsym(ndimV,ntotal), STAT=ierr )
+    if (ierr.ne.0) write(iprint,*) ' Error allocating curlBsym, ierr = ',ierr
+ endif
  listneigh = 0
 !
 !--initialise quantities
@@ -142,7 +147,8 @@ subroutine get_rates
   gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
-  if (imagforce.ne.7) curlB(:,i) = 0.0
+  if (imhd.gt.0) curlB(:,i) = 0.0
+  if (allocated(curlBsym)) curlBsym(:,i) = 0.
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -401,7 +407,8 @@ subroutine get_rates
  fmean(:) = 0.
  do i=1,npart
  
-    rho1i = 1./rho(i)
+    rhoi  = rho(i)
+    rho1i = 1./rhoi
 !
 !--compute JxB force from the Euler potentials (if using second derivs)
 !  also divide by rho for J and div B calculated the "normal" way
@@ -411,7 +418,7 @@ subroutine get_rates
           call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
           force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
           fmag(:,i) = fmagi(:)*rho1i
-       elseif (imagforce.ne.7) then
+       elseif (imhd.gt.0) then ! not for vector potential
           curlB(:,i) = curlB(:,i)*rho1i
        endif
        divB(i) = divB(i)*rho1i
@@ -435,54 +442,7 @@ subroutine get_rates
     if (icty.ge.1) then
        dhdt(i) = -hh(i)/(ndim*rho(i))*drhodt(i)
     endif
-!
-!--if using the thermal energy equation, set the energy derivative
-!  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
-!
-    if (iener.eq.3) then
-       ! could do this in principle but does not work with
-       ! faniso modified by subtraction of Bconst
-       !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
-       !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
-       !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
-    elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
-       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
-       dendt(i) = dudt(i)
-    else
-       dendt(i) = dudt(i)
-    endif
-!
-!--if evolving B instead of B/rho, add the extra term from the continuity eqn
-!  (note that the dBevoldt term should be divided by rho)
-!  
-    if (imhd.ge.11) then  ! evolving B
-       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
-       if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i
-       endif
-    elseif (imhd.gt.0) then ! evolving B/rho
-       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
-       if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i**2
-       endif
-    elseif (imhd.eq.-1) then ! vector potential evolution, crap gauge
-       !
-       !--add the v x B term
-       !
-       call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
-       dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
-    elseif (imhd.eq.-2) then ! vector potential evolution, Axel gauge
-       !
-       !--get v x Bext
-       !
-       call cross_product3D(vel(:,i),Bconst(:),curlBi)
-       !--add v x Bext plus the existing term, which includes dissipation
-       dBevoldt(:,i) = curlBi(:) + dBevoldt(:,i)*rho1i       
-    else
-       dBevoldt(:,i) = 0.
-    endif
+
 !
 !--calculate maximum force/h for the timestep condition
 !  also check for errors in the force
@@ -518,6 +478,82 @@ subroutine get_rates
     vsig2 = spsound(i)**2 + valfven2i     ! approximate vsig only
     vsig = SQRT(vsig2)
     !!!dtcourant2 = min(dtcourant2,hh(i)/vsig)
+
+!
+!--if evolving B instead of B/rho, add the extra term from the continuity eqn
+!  (note that the dBevoldt term should be divided by rho)
+!  
+    if (imhd.ge.11) then  ! evolving B
+       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
+       if (idivBzero.ge.2) then
+          gradpsi(:,i) = gradpsi(:,i)*rho1i
+       endif
+    elseif (imhd.gt.0) then ! evolving B/rho
+       dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i)*rho1i
+       if (idivBzero.ge.2) then
+          gradpsi(:,i) = gradpsi(:,i)*rho1i**2
+       endif
+    elseif (imhd.eq.-1) then ! vector potential evolution, crap gauge
+       !
+       !--add the v x B term
+       !
+       call cross_product3D(vel(:,i),Bfield(:,i),curlBi)
+       dBevoldt(:,i) = dBevoldt(:,i)*rho1i + curlBi(:)
+    elseif (imhd.eq.-2) then ! vector potential evolution, Axel gauge
+       !
+       !--get v x Bext
+       !
+       call cross_product3D(vel(:,i),Bconst(:),curlBi)
+       !--add v x Bext plus the existing term, which includes dissipation
+       dBevoldt(:,i) = curlBi(:) + dBevoldt(:,i)*rho1i
+       !
+       !--add dissipation for vector potential = -eta J
+       !
+       if (iav.ge.2) then
+          curlBi(:) = curlB(:,i)
+          !curlBi(:) = curlBsym(:,i)*rhoi
+          !curlB(:,i) = curlBi(:)
+ 
+          !curr2 = abs(dot_product(curlBsym(:,i)*rhoi,curlBsym(:,i)*rhoi))
+          !curr2 = abs(dot_product(curlBi,curlBsym(:,i)*rhoi))
+          curr2 = dot_product(curlBi,curlBi)
+          etai = alpha(3,i)*sqrt(valfven2i)*hh(i)
+          !etai = alpha(3,i)*vsig*hh(i)
+          !etai = alpha(3,i)*2.*sqrt(curr2/rho(i))*hh(i)**2
+          !etai = alpha(3,i)*sqrt(dot_product(graddivv(:,i),graddivv(:,i)))*hh(i)**2
+          !etai = alpha(3,i)*(sqrt(valfven2i)*hh(i) + 2.*sqrt(curr2/rho(i))*hh(i)**2)
+          !divB(i) = etai
+          
+          dBevoldt(:,i) = dBevoldt(:,i) - etai*curlBi(:)
+          !if (curlBi(1).ne.0.) print*,i,curlB(1,i),curlBi(1)
+          !print*,i,'diss = ',-etai,curlB(:,i)
+          !
+          !--add term to thermal energy equation. This is used to construct
+          !  dendt for the entropy/total energy equations below
+          !
+          dudt(i) = dudt(i) + etai*curr2/rho(i)
+       endif
+    else
+       dBevoldt(:,i) = 0.
+    endif
+!
+!--if using the thermal energy equation, set the energy derivative
+!  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
+!
+    if (iener.eq.3) then
+       ! could do this in principle but does not work with
+       ! faniso modified by subtraction of Bconst
+       !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
+       !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
+       !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
+    elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
+       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
+       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
+       dendt(i) = dudt(i)
+    else
+       dendt(i) = dudt(i)
+    endif
 !
 !--calculate time derivative of alpha (artificial dissipation coefficients)
 !  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
@@ -563,7 +599,15 @@ subroutine get_rates
           sourcedivB = 10.*abs(divB(i))*SQRT(rho1i)
           sourceB = MAX(sourceJ,sourcedivB)
           !sourceB = max(sqrt(drhodt(i)*rho1i*sourceJ),0.0)
-          if (iavlim(3).eq.2) sourceB = sourceB*(2.0-alpha(3,i))
+          if (iavlim(3).eq.2) then
+             sourceB = sourceB*(2.0-alpha(3,i))
+          elseif (iavlim(3).eq.3) then
+             source = max(drhodt(i)*rho1i,0.0)*(2.-alpha(3,i))
+             !graddivv(:,i) = graddivv(:,i)/rho(i)
+             !sourceJ = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
+             !sourceB = sourceJ/(abs(drhodt(i)*rho1i) + sourceJ + tiny(0.))*sourceB*(2.-alpha(3,i))
+             sourceB = sqrt(source*sourceB)
+          endif
           daldt(3,i) = (alphaBmin - alpha(3,i))*tdecay1 + sourceB
        endif
     endif
@@ -578,7 +622,7 @@ subroutine get_rates
     end select
  enddo
  
- if (sqrt(dot_product(fmean,fmean)).gt.1.e-8) print*,'WARNING: fmean = ',fmean(:)
+ if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
 !--calculate timestep constraint from the forces
 !  dtforce is returned together with dtcourant to the main timestepping loop
@@ -608,7 +652,7 @@ subroutine get_rates
        dpsidt(i) = 0.0
        fmag(:,i) = 0.0
        divB(i) = 0.0
-       curlB(:,i) = 0.0
+       if (imhd.ge.0) curlB(:,i) = 0.0
        xsphterm(:,i) = 0.0
        gradpsi(:,i) = 0.0
     endif
@@ -990,10 +1034,16 @@ contains
           del2u(i) = del2u(i) + pmassj*rho1j*graduterm*grkerni
           del2u(j) = del2u(j) - pmassi*rho1i*graduterm*grkernj
        endif
-       if (iavlim(1).eq.2) then
+       if (iavlim(1).eq.3) then
           !!graddivvterm = 
           graddivv(:,i) = graddivv(:,i) + pmassj*rho1j/rij*dvdotr*grkerni*dr(:)
           graddivv(:,j) = graddivv(:,j) - pmassi*rho1i/rij*dvdotr*grkernj*dr(:)
+       else
+          !
+          !--calculate curl v
+          !
+          graddivv(:,i) = graddivv(:,i) + pmassj*(dvel(:) - dvdotr)*grkerni
+          graddivv(:,j) = graddivv(:,j) + pmassi*(-dvel(:) - dvdotr)*grkernj
        endif
     endif
 
@@ -1091,14 +1141,21 @@ contains
              Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
           endif
           dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
-       else !--vector potential resistivity
+
+          !
+          !--add to d(B/rho)/dt (converted to dB/dt later if required)
+          !
+          dBevoldti(:) = dBevoldti(:) + rhoi*pmassj*dBdtvisc(:)               
+          dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
+
+       elseif (iav.eq.1) then !--wrong vector potential resistivity
           dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
+          !
+          !--add to dA/dt (note: do not multiply by rho here)
+          !
+          dBevoldti(:) = dBevoldti(:) + pmassj*dBdtvisc(:)               
+          dBevoldt(:,j) = dBevoldt(:,j) - pmassi*dBdtvisc(:)
        endif
-       !
-       !--add to d(B/rho)/dt (converted to dB/dt later if required)
-       !
-       dBevoldti(:) = dBevoldti(:) + rhoi*pmassj*dBdtvisc(:)               
-       dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
     endif
 
     !--------------------------------------------------
@@ -1138,6 +1195,8 @@ contains
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
           endif
           qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
+       else
+          stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
        !
        !  add to total energy equation
@@ -1177,9 +1236,9 @@ contains
           else
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
-       elseif (imhd.lt.0) then
+       elseif (imhd.lt.0 .and. iav.eq.1) then
+          !vissB = -alphaB*0.5*(dot_product(curlB(:,i)-curlB(:,j),dBevol(:)))*rhoav1
           vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
-!!          vissB = 0.
        else
           vissB = 0.
        endif
@@ -1316,7 +1375,7 @@ contains
   subroutine mhd_terms
     implicit none
     real :: dalphaterm,termi,termj
-    real, dimension(ndimV) :: dBdtvisc
+    real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
     real :: dgradwdhi,dgradwdhj,BdotBextj
@@ -1424,22 +1483,34 @@ contains
                    -dBevol(1)*(Brhoi(3)*dwdydyi*gradhi*rho1i + Brhoj(3)*dwdydyj*gradh(j)*rho1j &
                              - Brhoi(2)*dwdydzi*gradhi*rho1i + Brhoj(2)*dwdydzj*gradh(j)*rho1j)
 
-       faniso(3) = 0.
-
+       faniso(3) = -dBevol(3)*(Brhoi(2)*dwdxdzi*gradhi*rho1i + Brhoj(2)*dwdxdzj*gradh(j)*rho1j &
+                             -(Brhoi(1)*dwdydzi*gradhi*rho1i + Brhoj(1)*dwdydzj*gradh(j)*rho1j)) &
+                   -dBevol(2)*(Brhoi(1)*dwdzdzi*gradhi*rho1i + Brhoj(1)*dwdzdzj*gradh(j)*rho1j &
+                             -(Brhoi(3)*dwdxdzi*gradhi*rho1i + Brhoj(3)*dwdxdzj*gradh(j)*rho1j)) &
+                   -dBevol(1)*(Brhoi(3)*dwdydzi*gradhi*rho1i + Brhoj(3)*dwdydzj*gradh(j)*rho1j &
+                             - Brhoi(2)*dwdzdzi*gradhi*rho1i + Brhoj(2)*dwdzdzj*gradh(j)*rho1j)
+       
        !--add B Bext term
        faniso(:) = faniso(:) + (Bi(:)*rho21i*grkerni + Bj(:)*rho21j*grkernj)*projBconst
 
        !--add 3D term
        faniso(:) = faniso(:) - (Bevoli(:)*dot_product(curlB(:,i),dr)*rho21i*grkerni &
                                 + Bevol(:,j)*dot_product(curlB(:,j),dr)*rho21j*grkernj)
-       
+       ! curlBi(:) = - (Bevoli(:)*dot_product(curlB(:,i),dr)*rho21i*grkerni &
+       !                         + Bevol(:,j)*dot_product(curlB(:,j),dr)*rho21j*grkernj)
+       !if (any(curlBi(:).ne.0.)) print*,i,j,curlBi(:)
        !--correct stress with constant term
-       faniso(:) = faniso(:) - (Bconst(:)*rho21i*grkerni + Bconst(:)*rho21j*grkernj)*projBconst
+       !faniso(:) = faniso(:) - (Bconst(:)*rho21i*grkerni + Bconst(:)*rho21j*grkernj)*projBconst
 
        !--correct with anticlumping term       
        !faniso(:) = faniso(:) - stressmax*dr(:)*(rho21i*gradhi*grkernalti + rho21j*gradh(j)*grkernaltj)
 
        fmagi(:) = faniso(:) - fiso*dr(:)
+
+       !--subtract B(div B) term from magnetic force
+       !forcei(:) = forcei(:) - 1.0*Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+       !forcej(:) = forcej(:) + 1.0*Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+
     
     case(0)
        faniso(:) = 0.
@@ -1494,10 +1565,16 @@ contains
        !--calculate curl B for current (only if field is 3D)
        !  this is used in the switch for the artificial resistivity term
        !
-       if (imagforce.ne.7) then
+       if (imhd.gt.0) then ! not for vector potential
           call cross_product3D(dB,dr,curlBi)
           curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
           curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+       elseif (imhd.lt.0 .and. allocated(curlBsym)) then
+          call cross_product3D(Bi,dr,curlBi)
+          call cross_product3D(Bj(:),dr,curlBj)
+          curlBterm(:) = (curlBi(:)*rho21i*grkerni + curlBj(:)*rho21j*grkernj)
+          curlBsym(:,i) = curlBsym(:,i) - pmassj*curlBterm(:)
+          curlBsym(:,j) = curlBsym(:,j) + pmassi*curlBterm(:)
        endif
        !
        !--add Lorentz force to total force
