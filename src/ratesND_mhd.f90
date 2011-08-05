@@ -137,7 +137,7 @@ subroutine get_rates
   dBevoldt(:,i) = 0.0
   daldt(:,i) = 0.0
   dpsidt(i) = 0.0
-!  gradpsi(:,i) = 0.0
+  gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
   curlB(:,i) = 0.0
@@ -1054,8 +1054,8 @@ contains
        
     if (idivBzero.ge.2) then ! add hyperbolic correction term
        gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-       dBevoldt(:,i) = dBevoldt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
-       dBevoldt(:,j) = dBevoldt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
+       gradpsi(:,i) = gradpsi(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
+       gradpsi(:,j) = gradpsi(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
     endif
 
     return
