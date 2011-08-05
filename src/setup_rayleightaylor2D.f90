@@ -111,7 +111,11 @@ subroutine setup
 !
  do i=1,ntotal
     vel(1,i) = 0.
-    vel(2,i) = 0.01*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
+    if (abs(x(2,i)).lt.1./3.) then
+       vel(2,i) = 0.01*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
+    else
+       vel(2,i) = 0.
+    endif
     if (x(2,i).gt.0.) then
        dens(i) = densmedium
        if (equalmass) then
@@ -165,7 +169,11 @@ subroutine modify_dump
  write(iprint,*) 'modifying dump with velocities for Rayleigh-Taylor run'
  do i=1,ntotal
     vel(1,i) = 0.
-    vel(2,i) = 0.01*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
+    if (abs(x(2,i)).lt.1./3.) then
+       vel(2,i) = 0.5*(1. + cos(4.*pi*x(1,i)))*(1. + cos(3.*pi*x(2,i)))/4.
+    else
+       vel(2,i) = 0.
+    endif
  enddo
  time = 0.
  
