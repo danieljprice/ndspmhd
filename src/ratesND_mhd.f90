@@ -70,7 +70,7 @@ SUBROUTINE get_rates
  REAL, DIMENSION(ndimB) :: Bav,vunit,Bvisc,dBdtvisc
  REAL :: Bab,vsigmag,rhoi5,rhoj5,B2i,B2j,ediffB
  REAL :: vsig2i,vsig2j,vsigproji,vsigprojj
- REAL :: vissv,vissB,vissu
+ REAL :: vissv,vissB,vissu,vsigii,vsigjj
 !
 !  (alternative forms)
 !
@@ -395,8 +395,9 @@ SUBROUTINE get_rates
                 vsigdtc = vsigi + vsigj + beta*abs(dvdotr)
 
 		IF (dvdotr.LT.0. .AND. iav.NE.0) THEN	! only for approaching particles
+                   IF (iav.EQ.1) THEN
 !--viscosity (kinetic energy term)
-                   visc = 0.5*alphaav*vsig*viss*rhoav1
+                   visc = 0.5*alphaav*vsig*viss*rhoav1*grkern
 		   IF (ndimV.GT.ndim) THEN
 		      vissv = -0.5*(DOT_PRODUCT(veli,vunit)	&
 		                  - DOT_PRODUCT(velj,vunit))**2
@@ -414,6 +415,31 @@ SUBROUTINE get_rates
 !--envisc is the total contribution to the thermal energy equation
 		   envisc = 0.5*alphaav*vsig*(vissv+vissB)*rhoav1*grkern!*abs(rx)
 	           uvisc = 0.5*alphaav*vsig*vissu*rhoav1*grkern		   
+		   ELSEIF (iav.EQ.2) THEN
+!--viscosity (kinetic energy term)
+		   vsigii = vsigi + 0.5*beta*viss
+		   vsigjj = vsigj + 0.5*beta*viss   
+		   vsig = vsigii/rhoi*grkerni + vsigjj/rhoj*grkernj                
+		   visc = 0.5*alphaav*vsig*viss
+		   IF (ndimV.GT.ndim) THEN
+		      vissv = -0.5*(DOT_PRODUCT(veli,vunit)	&
+		                  - DOT_PRODUCT(velj,vunit))**2
+!		      vissv = -0.5*DOT_PRODUCT(dvel,dvel)
+     		   ELSE
+		      vissv = -0.5*(DOT_PRODUCT(veli,dr) 	&
+		                  - DOT_PRODUCT(velj,dr))**2		    
+		   ENDIF
+!--ohmic dissipation (magnetic energy term)
+		   Bvisc(:) = dB(:) - dr(:)*projdB
+		   dBdtvisc(:) = 0.5*alphaav*vsig*Bvisc(:)*rhoav1
+		   vissB = -0.5*(DOT_PRODUCT(dB,dB)-projdB**2)*rhoav1
+!--vissu is the dissipation energy from thermal conductivity
+		   vissu = gconst*(uu(i) - uu(j))
+!--envisc is the total contribution to the thermal energy equation
+		   envisc = 0.5*alphaav*vsig*(vissv+vissB) !*abs(rx)
+	           uvisc = 0.5*alphaav*vsig*vissu		   
+		   
+		   ENDIF
 		ELSE
 		   visc = 0.0
 		   dBdtvisc(:) = 0.
@@ -425,15 +451,6 @@ SUBROUTINE get_rates
 !
 	        IF (vsigdtc.GT.zero) dtcourant = min(dtcourant,0.8*hav/vsigdtc)
 !
-!--time derivative of density (continuity equation) in generalised form
-!  compute this even if direct sum - gives divv for art vis.
-!
-	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni
-		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
-				
-		drhodt(i) = drhodt(i) + drhodti
-		drhodt(j) = drhodt(j) + drhodtj
-!
 !--pressure term (generalised form)
 !
        	        prterm = phij_on_phii*Prho2i*grkerni 		&
@@ -443,13 +460,22 @@ SUBROUTINE get_rates
 !
 		IF (ndimV.GT.ndim) THEN
 		  force(:,i) = force(:,i)	&
-		             - pmassj*(prterm*dr(:)+visc*vunit(:)*grkern)
+		             - pmassj*(prterm*dr(:)+visc*vunit(:))
 		  force(:,j) = force(:,j)	&
-		             + pmassi*(prterm*dr(:)+visc*vunit(:)*grkern)  
+		             + pmassi*(prterm*dr(:)+visc*vunit(:))  
 		ELSE
-		  force(:,i) = force(:,i) - pmassj*(prterm+visc*grkern)*dr(:)
-		  force(:,j) = force(:,j) + pmassi*(prterm+visc*grkern)*dr(:)		
+		  force(:,i) = force(:,i) - pmassj*(prterm+visc)*dr(:)
+		  force(:,j) = force(:,j) + pmassi*(prterm+visc)*dr(:)		
                 ENDIF	
+!
+!--time derivative of density (continuity equation) in generalised form
+!  compute this even if direct sum - gives divv for art vis.
+!
+	        drhodti = phii_on_phij*pmassj*dvdotr*grkerni
+		drhodtj = phij_on_phii*pmassi*dvdotr*grkernj
+				
+		drhodt(i) = drhodt(i) + drhodti
+		drhodt(j) = drhodt(j) + drhodtj
 !		
 !--Lorentz force and time derivative of B terms
 !
@@ -586,7 +612,7 @@ SUBROUTINE get_rates
 		   prvaniso =  - Bidotvj*projBrhoi*phij_on_phii*grkerni	& 
 		               - Bjdotvi*projBrhoj*phii_on_phij*grkernj
 		   projprv = DOT_PRODUCT(prvterm,dr)		   
-! (Joe's anticlumping term)		   
+! (add source term for anticlumping term)		   
 		   IF (ianticlump.EQ.1 .AND. imagforce.EQ.2) THEN
 !		      prvaniso = prvaniso - Rjoe*prvaniso
 ! (if applied in x-direction only)
@@ -615,14 +641,22 @@ SUBROUTINE get_rates
 		   eni = gconst*uu(i) + 0.5*v2i + 0.5*B2i*rhoav1
 		   ediff = eni - enj 
 		   IF (dvdotr.LT.0) THEN ! bug was in line below
-		   qdiff = -0.5*alphaav*vsig*ediff*grkern*rhoav1
+		    IF (iav.EQ.1) THEN
+		       qdiff = -0.5*alphaav*vsig*ediff*grkern*rhoav1
+		    ELSEIF (iav.EQ.2) THEN
+		       qdiff = -0.5*alphaav*vsig*ediff
+		    ENDIF
 		   ELSE	! this is just the MHD bits if applying Bvisc everywhere
 		   qdiff = 0.
 		   ENDIF
 
 		   dendt(i) = dendt(i) - pmassj*(projprv+prvaniso+prvanisoi+qdiff)
 		   dendt(j) = dendt(j) + pmassi*(projprv+prvaniso+prvanisoj+qdiff)     		
-		ELSE	!  1st law of thermodynamics
+		ENDIF
+!
+!--compute thermal energy derivative even if using total energy equation
+!		
+		IF (iener.NE.0) THEN	!  1st law of thermodynamics
                    dudt(i) = dudt(i) + Prho2i*drhodti + pmassj*(envisc + uvisc)
      		   dudt(j) = dudt(j) + Prho2j*drhodtj + pmassi*(envisc - uvisc)
 		ENDIF

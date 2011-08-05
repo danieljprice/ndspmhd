@@ -73,6 +73,13 @@ SUBROUTINE step
 	  ENDIF		
 	  v2i = DOT_PRODUCT(vel(:,i),vel(:,i))		
 	  uu(i) = en(i) - 0.5*v2i - 0.5*B2i
+!
+!--if negative thermal energy, update using thermal energy eq. instead
+!	  
+	  IF (uu(i).LT.0.) THEN
+	     WRITE(iprint,*) 'Warning: uu -ve, particle ',i,'fixing'
+	     uu(i) = uuin(i) + hdt*dudt(i)
+	  ENDIF
        ELSEIF (iener.GE.1) THEN
   	  uu(i) = uuin(i) + hdt*dudt(i)
        ENDIF
