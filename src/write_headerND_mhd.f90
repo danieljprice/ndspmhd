@@ -29,7 +29,7 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
  INTEGER :: i,Nneigh
  INTEGER, INTENT(IN) :: icall
  CHARACTER(LEN=*), INTENT(IN) :: infile,evfile,logfile
- CHARACTER(LEN=19) :: boundtype
+ CHARACTER(LEN=21) :: boundtype
  CHARACTER(LEN=5), DIMENSION(3) :: coord
  CHARACTER(LEN=10) :: startdate, starttime
  REAL :: have,hmin,hmax,v2i,B2i
@@ -189,10 +189,12 @@ SUBROUTINE write_header(icall,infile,evfile,logfile)
     end select
     
     DO i=1,ndim
+       boundtype = 'unknown'
        IF (ibound(i).EQ.0) boundtype = 'None'
        IF (ibound(i).EQ.1) boundtype = 'Fixed particles'
        IF (ibound(i).EQ.2) boundtype = 'Reflective ghosts'
        IF (ibound(i).EQ.3) boundtype = 'Periodic (ghosts)'     
+       IF (ibound(i).EQ.5) boundtype = 'Shearing box (ghosts)'
        WRITE (iprint, 210) coord(i),TRIM(boundtype)             
        IF (ibound(i).NE.0) WRITE (iprint, 220) coord(i),xmin(i),coord(i),xmax(i)
     ENDDO

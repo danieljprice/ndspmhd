@@ -13,6 +13,8 @@ subroutine boundary
  use bound, only:xmin,xmax
  use options, only:ibound
  use part, only:x,vel,npart
+ use timestep, only:time
+ use setup_params, only:Omega0,domegadr
 ! use rates, only:force
 ! use part_in
 ! use setup_params
@@ -20,8 +22,9 @@ subroutine boundary
 !--define local variables
 !
  implicit none
- integer :: i,jdim,ncorrect
+ integer :: i,jdim,ncorrect,ncross
  logical :: debugging
+ real :: xmodbound
 !
 !--allow for tracing flow
 !      
@@ -55,6 +58,35 @@ subroutine boundary
        enddo    
     enddo
  endif
+!----------------------------------------------------------------------------
+! shearing box boundary in the x (=r) direction
+!----------------------------------------------------------------------------
+ if (ibound(1).eq.5 .and. ndim.ge.2) then
+    ncross = 0
+    do i=1,npart
+       if (x(1,i).gt.xmax(1)) then
+	  x(1,i) = x(1,i) - (xmax(1)-xmin(1))
+          x(2,i) = x(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))*time
+          x(2,i) = xmodbound(x(2,i),xmin(2),xmax(2),0.)
+!          if (x(2,i).gt.xmax(2)) then
+!             x(2,i) = xmin(2) + (x(2,i)-xmax(2))
+!          endif
+          vel(2,i) = vel(2,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+          ncross = ncross + 1
+       elseif(x(1,i).lt.xmin(1)) then
+          x(1,i) = x(1,i) + (xmax(1) - xmin(1))
+          x(2,i) = x(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))*time
+          x(2,i) = xmodbound(x(2,i),xmin(2),xmax(2),0.)
+!          if (x(2,i).lt.xmin(2)) then
+!             x(2,i) = xmax(2) - (xmin(2) - x(2,i))
+!          endif
+          vel(2,i) = vel(2,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+          ncross = ncross + 1
+       endif
+    enddo
+    if (ncross.gt.0) print*,ncross,' particles crossing x'
+ endif
+
 !-------------------------------------------------------------------------
 ! other ghost boundaries - correct particles which have crossed boundary
 !------------------------------------------------------------------------- 
