@@ -39,8 +39,9 @@ subroutine setup
 !            	    
  ibound = 1	! fixed ghosts
  nbpts = 0
- xmin(:) = -0.15	
- xmax(:) = 0.15
+ xmin(:) = -0.1	
+ xmax(:) = 0.1
+! xmax(1) = 0.1
 !! xmin(2) = -0.3
 !! xmax(2) = 0.3	! same xmin in all dimensions
 !! xmax(:) = 0.5
@@ -183,7 +184,7 @@ subroutine modify_dump
        stop 'not implemented'
        bfield(:,ipart) = bzero(:)
     endif
-    if (ANY(abs(x(:,ipart)).GT.0.5-2.*hfact*psep)) then
+    if (ANY(abs(x(:,ipart)).GT.0.1-2.*hfact*psep)) then
        itype(ipart) = 1
        nbpts = nbpts + 1
     endif
