@@ -16,4 +16,8 @@ else
    echo '	cd ../plot; make'
    echo 'edit:'
    echo '	cd ../; make edit'$1
+   echo 'evplot:'
+   echo '	cd ../; make plotev'
+   echo 'clean:'
+   echo '	cd ../; make clean'
 endif
