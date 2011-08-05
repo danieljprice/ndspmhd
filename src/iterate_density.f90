@@ -177,7 +177,8 @@ subroutine iterate_density
 !--if this particle is not converged, add to list of particles to recalculate
 !              
               !!converged = abs(func)/densn(i) < tolh .and. omegai > 0.
-              converged = abs((hnew-hh(i))/hhin(i)) < tolh .and. omegai > 0.
+              converged = (abs((hnew-hh(i))/hhin(i)) < tolh .and. omegai > 0.) &
+                          .or. itsdensitymax.eq.0
               
               testconvergence: if (.not.converged) then
                  ncalc = ncalc + 1
@@ -205,7 +206,7 @@ subroutine iterate_density
                     dhdt(i) = dhdrhoi*dndt(i)*gradh(i)
                     drhodt(i) = drhodt(i) + gradhn(i)*dndt(i)
                  else
-                    drhodt(i) = drhodt(i)*gradh(i)
+                    if (ikernav.eq.3) drhodt(i) = drhodt(i)*gradh(i)
                     dhdt(i) = dhdrhoi*drhodt(i)
                  endif
               endif testconvergence
