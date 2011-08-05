@@ -74,6 +74,7 @@ subroutine get_rates
 !! real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin,vsigu
 !! real :: vsigii,vsigjj
+ real :: prneti,prnetj,pequil
 !
 !  (av switch)
 !
@@ -85,7 +86,7 @@ subroutine get_rates
 !  (alternative forms)
 !
  real, dimension(:), allocatable :: phi
- real :: phii,phii1,phii_on_phij,phij_on_phii
+ real :: phii,phii1,phii_on_phij,phij_on_phii,uui,uuj
 !
 !  (kernel related quantities)
 !
@@ -211,6 +212,8 @@ subroutine get_rates
        phi(1:ntotal) = 1./en(1:ntotal)
     case(7)
        phi(1:ntotal) = 1./uu(1:ntotal)
+    case(8)
+       phi(1:ntotal) = 1./pr(1:ntotal)
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
@@ -244,9 +247,11 @@ subroutine get_rates
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
        pri = max(pr(i) - pext,0.)
+       prneti = pri - pequil(iexternal_force,xi(:),rhoi)
        pmassi = pmass(i)
        Prho2i = pri*rho21i
        spsoundi = spsound(i)
+       uui = uu(i)
        veli(:) = vel(:,i)
        alphai = alpha(1,i)
        alphaui = alpha(2,i)
@@ -430,7 +435,7 @@ subroutine get_rates
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
        dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
-    elseif (iener.gt.0 .and. iav.ge.0) then
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
@@ -623,7 +628,7 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt,grkernalti,grkernaltj
-    real :: vidotdS,vjdotdS
+    real :: vidotdS,vjdotdS,altrhoi,altrhoj
 
    pmassj = pmass(j)
 !
@@ -692,9 +697,11 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    prj = max(pr(j) - pext,0.)       
+    prj = max(pr(j) - pext,0.)
+    prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
     Prho2j = prj*rho21j
     spsoundj = spsound(j)
+    uuj = uu(j)
     
     phii_on_phij = phii/phi(j)
     phij_on_phii = phi(j)*phii1       
@@ -764,8 +771,10 @@ contains
     !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
     !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
     
-    vsigu = sqrt(abs(pri-prj)*rhoav1)
+    vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
     !vsigu = sqrt(0.5*(psi(i) + psi(j)))
+    !vsigu = abs(dvdotr)
+
     vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
  
     ! vsigdtc is the signal velocity used in the timestep control
@@ -806,6 +815,16 @@ contains
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
           !!prterm = (pri - prj)/rhoij*grkern
+
+          if (iprterm.eq.10) then
+!
+!--Ritchie and Thomas force eqn.
+!
+             !altrhoi = pri/((gamma-1.)*uui)
+             !altrhoj = prj/((gamma-1.)*uuj)
+             prterm = uui*uuj*(gamma-1.)**2*(1./pri*grkerni &
+                                           + 1./prj*grkernj)
+          endif
        endif
        !
        !--add pressure terms to force
@@ -854,6 +873,14 @@ contains
        dudt(j) = dudt(j) - prj*rho21j*(rhoj*vjdotdS*wabj - rhoi*vidotdS*wabi)
        !               ( ^ change of sign here is because of the v dot dS defined above)
 
+    elseif (iener.eq.10) then  
+       !
+       !--Ritchie & Thomas energy equation (their eqn. 25)
+       !
+       altrhoi = pri/((gamma-1.)*uui)
+       altrhoj = prj/((gamma-1.)*uuj)
+       dudt(i) = dudt(i) + pmassj*(gamma-1.)*uuj/altrhoi*dvdotr*grkerni
+       dudt(j) = dudt(j) + pmassi*(gamma-1.)*uui/altrhoj*dvdotr*grkernj
     endif
 
 !------------------------------------------------------------------------

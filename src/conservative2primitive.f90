@@ -22,7 +22,7 @@ subroutine conservative2primitive
   use smooth, only:smooth_variable
   implicit none
   integer :: i,j,nerr
-  real :: B2i, v2i
+  real :: B2i, v2i, pri
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
@@ -69,22 +69,34 @@ subroutine conservative2primitive
 !
 !--call equation of state calculation
 !
- call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart))
+! if (imhd.eq.0) then
+! call equation_of_state(pr(1:npart),spsound(1:npart),psi(1:npart),  &
+!                        rho(1:npart))
+! else
+
+ if (iprterm.eq.10) then
+    pr(1:npart) = (gamma-1.)*psi(1:npart)
+    spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
+ else
+    call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
+                        rho(1:npart)) 
+ endif
+! endif
 !
 !--make fixed particles exact replicas of their closest particle
 !
-!  if (any(ibound.eq.1)) then
-!     do i=1,npart
-!        if (itype(i).eq.1) then
-!           j = ireal(i)
+  if (any(ibound.eq.1)) then
+     do i=1,npart
+        if (itype(i).eq.1) then
+           j = ireal(i)
+           where (ibound.eq.1) vel(:,i) = -vel(:,j)
 !!           uu(i) = uu(j)
 !           pr(i) = pr(j)
 !           spsound(i) = spsound(j)
- !          Bfield(:,i) = Bfield(:,j)
-!        endif
-!     enddo
-!  endif
+!          Bfield(:,i) = Bfield(:,j)
+        endif
+     enddo
+  endif
 !
 !--copy the primitive variables onto the ghost particles
 ! 
@@ -92,9 +104,15 @@ subroutine conservative2primitive
      do i=npart+1,ntotal
         j = ireal(i)
         if (allocated(dens)) dens(i) = dens(j)
-        uu(i) = uu(j)
-        spsound(i) = spsound(j)
-        pr(i) = pr(j)
+        if (any(ibound.eq.6)) then
+           pri = 2.5 - 0.1*dens(i)*x(2,i)
+           uu(i) = pri/((gamma-1.)*dens(i))
+           spsound(i) = sqrt(gamma*pri/dens(i))
+        else
+           uu(i) = uu(j)
+           spsound(i) = spsound(j)
+           pr(i) = pr(j)
+        endif
         Bfield(:,i) = Bfield(:,j)
      enddo
   endif
@@ -122,7 +140,7 @@ subroutine primitive2conservative
   use getcurl
   implicit none
   integer :: i,j,iktemp
-  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri
   logical :: isetpolyk
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
@@ -225,12 +243,20 @@ subroutine primitive2conservative
   if (any(ibound.gt.1)) then
      do i=npart+1,ntotal
         j = ireal(i)
-        en(i) = en(j)
-        pr(i) = pr(j)
-        spsound(i) = spsound(j)
+        call copy_particle(i,j)
+        if (any(ibound.eq.6)) then
+           pri = 2.5 - 0.1*dens(i)*x(2,i)
+           uu(i) = pri/((gamma-1.)*dens(i))
+           spsound(i) = sqrt(gamma*pri/dens(i))
+           en(i) = uu(i)
+           if (iener.ne.2) stop 'iener.ne.2 not implemented for ibound=6'
+        else
+           en(i) = en(j)
+           pr(i) = pr(j)
+           spsound(i) = spsound(j)
+        endif
         Bevol(:,i) = Bevol(:,j)
         Bfield(:,i) = Bfield(:,j)
-        call copy_particle(i,j)
      enddo
   endif
 !
