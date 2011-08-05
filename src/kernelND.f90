@@ -379,8 +379,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
     dq2table = radkern*radkern/real(ikern)
     select case(ndim)
       case(1)
-!        cnormk = 2./3. 
-        cnormk = 54./85. ! normalisation constant
+        cnormk = 2./3. 
+!        cnormk = 54./85. ! normalisation constant
       case(2)
         cnormk = 10./(7.*pi)
       case(3)
@@ -391,8 +391,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
        q2 = i*dq2table
        q = sqrt(q2)
        if (q.lt.2./3.) then
-!          wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
-          wkern(i) = 11./9. - q
+          wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+!          wkern(i) = 11./9. - q
           grwkern(i) = -1.
           grgrwkern(i) = 0.
        elseif (q.le.1.0) then
