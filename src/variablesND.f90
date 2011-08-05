@@ -82,7 +82,7 @@ END MODULE gravity
 MODULE hterms
  IMPLICIT NONE
  INTEGER :: itsdensity
- REAL, DIMENSION(:), ALLOCATABLE :: gradh, gradhaniso
+ REAL, DIMENSION(:), ALLOCATABLE :: gradh
 END MODULE
 
 !-------------------------------------------------------------------
@@ -116,7 +116,7 @@ MODULE linklist
  IMPLICIT NONE
  INTEGER, DIMENSION(:), ALLOCATABLE :: ll,ifirstincell,iamincell
  INTEGER, DIMENSION(ndim) :: ncellsx
- INTEGER :: ncells,ncellsloop,nlistdim
+ INTEGER :: ncells,ncellsloop
  REAL :: dxcell
 END MODULE linklist
 
@@ -142,7 +142,7 @@ MODULE options
  INTEGER :: imhd,imagforce,idivBzero   !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
- INTEGER :: igeom,maxdensits,iunity
+ INTEGER :: igeom,maxdensits
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
  REAL :: damp,psidecayfact
@@ -225,17 +225,6 @@ MODULE timestep
 !
  REAL :: dtforce, dtcourant, C_force, C_cour
 END MODULE timestep
-
-!-------------------------------------------------------------------
-!   unity function and its derivative
-!-------------------------------------------------------------------
-
-MODULE unityfunc
- IMPLICIT NONE
- REAL, DIMENSION(:), ALLOCATABLE :: unity
- REAL, DIMENSION(:,:), ALLOCATABLE :: gradunity
-END MODULE unityfunc
-
 
 !-------------------------------------------------------------------
 !   version number

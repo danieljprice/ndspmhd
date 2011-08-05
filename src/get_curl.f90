@@ -22,7 +22,7 @@ SUBROUTINE get_curl(curlBonrho,ntot)
  INTEGER, INTENT(IN) :: ntot
  INTEGER :: i,j,n
  INTEGER :: icell,iprev,nneigh
- INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
+ INTEGER, DIMENSION(ntot) :: listneigh ! neighbour list
  INTEGER :: idone
  INTEGER, DIMENSION(3**ndim) :: neighcell
 !
@@ -48,9 +48,7 @@ SUBROUTINE get_curl(curlBonrho,ntot)
 !
 !--initialise quantities
 !
- nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) ) ! max size of neighbour list
-
+ listneigh = 0
  curlBonrho = 0.
 !
 !--Loop over all the link-list cells

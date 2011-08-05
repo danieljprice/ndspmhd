@@ -12,29 +12,32 @@
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
 
-SUBROUTINE density_partial(nlist,ipartlist)
+SUBROUTINE density_partial(x,pmass,hh,rho,gradh,npart,nlist,ipartlist)
  USE dimen_mhd
  USE debug
  USE loguns
  
  USE bound
- USE hterms
+! USE hterms
  USE kernel
  USE linklist
-! USE options
- USE part
-! USE setup_params
+! USE part
 !
 !--define local variables
 !
  IMPLICIT NONE
- INTEGER :: i,j,n
- INTEGER :: icell,ipart,nneigh
- INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! up to 10% of particles in each cell
- INTEGER :: icellprev
- INTEGER, DIMENSION(3**ndim) :: neighcell
+ INTEGER, INTENT(IN) :: npart
+ REAL, DIMENSION(ndim,*), INTENT(IN) :: x
+ REAL, DIMENSION(*), INTENT(IN) :: pmass, hh
+ REAL, DIMENSION(*), INTENT(OUT) :: rho, gradh
  INTEGER, INTENT(IN) :: nlist
  INTEGER, INTENT(IN), DIMENSION(*) :: ipartlist
+
+ INTEGER :: i,j,n
+ INTEGER :: icell,ipart,nneigh
+ INTEGER, DIMENSION(SIZE(hh)) :: listneigh ! up to 10% of particles in each cell
+ INTEGER :: icellprev
+ INTEGER, DIMENSION(3**ndim) :: neighcell
 !
 !  (particle properties - local copies)
 !      
@@ -58,8 +61,6 @@ SUBROUTINE density_partial(nlist,ipartlist)
 !
 !--initialise quantities
 !
- nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )      ! max size of neighbour list
  listneigh = 0
 
  DO ipart=1,nlist

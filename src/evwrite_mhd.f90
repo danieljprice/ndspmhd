@@ -20,7 +20,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  REAL, INTENT(IN) :: t
  REAL, INTENT(OUT) :: etot,momtot
  REAL :: ekin,etherm,emag,epot
- REAL :: pmassi,rhoi
+ REAL :: pmassi,rhoi,epoti
  REAL, DIMENSION(ndimV) :: veli,mom
 !
 !--mhd
@@ -87,14 +87,8 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
 !--potential energy from external forces
 !    
-    SELECT CASE(iexternal_force)
-    CASE(1) ! toy star force (x^2 potential)
-       epot = epot + 0.5*pmassi*DOT_PRODUCT(x(:,i),x(:,i))
-    CASE(2) ! 1/r^2 force(1/r potential)
-       epot = epot + pmassi/SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
-    CASE(3) ! potential from n point masses
-       WRITE(iprint,*) 'potential not calculated for point masses'
-    END SELECT
+    CALL external_potentials(iexternal_force,x(:,i),epoti,ndim)
+    epot = epot + pmassi*epoti
 !
 !--mhd parameters
 !

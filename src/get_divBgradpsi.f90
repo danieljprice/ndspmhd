@@ -55,8 +55,7 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot)
 !
 !--initialise quantities
 !
- nlistdim = ntot
- 
+ listneigh = 0
  divB = 0.
  gradpsi = 0.
  rho = 0.

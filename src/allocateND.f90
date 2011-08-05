@@ -21,7 +21,6 @@ SUBROUTINE alloc(newsizein)
  USE part
  USE part_in
  USE rates
-!! USE unityfunc
  USE xsph
 !
 !--define local variables
@@ -32,7 +31,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  REAL, DIMENSION(3,newsizein) :: dumalpha,dumalphain,dumdaldt
- REAL, DIMENSION(newsizein) :: dumpsi,dumgradhaniso
+ REAL, DIMENSION(newsizein) :: dumpsi
  REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx,dumfgrav
@@ -42,15 +41,8 @@ SUBROUTINE alloc(newsizein)
 !--gr terms
  REAL, DIMENSION(newsizein) :: dumsqrtg,dumdens
  INTEGER, DIMENSION(newsizein) :: idumireal,idumitype
-!--unity functions
-!! REAL, DIMENSION(newsizein) :: dumunity
-!! REAL, DIMENSION(ndim,newsizein) :: dumgradunity
 
  LOGICAL :: reallocate
-!
-!--set size of neighbour list
-!
- nlistdim = newsizein/2        ! ie. up to half of particles can be neighbours
 !
 !--work out whether reallocating memory and what the current array size is
 ! 
@@ -123,7 +115,6 @@ SUBROUTINE alloc(newsizein)
     dumhh(1:idumsize) = hh(1:idumsize)
     dumdhdt(1:idumsize) = dhdt(1:idumsize)
     dumgradh(1:idumsize) = gradh(1:idumsize)
-    dumgradhaniso(1:idumsize) = gradhaniso(1:idumsize)
 
     dumpr(1:idumsize) = pr(1:idumsize)
     dumspsound(1:idumsize) = spsound(1:idumsize)
@@ -134,9 +125,6 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(fgrav)) dumfgrav(:,1:idumsize) = fgrav(:,1:idumsize)
     dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
     dumdens(1:idumsize) = dens(1:idumsize)
-    
-!!    dumunity(1:idumsize) = unity(1:idumsize)
-!!    dumgradunity(:,1:idumsize) = gradunity(:,1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -151,7 +139,7 @@ SUBROUTINE alloc(newsizein)
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
-    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhaniso,pr)
+    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
     IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
@@ -191,11 +179,6 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(sourceterms)) DEALLOCATE(sourceterms)
     IF (ALLOCATED(pmom)) DEALLOCATE(pmom)
     IF (ALLOCATED(dens)) DEALLOCATE(dens)
-!
-!--kernel correction
-!
-!!    IF (ALLOCATED(unity)) DEALLOCATE(unity)
-!!    IF (ALLOCATED(gradunity)) DEALLOCATE(gradunity)
  ENDIF
 
 !-----------------------------------------------------------------------------
@@ -220,7 +203,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
     ALLOCATE(alpha(3,newsize),alphain(3,newsize),daldt(3,newsize))
     ALLOCATE(psi(newsize),dpsidt(newsize))
-    ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize),gradhaniso(newsize))
+    ALLOCATE(hh(newsize),dhdt(newsize),gradh(newsize))
     ALLOCATE(pr(newsize))
     ALLOCATE(Bevol(ndimB,newsize),Bconst(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))  ! mag field
@@ -257,11 +240,6 @@ SUBROUTINE alloc(newsizein)
 !
    ALLOCATE(sqrtg(newsize))
    ALLOCATE(dens(newsize))
-!
-!--kernel correction
-!   
-!!   ALLOCATE(unity(newsize))
-!!   ALLOCATE(gradunity(ndim,newsize))
    
  IF (reallocate) THEN
 !-----------------------------------------------------------------------------
@@ -303,7 +281,6 @@ SUBROUTINE alloc(newsizein)
     hh(1:idumsize) = dumhh(1:idumsize)
     dhdt(1:idumsize) = dumdhdt(1:idumsize)
     gradh(1:idumsize) = dumgradh(1:idumsize)
-    gradhaniso(1:idumsize) = dumgradhaniso(1:idumsize)
     
     pr(1:idumsize) = dumpr(1:idumsize)
     spsound(1:idumsize) = dumspsound(1:idumsize)
@@ -314,9 +291,6 @@ SUBROUTINE alloc(newsizein)
     IF (ALLOCATED(fgrav)) fgrav(:,1:idumsize) = dumfgrav(:,1:idumsize)
     sqrtg(1:idumsize) = dumsqrtg(1:idumsize)
     dens(1:idumsize) = dumdens(1:idumsize)    
-    
-!!    unity(1:idumsize) = dumunity(1:idumsize)
-!!    gradunity(:,1:idumsize) = dumgradunity(:,1:idumsize)
     
  ELSE
     itype(:) = 0 ! on first memory allocation, set all parts = normal

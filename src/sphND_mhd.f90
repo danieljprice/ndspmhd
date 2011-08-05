@@ -10,16 +10,16 @@
 !!      / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \        !!
 !!     ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e )       !!
 !!     \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/         !!
-!!                                                                       !!
+!!                                                                     !!
 !!---------------------------------------------------------------------!!
 !! An N-D SPH code to handle compressible gas dynamics with MHD        !!
 !!                                                                     !!
 !! Written in Fortran 90                                               !!
 !! By Daniel Price, Institute of Astronomy, Cambridge, UK, 2002-2004   !!
-!! Email: dprice@ast.cam.ac.uk                                               !!
-!!                                                                       !!
+!! Email: dprice@ast.cam.ac.uk                                         !!
+!!                                                                     !!
 !! This version is designed to be as modular (and thus as adaptable)   !!
-!! as possible, as a testbed for SPH algorithms                               !!
+!! as possible, as a testbed for SPH algorithms                        !!
 !!                                                                     !!
 !! Specific features include:                                          !!
 !!                                                                     !!
@@ -32,7 +32,7 @@
 !!                                                                     !!
 !!  * choice of whether to use average h, average gradient             !!
 !!    of kernel or Springel/Hernquist (2001) type correction           !!
-!!    terms for varying h                                               !!
+!!    terms for varying h                                              !!
 !!                                                                     !!
 !!  * Morris and Monaghan (1997) artificial viscosity switch           !!
 !!    (turns off artificial viscosity away from shocks)                !!
@@ -60,7 +60,9 @@ PROGRAM SUPERSPMHD_ND
 !   * multiple runnames off command line (does them in order)
 !   * dissipation switches for resistivity and conductivity
 !   * anticlumping term implemented as a modified kernela gradient
-!   * gradh terms calculated for anticlumping kernel
+!   * gradh terms calculated for anticlumping kernel (**removed)
+!   * particle info explicitly passed to density, density_partial
+!   * external_forces subroutine cleaned up + potential calculation
 !    version = 'NDSPMHD-3D-v5-2_18_05_2004' (saved 2:50pm)
 !    *** this version used to obtain swave and hydro shocks for thesis 10/5/04 ***
 !    *** this version used to obtain 1D MHD shock tube results for thesis 13/5/04

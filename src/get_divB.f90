@@ -21,7 +21,7 @@ SUBROUTINE get_divB(divBonrho,ntot)
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: ntot
  INTEGER :: i,j,n
- INTEGER :: icell,iprev,nneigh
+ INTEGER :: icell,iprev,nneigh,nlistdim
  INTEGER, ALLOCATABLE, DIMENSION(:) :: listneigh ! neighbour list
  INTEGER :: idone
  INTEGER, DIMENSION(3**ndim) :: neighcell
