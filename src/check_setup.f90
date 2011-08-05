@@ -68,16 +68,16 @@ subroutine check_setup
 !
 !--check that no particles are on top of each other
 !
-  do i=1,npart
-     do j=i+1,npart
-        xsep = dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j))
-        if (xsep.lt.tiny(xsep)) then
-           write(iprint,20) 'non-unique particle position, x= ',x(1,i),i
-           write(iprint,20) 'non-unique particle position, x= ',x(1,j),j
-           stop
-        endif
-     enddo
-  enddo
+!  do i=1,npart
+!     do j=i+1,npart
+!        xsep = dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j))
+!        if (xsep.lt.tiny(xsep)) then
+!           write(iprint,20) 'non-unique particle position, x= ',x(1,i),i
+!           write(iprint,20) 'non-unique particle position, x= ',x(1,j),j
+!           stop
+!        endif
+!     enddo
+!  enddo
 !
 !--warnings only
 ! 
