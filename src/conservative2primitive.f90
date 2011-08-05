@@ -339,9 +339,10 @@ subroutine primitive2conservative
   use timestep
   use getcurl
   use getBeulerpots, only:get_B_eulerpots
-  use rates, only:gradpsi
+  use rates, only:gradpsi,dBevoldt
   use derivB, only:curlB
   use utils,  only:minmaxave
+!  use resistivity, only:Bdiffusion
   implicit none
   integer :: i,j,iktemp,iremap,nremap
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi, emagold,emag
@@ -603,8 +604,12 @@ subroutine primitive2conservative
 !
 !--call rates to get initial timesteps, div B etc
 !
-  call get_rates
-
+  call derivs
+ ! call get_rates
+ ! if (imhd.eq.11 .and. iresist.eq.2 .and. etamhd.gt.0.) then
+ !    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,0.)
+ !endif
+ 
   return  
 end subroutine primitive2conservative
 
