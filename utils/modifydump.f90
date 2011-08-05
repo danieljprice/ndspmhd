@@ -12,9 +12,8 @@ program modifydump
  use dumpfiles
  use prompting
  implicit none
- integer :: i
  character(len=120) :: dumpfile,outfile
- real :: tfile
+ real :: tfile,Bx,By,Bz
  logical :: ians,iexist
 !
 !--get filenames
@@ -23,11 +22,15 @@ program modifydump
  call getarg(1,dumpfile)
  if (dumpfile == ' ') then
     call prompt('Enter name of dump to modify:',dumpfile)
+ else
+    print "(a)",'reading from '//trim(dumpfile)
  endif
  outfile = dumpfile
  call getarg(2,outfile)
  if (outfile == ' ') then
     call prompt('Enter name of output dump :',outfile)
+ else
+    print "(a)",'writing to '//trim(outfile)
  endif
 !
 !--check if output file exists
@@ -49,24 +52,30 @@ program modifydump
 !
  ians = .false.
  if (dumpfile(1:1) == 'm') ians = .true.
- call prompt('MHD dump?',ians) 
+ call prompt('Is the dump to read an MHD dump?',ians) 
  imhd = 0 
  if (ians) imhd = 1
  
- call read_dump(dumpfile,tfile)
+ call read_dump(dumpfile,tfile,copysetup=.true.)
 !
 !--------- do modifications here ------------------
 ! 
- do i=1,npart 
-    !vel(:,i) = x(:,i)
-    !vel(1,i) = vel(1,i) - x(2,i)
-    !vel(2,i) = vel(2,i) + x(1,i)
-    !vel(:,i) = 0.
-    Bfield(1:2,i) = 0.01
-    Bfield(3,i) = 0.
- enddo
+ if (imhd.ne.0) then
+    call prompt('Change magnetic field?',ians)
+ else
+    call prompt('Add magnetic field?',ians)
+ endif
+ if (ians) then
+    call prompt('Enter Bx component:',Bx)
+    if (ndimV.ge.2) call prompt('Enter By component:',By)
+    if (ndimV.ge.3) call prompt('Enter Bz component:',Bz)
+    print "(a)",'setting new field components...'
+    Bfield(1,:) = Bx
+    if (ndimV.ge.2) Bfield(2,:) = By
+    if (ndimV.ge.3) Bfield(3,:) = Bz
+    imhd = 1
+ endif
  tfile = 0.
- imhd = 1
  
 !--------------------------------------------------
 !
