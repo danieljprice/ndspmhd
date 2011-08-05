@@ -43,6 +43,8 @@ OBJSPHDERIV = kernelND.o sphderiv.o
 OBJMODDUMP = variablesND.o allocateND.o prompting.o \
              readwrite_dumps.o modifydump.o
 
+all: kernelplot kernelplot3D
+
 kernelplot: $(OBJECTS) kernelplot.o kernelstability1D.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot.o kernelstability1D.o
 
