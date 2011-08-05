@@ -14,7 +14,7 @@ EDITOR = nedit
 #F90FLAGS =  -O -C -WB -r8
 #LDFLAGS = -Vaxlib
 F90C =  g95
-F90FLAGS = -O2 -r8 -Wall##-fbounds-check -Wall
+F90FLAGS = -O3 -ffast-math -r8 -Wall
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 
 # Fortran flags same as F90
@@ -71,12 +71,13 @@ SETUP2D = setup_toystarND_static.f90 set_dipole.f90
 #SETUP2D = setup_logodivB.f90
 
 #SETUP3D = setup_unifdisND.f90 cp_distribute.f
-SETUP3D = setup_unifsphND.f90
+#SETUP3D = setup_unifsphND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
 #SETUP3D = setup_wave_x_ND_mhd.f90
 #SETUP3D = setup_shockND.f90
 #SETUP3D = setup_alfvenwaveND_x.f90
 #SETUP3D = setup_disc3D.f90
+SETUP3D = setup_densityprofileND.f90
 
 ######################################################################
 ########### setup file for modify dump utility #######################
