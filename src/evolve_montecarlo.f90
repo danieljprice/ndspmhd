@@ -14,7 +14,7 @@ subroutine evolve
  use setup_params, only:hfact,pi
  use densityprofiles, only:exact_densityprofiles
  use errors, only:calculate_errors
- use rates, only:force
+ use rates, only:force,poten
  use kernels, only:radkern
 !
 !--define local variables
@@ -107,9 +107,13 @@ subroutine evolve
     msphere(2) = 0.5
     rsoft(1) = 1.0
     rsoft(2) = 0.1
-    call exact_densityprofiles(3,1,msphere,rsoft,xexact,yexact,ierr)
-    call calculate_errors(xexact,yexact,rr,fmag,residual, &
-         errL1,errL2,errLinf)
+!    call exact_densityprofiles(3,1,msphere,rsoft,xexact,yexact,ierr)
+!    call calculate_errors(xexact,yexact,rr,fmag,residual, &
+!         errL1,errL2,errLinf)
+    call force_error_densityprofiles(1,npart,x(1:ndim,1:npart),force(1:ndim,1:npart), &
+                                    poten(1:npart),errL2,errL1,ierr)
+    errLinf = 0.
+    if (ierr /= 0) stop 'error in exact solution calculation'
     toterrL2 = toterrL2 + errL2
     toterrLinf = toterrLinf + errLinf
     print*,nsteps,' L2 error = ',errL2,' mean = ',toterrL2/real(nsteps), &
