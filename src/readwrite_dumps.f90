@@ -18,6 +18,7 @@ subroutine write_dump(t,dumpfile)
  use setup_params
  use derivb
  use rates
+ use hterms, only:gradh
 !
 !--define local variables
 !
@@ -47,7 +48,7 @@ subroutine write_dump(t,dumpfile)
     ndata = ndim + 11 + 3*ndimV ! number of columns apart from co-ords
     iformat = 2
  else
-    ndata = ndim + 8 + ndimV
+    ndata = ndim + 9 + ndimV
     iformat = 1
     if (igeom.gt.1) then
        ndata = ndata + 2 + ndimV
@@ -55,7 +56,7 @@ subroutine write_dump(t,dumpfile)
     endif
  endif
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
-                             ndata,igeom,iformat,ibound,xmin,xmax
+      ndata,igeom,iformat,ibound,xmin(1:ndim),xmax(1:ndim)
  if (ierr /= 0) then
     write(iprint,*) '*** error writing timestep header to dumpfile ',trim(dumpfile)
  endif
@@ -97,6 +98,7 @@ subroutine write_dump(t,dumpfile)
      !--info only
      write(idatfile) pr(1:nprint)
      write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
+     write(idatfile) gradh(1:nprint)
      if (igeom.gt.1) then
         write(idatfile) rho(1:nprint)
         write(idatfile) sqrtg(1:nprint)
@@ -173,6 +175,7 @@ subroutine read_dump(dumpfile,tfile)
     stop 
  endif
  write(iprint,*) 'time = ',tfile,' in dump file '
+ write(iprint,*) 'xmin = ',xmin(1:ndimfile),' xmax = ',xmax(1:ndimfile)
 !
 !--check for compatibility with current settings
 !
