@@ -32,6 +32,7 @@ subroutine conservative2primitive
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   use timestep, only:time,nsteps
+  use part_in, only:Bevolin
   implicit none
   integer :: i,j,nerr,k
   real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
@@ -67,15 +68,16 @@ subroutine conservative2primitive
 !
 !--calculate magnetic flux density B from the conserved variable
 !
+  remap = .false.
   select case(imhd)
   case(11:19, 21:) ! if using B as conserved variable
      Bfield = Bevol
   case(20)  ! remapped B
      remap = .false.
-     if (mod(nsteps,50).eq.0) then
+     !if (mod(nsteps,50).eq.0) then
         remap = .true.
         print*,' REMAPPING...'
-     endif
+     !endif
      !--remap B_0 to current B
      call get_B_eulerpots(4,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
      if (remap) then
@@ -214,6 +216,13 @@ subroutine conservative2primitive
   case default
      !--no magnetic field
   end select
+!
+!--if magnetic field has been remapped, reset Bevolin for the timestepping
+!
+  if (remap) then
+     Bevolin = Bevol
+  endif
+  
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
