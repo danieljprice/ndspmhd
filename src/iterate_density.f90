@@ -76,6 +76,8 @@ subroutine iterate_density
      write(iprint,*) 'error: h <= 0 in density call'
      call quit
   endif
+  dhdni = 0.
+  dhdrhoi = 0.
 
 !!  itest = 416
   
