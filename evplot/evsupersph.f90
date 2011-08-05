@@ -14,7 +14,7 @@ program plotmeagraph
   integer, parameter :: maxcol=21        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,iprev,nfiles,ifile,ifilesteps, iargc
   integer :: mysteps,ipick,ipickx,nacross,ndown
-  integer :: ihalf,iadjust,int_from_string
+  integer :: ihalf,iadjust,ierr
   integer :: ichange, iongraph, ipt
   integer :: nplots
   integer, dimension(maxcol) :: iplotx,iploty,itrans
@@ -37,7 +37,7 @@ program plotmeagraph
   print*,' Welcome to Dan''s supersphplotev 2004... '
 
   mysteps=maxstep
-  ncol = 6
+  ncol = 21
   icycle = .false.
   hpos = 0.4
   vpos = 8.0
@@ -234,7 +234,9 @@ program plotmeagraph
   
   write(*,"(a)",ADVANCE="NO") 'Enter y axis or option: '
   read*,ioption
-  ipick = int_from_string(ioption)
+  read(ioption,*,iostat=ierr) ipick
+  if (ierr /=0) ipick = 0
+
   if (ipick.le.ncol .and. ipick.ge.1) then
      call prompt('Enter x axis: ',ipickx,1,ncol)
   endif

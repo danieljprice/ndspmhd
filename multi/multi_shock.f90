@@ -15,7 +15,7 @@ PROGRAM multirun
  USE anticlumping
  IMPLICIT NONE
  INTEGER :: i,j,nruns,iener_default
- INTEGER :: int_from_string
+ INTEGER :: ierr
  CHARACTER :: filename*15,infile*20,shkfile*20,filenum*2,charnruns*3
  REAL :: rholeft,rhoright,prleft,prright
  REAL :: vxleft,vxright,vyleft,vyright,vzleft,vzright
@@ -26,9 +26,9 @@ PROGRAM multirun
  CALL getarg(1,filename)
  CALL getarg(2,charnruns)
  
- nruns = int_from_string(charnruns)
+ read(charnruns,*,iostat=ierr) nruns
  
- IF (filename.EQ.'' .OR. nruns.LE.0) THEN
+ IF (filename.EQ.'' .OR. ierr.NE.0) THEN
   PRINT*,'Usage: multirun filename nruns'
   STOP
  ENDIF
