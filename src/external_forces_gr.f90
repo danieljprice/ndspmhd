@@ -5,12 +5,13 @@
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim)
   use options, only:igeom
+  use setup_params, only:R_grav
   implicit none
   integer, intent(in) :: iexternal_force,ndim
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndim), intent(out) :: fext
   real, dimension(ndim) :: dr
-  real :: rr,rr2,drr2
+  real :: rr,rr2,drr,drr2
 
   select case(iexternal_force)
   case(1)
@@ -28,11 +29,23 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
 !
 !--1/r^2 force from central point mass
 !
-     rr2 = DOT_PRODUCT(xpart,xpart) 
-     rr = SQRT(rr2)
-     drr2 = 1./rr2
-     dr(:) = xpart(:)/rr
-     fext(:) = - dr(:)*drr2
+     select case(igeom)
+     case(3) ! spherical
+        stop 'ERROR: external force not implemented'
+     case(2) ! cylindrical
+        rr2 = xpart(1)**2 + xpart(3)**2
+        drr2 = drr*drr
+        dr(1) = xpart(1)*drr
+        dr(2) = 0.
+        dr(3) = xpart(3)*drr
+        fext(:) = -dr(:)*drr2
+     case default ! cartesian
+        rr2 = DOT_PRODUCT(xpart,xpart) 
+        rr = SQRT(rr2)
+        drr2 = 1./rr2
+        dr(:) = xpart(:)/rr
+        fext(:) = - dr(:)*drr2
+     end select
 
   case(3)
 !
@@ -53,6 +66,28 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim)
         !
 !        fext(:) = fext(:) - dr(:)*drr2
 !     enddo
+  case(10)
+!
+!--quasi-Kerr metric same as Nelson & Papaloizou (2000), MNRAS 315,570
+!
+     select case(igeom)
+     case(3)
+        stop 'ERROR: external force not implemented'
+     case(2) ! cylindrical
+        rr2 = xpart(1)**2 + xpart(3)**2
+        drr = 1./sqrt(rr)
+        drr2 = drr*drr
+        dr(1) = xpart(1)*drr
+        dr(2) = 0.
+        dr(3) = xpart(3)*drr
+        fext(:) = -dr(:)*drr2*(1. + 6.*drr*R_grav)
+     case default
+        rr2 = dot_product(xpart,xpart)
+        drr = 1./sqrt(rr)
+        drr2 = drr*drr
+        dr(:) = xpart(:)*drr
+        fext(:) = -dr(:)drr2*(1. + 6.*drr*R_grav)
+     end select
   case default
      
      fext(:) = 0.
