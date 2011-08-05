@@ -14,6 +14,6 @@ else
    echo '	cd ../; make '$1'; cp ./'$1'SPMHD '$PWD
    echo 'plot:'
    echo '	cd ../plot; make'
-   echo 'edit'$1':'
+   echo 'edit:'
    echo '	cd ../; make edit'$1
 endif

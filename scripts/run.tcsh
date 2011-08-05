@@ -20,7 +20,7 @@ else
    ln -s ../supersphplot supersphplot
    ln -s ../evsupersph evsupersph
    echo 'writing a Makefile'
-   ../scripts/write_makefile.tcsh $1
+   ../scripts/writemake.tcsh $1 > Makefile
    echo 'writing sge script '$runname\.sge
    ../scripts/write_sgescript.bash $1 $runname > $runname\.sge
 ##   echo 'submitting job to grid'
