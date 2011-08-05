@@ -10,16 +10,16 @@
 !!      / \ / \   / \ / \ / \ / \ / \ / \   / \ / \ / \ / \ / \        !!
 !!     ( B | y ) ( D | a | n | i | e | l ) ( P | r | i | c | e )       !!
 !!     \_/ \_/   \_/ \_/ \_/ \_/ \_/ \_/   \_/ \_/ \_/ \_/ \_/         !!
-!!								       !!
+!!                                                                       !!
 !!---------------------------------------------------------------------!!
 !! An N-D SPH code to handle compressible gas dynamics with MHD        !!
 !!                                                                     !!
 !! Written in Fortran 90                                               !!
 !! By Daniel Price, Institute of Astronomy, Cambridge, UK, 2002-2004   !!
-!! Email: dprice@ast.cam.ac.uk				               !!
-!!								       !!
+!! Email: dprice@ast.cam.ac.uk                                               !!
+!!                                                                       !!
 !! This version is designed to be as modular (and thus as adaptable)   !!
-!! as possible, as a testbed for SPH algorithms		               !!
+!! as possible, as a testbed for SPH algorithms                               !!
 !!                                                                     !!
 !! Specific features include:                                          !!
 !!                                                                     !!
@@ -32,7 +32,7 @@
 !!                                                                     !!
 !!  * choice of whether to use average h, average gradient             !!
 !!    of kernel or Springel/Hernquist (2001) type correction           !!
-!!    terms for varying h		                               !!
+!!    terms for varying h                                               !!
 !!                                                                     !!
 !!  * Morris and Monaghan (1997) artificial viscosity switch           !!
 !!    (turns off artificial viscosity away from shocks)                !!
@@ -105,7 +105,7 @@ PROGRAM SUPERSPMHD_ND
 !   * can have different boundary options in different dimensions
 !   * set_uniform cartesian can be called multiple times
 !   * shock setups in 3D
-!   version = 'NDSPMHD-v4-0'	! make sure there are no .'s in version name
+!   version = 'NDSPMHD-v4-0'        ! make sure there are no .'s in version name
 !   *** versioning now done with CVS ***
 !   use 'make tag' to tag a working copy of the code in CVS
 !   version = 'SPMHD-ND-v3.6_22_10_2003'
@@ -263,7 +263,7 @@ PROGRAM SUPERSPMHD_ND
 ! version = 'SPH-v1.1-lots-of-options'
 !   * individual common blocks 
  
- trace = .false.		! set tracing flow (prints entry into subroutine)
+ trace = .false.                ! set tracing flow (prints entry into subroutine)
 ! trace = .true.
  idebug = 'none' 
 ! idebug = 'density'
@@ -271,9 +271,9 @@ PROGRAM SUPERSPMHD_ND
 ! idebug = 'link'
 ! idebug = 'divB'
   
-! itemp = 40000		! debug one particular particle
+! itemp = 40000                ! debug one particular particle
 
- CALL logun     	! set logical unit numbers to use for input/output
+ CALL logun     ! set logical unit numbers to use for input/output
 !
 !--get runname(s) off command line
 !  
@@ -311,7 +311,7 @@ PROGRAM SUPERSPMHD_ND
     rootname = runname(irun)
     print*,'run = ',irun,' runname = ',rootname
  
-    CALL initialise	! read files and parameters and setup particles
+    CALL initialise  ! read files and parameters and setup particles
     !
     !--now call the main timestepping loop
     !

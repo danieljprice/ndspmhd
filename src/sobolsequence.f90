@@ -91,7 +91,7 @@ subroutine sobolsequence(ndim,x)
         do j=1,ipolydeg(iseq)
            ibitsequence(iseq,j) = istart(iseq,j)*2**(maxbit-j)
         enddo
-!	print*,'iseq = ',iseq,' istart = ',ibitsequence(iseq,:)
+!        print*,'iseq = ',iseq,' istart = ',ibitsequence(iseq,:)
         !
         !--then calculate the other starting values (ie from degree->maxbit)
         !  using the recurrence relation
@@ -106,8 +106,8 @@ subroutine sobolsequence(ndim,x)
            enddo
            ibitsequence(iseq,j) = i
         enddo
-!	print*,'iseq = ',iseq,' istart = ',ibitsequence(iseq,:)
-	
+!        print*,'iseq = ',iseq,' istart = ',ibitsequence(iseq,:)
+        
      enddo
   else
      !
@@ -136,9 +136,9 @@ subroutine sobolsequence(ndim,x)
      !
      do iseq=1,min(ndim,maxdim)
         index = ibit + iseq
-	print*,'index = ',index,' = ',index/maxdim,index-iseq*index/maxdim
+        print*,'index = ',index,' = ',index/maxdim,index-iseq*index/maxdim
         ix(iseq) = IEOR(ix(iseq),ibitsequence(index/maxdim,ibit))
-	print*,'int x = ',index,ix(iseq)
+        print*,'int x = ',index,ix(iseq)
 !
 !--convert the integer number to a floating point number for output
 !

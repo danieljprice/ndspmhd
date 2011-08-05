@@ -90,7 +90,7 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
        if (debugging) then
           write(iprint,*) ' calculating div B after correction'
           CALL get_divB(divBonrho,ntot)
-	  if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
+          if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
           divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
        endif
        
@@ -99,11 +99,11 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
        ELSE
           DO i=1,npart
              Bevol(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
-	  ENDDO
+          ENDDO
        ENDIF
        if (ntot.gt.npart) then
-	  do i=npart+1,ntot
-	     call copy_particle(i,ireal(i))
+          do i=npart+1,ntot
+             call copy_particle(i,ireal(i))
           enddo
        endif
        !!CALL primitive2conservative ! so Bfield -> Bevol
@@ -167,26 +167,26 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
        ELSE
           DO i=1,npart
              Bevol(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
-	  ENDDO
+          ENDDO
        ENDIF
        if (ntot.gt.npart) then
-	  do i=npart+1,ntot
-	     call copy_particle(i,ireal(i))
+          do i=npart+1,ntot
+             call copy_particle(i,ireal(i))
           enddo
        endif
        
        if (debugging) then
           write(iprint,*) ' calculating div/curl B after correction'
           call get_divB(divBonrho,ntot)
-	  if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
+          if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
           divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
 
-	  call get_curl(curlBonrho,ntot)
+          call get_curl(curlBonrho,ntot)
           if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
           do i=1,ntot
              curlB(:,i) = rho(i)*curlBonrho(:,i)
           enddo
-	  
+          
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)
        endif
@@ -218,9 +218,9 @@ SUBROUTINE divBcorrect(Btemp,psitemp,npts,ntot)
 !
 !          do i=1,npart
 !             Btemp(:,i) = Btemp(:,i) - dtsub*gradpsi(:,i)
-!	     psi(i) = psi(i) - vsig2*divB(i)
-!	  enddo
-!	  
+!             psi(i) = psi(i) - vsig2*divB(i)
+!          enddo
+!  
 !          if (debugging) then
 !             call output(time,nsteps)   ! output div B and Bfield before correction
 !             call evwrite(real(icall),ecrap,momcrap)

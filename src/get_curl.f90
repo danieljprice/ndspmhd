@@ -49,13 +49,13 @@ SUBROUTINE get_curl(curlBonrho,ntot)
 !--initialise quantities
 !
  nlistdim = ntotal
- ALLOCATE( listneigh(nlistdim) )     ! max size of neighbour list
+ ALLOCATE( listneigh(nlistdim) ) ! max size of neighbour list
 
  curlBonrho = 0.
 !
 !--Loop over all the link-list cells
 !
- loop_over_cells: DO icell=1,ncellsloop          ! step through all cells
+ loop_over_cells: DO icell=1,ncellsloop ! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
@@ -87,60 +87,60 @@ SUBROUTINE get_curl(curlBonrho,ntot)
 !--for each particle in the current cell, loop over its neighbours
 !
        loop_over_neighbours: DO n = idone+1,nneigh
-	  j = listneigh(n)
+          j = listneigh(n)
           IF ((j.NE.i).AND..NOT.(j.GT.npart .AND. i.GT.npart)) THEN
-	     ! don't count particle with itself       
-	     dx(:) = x(:,i) - x(:,j)
-	     hj = hh(j)
-	     hj1 = 1./hj
-	     hj2 = hj*hj
+             ! don't count particle with itself       
+             dx(:) = x(:,i) - x(:,j)
+             hj = hh(j)
+             hj1 = 1./hj
+             hj2 = hj*hj
 !
 !--calculate averages of smoothing length if using this averaging
 !                
-	     hav = 0.5*(hi + hj)
-	     hav1 = 1./hav
-	     h2 = hav*hav
-	     hfacwab = hav1**ndim
-	     hfacwabj = hj1**ndim
-	     rho21j = 1./rho(j)**2
-	     
-	     rij2 = DOT_PRODUCT(dx,dx)
-	     rij = SQRT(rij2)
-	     q2 = rij2/h2
-	     q2i = rij2/hi2
-	     q2j = rij2/hj2     
-	     dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
-	     if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0. 
+             hav = 0.5*(hi + hj)
+             hav1 = 1./hav
+             h2 = hav*hav
+             hfacwab = hav1**ndim
+             hfacwabj = hj1**ndim
+             rho21j = 1./rho(j)**2
+             
+             rij2 = DOT_PRODUCT(dx,dx)
+             rij = SQRT(rij2)
+             q2 = rij2/h2
+             q2i = rij2/hi2
+             q2j = rij2/hj2     
+             dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
+             if (ndimV.gt.ndim) dr(ndim+1:ndimV) = 0. 
 
-	     !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
+             !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
 !     
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-	     IF (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
-		  .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
+             IF (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
+                  .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
 !
-		!       PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
-		IF (ikernav.EQ.1) THEN          
-		   CALL interpolate_kernel(q2,wab,grkern)
-		   wab = wab*hfacwab
-		   grkern = grkern*hfacwab*hj1
-		ELSE
-		   !  (using hi)
-		   CALL interpolate_kernel(q2i,wabi,grkerni)
-		   wabi = wabi*hfacwabi
-		   grkerni = grkerni*hfacwabi*hi1
-		   !  (using hj)
-		   CALL interpolate_kernel(q2j,wabj,grkernj)
-		   wabj = wabj*hfacwabj
-		   grkernj = grkernj*hfacwabj*hj1
-		   !  (calculate average)            
-		   wab = 0.5*(wabi + wabj)                  
-		   grkern = 0.5*(grkerni + grkernj)            
-		ENDIF
+                !       PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
+                IF (ikernav.EQ.1) THEN          
+                   CALL interpolate_kernel(q2,wab,grkern)
+                   wab = wab*hfacwab
+                   grkern = grkern*hfacwab*hj1
+                ELSE
+                   !  (using hi)
+                   CALL interpolate_kernel(q2i,wabi,grkerni)
+                   wabi = wabi*hfacwabi
+                   grkerni = grkerni*hfacwabi*hi1
+                   !  (using hj)
+                   CALL interpolate_kernel(q2j,wabj,grkernj)
+                   wabj = wabj*hfacwabj
+                   grkernj = grkernj*hfacwabj*hj1
+                   !  (calculate average)            
+                   wab = 0.5*(wabi + wabj)                  
+                   grkern = 0.5*(grkerni + grkernj)            
+                ENDIF
 
                 if (imhd.ge.11) then      ! if B is mag field variable
                    Bj(:) = Bevol(:,j)
@@ -150,7 +150,7 @@ SUBROUTINE get_curl(curlBonrho,ntot)
 !
 !--calculate div B
 !
-		dB = Bi(:) - Bj(:)
+                dB = Bi(:) - Bj(:)
                 if (ndimV.eq.3) then
                    curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
                    curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
@@ -164,11 +164,11 @@ SUBROUTINE get_curl(curlBonrho,ntot)
                 !
                 curlBonrho(:,i) = curlBonrho(:,i) - pmass(j)*curlBi(:)*grkern
                 curlBonrho(:,j) = curlBonrho(:,j) - pmassi*curlBi(:)*grkern
-		!      ELSE
-		!         PRINT*,' r/h > 2 '      
-		
-	     ENDIF
-	  ENDIF! j .ne. i   
+                !      ELSE
+                !         PRINT*,' r/h > 2 '      
+                
+             ENDIF
+          ENDIF! j .ne. i   
        ENDDO loop_over_neighbours
        
        iprev = i

@@ -44,7 +44,7 @@ SUBROUTINE set_uniform_spherical(idist,rmin,rmax)
  ALLOCATE ( partlist(npart), STAT=ierr )
  IF (ierr.NE.0) STOP 'Error allocating memory in uniform_spherical'
 
- ntemp = 0		! actual number of particles to use
+ ntemp = 0 ! actual number of particles to use
  DO i=1,npart
     rad = SQRT(DOT_PRODUCT(x(:,i),x(:,i)))
     IF (rad.LE.rmax .AND. rad.GE.rmin) THEN
