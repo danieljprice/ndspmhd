@@ -24,6 +24,7 @@ subroutine iterate_density
   use part
   use setup_params
   use density_summations
+  use linklist, only:numneigh
 !
 !--define local variables
 !
@@ -31,7 +32,7 @@ subroutine iterate_density
   integer :: i,j,itsdensitymax
   integer :: ncalc,ncalcprev,ncalctotal,isize
   integer, dimension(npart) :: redolist, redolistprev
-  real :: tol,hnew,func,dfdh,deltarho
+  real :: tol,hnew,htemp,func,dfdh,deltarho
   real :: rhoi,dhdrhoi,omegai
   real, dimension(npart) :: rho_old
   logical :: converged,redolink
@@ -120,24 +121,25 @@ subroutine iterate_density
               dfdh = omegai/dhdrhoi
               
               hnew = hh(i) - func/dfdh
-              if (hnew.le.0. .or. gradh(i).lt.0.5 .or. abs(func)/rho(i) .gt.0.5) then
-              !   print*,' rapid density change on particle ',i
-                 hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen            
+!
+!--overwrite if iterations are going wrong
+!
+              if (hnew.le.0. .or. gradh(i).le.0.) then
+                 print*,' warning: h or omega < 0 in iterations ',i,hnew,gradh(i)
+                 hnew = hfact*(pmass(i)/rho(i))**dndim   ! ie h proportional to 1/rho^dimen
               endif
-!              if (hnew/hh(i) .lt. 0.5 .or. hnew/hh(i).gt.2.0) then
-              !print*,'i = ',i,' rhoi = ',rhoi,rho_old(i),rho(i)
-              !print*,' h = ',hnew,hfact*(pmass(i)/rho(i))**dndim,hh(i)
-              !print*,' gradh = ',gradh(i),omegai,dhdrhoi
-!              endif
-              !read*
-
+              !if (numneigh(i).le.1) then
+              !   print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
+              !   print*,' ERROR: particle has no neighbours, increasing h'
+              !   hnew = max(hh(i),hnew) + psep
+              !endif
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !
 !             PRINT*,'hnew - hh(i) = ',abs(hnew-hh(i))/hh(i)
               
-              !!converged = abs((rho(i)-rhoi)/rho(i)) < tol .and. omegai > 1.e-5
-              converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 1.e-5
+              !!converged = abs((rho(i)-rhoi)/rho(i)) < tol .and. omegai > 0.
+              converged = abs((hnew-hh(i))/hh(i)) < tol .and. omegai > 0.
               if (.not.converged) then
                  ncalc = ncalc + 1
                  redolist(ncalc) = i
@@ -192,8 +194,8 @@ subroutine iterate_density
         enddo
      endif
      
-     call output(0.0,1)
-     !read*
+     !!call output(0.0,1)
+     !!read*
   enddo iterate
 
 !--NB: itsdensity is also used in step  

@@ -212,10 +212,10 @@ subroutine get_rates
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
        pri = pr(i)
+       pmassi = pmass(i)
        Prho2i = pr(i)*rho21i
        spsoundi = spsound(i)
        veli(:) = vel(:,i)
-       pmassi = pmass(i)
        alphai = alpha(1,i)
        alphaui = alpha(2,i)
        phii = phi(i)
@@ -627,9 +627,9 @@ contains
     rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     prj = pr(j)        
+    pmassj = pmass(j)
     Prho2j = pr(j)*rho21j
     spsoundj = spsound(j)
-    pmassj = pmass(j)
     
     phii_on_phij = phii/phi(j)
     phij_on_phii = phi(j)*phii1       

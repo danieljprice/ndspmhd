@@ -69,7 +69,7 @@ subroutine setup
  elseif (iequalmass) then
     call set_uniform_spherical(1,rmax,perturb=0.5)        ! 4 = random
  else
-    call set_uniform_spherical(2,rmax) 
+    call set_uniform_spherical(1,rmax) 
  endif
 !
 !--set particle properties

@@ -77,9 +77,9 @@ SUBROUTINE step
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
+       !!IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
     ENDIF
  ENDDO
 !
@@ -138,9 +138,9 @@ SUBROUTINE step
 !--calculate drho/dt, den/dt and du/dt using v and x at full timestep
 !  and using h, rho, P, B, at half timestep (ie. from previous calculation/call to conservative2primitive)
 !
- IF (ANY(ibound.GE.2)) CALL set_ghost_particles
- CALL set_linklist
- CALL ratesvel(x,vel,rho,pr,Bevol)
+! IF (ANY(ibound.GE.2)) CALL set_ghost_particles
+! CALL set_linklist
+! CALL ratesvel(x,vel,rho,pr,Bevol)
 
  DO i=1,npart
     IF (itype(i).EQ.1) THEN
@@ -152,9 +152,9 @@ SUBROUTINE step
     ELSE
        IF (icty.GE.1) rho(i) = rho(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = en(i) + hdt*dendt(i)
-       IF (ihvar.NE.0) hh(i) = hh(i) + hdt*dhdt(i)
+       !!IF (ihvar.NE.0) hh(i) = hh(i) + hdt*dhdt(i)
        IF (imhd.NE.0) Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
-       IF (iavlim.NE.0) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
+       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
     ENDIF
  ENDDO
 !
