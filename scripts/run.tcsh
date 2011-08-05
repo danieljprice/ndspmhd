@@ -19,8 +19,10 @@ else
    cd $dirname
    ln -s ../supersphplot supersphplot
    ln -s ../evsupersph evsupersph
-   ##echo 'writing sge script '$runname\.sge
-   ##../scripts/write_sgescript.bash $1 $runname > $runname\.sge
+   echo 'writing a Makefile'
+   ../scripts/write_makefile.tcsh $1
+   echo 'writing sge script '$runname\.sge
+   ../scripts/write_sgescript.bash $1 $runname > $runname\.sge
 ##   echo 'submitting job to grid'
 ##   qsub $runname\.sge   
 endif
