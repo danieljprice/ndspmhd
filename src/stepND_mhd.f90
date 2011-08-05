@@ -51,6 +51,7 @@ SUBROUTINE step
  USE timestep
  USE setup_params
  USE xsph
+ USE anticlumping
 !
 !--define local variables
 !
@@ -180,7 +181,7 @@ SUBROUTINE step
        IF (imhd.NE.0) THEN
           IF (nsubsteps_divB.LT.0) THEN
              Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
-             psi(i) = psiin(i) + hdt*dpsidt(i)
+             psi(i) = (psiin(i) + hdt*dpsidt(i))/(1.+eps)
           ENDIF
           Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        ENDIF
@@ -214,6 +215,9 @@ SUBROUTINE step
 
  ENDDO
 
+ WHERE (alpha(:,:).GT.0.5)
+    alpha(:,:) = 1.0
+ END WHERE
 !
 !--set ghost particles if ghost boundaries are used
 !         
@@ -284,7 +288,7 @@ SUBROUTINE step
        IF (imhd.NE.0) THEN
           IF (nsubsteps_divB.LT.0) THEN
              Bevol(:,i) = Bevolin(:,i) + hdt*gradpsi(:,i)
-             psi(i) = psiin(i) + hdt*dpsidt(i)
+             psi(i) = (psiin(i) + hdt*dpsidt(i))/(1.+eps)
           ENDIF          
           Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        ENDIF
@@ -400,7 +404,14 @@ SUBROUTINE step
 !--set new timestep from courant/forces condition
 !
  dt = min(C_force*dtforce,C_cour*dtcourant)
- 
+!
+!--this is just so that alpha looks right in the output
+!  (overwritten in predictor step, but shows where alpha is 1 in rates)
+!
+ WHERE (alpha(:,:).GT.0.5)
+    alpha(:,:) = 1.0
+ END WHERE
+  
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
  RETURN
