@@ -77,7 +77,7 @@ SUBROUTINE step
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
- IF (idivBzero.EQ.10 .AND. MOD(nsteps,10).EQ.0) THEN
+ IF (idivBzero.GT.10 .AND. MOD(nsteps,10).EQ.0) THEN
     CALL divBcorrect(npart,ntotal)
     Bconsin(:,1:ntotal) = Bcons(:,1:ntotal)
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'

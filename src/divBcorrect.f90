@@ -19,6 +19,8 @@ SUBROUTINE divBcorrect(npts,ntot)
  REAL :: phi,dpi,ecrap,momcrap
  REAL, DIMENSION(npts) :: source
  REAL, DIMENSION(ntot) :: divBonrho
+ REAL, DIMENSION(ndimV,ntot) :: curlBonrho
+ REAL, DIMENSION(ndimV,npts) :: sourcevec,curlA
  REAL, DIMENSION(ndim,npts) :: gradphi
  LOGICAL :: debugging
  SAVE icall
@@ -43,7 +45,9 @@ SUBROUTINE divBcorrect(npts,ntot)
  icall = icall + 1
 
  SELECT CASE(idivBzero)
- 
+!----------------------------------------------------
+! Standard projection method (scalar potential)
+!----------------------------------------------------
     CASE(10)
 !
 !--get neighbours and calculate density if required
@@ -105,9 +109,84 @@ SUBROUTINE divBcorrect(npts,ntot)
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)
        endif
-       
+
+!----------------------------------------------------
+! Current projection method (vector potential)
+!----------------------------------------------------       
     CASE(11)
-!       CALL direct_sum_current
+!
+!--get neighbours and calculate density if required
+!
+       if (debugging) write(iprint,*) ' linking ...'
+       call set_linklist
+       if (debugging) write(iprint,*) ' calculating density...'
+       if (icty.le.0) call iterate_density
+!
+!--calculate div B source term for poisson equation
+!       
+       if (debugging) write(iprint,*) ' calculating current before correction'
+       call get_curl(curlBonrho,ntot)
+       if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
+       do i=1,ntot
+          curlB(:,i) = rho(i)*curlBonrho(:,i)
+       enddo
+       
+       if (debugging) then
+          write(iprint,*) ' calculating div B before correction'
+          call get_divB(divBonrho,ntot)
+          if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
+          divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
+
+          call output(time,nsteps)   ! output curl B and Bfield before correction
+          call evwrite(real(icall),ecrap,momcrap)
+       endif
+!
+!--specify the source term for the Poisson equation
+!    
+       do i=1,npart
+          sourcevec(:,i) = pmass(i)*curlBonrho(:,i)*dpi
+       enddo
+!
+!--calculate the correction to the magnetic field
+! 
+       write(iprint,"(a)",ADVANCE='NO') ' div B correction by projection step...'
+       CALL direct_sum_poisson_vec(x(:,1:npart),sourcevec,curlA,npts)
+!
+!--correct the magnetic field
+!              
+       !!print*,'Bfield = ',Bfield(:,3436),curlA(:,3436)
+       Bfield(1:ndim,1:npart) = curlA(1:ndim,1:npart)
+       
+       write(iprint,*) 'done'
+
+       IF (imhd.GE.11) THEN
+          Bcons(1:ndim,1:npart) = Bfield(1:ndim,1:npart)
+       ELSE
+          DO i=1,npart
+             Bcons(1:ndim,i) = Bfield(1:ndim,i)/rho(i)
+	  ENDDO
+       ENDIF
+       if (ntot.gt.npart) then
+	  do i=npart+1,ntot
+	     call copy_particle(i,ireal(i))
+          enddo
+       endif
+       
+       if (debugging) then
+          write(iprint,*) ' calculating div/curl B after correction'
+          call get_divB(divBonrho,ntot)
+	  if (ntot.gt.npart) divBonrho(npart+1:ntot) = 0.
+          divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
+
+	  call get_curl(curlBonrho,ntot)
+          if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
+          do i=1,ntot
+             curlB(:,i) = rho(i)*curlBonrho(:,i)
+          enddo
+	  
+          call output(time,nsteps)   ! output div B and Bfield after correction
+          call evwrite(real(icall),ecrap,momcrap)
+       endif
        
  END SELECT
  

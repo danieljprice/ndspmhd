@@ -269,6 +269,7 @@ PROGRAM SUPERSPMHD_ND
 ! idebug = 'density'
 ! idebug = 'neighb'
 ! idebug = 'link'
+! idebug = 'divB'
   
 ! itemp = 40000		! debug one particular particle
 
