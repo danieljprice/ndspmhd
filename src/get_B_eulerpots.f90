@@ -1,5 +1,5 @@
 !!------------------------------------------------------------------------
-!! Computes B = \nabla \alpha_k x \nabla \beta^k
+!! Computes B = \nabla \alpha_k x \nabla \x0^k
 !! (required for the Generalised Euler Potentials)
 !! for all particles, doing each pairwise interaction once
 !!------------------------------------------------------------------------
@@ -10,11 +10,11 @@ contains
 
 !
 !--iderivtype:
-!  1: compute B = \nabla\alpha x \nabla\beta
+!  1: compute B = \nabla\alpha x \nabla\x0
 !  2: compute B = curl (alpha)
-!  3: compute B.grad beta = Bevol (i.e, B/rho.grad X^0 = B/rho_0)
+!  3: compute B.grad x0 = Bevol (i.e, B/rho.grad X^0 = B/rho_0)
 !
-subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfield,remap)
+subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,remap)
  use dimen_mhd,    only:ndim,ndimV,idim
  use debug,        only:trace
  use loguns,       only:iprint
@@ -38,7 +38,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real, dimension(ndim,idim), intent(in) :: x
  real, dimension(idim), intent(in) :: pmass,rho,hh
  real, dimension(ndimV,idim), intent(inout) :: alphapot
- real, dimension(ndimV,idim), intent(inout)  :: betapot
+ real, dimension(ndimV,idim), intent(inout)  :: x0
  real, dimension(ndimV,idim), intent(out) :: Bfield
  logical, intent(in) :: remap
  real :: weight
@@ -52,15 +52,15 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
  real :: hfacwabi,hfacwabj
  real :: pmassi,detJ1,detJ2,err,errtot,errmax,detJmax
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr,dalpha,dbeta,Bk,alphapoti,betapoti
- real, dimension(ndimV,ndimV) :: gradalphai,gradbetai
+ real, dimension(ndimV) :: dr,dalpha,dx0,Bk,alphapoti,x0i
+ real, dimension(ndimV,ndimV) :: gradalphai,gradx0i
  real, dimension(ndxdx) :: dxdxi
  real, dimension(6) :: rmatrix
  real, dimension(3,3) :: dxdx0i
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
  real :: rho21i,rho21gradhi,denom,ddenom
  real, dimension(ntotal) :: h1
- real, dimension(ndimV,ndimV,ntotal) :: gradalpha, gradbeta
+ real, dimension(ndimV,ndimV,ntotal) :: gradalpha, gradx0
 !
 !--allow for tracing flow
 !      
@@ -70,7 +70,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
 !
  listneigh = 0
  gradalpha = 0.
- gradbeta = 0.
+ gradx0 = 0.
  dr(:) = 0.
  weight = 1./hfact**ndim
  do i=1,ntotal
@@ -103,11 +103,11 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
        alphapoti(:) = alphapot(:,i)
-       betapoti(:) = betapot(:,i)
+       x0i(:) = x0(:,i)
        rho21i = 1./rho(i)**2
        rho21gradhi = rho21i*gradh(i)
        gradalphai(:,:) = 0.
-       gradbetai(:,:) = 0.
+       gradx0i(:,:) = 0.
        dxdxi(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
@@ -143,7 +143,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
                 !  (using hj)
                 call interpolate_kernel_curl(q2j,grkernj,grgrkernj)
 !
-!--calculate grad alpha_k and grad beta^k
+!--calculate grad alpha_k and grad x0^k
 !
                 select case(iderivtype)
                 case default  ! default mass weighted grad
@@ -153,14 +153,14 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
                    grkernj = grkernj*hfacwabj*hj1
 
                    dalpha(1:ndimV) = alphapot(1:ndimV,j) - alphapoti(1:ndimV)
-                   dbeta(1:ndimV) = betapot(1:ndimV,j) - betapoti(1:ndimV)
+                   dx0(1:ndimV) = x0(1:ndimV,j) - x0i(1:ndimV)
 !                   call cross_product3D(dB,dr,curlBterm)
 
                    do k = 1,ndimV
                       gradalphai(:,k) = gradalphai(:,k) + pmass(j)*dalpha(k)*dr(:)*grkerni
                       gradalpha(:,k,j) = gradalpha(:,k,j) + pmassi*dalpha(k)*dr(:)*grkernj
-                      gradbetai(:,k) = gradbetai(:,k) + pmass(j)*dbeta(k)*dr(:)*grkerni
-                      gradbeta(:,k,j) = gradbeta(:,k,j) + pmassi*dbeta(k)*dr(:)*grkernj
+                      gradx0i(:,k) = gradx0i(:,k) + pmass(j)*dx0(k)*dr(:)*grkerni
+                      gradx0(:,k,j) = gradx0(:,k,j) + pmassi*dx0(k)*dr(:)*grkernj
                    enddo
 
                    do k=1,ndxdx
@@ -175,7 +175,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
        enddo loop_over_neighbours
        
        gradalpha(:,:,i) = gradalpha(:,:,i) + gradalphai(:,:)
-       gradbeta(:,:,i) = gradbeta(:,:,i) + gradbetai(:,:)
+       gradx0(:,:,i) = gradx0(:,:,i) + gradx0i(:,:)
        dxdx(:,i) = dxdx(:,i) + dxdxi(:)
        iprev = i
        if (iprev.ne.-1) i = ll(i) ! possibly should be only if (iprev.ne.-1)
@@ -199,26 +199,26 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
              ddenom = 1./denom
              do k=1,ndimV
                 call exactlinear(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
-                call exactlinear(gradbeta(:,k,i),gradbeta(:,k,i),rmatrix,ddenom)
+                call exactlinear(gradx0(:,k,i),gradx0(:,k,i),rmatrix,ddenom)
              enddo
              !print*,i,' exact derivs, gradalpha^z = ',gradalpha(:,3,i)
           else
              print*,'WARNING: denominator collapsed in exact linear deriv = ',denom
              gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
-             gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
+             gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
           endif
           !read*
        else
           gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
-          gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
+          gradx0(:,:,i) = gradx0(:,:,i)*gradh(i)/rho(i)
        endif
 
        if (iderivtype.eq.3 .or. iderivtype.eq.4) then
           !--remapping of B/rho
           !  (alphapot is B/rho_0, send out B/rho new as Bfield)
           alphapoti(:) = alphapot(:,i) ! copy so that Bfield can be same as alphapot (input)
-          call matrixinvert3D(gradbeta(:,:,i),dxdx0i,ierr)
-          !print*,'matrix inverse = ',matmul(gradbeta(:,:,i),dxdx0i)
+          call matrixinvert3D(gradx0(:,:,i),dxdx0i,ierr)
+          !print*,'matrix inverse = ',matmul(gradx0(:,:,i),dxdx0i)
           if (ierr.ne.0) stop 'could not invert matrix in remapping'
 
           detJ1 = det(dxdx0i)
@@ -250,7 +250,7 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
 !          enddo
           if (remap) then
              alphapot(:,i) = Bfield(:,i)
-             betapot(1:ndim,i) = x(1:ndim,i)
+             x0(1:ndim,i) = x(1:ndim,i)
              rho0(i) = rho(i)
           endif
        elseif (iderivtype.eq.2) then
@@ -259,43 +259,43 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
           !print*,i,'Bfield from curl A= ',Bk(:)
        else
           Bfield(:,i) = 0.
-          !--compute B = grad alpha x grad beta
+          !--compute B = grad alpha x grad x0
           do k=1,ndimV
-             call cross_product3D(gradalpha(:,k,i),gradbeta(:,k,i),Bk)
+             call cross_product3D(gradalpha(:,k,i),gradx0(:,k,i),Bk)
              !print*,i,' B = B + ',Bk(:)
              Bfield(:,i) = Bfield(:,i) + Bk(:)
           enddo
-          !print*,i,' Bfield from grad alpha x grad beta = ',Bfield(:,i)
+          !print*,i,' Bfield from grad alpha x grad x0 = ',Bfield(:,i)
           !read*
           !--remap to a new set of potentials
           if (remap) then
              !print*,i,' old vector potential = ',alphapot(:,i)
              alphapoti(:) = 0.
              do k=1,ndimV
-                alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradbeta(:,k,i)
+                alphapoti(:) = alphapoti(:) + alphapot(k,i)*gradx0(:,k,i)
              enddo
              !print*,i,' new vector potential = ',alphapoti(:)
              alphapot(:,i) = alphapoti(:)
-             betapot(1:ndim,i) = x(1:ndim,i)
+             x0(1:ndim,i) = x(1:ndim,i)
           endif
        endif
     end select
  enddo
  if (iderivtype.eq.3 .or. iderivtype.eq.4) then
     print*,' remapping errors, max = ',errmax,' mean = ',errtot/real(npart)
-    print*,' worst on particle ',ierrmax,'   J = ',det(gradbeta(:,:,ierrmax)),&
+    print*,' worst on particle ',ierrmax,'   J = ',det(gradx0(:,:,ierrmax)),&
            'rho/rho0 = ',rho(ierrmax)/rho0(ierrmax)
-    call matrixinvert3D(gradbeta(:,:,ierrmax),dxdx0i,ierr)
+    call matrixinvert3D(gradx0(:,:,ierrmax),dxdx0i,ierr)
     print*,' inverse on part   ',ierrmax,' 1/J = ',det(dxdx0i),&
            'rho0/rho = ',rho0(ierrmax)/rho(ierrmax)
 
-    print*,' max J on particle ',iJmax,' J = ',det(gradbeta(:,:,iJmax)),&
+    print*,' max J on particle ',iJmax,' J = ',det(gradx0(:,:,iJmax)),&
            'rho/rho0 = ',rho(iJmax)/rho0(iJmax)
  endif
  
  if (remap .and. iderivtype.ne.2) then
     !--remap x0 for all particles
-    betapot(1:ndim,:) = x(1:ndim,:)
+    x0(1:ndim,:) = x(1:ndim,:)
     !--copy remapped Bevol onto boundary/ghost particles 
     if (any(ibound.eq.1)) then
        do i=1,npart
