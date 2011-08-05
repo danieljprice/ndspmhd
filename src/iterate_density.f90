@@ -111,6 +111,7 @@ subroutine iterate_density
               endif
               
               gradh(i) = gradh(i)/rho(i)    ! now that rho is known
+	      gradhaniso(i) = gradhaniso(i)/rho(i)
               if (abs(1.-gradh(i)).lt.1.e-5) then
                  print*,'warning: 1-gradh < 1.e-5 ',1.-gradh(i)
                  if (abs(1.-gradh(i)).eq.0.) call quit
@@ -169,6 +170,7 @@ subroutine iterate_density
                  rho(i) = rho(j)
                  hh(i) = hh(j)
                  gradh(i) = gradh(j)
+		 gradhaniso(i) = gradhaniso(j)
               else
                  rho(i) = rho_old(i)
                  !!write(iprint,*) 'Warning: ireal not set for fixed parts'
@@ -181,7 +183,8 @@ subroutine iterate_density
            j = ireal(i)
            rho(i) = rho(j)
            hh(i) = hh(j)
-           gradh(i) = gradh(j)              
+           gradh(i) = gradh(j)
+	   gradhaniso(i) = gradhaniso(j)          
         enddo
      endif
      

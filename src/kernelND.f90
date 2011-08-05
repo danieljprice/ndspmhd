@@ -475,8 +475,8 @@ SUBROUTINE setkern
 !
 !--this is Joe's standard anticlumping term
 !
-    !!j = NINT((1./hfact)**2/dq2table)
-    j = NINT((1./1.5)**2/dq2table)
+    j = NINT((1./hfact)**2/dq2table)
+    !!j = NINT((1./1.5)**2/dq2table)
     wdenom = wij(j)
 
     SELECT CASE(neps) ! integral of W^{n+1} dV
@@ -517,7 +517,7 @@ SUBROUTINE setkern
     else
        B = -(A+1.)/beta**2
     endif
-    cnormkaniso = 0.5/(1. + 0.25*(A + B*beta**4))
+    cnormkaniso = cnormk !!!0.5/(1. + 0.25*(A + B*beta**4))
     DO i=0,ikern
        q2 = i*dq2table
        q = SQRT(q2)
