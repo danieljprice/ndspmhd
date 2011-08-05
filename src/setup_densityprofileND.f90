@@ -26,7 +26,7 @@ subroutine setup
  real :: rr,rmass,rsoft
  real, dimension(ndim) :: xpos
  real :: dxij,dxmean,q,vmax,vesc,vr,rr2
- logical, parameter :: isetvelocities = .true.
+ logical, parameter :: isetvelocities = .false.
 !
 !--allow for tracing flow
 !
@@ -58,8 +58,8 @@ subroutine setup
 !--now assign particle properties
 ! 
 !--initialise random number generator
- iseed = -26588
-! iseed = iseedMC
+! iseed = -26588
+ iseed = iseedMC
  write(iprint,*) ' iseed = ',iseed
  idist = 1 ! choice of distribution
  select case(idist)
@@ -70,6 +70,8 @@ subroutine setup
  end select
  rsoft = 1.0
  write(iprint,*) ' Total mass = ',totmass,' rsoft = ',rsoft
+ call getr_from_m(idist,0.99,rsoft,rr)
+ write(iprint,*) ' Cutoff radius = ',rr
  
  do i=1,ntotal
 !
@@ -136,18 +138,20 @@ subroutine setup
 !
 !--find mean particle separation
 ! 
- dxmean = 0.
- do i=1,ntotal
-    do j=i+1,ntotal
-       dxij = sqrt(dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j)))
-       dxmean = dxmean + dxij
-    enddo
- enddo
- dxmean = dxmean/real((ntotal**2 - ntotal)/2)
- write(iprint,*) 'mean particle spacing = ',dxmean
- write(iprint,*) 'suggested softening h = ',dxmean/40.,' to ',dxmean/35.
+! dxmean = 0.
+! do i=1,ntotal
+!    do j=i+1,ntotal
+!       dxij = sqrt(dot_product(x(:,i)-x(:,j),x(:,i)-x(:,j)))
+!       dxmean = dxmean + dxij
+!    enddo
+! enddo
+! dxmean = dxmean/real((ntotal**2 - ntotal)/2)
+! write(iprint,*) 'mean particle spacing = ',dxmean
+! write(iprint,*) 'suggested softening h = ',dxmean/40.,' to ',dxmean/35.
 
- call reset_centre_of_mass(x,pmass)
+ if (isetvelocities) then
+    call reset_centre_of_mass(x,pmass)
+ endif
 !
 !--allow for tracing flow
 !
