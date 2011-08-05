@@ -6,6 +6,7 @@ module plummer_setup
  implicit none
  real :: mass1,mass2,rsoft,rsoft2,xdist2
  integer :: npart1,npart2
+ integer, parameter :: idist = 2 
  
 end module plummer_setup
 
@@ -30,7 +31,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,iseed,idist,j
+ integer :: i,iseed,j
  real :: massp,totmass,ran2,massratio
  real :: rr,rmass
  real, dimension(ndim) :: xpos
@@ -50,7 +51,7 @@ subroutine setup
 !
 !--set up the uniform density grid
 !
- npart = 1000
+ npart = 100000
 ! npart = int((1./psep)**3)
 ! print*,'enter npart'
 ! read*,npart
@@ -70,7 +71,7 @@ subroutine setup
 ! iseed = -26588
  iseed = iseedMC
  write(iprint,*) ' iseed = ',iseed
- idist = 1 ! choice of distribution
+ !!idist = 2 ! choice of distribution
  select case(idist)
  case(1)
     write(iprint,*) ' Plummer profile'
@@ -85,7 +86,7 @@ subroutine setup
 !
 !--option for a satellite halo with different parameters
 !
- massratio = 0.5  ! 1.0 for no second component, 0.0 for satellite only
+ massratio = 1.0  ! 1.0 for no second component, 0.0 for satellite only
  npart1 = int(massratio*npart)
  npart2 = npart - npart1
  mass1 = massratio*totmass
