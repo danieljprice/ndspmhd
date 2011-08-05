@@ -68,8 +68,7 @@ subroutine derivs
  call get_rates
  
  if (imhd.eq.11 .and. iresist.eq.2 .and. etamhd.gt.0.) then
-    !print*,' in derivs, dt = ',dt,min(C_force*dtforce,C_cour*dtcourant)
-    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,min(C_force*dtforce,C_cour*dtcourant))
+    call Bdiffusion(npart,x,pmass,rho,hh,Bevol,dBevoldt,dt)
  endif
 
  if (itiming) then
