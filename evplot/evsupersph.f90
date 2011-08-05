@@ -4,6 +4,7 @@
 !  uses PGPLOT subroutines
 !
 program plotmeagraph
+  use f90_unix
   use prompting
   implicit none
   integer :: ncol
@@ -49,27 +50,22 @@ program plotmeagraph
   !
   iprev = 1
   i = 1
-  do while (rootname(iprev)(1:1).ne.' ' .and. i.le.maxfile)
-     call getarg(i,rootname(i))
-     !print*,i,rootname(i)
-     iprev = i
-     i = i + 1
-     if (i.gt.maxfile .and. rootname(iprev)(1:1).ne.' ') then
-        print*,'WARNING: number of files >= array size: setting nfiles = ',maxfile
-        !print*,'press return to continue'
-        !read*
-     endif
-  enddo
-  if (i.gt.maxfile .and. rootname(maxfile)(1:1).ne.' ') then
+  nfiles = iargc()
+  if (nfiles.gt.maxfile) then
+     print "(a,i4)",'WARNING: number of files >= array size: setting nfiles = ',maxfile
      nfiles = maxfile
-  else
-     nfiles = iprev - 1
   endif
-  print*,'number of files = ',nfiles
+  do i=1,nfiles
+     call getarg(i,rootname(i))
+  enddo
+  print*,' number of files = ',nfiles
 
-  if (rootname(1)(1:1).eq.' ') then
+  if (nfiles.lt.1 .or. rootname(1)(1:1).eq.' ') then
      nfiles = 1
-     call prompt(' Enter filename : ',rootname(1))
+     call prompt(' Enter number of files to read : ',nfiles,1,maxfile)
+     do i=1,nfiles
+        call prompt(' Enter filename : ',rootname(i))
+     enddo
   endif
 !
 !--read data from all files
