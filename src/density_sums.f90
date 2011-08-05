@@ -21,7 +21,6 @@ contains
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    use matrixcorr,   only:dxdx,idxdx,jdxdx,ndxdx
     use part,         only:Bfield,ntotal,uu,psi
     use setup_params, only:hfact
     use rates,        only:dBevoldt
@@ -86,7 +85,6 @@ contains
        gradsoft(i) = 0.
        gradgradh(i) = 0.
        if (imhd.eq.5) dBevoldt(:,i) = 0.
-       dxdx(:,i) = 0.
        if (imhd.eq.0) then
           psi(i) = 0.
           unity(i) = 0.
@@ -287,11 +285,6 @@ contains
                       endif                   
                    endif
                 endif
-                
-                if (i.ne.j) then
-                   dxdx(:,i) = dxdx(:,i) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkerni
-                   dxdx(:,j) = dxdx(:,j) + 2.*pmass(i)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkernj
-                endif
 !        ELSE
 !           PRINT*,' r/h > 2 '      
         
@@ -356,7 +349,6 @@ contains
     use kernels,      only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:iamincell,numneigh
     use options,      only:igravity,imhd,ikernel,ikernelalt,iprterm
-    use matrixcorr,   only:dxdx,idxdx,jdxdx,ndxdx
     use part,         only:Bfield,uu,psi
     use rates,        only:dBevoldt
     use setup_params, only:hfact
@@ -413,7 +405,6 @@ contains
        gradhn(i) = 0.
        gradsoft(i) = 0.
        gradgradh(i) = 0.
-       dxdx(:,i) = 0.
        numneigh(i) = 0
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        if (imhd.eq.0 .and. iprterm.eq.10) psi(i) = 0.
@@ -529,10 +520,6 @@ contains
              if (imhd.eq.0 .and. iprterm.eq.10) then
                 psi(i) = psi(i) + pmassj*wabi*uu(j)
                 unityi = unityi + wconst*wabi/hfacwabi
-             endif
-
-             if (i.ne.j) then
-                dxdx(:,i) = dxdx(:,i) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dx(jdxdx(1:ndxdx))/rij*grkerni
              endif
           endif
           
