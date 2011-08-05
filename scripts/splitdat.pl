@@ -21,7 +21,7 @@ my ($filename,$nstepsmax) = @ARGV;
 open(FILE,"< $filename") || die("can't open $filename") ;
 
    for ($nstep = 1;$nstep<=$nstepsmax;$nstep++) {
-       my $line = <FILE>;
+       my $line = <FILE> || die("end of file reached in $filename") ;
        my( undef, undef, $nrow, undef, undef, undef, undef, $ncol ) = split ' ',$line;
        print "step $nstep rows = $nrow columns = $ncol \n";
    

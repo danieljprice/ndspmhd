@@ -59,7 +59,7 @@ for ($nstep = 1;$nstep<=$nstepsmax;$nstep++) {
          
 	print "$filenames[$nfile] :";
         ## read header line from this timestep
-        my $line = readline $infile[$nfile];
+        my $line = readline $infile[$nfile] || die("end of file in $filenames[$nfile]") ;
 	##print "header line = $line \n";
 
 	## determine number of rows, columns in timestep
