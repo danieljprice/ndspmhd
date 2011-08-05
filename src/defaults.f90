@@ -23,6 +23,8 @@ subroutine set_default_options
 !--set default options
 !         
    psep = 0.01
+   C_cour = 0.8
+   C_force = 0.25
    tmax = 1.0
    tout = 0.01
    nmax = 1000000
