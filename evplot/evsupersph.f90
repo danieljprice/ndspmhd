@@ -83,10 +83,14 @@ program plotmeagraph
   open(unit=50,file='legend',status='old',ERR=22)
   print*,'reading labels from legend file...'
   do ifile=1,nfiles  
-     read(50,"(a)",ERR=21) legendtext(ifile)
+     read(50,"(a)",ERR=21,END=20) legendtext(ifile)
   enddo
   close(unit=50)
   goto 23
+20 continue
+   print*,'error: end of file in legend file'
+   close(unit=50)
+   goto 23
 21 continue
    print*,'error reading from legend file'
    close(unit=50)
@@ -245,15 +249,18 @@ program plotmeagraph
         call PGBEGIN(0,'?',1,2)
      endif
   else
-     nacross = nplots/2
-     ndown = nplots/nacross
-     !ndown = nplots/2
-     !nacross = nplots/ndown
-     !call PGBEGIN(0,'?',nacross,ndown)
-     call PGBEGIN(0,'?',1,1)
-     !if (nacross.eq.2 .and. ndown.eq.1) then
-     !   call pgpap(11.7,0.5/sqrt(2.))
-     !endif
+     !nacross = nplots/2
+     !ndown = nplots/nacross
+     ndown = nplots/2
+     nacross = nplots/ndown
+     if (ndown.eq.1 .and. nacross.gt.1) then
+        call PGBEGIN(0,'?',nacross,ndown)
+     else
+        call PGBEGIN(0,'?',1,1) !uses pgtile
+     endif
+     if (nacross.eq.2 .and. ndown.eq.1) then
+        call pgpap(11.7,0.5/sqrt(2.))
+     endif
   endif
   if (nplots.gt.2) call PGSCH(2.0)
 !
@@ -278,7 +285,7 @@ program plotmeagraph
 	   call pgslw(3)
 	   call danpgtile(i,nacross,ndown,  &
 	       lim(iplotx(i),1),lim(iplotx(i),2),lim(iploty(i),1),lim(iploty(i),2), &
-               label(iplotx(i)),label(iploty(i)),title,0)
+               label(iplotx(i)),label(iploty(i)),title,0,0)
         else
            !
            !--for one plot just use standard PGENV routine
@@ -287,13 +294,13 @@ program plotmeagraph
            if (nplots.gt.1) call pgsch(1.5) ! increase character height
            call pgpage
            call pgsvp(0.2,0.99,0.2,0.99)
-           call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
            call pgswin(lim(iplotx(i),1),lim(iplotx(i),2), &
                 lim(iploty(i),1),lim(iploty(i),2))
+           call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
            !call PGENV(lim(iplotx(i),1),lim(iplotx(i),2), &
            !     lim(iploty(i),1),lim(iploty(i),2),0,1)
-            call pgmtxt('l',3.0,0.5,0.5,label(iploty(i)))
-            !!call pglabel(label(iplotx(i)),' ',' ')
+            call pgmtxt('l',3.5,0.5,0.5,label(iploty(i)))
+            call pglabel(label(iplotx(i)),' ',' ')
             !!call pglabel(label(iplotx(i)),label(iploty(i)),title)
         endif
         !
@@ -473,15 +480,15 @@ subroutine legend(icall,text)
 !--set horizontal and vertical position and spacing
 !  in units of the character height
 !
-  vspace = 1.5  
-  hpos = 10.0
-  vpos = 8.0 + (icall-1)*vspace  ! distance from top
+  vspace = 1.5  ! (in units of character heights)
+  hpos = 0.4   ! distance from edge, in fraction of viewport
+  vpos = 8.0 + (icall-1)*vspace  ! distance from top, in units of char height
 
   call pgqwin(xmin,xmax,ymin,ymax) ! query xmax, ymax
   call pgqcs(4,xch,ych) ! query character height in x and y units 
 
   yline = ymax - ((vpos - 0.5)*ych)
-  xline(1) = xmin + hpos*xch
+  xline(1) = xmin + hpos*(xmax-xmin)
   xline(2) = xline(1) + 3.*xch
 
   call pgline(2,xline,yline)            ! draw line segment
