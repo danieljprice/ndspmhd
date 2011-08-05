@@ -7,13 +7,13 @@ contains
 !!  generic setup for a uniform density distribution of particles         !!
 !!   in cartesian geometry for 1, 2 and 3 dimensions                      !!
 !!                                                                        !!
-!!  in 3d, lattice can be close packed, body centred or cubic             !!
-!!     2d, lattice can be close packed or cubic                           !!
-!!     1d, all setups are the same                                        !!
+!!  in 3D, lattice can be close packed, body centred or cubic or random   !!
+!!     2D, lattice can be close packed or cubic or random                 !!
+!!     1D, uniform or random                                              !!
 !!                                                                        !!
 !!------------------------------------------------------------------------!!
 
-subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
+subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset,perturb)
 !
 !--include relevant global variables
 !
@@ -32,7 +32,8 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
  integer, intent(in) :: idistin
  real, dimension(ndim), intent(inout) :: xmin, xmax
  real, intent(in) :: psep
- logical, intent(in) :: offset
+ real, intent(in), optional :: perturb
+ logical, intent(in), optional :: offset
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed
  integer :: idist
@@ -59,7 +60,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--hexagonal close packed arrangement 
 !  (in 3d, 2d this is the same as body centred)
 !
- case(2,12)
+ case(2)
  
     if (ndim.eq.3) stop 'close packed not implemented in 3d'
 !
@@ -114,7 +115,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--body centred lattice
 !
- case(3,13)
+ case(3)
     if (ndim.eq.3) stop 'body centred not implemented in 3d'
 !
 !--determine number of particles
@@ -156,7 +157,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--random particle distribution
 !  (uses random number generator ran1 in module random)
 ! 
- case(4,14)
+ case(4)
     ntot = int(product((xmax(:)-xmin(:))/psep))
     npart = ntot
     write(iprint,*) 'random particle distribution, npart = ',ntot 
@@ -178,7 +179,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !--random particle distribution
 !  (uses random number generator ran1 in module random)
 ! 
- case(5,15)
+ case(5)
      ntot = int(product((xmax(:)-xmin(:))/psep))
      npart = ntot
      write(iprint,*) 'quasi-random (sobol) particle distribution, npart = ',ntot 
@@ -200,10 +201,12 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !  cubic lattice
 !----------------------
 
-    if (offset) then
-       write(iprint,*) 'offset lattice'
-       xmin(:) = xmin(:) + 0.5*psep
-       xmax(:) = xmax(:) + 0.5*psep
+    if (present(offset)) then
+       if (offset) then
+          write(iprint,*) 'offset lattice'
+          xmin(:) = xmin(:) + 0.5*psep
+          xmax(:) = xmax(:) + 0.5*psep
+       endif
     endif
 !
 !--determine number of particles
@@ -249,13 +252,15 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax,offset)
 !
 !--if idist > 10 apply a small random perturbation to the particle positions
 ! 
- if (idist.ge.10) then
+ if (present(perturb)) then
+    write(iprint,"(a,f6.1,a)") &
+       ' random perturbation of ',perturb*100,'% of particle spacing'
 !
 !--initialise random number generator
 !    
     iseed = -268
     xran(1) = ran1(iseed)
-    ampl = 0.5*psep   ! perturbation amplitude
+    ampl = perturb*psep   ! perturbation amplitude
     
     do i=npartin+1,npart  ! apply to new particles only
        do j=1,ndim
@@ -283,7 +288,7 @@ end subroutine
 !     a uniform cube of particles and trims it to be spherical.
 !----------------------------------------------------------------
 
-subroutine set_uniform_spherical(idist,rmax,rmin)
+subroutine set_uniform_spherical(idist,rmax,rmin,perturb)
 !
 !--include relevant global variables
 !
@@ -299,6 +304,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin)
  integer, intent(in) :: idist
  real, intent(in) :: rmax
  real, intent(in), optional :: rmin
+ real, intent(in), optional :: perturb
 
  integer :: i,ierr,ntemp 
  integer, dimension(:), allocatable :: partlist
@@ -317,7 +323,7 @@ subroutine set_uniform_spherical(idist,rmax,rmin)
 !
  xmin(:) = -rmax
  xmax(:) = rmax
- call set_uniform_cartesian(idist,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(idist,psep,xmin,xmax)
 !
 !--construct list of particles with r < rmax
 !  
@@ -351,5 +357,35 @@ subroutine set_uniform_spherical(idist,rmax,rmin)
 
  return
 end subroutine
+
+subroutine reset_centre_of_mass(x,pmass)
+ use dimen_mhd
+ use debug
+ use loguns
+ implicit none
+ real, dimension(:,:), intent(inout) :: x
+ real, dimension(:), intent(in) :: pmass
+ integer :: i,npart
+ real, dimension(ndim) :: xcentre
+ 
+ if (trace) write(iprint,*) 'entering subroutine reset_centre_of_mass'
+ 
+ npart = size(pmass)
+ 
+ xcentre = 0.
+ do i=1,npart
+    xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
+ enddo
+ 
+ xcentre = xcentre/SUM(pmass)
+ 
+ write(iprint,*) 'centre of mass is at ',xcentre(:)
+ write(iprint,*) 'resetting to zero'
+ 
+ do i=1,npart
+    x(:,i) = x(:,i) - xcentre(:)
+ enddo
+ 
+end subroutine reset_centre_of_mass
 
 end module uniform_distributions

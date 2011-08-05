@@ -247,7 +247,6 @@ subroutine read_dump(dumpfile,tfile)
 !--convert to appropriate coordinate system
 !
  igeom = 2
- tfile = 0.
  if (igeomfile.ne.igeom) then
     write(iprint,*) 'CONVERTING file from coord system ',igeomfile,' to ',igeom
     do i=1,npart
