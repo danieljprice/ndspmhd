@@ -77,7 +77,7 @@ SUBROUTINE step
        vel(:,i) = velin(:,i) + hdt*force(:,i)
        IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       !!IF (ihvar.NE.0) hh(i) = hhin(i) + hdt*dhdt(i)
+       IF (ihvar.EQ.2) hh(i) = hhin(i) + hdt*dhdt(i)
        IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)           
     ENDIF
@@ -162,7 +162,7 @@ SUBROUTINE step
     ELSE
        IF (icty.GE.1) rho(i) = rho(i) + hdt*drhodt(i)
        IF (iener.NE.0) en(i) = en(i) + hdt*dendt(i)
-       !!IF (ihvar.NE.0) hh(i) = hh(i) + hdt*dhdt(i)
+       IF (ihvar.EQ.2) hh(i) = hh(i) + hdt*dhdt(i)
        IF (imhd.NE.0) Bevol(:,i) = Bevol(:,i) + hdt*dBevoldt(:,i)
        IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)
     ENDIF
