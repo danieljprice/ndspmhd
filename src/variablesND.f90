@@ -132,7 +132,7 @@ MODULE options
  INTEGER :: imhd,imagforce,idivBzero      !  (mhd options)
  INTEGER :: iexternal_force,ixsph,ianticlump
  INTEGER :: igravity,ikernel
- INTEGER :: igeom,maxdensits
+ INTEGER :: igeom,maxdensits,iunity
  INTEGER, DIMENSION(ndim) :: ibound
  INTEGER, DIMENSION(3) :: iavlim
  REAL :: damp,psidecayfact
@@ -224,6 +224,17 @@ MODULE timestep
 !
  REAL :: dtforce, dtcourant, C_force, C_cour
 END MODULE timestep
+
+!-------------------------------------------------------------------
+!   unity function and its derivative
+!-------------------------------------------------------------------
+
+MODULE unityfunc
+ IMPLICIT NONE
+ REAL, DIMENSION(:), ALLOCATABLE :: unity
+ REAL, DIMENSION(:,:), ALLOCATABLE :: gradunity
+END MODULE unityfunc
+
 
 !-------------------------------------------------------------------
 !   version number

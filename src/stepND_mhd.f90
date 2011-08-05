@@ -82,7 +82,7 @@ SUBROUTINE step
     Bconsin(:,1:ntotal) = Bcons(:,1:ntotal)
     IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
  ENDIF
-  
+   
  DO i=1,npart
     IF (itype(i).EQ.1) THEN	! fixed particles
        vel(:,i) = velin(:,i)
@@ -141,6 +141,10 @@ SUBROUTINE step
 !--calculate density by direct summation
 !
  IF (icty.LE.0) CALL iterate_density
+!
+!--calculate the constant kernel corrections, if used
+!
+!! IF (iunity.NE.0) CALL calc_unity
 !
 !--calculate primitive variables from conservative variables
 !   
