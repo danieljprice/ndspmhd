@@ -1,11 +1,11 @@
-#!/usr/bin/bash
+#!/bin/bash
 #
-# @(#) writes script for job submission to sun grid engine -- daniel price 27/10/03
+# @(#) writes script for job submission to sun grid engine -- daniel price 17/2/03
 #
-if [ $# != 1 ]; then
-   echo "Usage: $0 scriptname";
+if [ $# != 2 ]; then
+   echo "Usage: $0 nD scriptname";
 else
-   filename=$1
+   filename=$2
 
 #--------------------- print the script -------------------------------
 
@@ -19,7 +19,7 @@ echo '#$ -e '$PWD'/'$filename'.errors'		 ## errors from job in filename
 echo '#$ -l s_vmem=30M'				 ## max memory requirements
 echo '#$ -l h_vmem=30M'				 ##  "    "        "
 echo '#$ -N' `/home/dprice/perl/randomword.pl`	 ## name job
-echo $PWD'/1DSPMHD '$filename			 ## run the job
+echo $PWD'/'$1'SPMHD '$filename			 ## run the job
 fi
 
 
