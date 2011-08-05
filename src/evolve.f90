@@ -29,7 +29,7 @@ SUBROUTINE evolve
 !   as can be non-zero from reading a dumpfile)
 !
  dt = 0.
- dt0 = max(C_cour*dtcourant,C_force*dtforce)
+ dt0 = min(C_cour*dtcourant,C_force*dtforce)
  tprint = 0.
  t_start = 0.
  t_end = 0.
