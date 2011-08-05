@@ -109,6 +109,10 @@ SUBROUTINE get_rates
  REAL :: gradhi,gradhj
  INTEGER :: ierr
 !
+!  (gravity)
+! 
+ REAL :: poten
+!
 !--allow for tracing flow
 !      
  IF (trace) WRITE(iprint,*) ' Entering subroutine get_rates'
@@ -674,12 +678,15 @@ SUBROUTINE get_rates
 !
 !--calculate gravitational force on all the particles
 !
-! IF (igravity.NE.0) CALL direct_sum_poisson(x,pmass,poten,fgrav,ntotal)
+ IF (igravity.NE.0) CALL direct_sum_poisson( &
+                     x(:,1:npart),pmass(1:npart),poten,fgrav(:,1:npart),npart)
 
  fhmax = 0.0
  dtforce = 1.e6
  
  DO i=1,npart
+ 
+    rho1i = 1./rho(i)
 !
 !--subtract external forces
 !
@@ -687,7 +694,7 @@ SUBROUTINE get_rates
 !
 !--add self-gravity force
 !
-    IF (igravity.NE.0) force(1:ndim,i) = force(1:ndim,i) + fgrav(1:ndim,i)
+    IF (igravity.NE.0) force(1:ndim,i) = force(1:ndim,i) - fgrav(1:ndim,i)*rho1i
 !
 !--damp force if appropriate
 !
@@ -700,7 +707,6 @@ SUBROUTINE get_rates
 !--do the divisions by rho etc (this is for speed - so calculations are not
 !  done multiple times within the loop)
 !
-    rho1i = 1./rho(i)
     IF (imhd.NE.0) THEN
        divB(i) = divB(i)*rho1i		!*rhoi
        dBconsdt(:,i) = dBconsdt(:,i)*rho1i

@@ -64,7 +64,6 @@ SUBROUTINE setup
  vel(:,:) = 0.
  dens(:) = denszero
  uu(:) = uuzero
- enin(:) = uuzero
  pmass(:) = massp
  Bfield(:,:) = 0.
  

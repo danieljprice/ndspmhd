@@ -28,8 +28,7 @@ EDITOR = nedit
 #
 FC = f90
 F90C = f90
-FFLAGS = -O4
-F90FLAGS = -O4 -xtypemap=real:64,double:64,integer:32
+F90FLAGS = -O4 -C -xtypemap=real:64,double:64,integer:32
 #LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Monash compiler (Lahey-Fujitsu f95)
@@ -77,17 +76,19 @@ SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP2D = setup_orszagtang2D_mhd.f90
 #SETUP2D = setup_shock2D_mhd2.f90 
 #SETUP2D = setup_sphericalblastND_mhd.f90
-#SETUP2D = setup_polytropeND.f90
+SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
 #SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
 #SETUP2D = setup_toystarND_static.f90
-SETUP2D = setup_fromfile.f90
+#SETUP2D = setup_shockND.f90
+#SETUP2D = setup_fromfile.f90
 
 #SETUP25D = setup_alfvenwaveND.f90
-SETUP25D = setup_alfvenwaveND_x.f90
+#SETUP25D = setup_alfvenwaveND_x.f90
+SETUP25D = setup_Bxpeak25D_mhd.f90
 
 #SETUP3D = setup_unifdisND.f90
 #SETUP3D = setup_sphericalblastND_mhd.f90
@@ -102,7 +103,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 coord_transform.f90 \
 	 defaults.f90 densityND.f90 \
 	 densityND_partial.f90 \
-	 direct_sum_grav.f90 \
+	 direct_sum_poisson.f90 \
 	 eos.f90 evolve.f90 evwrite_mhd.f90 \
 	 external_forces.f90 \
 	 get_neighbour_listND.f90 get_neighbour_listND_partial.f90 \
@@ -115,6 +116,7 @@ SOURCES = variablesND.f90 sphND_mhd.f90   \
 	 set_uniform_cartesianND.f90 set_uniform_sphericalND.f90 \
 	 smooth.f90  \
 	 write_infile_mhd.f90 write_headerND_mhd.f90 \
+	 divBcorrect.f90 get_divB.f90 
 #	 check_neighbourlist.f90
 #	 ratesND_mhd_split.f90 rates_artvisc.f90 rates_energy.f90 rates_mhdterms.f90 	 \
 

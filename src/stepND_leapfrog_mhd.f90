@@ -56,6 +56,13 @@ SUBROUTINE step
     daldtin(i) = daldt(i)
  ENDDO
 !
+!--if doing divergence correction then do correction to magnetic field
+! 
+ IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
+ IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
+ IF (idivBzero.EQ.10) CALL divBcorrect(npart,ntotal)
+
+!
 !--Leapfrog Predictor step
 !      
       
