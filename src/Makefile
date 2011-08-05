@@ -12,7 +12,7 @@ EDITOR = nedit
 
 F90C =  ifc
 F90FLAGS =  -O -WB ##-C
-#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11 -lF77
+LDFLAGS = -Vaxlib
 
 # Fortran flags same as F90
 FC = $(F90C)
@@ -62,9 +62,9 @@ SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90
 #SETUP2D = setup_rings2D.f90
 #SETUP2D = setup_alfvenwaveND.f90
 #SETUP2D = setup_alfvenwaveND_x.f90
-#SETUP2D = setup_Bxpeak25D_mhd.f90
+SETUP2D = setup_Bxpeak25D_mhd.f90
 #SETUP2D = setup_disc2D_2.f90
-SETUP2D = setup_logodivB.f90
+#SETUP2D = setup_logodivB.f90
 
 #SETUP3D = setup_unifdisND.f90
 SETUP3D = setup_sphericalblastND_mhd.f90

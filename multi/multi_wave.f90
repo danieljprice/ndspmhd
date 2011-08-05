@@ -7,7 +7,6 @@ PROGRAM multirun
  USE artvi
  USE eos
  USE options
- USE polyconst
  USE setup_params
  USE timestep
  USE xsph

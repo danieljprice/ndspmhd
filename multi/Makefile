@@ -10,7 +10,7 @@
 F90C =  ifc
 F90FLAGS =  -O -WB ##-C
 # PGPLOT libraries
-#LDFLAGS = -lpgplot -L/local/lib/pgplot -lX11 -lF77
+LDFLAGS = -Vaxlib
 
 # Fortran flags same as F90
 FC = $(F90C)
