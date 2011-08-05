@@ -72,9 +72,9 @@ subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,rho_L,rho_R,pr,vstar)
   pr = prnew
   vstar = v_L - f_L
   
-  if (its.gt.0) then
-     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar,v_R + f_R
-  endif
+!  if (its.gt.0) then
+!     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar,v_R + f_R
+!  endif
   
 end subroutine riemannsolver
 
