@@ -138,8 +138,8 @@ module part
  real, dimension(:,:), allocatable :: x   
  real, dimension(:), allocatable :: dens,rho,pr,uu,en,hh,psi,spsound
  real, dimension(:,:), allocatable :: vel,pmom,sourceterms,alpha
- real, dimension(:,:), allocatable :: bfield, bevol
- real, dimension(ndimb) :: bconst
+ real, dimension(:,:), allocatable :: Bfield, Bevol, x0
+ real, dimension(ndimB) :: Bconst
 end module part 
 
 !-------------------------------------------------------------------
@@ -150,7 +150,7 @@ module part_in
  implicit none
  real, dimension(:), allocatable :: rhoin,prin,hhin,enin,psiin
  real, dimension(:,:), allocatable :: xin,velin,pmomin,alphain
- real, dimension(:,:), allocatable :: bevolin
+ real, dimension(:,:), allocatable :: Bevolin
 end module
 
 !-------------------------------------------------------------------
@@ -160,7 +160,7 @@ end module
 module rates
  implicit none
  real, dimension(:), allocatable :: drhodt,dudt,dendt,dhdt,dpsidt,poten
- real, dimension(:,:), allocatable :: force,dbevoldt,daldt,gradpsi
+ real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
  real :: potengrav
 end module rates
 

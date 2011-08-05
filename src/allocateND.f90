@@ -52,6 +52,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
  real, dimension(ndxdx,newsizein) :: dumdxdx
+ real, dimension(ndim,newsizein) :: dumx0
 
  logical :: reallocate, isortparts
 !
@@ -162,7 +163,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
-    dumdxdx(:,1:idumsize)=dxdx(:,1:idumsize)
+    dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
+    dumx0(:,1:idumsize) = x0(:,1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -221,6 +223,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(dens)) deallocate(dens)
     
     if (allocated(dxdx)) deallocate(dxdx)
+    if (allocated(x0)) deallocate(x0)
+
     endif
 
  endif
@@ -288,8 +292,8 @@ subroutine alloc(newsizein,sortlist)
    if (geom(1:4).ne.'cart') then
       allocate(sourceterms(ndimv,newsize))
    endif
-   print*,' allocating dxdx with size ',ndxdx
    allocate(dxdx(ndxdx,newsize))
+   allocate(x0(ndim,newsize))
  endif
  
  if (reallocate .or. isortparts) then
@@ -350,7 +354,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
     endif    
-    dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize) 
+    dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize)
+    x0(:,1:idumsize) = dumx0(:,1:idumsize)
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
