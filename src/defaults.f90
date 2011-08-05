@@ -23,7 +23,7 @@ subroutine set_default_options
 !--set default options
 !         
    psep = 0.01
-   C_cour = 0.8
+   C_cour = 0.2
    C_force = 0.25
    tmax = 1.0
    tout = 0.01
@@ -52,6 +52,7 @@ subroutine set_default_options
    imhd = 1
    imagforce = 2
    idivBzero = 0
+   psidecayfact = 0.1
    ianticlump = 1
    eps = 0.8
    neps = 4

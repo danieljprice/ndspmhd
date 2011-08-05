@@ -215,7 +215,7 @@ MODULE timestep
 !  (max tsteps, number of steps before output, current number of steps,
 !   number of steps before using a direct summation)   
 !
- INTEGER :: nmax,nout,nsteps,ndirect
+ INTEGER :: nmax,nout,nsteps,ndirect,nsubsteps_divB
 !
 ! (max time, time before output, dt)
 !

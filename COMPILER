@@ -8,7 +8,7 @@
 #
 ## Compiler options (uncomment ONE set)
 ## ------------------------------------------------------------------ ##
-## IoA compiler (Sun fortran)
+## Sun fortran compiler
 #FC = f90
 #F90C = f90
 #FFLAGS = -O4
