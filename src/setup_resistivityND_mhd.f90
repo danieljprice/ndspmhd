@@ -21,7 +21,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero,rmin,rmax
+ real :: denszero
 !
 !--allow for tracing flow
 !
@@ -31,27 +31,25 @@ subroutine setup
 ! 	    
  ibound = 3     ! boundaries
  nbpts = 0      ! use ghosts not fixed
- xmin(:) = 0.   ! set position of boundaries
- xmax(:) = 1.
- 
-! xmin(1) = -0.5
-! xmax(1) = 0.5
-! xmin(2) = -0.5*sqrt(3./4.)
-! xmax(2) = 0.5*sqrt(3./4.)!
-! xmin(3) = -0.5*sqrt(6.)/3.
-! xmax(3) = 0.5*sqrt(6.)/3.!!
+ xmin(1) = 0.   ! set position of boundaries
+ xmax(1) = 1.
+if (ndim.ge.2) then
+ xmin(2) = -0.5*sqrt(3./4.)
+ xmax(2) = 0.5*sqrt(3./4.)
+endif
+if (ndim.ge.3) then
+ xmin(3) = -0.5*sqrt(6.)/3.
+ xmax(3) = 0.5*sqrt(6.)/3.
+endif
 !--set up the uniform density grid
 !
 ! npart = int((xmax(1)-xmin(1))/psep) !!int((1./psep)**3)
 ! call alloc(int(1.1*npart))
  
- rmin = 0.
- rmax = 0.5
- 
  print*,' setting up resistivity test '
 
 !! call cp_distribute(rmin,rmax,psep,ntotal,x(1,1:npart),x(2,1:npart),x(3,1:npart),npart)
- call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
+ call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.false.)
  npart = ntotal
  print*,'npart =',npart
 !
