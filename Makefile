@@ -66,6 +66,15 @@ edit2D:
 edit3D:
 	cd src; make edit3D
 
+edit1DGR:
+	cd src; make edit1D
+
+edit2DGR:
+	cd src; make edit2D
+
+edit3DGR:
+	cd src; make edit3D
+
 editev:
 	cd evplot; $(EDITOR) evsupersph.f &
 
