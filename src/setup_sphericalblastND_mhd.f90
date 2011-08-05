@@ -15,12 +15,12 @@ subroutine setup
 !
 !--include relevant global variables
 !
- use dimen_mhd
- use debug
- use loguns
+ use dimen_mhd, only:ndim,ndimV
+ use debug, only:trace
+ use loguns, only:iprint
  use bound
  use eos
- use kernel
+ use kernels, only:interpolate_kernel
  use options
  use part
  use setup_params
@@ -35,7 +35,7 @@ subroutine setup
  real :: prblast,pri,uui,rblast,radius,enblast,enzero
  real :: totmass,gam1,massp,const
  real, dimension(ndim) :: xblast, dblast
- real, dimension(ndimb) :: bzero
+ real, dimension(ndimV) :: bzero
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
 !

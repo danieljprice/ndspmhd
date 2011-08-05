@@ -11,15 +11,14 @@ contains
 !!------------------------------------------------------------------------
 
 subroutine get_divB(divBonrho,ntot)
- use dimen_mhd
- use debug
- use loguns
+ use dimen_mhd, only:ndim,ndimV
+ use debug, only:trace
+ use loguns, only:iprint
  
- use bound
- use hterms
- use kernel
+ use hterms, only:gradh
+ use kernels, only:interpolate_kernel,radkern2
  use linklist
- use options
+ use options, only:ikernav
  use part
  use setup_params
 !

@@ -18,7 +18,7 @@ SUBROUTINE smooth_initial_conditions(xinput,xsmooth,nsize)
  USE loguns
  
  USE bound
- USE kernel
+ USE kernels, only:interpolate_kernel
  USE linklist
  USE part
 !

@@ -9,77 +9,77 @@
 !! global modules
 !!------------------------------------------------------------------------
 
-SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphasub)
- USE dimen_mhd
- USE debug
- USE loguns
+subroutine get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphasub)
+ use dimen_mhd, only:ndim, ndimV
+ use debug, only:trace
+ use loguns, only:iprint
  
- USE bound
- USE kernel
- USE linklist
- USE options
- USE get_neighbour_lists
- IMPLICIT NONE
- INTEGER, INTENT(IN) :: npart,ntot
- REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: hh,pmass
- REAL, DIMENSION(ndimV,ntot), INTENT(IN) :: Bin
- REAL, DIMENSION(ntot), INTENT(IN) :: psi, rho
- REAL, DIMENSION(ntot), INTENT(OUT) :: divB
- REAL, DIMENSION(ndimV,ntot), INTENT(OUT) :: gradpsi
- REAL, INTENT(IN) :: alphasub
+ use bound, only:ireal
+ use kernels, only:interpolate_kernel,radkern2
+ use linklist
+ use options, only:ikernav,imhd
+ use get_neighbour_lists
+ implicit none
+ integer, intent(in) :: npart,ntot
+ real, dimension(ndim,ntot), intent(in) :: x
+ real, dimension(ntot), intent(in) :: hh,pmass
+ real, dimension(ndimv,ntot), intent(in) :: bin
+ real, dimension(ntot), intent(in) :: psi, rho
+ real, dimension(ntot), intent(out) :: divb
+ real, dimension(ndimv,ntot), intent(out) :: gradpsi
+ real, intent(in) :: alphasub
 !
 !--define local variables
 !
- INTEGER :: i,j,n
- INTEGER :: icell,iprev,nneigh
- INTEGER, DIMENSION(ntot) :: listneigh ! neighbour list
- INTEGER :: idone
+ integer :: i,j,n
+ integer :: icell,iprev,nneigh
+ integer, dimension(ntot) :: listneigh ! neighbour list
+ integer :: idone
 !
 !  (particle properties - local copies)
 !      
- REAL :: rij,rij2
- REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
- REAL :: hfacwab,hfacwabi,hfacwabj,rho1j,rho1i
- REAL :: pmassi,pmassj,projdB,gradpsiterm
- REAL, DIMENSION(ndim) :: dx
- REAL, DIMENSION(ndimV) :: dr
+ real :: rij,rij2
+ real :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
+ real :: hfacwab,hfacwabi,hfacwabj,rho1j,rho1i
+ real :: pmassi,pmassj,projdb,gradpsiterm
+ real, dimension(ndim) :: dx
+ real, dimension(ndimv) :: dr
 !
 !  (kernel quantities)
 !
- REAL :: q2,q2i,q2j      
- REAL :: wab,wabi,wabj
- REAL :: grkern,grkerni,grkernj
+ real :: q2,q2i,q2j      
+ real :: wab,wabi,wabj
+ real :: grkern,grkerni,grkernj
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine get_divBgradpsi, npart,ntot=',npart,ntot 
+ if (trace) write(iprint,*) ' entering subroutine get_divbgradpsi, npart,ntot=',npart,ntot 
 !
 !--initialise quantities
 !
  listneigh = 0
- divB = 0.
+ divb = 0.
  gradpsi = 0.
  !!rho = 0.
 !
-!--Loop over all the link-list cells
+!--loop over all the link-list cells
 !
- loop_over_cells: DO icell=1,ncellsloop          ! step through all cells
+ loop_over_cells: do icell=1,ncellsloop          ! step through all cells
 !
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    CALL get_neighbour_list(icell,listneigh,nneigh)
+    call get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
     i = ifirstincell(icell)
     idone = -1     ! note density summation includes current particle
-    IF (i.NE.-1) iprev = i
+    if (i.ne.-1) iprev = i
 
-    loop_over_cell_particles: DO WHILE (i.NE.-1) ! loop over home cell particles
+    loop_over_cell_particles: do while (i.ne.-1) ! loop over home cell particles
 
-       !PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i),Bin(:,i)
+       !print*,'doing particle ',i,nneigh,' neighbours',hh(i),bin(:,i)
        idone = idone + 1
        hi = hh(i)
        hi1 = 1./hi
@@ -90,9 +90,9 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
 !
 !--for each particle in the current cell, loop over its neighbours
 !
-       loop_over_neighbours: DO n = idone+1,nneigh
+       loop_over_neighbours: do n = idone+1,nneigh
           j = listneigh(n)
-          IF (.NOT.(j.GT.npart .AND. i.GT.npart)) THEN
+          if (.not.(j.gt.npart .and. i.gt.npart)) then
              ! do count particle with itself       
              dx(:) = x(:,i) - x(:,j)
              hj = hh(j)
@@ -109,40 +109,40 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
              pmassj = pmass(j)
              rho1j = 1./rho(j)
              
-             rij2 = DOT_PRODUCT(dx,dx)
-             rij = SQRT(rij2)
+             rij2 = dot_product(dx,dx)
+             rij = sqrt(rij2)
              q2 = rij2/h2
              q2i = rij2/hi2
              q2j = rij2/hj2
              dr = 0.
-             IF (j.NE.i) THEN
+             if (j.ne.i) then
                 dr(1:ndim) = dx(1:ndim)/rij  ! unit vector
-             ENDIF
-             !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
+             endif
+             !          print*,' neighbour,r/h,dx,hi,hj ',j,sqrt(q2),dx,hi,hj
 !     
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
-             IF (((q2i.LT.radkern2).OR.(q2j.LT.radkern2))  &
-                  .AND. .NOT.(i.GT.npart.AND.j.GT.npart)) THEN
+             if (((q2i.lt.radkern2).or.(q2j.lt.radkern2))  &
+                  .and. .not.(i.gt.npart.and.j.gt.npart)) then
 !     
 !--interpolate from kernel table          
 !  (use either average h or average kernel gradient)
 !
-                !PRINT*,' neighbour,r/h,dx,hi,hj ',i,j,SQRT(q2),dx,hi,hj
-                IF (ikernav.EQ.1) THEN          
-                   CALL interpolate_kernel(q2,wab,grkern)
+                !print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
+                if (ikernav.eq.1) then          
+                   call interpolate_kernel(q2,wab,grkern)
                    wab = wab*hfacwab
                    grkern = grkern*hfacwab*hj1
                    grkerni = grkern
                    grkernj = grkern
-                ELSE
+                else
                    !  (using hi)
-                   CALL interpolate_kernel(q2i,wabi,grkerni)
+                   call interpolate_kernel(q2i,wabi,grkerni)
                    wabi = wabi*hfacwabi
                    grkerni = grkerni*hfacwabi*hi1
                    !  (using hj)
-                   CALL interpolate_kernel(q2j,wabj,grkernj)
+                   call interpolate_kernel(q2j,wabj,grkernj)
                    wabj = wabj*hfacwabj
                    grkernj = grkernj*hfacwabj*hj1
                    !  (calculate average)            
@@ -154,26 +154,26 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
                       grkerni = grkern
                       grkernj = grkern
                    endif           
-                ENDIF
+                endif
 !
-!--calculate div B and grad psi
+!--calculate div b and grad psi
 !
-                projdB = DOT_PRODUCT(Bin(:,i)-Bin(:,j),dr)
+                projdb = dot_product(bin(:,i)-bin(:,j),dr)
                 gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
 
-                divB(i) = divB(i) - pmassj*projdB*grkerni
-                divB(j) = divB(j) - pmassi*projdB*grkernj            
+                divb(i) = divb(i) - pmassj*projdb*grkerni
+                divb(j) = divb(j) - pmassi*projdb*grkernj            
                 gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
                 gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
                    
 !                vsig = 0.5*alphasub*(spsound(i) + spsound(j) &
-!                          + dot_product(Bin(:,i),Bin(:,i))*rho1i &
-!                          + dot_product(Bin(:,j),Bin(:,j))*rho1j)
-!                Bdiss(:) = (Bin(:,i) - Bin(:,j)) - 3.*projdB*dr(:)
-!                gradpsi(:,i) = gradpsi(:,i) - vsig*pmassj*rho1j*Bdiss(:)*grkern
-!                gradpsi(:,j) = gradpsi(:,j) + vsig*pmassi*rho1i*Bdiss(:)*grkern
-                !print*,' Bi,j = ',Bin(:,i),Bin(:,j)
-                !print*,' projdB,dr = ',projdB,dr(:)
+!                          + dot_product(bin(:,i),bin(:,i))*rho1i &
+!                          + dot_product(bin(:,j),bin(:,j))*rho1j)
+!                bdiss(:) = (bin(:,i) - bin(:,j)) - 3.*projdb*dr(:)
+!                gradpsi(:,i) = gradpsi(:,i) - vsig*pmassj*rho1j*bdiss(:)*grkern
+!                gradpsi(:,j) = gradpsi(:,j) + vsig*pmassi*rho1i*bdiss(:)*grkern
+                !print*,' bi,j = ',bin(:,i),bin(:,j)
+                !print*,' projdb,dr = ',projdb,dr(:)
                 !read*
                    
                 !weight = 1.0
@@ -181,49 +181,49 @@ SUBROUTINE get_divBgradpsi(divB,gradpsi,Bin,psi,x,hh,pmass,rho,npart,ntot,alphas
                 !rho(i) = rho(i) + weight*pmassj*wabi
                 !rho(j) = rho(j) + weight*pmassi*wabj
 
-                !      ELSE
-                !         PRINT*,' r/h > 2 '      
+                !      else
+                !         print*,' r/h > 2 '      
                 
-             ENDIF
+             endif
 
-         ENDIF! .not. j>npart .and. i>npart   
-       ENDDO loop_over_neighbours
+         endif! .not. j>npart .and. i>npart   
+       enddo loop_over_neighbours
        
        iprev = i
-       IF (iprev.NE.-1) i = ll(i)          ! possibly should be only IF (iprev.NE.-1)
-    ENDDO loop_over_cell_particles
+       if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
+    enddo loop_over_cell_particles
     
- ENDDO loop_over_cells
+ enddo loop_over_cells
 
 !
 !--do divisions by rho
 !  note that grad psi returns the correct term appropriate to evolving either
-!  B or B/rho (ie. grad psi or grad psi / rho respectively). This should be
+!  b or b/rho (ie. grad psi or grad psi / rho respectively). this should be
 !  the same in rates.
 !
- DO i=1,npart
+ do i=1,npart
     if (rho(i).ge.0.) then
-       if (imhd.ge.11) then ! evolving B
+       if (imhd.ge.11) then ! evolving b
           gradpsi(:,i) = gradpsi(:,i)/rho(i)
-       else                 ! evolving B/rho
+       else                 ! evolving b/rho
           gradpsi(:,i) = gradpsi(:,i)/rho(i)**2       
        endif
-       divB(i) = divB(i)/rho(i)
+       divb(i) = divb(i)/rho(i)
     else
-       write(*,*) 'ERROR: get_divBgradpsi: rho < 0.'
+       write(*,*) 'error: get_divbgradpsi: rho < 0.'
     endif
-    !print*,'divB, rho = ',divB(i),rho(i),Bin(:,i)
+    !print*,'divb, rho = ',divb(i),rho(i),bin(:,i)
     !if (mod(i,20).eq.0) read*
- ENDDO
+ enddo
  
- DO i=npart+1,ntot
+ do i=npart+1,ntot
     j = ireal(i)
     !!rho(i) = rho(j)
     gradpsi(:,i) = 0.
-    !print*,i,Bin(:,i),rho(i)
- ENDDO
+    !print*,i,bin(:,i),rho(i)
+ enddo
 ! read*
 
- RETURN
-END SUBROUTINE get_divBgradpsi
+ return
+end subroutine get_divbgradpsi
       

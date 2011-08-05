@@ -2,38 +2,39 @@
 !! This subroutine initialises everything needed for the run
 !!-----------------------------------------------------------------
 
-SUBROUTINE initialise
+subroutine initialise
 !
 !--include relevant global variables
 !
-! USE dimen_mhd
- USE debug
- USE loguns
+! use dimen_mhd
+ use debug, only:trace
+ use loguns, only:iprint,ievfile,ifile,rootname
  
- USE artvi
- USE bound
- USE derivB
- USE eos
- USE fmagarray
- USE hterms
- USE rates
- USE timestep
- USE options
- USE part
- USE part_in
- USE setup_params
+ use artvi
+ use bound
+ use derivb
+ use eos
+ use fmagarray
+ use kernels, only:setkern
+ use hterms
+ use rates
+ use timestep
+ use options
+ use part
+ use part_in
+ use setup_params
  
- USE infiles, only:read_infile
- USE dumpfiles, only:read_dump
- USE convert, only:convert_setup
+ use infiles, only:read_infile
+ use dumpfiles, only:read_dump
+ use convert, only:convert_setup
 !
 !--define local variables
 !      
- IMPLICIT NONE
- CHARACTER(LEN=len(rootname)+3) :: infile,evfile,dumpfile
- CHARACTER(LEN=len(rootname)+6) :: logfile   ! rootname is global in loguns
- INTEGER :: i,j,idash,idot,ierr,idotin
- LOGICAL :: iexist
+ implicit none
+ character(len=len(rootname)+3) :: infile,evfile,dumpfile
+ character(len=len(rootname)+6) :: logfile   ! rootname is global in loguns
+ integer :: i,j,idash,idot,ierr,idotin
+ logical :: iexist
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
 !
@@ -96,27 +97,27 @@ SUBROUTINE initialise
 !
 !--start tracing flow into logfile
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine initialise'
+ if (trace) write(iprint,*) ' entering subroutine initialise'
 !
 !--set some global parameters based on ndim
 !
- IF (ndim.GT.3 .OR. ndim.LT.0 .OR. ndimV.GT.3 .OR. ndimV.LT.0) THEN
-    STOP 'Error ndim <0 or >3: We leave string theory for later'
- ELSE
-    dndim = 1./REAL(ndim)
- ENDIF
+ if (ndim.gt.3 .or. ndim.lt.0 .or. ndimv.gt.3 .or. ndimv.lt.0) then
+    stop 'ERROR ndim <0 or >3: We leave string theory for later'
+ else
+    dndim = 1./real(ndim)
+ endif
  time = 0.
  nsteps = 0
  xmin = 0.
  xmax = 0.
  nbpts = 0
- Bconst(:) = 0.
+ bconst(:) = 0.
  vsig2max = 0.
 !
 !--read parameters from the infile
 !
- CALL set_default_options   ! set the default options
- CALL read_infile(infile)
+ call set_default_options   ! set the default options
+ call read_infile(infile)
  !!igeom = 2
 !
 !--Open data/ev files
@@ -135,20 +136,20 @@ SUBROUTINE initialise
  endif
  open(unit=ievfile,err=668,file=evfile,status='replace',form='formatted')
 !
-!--work out multiplication factor for source term in Morris and Monaghan scheme
+!--work out multiplication factor for source term in morris and monaghan scheme
 !  (just from gamma)
 
- IF (abs(gamma-1.).GT.1.e-3) THEN   ! adiabatic
-    avfact = LOG(4.)/(LOG((gamma+1.)/(gamma-1.)))
- ELSE
+ if (abs(gamma-1.).gt.1.e-3) then   ! adiabatic
+    avfact = log(4.)/(log((gamma+1.)/(gamma-1.)))
+ else
     avfact = 1.0   ! isothermal 
- ENDIF
+ endif
 !
 !--write first header to logfile/screen
 !
- CALL write_header(1,infile,evfile,logfile)    
+ call write_header(1,infile,evfile,logfile)    
  
- CALL setkern      ! setup kernel tables
+ call setkern      ! setup kernel tables
  npart = 0
  
  if (ifile.lt.0) then
@@ -182,16 +183,17 @@ SUBROUTINE initialise
 !  and density iterations
 !
  if (any(pmass(1:npart).ne.pmass(1)) .and. icty.eq.0 .and. ikernav.eq.3) then
-    !!rhomin = 0.
-    rhomin = minval(dens(1:npart))
+    rhomin = 0.
+    !!rhomin = minval(dens(1:npart))
     write(iprint,*) 'rhomin = ',rhomin
  else
     rhomin = 0.
+    write(iprint,*) 'particle mass = ',pmass(1)
  endif
 !
 !--if using fixed particle boundaries, set them up
 !
- IF (ANY(ibound.EQ.1)) CALL set_fixedbound
+ if (any(ibound.eq.1)) call set_fixedbound
 !
 !--Set derivatives to zero until calculated
 !      
@@ -212,38 +214,38 @@ SUBROUTINE initialise
 
 ! call check_neighbourlist
 
- DO i=1,npart
+ do i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
-    Bevolin(:,i) = Bevol(:,i)
+    bevolin(:,i) = bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
- ENDDO         
+ enddo         
 !
 !--make sure ghost particle quantities are the same
 !  (copy both conservative and primitive here)
 !
- IF (ANY(ibound.GT.1)) THEN
-    DO i=npart+1,ntotal   
+ if (any(ibound.gt.1)) then
+    do i=npart+1,ntotal   
        j = ireal(i)
        call copy_particle(i,j)
-    ENDDO
- ENDIF
+    enddo
+ endif
 !
 !--write second header to logfile/screen
 !
- CALL write_header(2,infile,evfile,logfile)    
+ call write_header(2,infile,evfile,logfile)    
       
- RETURN
+ return
 !
-!--Error control
+!--error control
 !
-668   WRITE(iprint,*) 'Initialise: Error opening ev file, exiting...'
-      CALL quit 
-669   WRITE(iprint,*) 'Initialise: Error opening log file, exiting...'
-      CALL quit       
+668   write(iprint,*) 'Initialise: Error opening ev file, exiting...'
+      call quit 
+669   write(iprint,*) 'Initialise: Error opening log file, exiting...'
+      call quit       
       
-END SUBROUTINE initialise
+end subroutine initialise
