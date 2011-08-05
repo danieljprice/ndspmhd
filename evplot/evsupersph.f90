@@ -11,7 +11,7 @@ program plotmeagraph
   integer :: ncol
   integer, parameter :: maxfile=25
   integer, parameter :: maxstep=6000
-  integer, parameter :: maxcol=25        ! (6)21 (non)MHD        maximum number of columns
+  integer, parameter :: maxcol=40        ! (6)21 (non)MHD        maximum number of columns
   integer :: i,nfiles,ifile,ifilesteps
   integer :: mysteps,ipick,ipickx,nacross,ndown
   integer :: ihalf,iadjust,ierr
@@ -24,7 +24,7 @@ program plotmeagraph
   real, dimension(maxstep,maxcol,maxfile) :: evdata
   real, dimension(maxstep) :: evplot,xplot,yplot
   real :: lim(maxcol,2)
-  real :: xmin, xmax, ymin, ymax
+  real :: xmin, xmax, ymin, ymax, vxmin,vxmax,vymin,vymax
   real :: hpos,vpos, freqmin, freqmax
   character, dimension(maxfile) :: rootname*120, legendtext*120
   character(len=120) :: title,label(maxcol)
@@ -295,11 +295,16 @@ program plotmeagraph
      cycle menuloop
   case('l','L')
      ichange = 0
-     call prompt('Enter plot number to change limits',ichange,0,ncol)
+     call prompt('Enter plot number to change limits (-ve=all)',ichange,max=ncol)
      if (ichange.gt.0) then
         call prompt(' Enter '//trim(label(ichange))//' min:',lim(ichange,1))
         call prompt(' Enter '//trim(label(ichange))//' max:',lim(ichange,2))
-        call prompt(' Enter transformation (1=log,2=abs,3=sqrt,4=1/x):',itrans(ichange),0,4)
+        call prompt(' Enter transformation (1=log,2=abs,3=sqrt,4=1/x):',itrans(ichange),0)
+     elseif (ichange.lt.0) then
+        call prompt(' Enter transformation (1=log,2=abs,3=sqrt,4=1/x):',itrans(1),0)
+        do i=2,ncol
+           itrans(i) = itrans(1)
+        enddo
      endif
      cycle menuloop
 !  case('r','R')
@@ -482,6 +487,23 @@ program plotmeagraph
                     call PGPT(1,xplot(ipt),yplot(ipt),mod(ifile,5) + 1)
                  endif
               enddo
+           endif
+           !
+           !--inset plot
+           !
+           if (iploty(i).eq.15) then
+              call pgqvp(0,vxmin,vxmax,vymin,vymax)
+              call pgsvp(0.25,0.75,0.45,0.95)
+              call pgswin(1.0,xmax,-16.3,-13.5)
+              if (ifile.eq.1) then
+                 call pgsci(1)
+                 call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
+                 call pgsci(ifile+1)
+              endif
+              call pgline(nstepsfile(ifile),xplot(1:nstepsfile(ifile)), &
+                   yplot(1:nstepsfile(ifile)))
+              call pgsvp(vxmin,vxmax,vymin,vymax)
+              call pgswin(xmin,xmax,ymin,ymax)
            endif
            
            !
