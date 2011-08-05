@@ -25,20 +25,26 @@ subroutine setup
  implicit none
  integer :: i,iseed,ipart
  real :: massp,volume,totmass,ran1
- real :: denszero,densmedium,przero,psepmedium
+ real :: denszero,densmedium,przero,psepmedium,vzero,vmedium
  real, dimension(ndim) :: xminregion,xmaxregion
- logical, parameter :: equalmass = .true.
+ logical, parameter :: equalmass = .false.
+ logical, parameter :: robertson = .true.
 !
 !--allow for tracing flow
 !
- if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup(kh)'
  if (ndim.ne.2) stop 'error: need ndim=2 for this problem'
 !
 !--set boundaries
 ! 	    
- nbpts = 0	! use ghosts not fixed
- xmin(:) = -0.5	! set position of boundaries
- xmax(:) = 0.5
+ nbpts = 0      ! use ghosts not fixed
+ if (robertson) then
+    xmin(:) = 0.
+    xmax(:) = 1.
+ else
+    xmin(:) = -0.5 ! set position of boundaries
+    xmax(:) = 0.5
+ endif
 !
 !--set up the uniform density grid
 !
@@ -53,7 +59,9 @@ subroutine setup
     volume = product(xmax(:)-xmin(:))
     totmass = denszero*volume
     massp = totmass/float(npart)
+    if (robertson) write(iprint,*) 'using robertson setup'
  else
+    if (robertson) stop 'robertson setup with equal mass not implemented'
 !
 !--for equal mass particles setup each region separately
 !
@@ -100,39 +108,48 @@ subroutine setup
 !
 !--now declare periodic boundaries
 !
- ibound = 3	! boundaries
+ ibound = 3     ! boundaries
  iseed = -23864
+ vzero = -0.5
+ vmedium = 0.5
 !
 !--now assign particle properties
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    if (abs(x(2,i)).lt.0.25) then
-       vel(1,i) = 0.5 
-       dens(i) = densmedium
-       if (equalmass) then
-          pmass(i) = massp
-       else
-          pmass(i) = massp*(densmedium/denszero)
-       endif
+    if (robertson) then
+       vel(1,i) = vzero + Rfunc(x(2,i))*(vmedium-vzero)
+       vel(2,i) = 0.01*sin(2.*pi*x(1,i))
+       dens(i) = denszero + Rfunc(x(2,i))*(densmedium-denszero)
+       pmass(i) = massp*(dens(i)/denszero)
     else
-       vel(1,i) = -0.5
-       dens(i) = denszero
-       pmass(i) = massp
+       if (abs(x(2,i)).lt.0.25) then
+          vel(1,i) = vmedium
+          dens(i) = densmedium
+          if (equalmass) then
+             pmass(i) = massp
+          else
+             pmass(i) = massp*(densmedium/denszero)
+          endif
+       else
+          vel(1,i) = vzero
+          dens(i) = denszero
+          pmass(i) = massp
+       endif
+       !
+       !--add velocity perturbation
+       !
+       !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
+       !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
+       if (abs(x(2,i)-0.25).lt.0.025) then
+          vel(2,i) = 0.025*sin(-2.*pi*(x(1,i)+0.5)*6.)
+       elseif (abs(x(2,i)+0.25).lt.0.025) then
+          vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
+       endif
     endif
     uu(i) = przero/((gamma-1.)*dens(i))
     Bfield(:,i) = 0.
     Bfield(1,i) = 0.5
-!
-!--add random velocity perturbation
-!
-    !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
-    !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
-    if (abs(x(2,i)-0.25).lt.0.025) then
-       vel(2,i) = 0.025*sin(-2.*pi*(x(1,i)+0.5)*6.)
-    elseif (abs(x(2,i)+0.25).lt.0.025) then
-       vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
-    endif
  enddo
  
  !!omegakh = sqrt(densmedium/denszero)*1.0/(denszero + densmedium)
@@ -152,7 +169,20 @@ subroutine setup
  if (trace) write(iprint,*) '  exiting subroutine setup'
   
  return
-end
+ 
+contains
+
+real function Rfunc(y)
+ implicit none
+ real, parameter  :: delta = 0.05
+ real, intent(in) :: y
+ 
+ Rfunc = 1./(1. + exp(2.*(y-0.25)/delta)) !* 1./(1. + exp(2.*(0.75-y)/delta))
+ print*,' Rfunc = ',Rfunc
+ 
+end function Rfunc
+ 
+end subroutine setup
 
 subroutine modify_dump
  use loguns, only:iprint
