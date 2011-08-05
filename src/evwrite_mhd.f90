@@ -202,7 +202,7 @@ SUBROUTINE evwrite(t,etot,momtot)
  ENDDO
  
  etot = ekin + emag + epot
- IF (iprterm.GE.0) etot = etot + etherm
+ IF (iprterm.ge.0 .or. iprterm.lt.-1) etot = etot + etherm
  momtot = SQRT(DOT_PRODUCT(mom,mom))
  CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
  angtot = SQRT(DOT_PRODUCT(ang,ang))
