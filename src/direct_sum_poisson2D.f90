@@ -51,9 +51,7 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
  DO i=1,ntot
     sourcei = source(i)
     
-!!    DO j=i+1,ntot
-    DO j=1,ntot       
-       if (i.ne.j) then
+    DO j=i+1,ntot
        dx = x(:,i) - x(:,j)
        rij2 = DOT_PRODUCT(dx,dx) !!+ 0.01**2
        term(:) = dx(:)/rij2
@@ -62,8 +60,7 @@ SUBROUTINE direct_sum_poisson(x,source,phitot,gradphi,ntot)
 !       phi(j) = phi(j) + 
        
        gradphi(:,i) = gradphi(:,i) + source(j)*term(:)
-!!       gradphi(:,j) = gradphi(:,j) - sourcei*term(:)
-       endif
+       gradphi(:,j) = gradphi(:,j) - sourcei*term(:)
     ENDDO
  ENDDO
 
