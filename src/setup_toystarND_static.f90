@@ -35,7 +35,7 @@ subroutine setup
 
  write(iprint,*) 'uniform spherical distribution (for toy star)'
  iuserings = .false.
- iequalmass = .false.
+ iequalmass = .true.
 !
 !--set bounds of initial setup
 !                   
@@ -67,7 +67,7 @@ subroutine setup
        x(:,i) = xnew(:)
     enddo
  elseif (iequalmass) then
-    call set_uniform_spherical(1,rmax,perturb=0.5,trim=0.25*psep)        ! 4 = random
+    call set_uniform_spherical(1,2*rmax,perturb=0.5)        ! 4 = random
  else
     call set_uniform_spherical(2,rmax,centred=.true.,trim=0.25*psep) 
  endif
@@ -139,11 +139,12 @@ subroutine modify_dump
  use timestep, only:time
  use setup_params, only:pi
  implicit none
- integer :: i,jmode,smode
- real :: rr,H,C,A,scalefac,sigma2,sigma,rstar,denscentre,gamm1
+ integer :: i,ierr,jmode,smode
+ real :: rr,Ctstar,Atstar,scalefac,sigma2,sigma,rstar,denscentre,gamm1
  real :: omegasq,cs2centre,ekin,ekin_norm
  real, dimension(ndim) :: xcyl,velcyl,dvel
  character(len=len(rootname)+6) :: tstarfile
+ character(len=30) :: dummy
  logical :: oscills
 
  time = 0.
@@ -156,9 +157,10 @@ subroutine modify_dump
 !
 !--read parameters from file
 !  
- tstarfile = rootname(1:len_trim(rootname))//'.tstar'
+ tstarfile = rootname(1:len_trim(rootname))//'.tstar2D'
  open(unit=ireadf,err=11,file=tstarfile,status='old',form='formatted')
-!!    read(ireadf,*,err=12) H,C,A
+    read(ireadf,*,err=12) dummy
+    read(ireadf,*,err=12) dummy
     read(ireadf,*,err=12) jmode,smode
  close(unit=ireadf)
  oscills = .true.
@@ -187,6 +189,7 @@ subroutine modify_dump
  endif
 
  denscentre = 1.0
+ Ctstar = 1.0
  scalefac = polyk*gamma/(sigma*gamm1)
  rstar = sqrt((2.*polyk*gamma*denscentre**gamm1)/gamm1)
  
@@ -223,8 +226,26 @@ subroutine modify_dump
 !--normalise the amplitude
 !
  ekin_norm = (0.05)**2*cs2centre*ekin_norm
- print*,' ekin = ',ekin, ' ekin_norm = ',ekin_norm
+ write(iprint,*) ' ekin = ',ekin, ' ekin_norm = ',ekin_norm
  vel = vel*sqrt(ekin_norm/ekin)
+ 
+ Atstar = scalefac*sqrt(ekin_norm/ekin)
+ write(iprint,*) ' v = ',Atstar,'*detadr(r)'
+!
+!--rewrite the tstar2D file giving the amplitude
+!  
+ tstarfile = rootname(1:len_trim(rootname))//'.tstar2D'
+ write(iprint,*) ' writing to file ',trim(tstarfile)
+ open(unit=ireadf,iostat=ierr,file=tstarfile,status='replace',form='formatted')
+ if (ierr.eq.0) then
+    write(ireadf,*,iostat=ierr) denscentre,Ctstar,Atstar
+    write(ireadf,*,iostat=ierr) 0.
+    write(ireadf,*,iostat=ierr) jmode,smode
+    if (ierr /= 0) write(iprint,*) 'ERROR WRITING TO ',trim(tstarfile)
+    close(unit=ireadf)
+ else
+    write(iprint,*) 'ERROR OPENING ',trim(tstarfile)
+ endif
 
  return
 
