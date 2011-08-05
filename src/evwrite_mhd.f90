@@ -161,31 +161,31 @@ subroutine evwrite(t,etot,momtot)
           FdotBi = 0.
        endif
        fdotBav = fdotBav + fdotBi
-       IF (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
+       if (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
 !
 !--Compute total error in the force due to the B(div B) term
 !  only slight worry with this is that fmag is calculated in rates, whilst
 !  B has been evolved a bit further since then. A possible solution is to
 !  evaluate these quantities just after the call to rates.
 !       
-       IF (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) then
+       if (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) then
           force_erri = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(forcemagi*Bmagi)
-       ELSE
+       else
           force_erri = 0.
-       ENDIF
+       endif
        force_err_av = force_err_av + force_erri
-       IF (force_erri.GT.force_err_max) force_err_max = force_erri
+       if (force_erri.GT.force_err_max) force_err_max = force_erri
 !
 !--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
 !  this quantity should be less than ~0.01.
 !
-       IF (Bmagi.lt.1e-8) then
+       if (Bmagi.lt.1e-8) then
           omegamhdi = 0.
-       ELSE
+       else
           omegamhdi = divBi*hh(i)/Bmagi     
-       ENDIF    
-       IF (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
-       IF (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
+       endif    
+       if (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
+       if (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
        omegamhdav = omegamhdav + omegamhdi   
 !
 !--Conserved magnetic flux (int B dV)
