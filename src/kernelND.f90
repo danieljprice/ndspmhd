@@ -17,7 +17,7 @@ module kernels
  real, dimension(0:ikern) :: wij,grwij,wijaniso,grwijaniso
  real :: dq2table,ddq2table,radkern2,radkern,eps
 !--these variables for force softening only
- real, dimension(0:ikern) :: potensoft,fsoft
+ real, dimension(0:ikern) :: potensoft,fsoft,dphidh
 !--these variables needed for plotting and analysis only (not in rates etc)
  real, dimension(0:ikern) :: grgrwij,grgrwijaniso
  character(len=100) :: kernelname
@@ -802,7 +802,7 @@ subroutine setkern(ikernel,ndim)
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernelname = 'cubic spline'    
+    kernelname = 'Cubic spline'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
@@ -823,25 +823,27 @@ subroutine setkern(ikernel,ndim)
        q = sqrt(q2)
        q4 = q2*q2
        !
-       ! note that the potential does not need to be divided by r
-       ! (tabulated like this to prevent numerical divergences)
-       ! however the force must be divided by 1/r^2
+       ! potential must be divided by h
+       ! force must be divided by h^2
        !
        if (q.lt.1.0) then
           potensoft(i) = 2./3.*q2 - 0.3*q4 + 0.1*q4*q - 1.4
-          fsoft(i) = 4./3.*q2*q - 6./5.*q4*q + 0.5*q4*q2
+          fsoft(i) = 4./3.*q - 1.2*q2*q + 0.5*q4
+          dphidh(i) = -2.*q**2 + 1.5*q4 - 0.6*q4*q + 1.4
           wij(i) = 1. - 1.5*q2 + 0.75*q*q2
           grwij(i) = -3.*q+ 2.25*q2
           grgrwij(i) = -3. + 4.5*q
        elseif ((q.ge.1.0).and.(q.le.2.0)) then
           potensoft(i) = 4./3.*q2 - q2*q + 0.3*q4 - q4*q/30. - 1.6 + 1./(15.*q)
-          fsoft(i) = 8./3.*q2*q - 3.*q4 + 6./5.*q4*q - q4*q2/6. - 1./15.
+          fsoft(i) = 8./3.*q - 3.*q2 + 1.2*q2*q - q4/6. - 1./(15.*q2)
+          dphidh(i) = -4.*q2 + 4.*q2*q - 1.5*q4 + 0.2*q4*q + 1.6
           wij(i) = 0.25*(2.-q)**3.
           grwij(i) = -0.75*(2.-q)**2.
           grgrwij(i) = 1.5*(2.-q)
        else
           potensoft(i) = -1./q
           fsoft(i) = 1.0
+          dphidh(i) = 0.
           wij(i) = 0.0
           grwij(i) = 0.0
           grgrwij(i) = 0.
@@ -1022,12 +1024,12 @@ end subroutine interpolate_kernels
 !! must then divide returned w, grad w by h^ndim, h^ndim+1 respectively
 !!----------------------------------------------------------------------
 
-subroutine interpolate_softening(q2,phi,force)
+subroutine interpolate_softening(q2,phi,force,gradw)
  implicit none
  integer :: index,index1
  real, intent(in) :: q2
- real, intent(out) :: phi,force
- real :: dxx,dphidx,dfdx
+ real, intent(out) :: phi,force,gradw
+ real :: dxx,dphidx,dfdx,dgrwdx
 !
 !--find nearest index in kernel table
 ! 
@@ -1043,13 +1045,52 @@ subroutine interpolate_softening(q2,phi,force)
 !--calculate slope for phi, force
 ! 
  dphidx =  (potensoft(index1)-potensoft(index))*ddq2table
- dfdx =  (fsoft(index1)-fsoft(index))*ddq2table
-!
-!--interpolate for potential and force
-!
  phi = (potensoft(index)+ dphidx*dxx)
+
+ dfdx =  (fsoft(index1)-fsoft(index))*ddq2table
  force = (fsoft(index)+ dfdx*dxx)
+
+ dgrwdx = (grwij(index1)-grwij(index))*ddq2table
+ gradw = (grwij(index)+ dgrwdx*dxx)
  
 end subroutine interpolate_softening
+
+!!----------------------------------------------------------------------
+!! function to interpolate linearly from kernel tables
+!! returns kernel and derivative and dphidh given q^2 = (r_a-r_b)^2/h^2
+!!
+!! must then divide returned w, grad w by h^ndim, h^ndim+1 respectively
+!!----------------------------------------------------------------------
+
+subroutine interpolate_kernel_soft(q2,w,gradw,dphidhi)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w,gradw,dphidhi
+ real :: dxx,dwdx,dgrwdx,dpotdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--linear interpolation
+! 
+ dwdx =  (wij(index1)-wij(index))*ddq2table
+ w = (wij(index)+ dwdx*dxx)
+
+ dgrwdx =  (grwij(index1)-grwij(index))*ddq2table
+ gradw = (grwij(index)+ dgrwdx*dxx)
+
+ dpotdx =  (dphidh(index1)-dphidh(index))*ddq2table
+ dphidhi = (dphidh(index) + dpotdx*dxx)
+ 
+end subroutine interpolate_kernel_soft
 
 end module kernels

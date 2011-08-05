@@ -32,7 +32,7 @@ SUBROUTINE alloc(newsizein)
  REAL, DIMENSION(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  REAL, DIMENSION(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  REAL, DIMENSION(newsizein) :: dumpsi
- REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumgradhn,dumpr,dumspsound
+ REAL, DIMENSION(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumpr,dumspsound
  REAL, DIMENSION(newsizein) :: dumdivB,dumhhin,dumdhdt,dumdpsidt
  REAL, DIMENSION(ndim,newsizein) :: dumxin,dumx
  REAL, DIMENSION(ndimV,newsizein) :: dumvelin,dumvel,dumBevolin
@@ -118,6 +118,7 @@ SUBROUTINE alloc(newsizein)
     dumdhdt(1:idumsize) = dhdt(1:idumsize)
     dumgradh(1:idumsize) = gradh(1:idumsize)
     dumgradhn(1:idumsize) = gradhn(1:idumsize)
+    dumgradsoft(1:idumsize) = gradsoft(1:idumsize)
 
     dumpr(1:idumsize) = pr(1:idumsize)
     dumspsound(1:idumsize) = spsound(1:idumsize)
@@ -147,7 +148,7 @@ SUBROUTINE alloc(newsizein)
 !--particle properties and derivatives
 !
     DEALLOCATE(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
-    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,pr)
+    DEALLOCATE(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,gradsoft,pr)
     IF (ALLOCATED(Bfield)) DEALLOCATE(Bfield)
     IF (ALLOCATED(Bevol)) DEALLOCATE(Bevol)
     IF (ALLOCATED(dBevoldt)) DEALLOCATE(dBevoldt)
@@ -211,7 +212,7 @@ SUBROUTINE alloc(newsizein)
     ALLOCATE(alpha(3,newsize),alphain(3,newsize),daldt(3,newsize))
     ALLOCATE(psi(newsize),dpsidt(newsize))
     ALLOCATE(hh(newsize))
-    ALLOCATE(dhdt(newsize),gradh(newsize),gradhn(newsize))
+    ALLOCATE(dhdt(newsize),gradh(newsize),gradhn(newsize),gradsoft(newsize))
     ALLOCATE(pr(newsize))
     ALLOCATE(Bevol(ndimB,newsize))
     ALLOCATE(Bfield(ndimB,newsize),dBevoldt(ndimB,newsize))  ! mag field
@@ -289,6 +290,7 @@ SUBROUTINE alloc(newsizein)
     dhdt(1:idumsize) = dumdhdt(1:idumsize)
     gradh(1:idumsize) = dumgradh(1:idumsize)
     gradhn(1:idumsize) = dumgradhn(1:idumsize)
+    gradsoft(1:idumsize) = dumgradsoft(1:idumsize)
     
     pr(1:idumsize) = dumpr(1:idumsize)
     spsound(1:idumsize) = dumspsound(1:idumsize)

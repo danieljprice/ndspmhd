@@ -31,7 +31,7 @@ FFLAGS = $(F90FLAGS)
 
 SOURCES1D = dimen1D.f90 variablesND.f90 direct_sum_poisson1D.f90
 SOURCES2D = dimen2D.f90 variablesND.f90 direct_sum_poisson2D.f90
-SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90
+SOURCES3D = dimen3D.f90 variablesND.f90 direct_sum_poisson3D.f90 
 
 ######################################################################
 ########### choose the setup file in each dimension here #############
@@ -95,6 +95,7 @@ SOURCES = sphND_mhd.f90 geometry.f90 convert_gr.f90 \
          boundaryND_1D.f90 check_setup.f90 \
 	 copy_particle.f90 \
 	 defaults.f90 \
+         direct_sum_poisson3D_soft.f90 \
          get_neighbour_lists.f90 \
          density_sums.f90 \
 	 eos.f90 evolve.f90 \
@@ -118,11 +119,11 @@ SOURCES2 = conservative2primitive.f90 stepND_mhd.f90 evwrite_mhd.f90 \
 SOURCESGR = grutils_gr.f90 conservative2primitive_gr.f90 \
 	    stepND_mhd_gr.f90 evwrite_mhd_gr.f90
 	 
-OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
-OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTS2D =  $(SOURCES2D:.f90=.o) $(SOURCES:.f90=.o)  $(SOURCES2:.f90=.o) \
 	    $(SETUP2D:.f90=.o)
-OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES2:.f90=.o) $(SOURCES:.f90=.o) \
+OBJECTS3D =  $(SOURCES3D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o)  \
 	    $(SETUP3D:.f90=.o)
 OBJECTSGR1D = $(SOURCES1D:.f90=.o) $(SOURCESGR:.f90=.o) $(SOURCES:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
