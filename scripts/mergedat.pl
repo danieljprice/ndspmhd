@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/bin/env perl
 #
 # @(#) perl script to merge different SPH data files into one file 
 # @(#) so that different simulations can be compared
@@ -19,7 +19,7 @@ my @infile;
 ## read arguments from command line
 
 if ($#ARGV <=1) {		## $# is highest index in array
-   system "what $0"; print "\n";
+   #system "what $0"; print "\n";
    die "Usage: $0 nstepsmax filename1 filename2 ... filenameN\n";
 }
 

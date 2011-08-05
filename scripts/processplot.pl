@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/bin/env/perl
 #
 #
 #
