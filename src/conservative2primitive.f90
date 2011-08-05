@@ -69,7 +69,7 @@ subroutine conservative2primitive
 !--calculate magnetic flux density B from the conserved variable
 !
   remap = .false.
-  if (imhd.eq.10 .or. imhd.eq.20 .or. imhd.eq.-3 .and. &
+  if ((imhd.eq.10 .or. imhd.eq.20 .or. imhd.eq.-3) .and. &
       nsteps_remap.gt.0 .and. mod(nsteps,nsteps_remap).eq.0) then
      remap = .true.
      print*,' REMAPPING...'
