@@ -104,7 +104,8 @@ subroutine conservative2primitive
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
-  if (iener.eq.3) then     ! total energy is evolved
+  select case(iener)
+  case(3)     ! total energy is evolved
      do i=1,npart
         v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
@@ -115,13 +116,15 @@ subroutine conservative2primitive
         endif
      enddo
      if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
-  elseif (iener.eq.1) then  ! en = entropy variable
+  case(1)  ! en = entropy variable
      uu = en/(gamma-1.)*rho**(gamma-1.)
-  elseif (iener.eq.5) then
+  case(4)  ! en = rho*u (volume thermal energy variable)
+     uu = en/rho
+  case(5)
      call smooth_variable(en,uu,x,pmass,hh,rho)
-  else                 ! en = thermal energy
+  case default    ! en = thermal energy
      uu = en
-  endif
+  end select
 !
 !--call equation of state calculation
 !
@@ -332,18 +335,21 @@ subroutine primitive2conservative
 !
 !--calculate conserved energy (or entropy) from the thermal energy
 !
-  if (iener.eq.3) then     ! total energy is evolved
+  select case(iener)
+  case(3)     ! total energy is evolved
      do i=1,npart
         v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
         en(i) = uu(i) + 0.5*v2i + 0.5*B2i
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
-  elseif (iener.eq.1) then ! en = entropy
+  case(1)   ! en = entropy
      en = (gamma-1.)*uu/rho**(gamma-1.)
-  else                ! en = thermal energy
+  case(4)   ! en = rho*u (volume thermal energy)
+     en = uu*rho
+  case default        ! en = thermal energy
      en = uu
-  endif
+  end select
 !
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)

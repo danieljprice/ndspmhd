@@ -547,7 +547,10 @@ subroutine get_rates
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
+       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)
+    elseif (iener.eq.4) then
+       dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
+       if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
     elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
        dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
@@ -1030,16 +1033,6 @@ contains
     elseif (iener.gt.0 .and. iav.lt.0) then
        dudt(i) = dudt(i) + pmassj*prstari*(rho21i)*dvdotr*grkerni
        dudt(j) = dudt(j) + pmassi*prstarj*(rho21j)*dvdotr*grkernj
-    elseif (iener.eq.4) then
-       !
-       !--add surface term
-       !
-       vidotdS = veli(1) !!dot_product(veli(:),dr(:))
-       vjdotdS = velj(1) !!-dot_product(velj(:),dr(:))
-       dudt(i) = dudt(i) - pri*rho21i*(rhoi*vidotdS*wabi - rhoj*vjdotdS*wabj)
-       dudt(j) = dudt(j) - prj*rho21j*(rhoj*vjdotdS*wabj - rhoi*vidotdS*wabi)
-       !               ( ^ change of sign here is because of the v dot dS defined above)
-
     elseif (iener.eq.10) then  
        !
        !--Ritchie & Thomas energy equation (their eqn. 25)
