@@ -3,14 +3,14 @@
 !!--------------------------------------------------------------------
   
 SUBROUTINE evwrite(t,etot,momtot)
- USE dimen_mhd
- USE debug
- USE loguns
+ USE dimen_mhd, only:ndim,ndimV
+ USE debug, only:trace
+ USE loguns, only:iprint,ievfile
  
  USE derivB
  USE options
  USE part
- USE rates
+ USE rates, only:force,potengrav
  USE fmagarray
 !
 !--define local variables
@@ -46,7 +46,11 @@ SUBROUTINE evwrite(t,etot,momtot)
  etherm = 0.0
  emag = 0.0
  etot = 0.0
- epot = 0.0
+ IF (igravity.NE.0) THEN
+    epot = potengrav
+ ELSE
+    epot = 0.
+ ENDIF
  mom(:) = 0.0
  momtot = 0.0
  alphatstarav = 0.
