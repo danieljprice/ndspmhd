@@ -177,7 +177,9 @@ SUBROUTINE initialise
 !  and density iterations
 !
  if (any(pmass(1:npart).ne.pmass(1)) .and. icty.eq.0 .and. ikernav.eq.3) then
-    rhomin = 0.05
+    !!rhomin = 0.
+    rhomin = minval(dens(1:npart))
+    write(iprint,*) 'rhomin = ',rhomin
  else
     rhomin = 0.
  endif
