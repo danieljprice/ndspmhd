@@ -155,7 +155,7 @@ SUBROUTINE step
 !
 !--set new timestep from courant/forces condition
 !
- dt = min(dtforce,dtcourant)
+ dt = min(C_force*dtforce,C_cour*dtcourant)
 
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
