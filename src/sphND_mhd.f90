@@ -46,18 +46,10 @@
 !!---------------------------------------------------------------------!!
 
 PROGRAM SUPERSPMHD_ND
- USE dimen_mhd
  USE debug
  USE loguns
- USE options
- USE timestep
  USE versn
-!
-!--define local variables
-!
  IMPLICIT NONE
- REAL :: tprint
- INTEGER :: noutput,nevwrite
 !
 !--version number
 !
@@ -67,6 +59,8 @@ PROGRAM SUPERSPMHD_ND
 !   * eos rehashed
 !   * setup is on primitive variables  
 !   * psep sent to set_uniform_cartesian
+!   * external forces subroutine
+!   * main loop in subroutine evolve
 !    version = 'NDSPMHD-3D-v5-0'
 !   *** saved as working 3D version ***
 !   * equations use general alternative formulation
@@ -250,70 +244,9 @@ PROGRAM SUPERSPMHD_ND
  CALL logun     	! set logical unit numbers to use for input/output
  CALL initialise	! read files and parameters and setup particles
 !
-!--Set initial timestep
+!--now call the main timestepping loop
 !
- dt = 0.
- tprint = 0.0
- time = 0.0
- nsteps = 0
- nevwrite = 1	! frequency of writing to .ev file (could be read as parameter)
-!
-!--write the initial conditions to the output and evolution files
-!
- CALL output(time,nsteps)
- CALL evwrite(time)
- noutput = 1
- tprint = tout
-! CALL quit
-!
-! --------------------- Main loop ----------------------------------------
-!
- dostep: DO WHILE ((time.LT.tmax).AND.(nsteps.LT.nmax))
-
-    hdt = 0.5*dt
-    time = time + dt
-    nsteps = nsteps + 1
-
-    CALL step 	 		!  Evolve data for one timestep
-
-    dt = min(dtforce,dtcourant) ! new timestep from force/Courant condition
-!
-!--write log every step in 2D/3D
-!
-    IF (ndim.GE.2) THEN
-       WRITE(iprint,10) time,dtforce,dtcourant
-10     FORMAT(' t = ',f9.4,' dtforce = ',1pe10.3,' dtcourant = ',1pe10.3)
-    ENDIF
-    
-    IF (dt.LT.1e-8) THEN
-       WRITE(iprint,*) 'main loop: timestep too small, dt = ',dt
-       CALL quit
-    ENDIF
-!
-!--Write to data file if time is right
-! 
-    IF (   (time.GE.tprint) 				&
-       .OR.(time.GE.tmax)				&
-       .OR.((MOD(nsteps,nout).EQ.0).AND.(nout.GT.0))	&
-       .OR.(nsteps.GE.nmax)  ) THEN
- 
-!--if making movies and need ghosts to look right uncomment the line below, 
-       IF (idumpghost.EQ.1 .AND. ANY(ibound.GE.2)) CALL set_ghost_particles
-       CALL output(time,nsteps)
-       noutput = noutput + 1
-       tprint = noutput*tout
-    ENDIF
-!    
-!--calculate total energy etc and write to ev file    
-!
-    IF (MOD(nsteps,nevwrite).EQ.0) CALL evwrite(time)
-
-    IF (dt.GE.(tprint-time)) dt = tprint-time	! reach tprint exactly
-	 	 
- ENDDO dostep
-
-!------------------------------------------------------------------------
-
+ CALL evolve
 !
 !--close all open files and exit
 !
