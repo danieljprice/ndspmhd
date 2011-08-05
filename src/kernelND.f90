@@ -25,7 +25,7 @@ SUBROUTINE setkern
  USE setup_params	! for hfact in my kernel
  USE anticlumping
  IMPLICIT NONE			!  define local variables
- INTEGER :: i,j,iteration,iC
+ INTEGER :: i,j,iteration,iC,npower
  REAL :: q,q2,q4,cnormk
  REAL :: term1,term2,term3,term4
  REAL :: dterm1,dterm2,dterm3,dterm4
@@ -173,13 +173,13 @@ SUBROUTINE setkern
 
     gamma = 0.
     IF (ikernel.EQ.5) THEN
-       beta = 0.5		!2./3.
-       alpha = 1.4	!4./3.
+       beta = 0.5
+       alpha = 1.7   !!1.4
        kernelname = 'New quintic (1)'    
     ELSEIF (ikernel.EQ.6) THEN
-       beta = 0.1
-       alpha = 0.4
-       kernelname = 'Steep quintic'    
+       beta = 0.7
+       alpha = 1.5
+       kernelname = 'New quintic (2)'    
     ELSE
     !--match to cubic spline, ie W''(0) = -2
       kernelname = 'Cubic-like quintic' 
@@ -252,15 +252,35 @@ SUBROUTINE setkern
   CASE (8)
 !
 !--(1-r^2)^3
-!    
-    kernelname = '(1-r^2)^6'    
+!   
+    npower = 5
+    write(kernelname,"(a,i1)") '(1-r^2)^',npower     
 
     radkern = 2.0
     radkern2 = radkern*radkern
     dq2table = radkern2/REAL(ikern)
     SELECT CASE(ndim)
       CASE(1)
-         cnormk = 3003./16777216.
+         SELECT CASE(npower)
+	 CASE(1)
+	    cnormk = 0.5*3./(2.*radkern**3)
+         CASE(2)
+	    cnormk = 0.5*15./(8.*radkern**5)
+	 CASE(3)
+	    cnormk = 0.5*35./(16.*radkern**7)
+	 CASE(4)
+	    cnormk = 0.5*315./(128.*radkern**9)
+	 CASE(5)
+	    cnormk = 0.5*693./(256.*radkern**11)
+	 CASE(6)
+	    cnormk = 0.5*3003./(1024.*radkern**13)
+	 CASE(7)
+	    cnormk = 0.5*6435./(2048.*radkern**15)	 
+	 CASE(8)
+	    cnormk = 0.5*109395./(32768.*radkern**17)	 
+	 CASE DEFAULT
+	    cnormk = 0.
+	 END SELECT	 
       CASE(2)
          cnormk = 3./(64.*pi)
       CASE(3)
@@ -270,9 +290,10 @@ SUBROUTINE setkern
        q2 = i*dq2table
        q = SQRT(q2)
        IF (q.LT.radkern) THEN
-          wij(i) = cnormk*(radkern**2-q2)**6
-	  grwij(i) = -cnormk*2.*6.*q*(radkern**2-q2)**5
-	  grgrwij(i) = cnormk*(4.*6.*5.*q2*(radkern**2-q2)**4 - 2.*6.*(radkern**2-q2)**5)
+          wij(i) = cnormk*(radkern**2-q2)**npower
+	  grwij(i) = -cnormk*2.*npower*q*(radkern**2-q2)**(npower-1)
+	  grgrwij(i) = cnormk*(4.*npower*(npower-1)*q2*(radkern**2-q2)**(npower-2) &
+	               - 2.*npower*(radkern**2-q2)**(npower-1))
        ELSE
           wij(i) = 0.
 	  grwij(i) = 0.
@@ -280,8 +301,37 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
     
-    
-  CASE(9)
+   CASE (9)
+!
+!--(1-r)^n - a peaked kernel (deriv non-zero at origin) - truly awful
+!   
+    npower = 4
+    write(kernelname,"(a,i1)") '(2-r)^',npower     
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/REAL(ikern)
+    SELECT CASE(ndim)
+      CASE(1)
+         cnormk = 0.5*(npower+1)/radkern**(npower+1)
+      CASE(2,3)
+         STOP 'normalisation const not defined in kernel'
+    END SELECT  
+    DO i=0,ikern
+       q2 = i*dq2table
+       q = SQRT(q2)
+       IF (q.LT.radkern) THEN
+          wij(i) = cnormk*(radkern-q)**npower
+	  grwij(i) = -cnormk*npower*(radkern-q)**(npower-1)
+	  grgrwij(i) = cnormk*(npower*(npower-1)*(radkern-q)**(npower-2))
+       ELSE
+          wij(i) = 0.
+	  grwij(i) = 0.
+	  grgrwij(i) = 0.
+       ENDIF
+    ENDDO   
+
+  CASE(10)
 !
 !--Gaussian
 !  
@@ -312,7 +362,7 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
 
-  CASE(10)
+  CASE(11)
 !
 !--this is the usual spline based kernel modified for r/h < 2/3 to
 !   prevent particles from clumping (see Thomas & Couchman '92)
@@ -353,7 +403,7 @@ SUBROUTINE setkern
        ENDIF
     ENDDO
   
-  CASE(11)
+  CASE(12)
 !
 !--this is the squashed quintic spline from Bonet & Kulesegaram
 !
