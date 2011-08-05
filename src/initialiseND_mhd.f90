@@ -71,14 +71,14 @@ SUBROUTINE initialise
     STOP 'Error ndim <0 or >3: We leave string theory for later'
  ENDIF   
 !
+!--read parameters from the infile
+!
+ CALL read_infile(infile)
+!
 !--Open data/ev files
 !
  OPEN(UNIT=idatfile,ERR=667,FILE=datfile,STATUS='replace',FORM='formatted')
  OPEN(UNIT=ievfile,ERR=668,FILE=evfile,STATUS='replace',FORM='formatted') 
-!
-!--read parameters from the infile
-!
- CALL read_infile(infile)
 !
 !--work out multiplication factor for source term in Morris and Monaghan scheme
 !  (just from gamma)
