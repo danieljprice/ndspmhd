@@ -37,7 +37,7 @@ FC = lf95
 F90C = lf95
 FFLAGS = -O ##--chk aesux --chkglobal  --warn
 F90FLAGS = -O ##--chk aesux --chkglobal --warn
-LDFLAGS = ##-lpgplot -L/usr/X11R6/lib -lX11
+#LDFLAGS = -lpgplot -L/usr/X11R6/lib -lX11
 ## ------------------------------------------------------------------ ##
 # Swinburne compiler (Intel fortran)
 #FC = ifort

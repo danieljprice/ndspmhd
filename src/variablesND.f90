@@ -11,7 +11,7 @@
 MODULE artvi
  IMPLICIT NONE
  REAL :: alphamin,beta,avconst
- REAL :: avfact,gconst
+ REAL :: avfact,udiss_frac,Bdiss_frac
 END MODULE artvi
 
 !-------------------------------------------------------------------
