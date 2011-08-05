@@ -135,7 +135,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--calculate div B source term for poisson equation
 !       
        if (debugging) write(iprint,*) ' calculating current before correction'
-       call get_curl(ntot,x,pmass,rho,hh,Bfield,curlB)
+       call get_curl(1,ntot,x,pmass,rho,hh,Bfield,curlB)
        if (ntot.gt.npart) curlB(:,npart+1:ntot) = 0.
        
        if (debugging) then
@@ -196,7 +196,7 @@ SUBROUTINE divBcorrect(npts,ntot)
           enddo
           divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
           
-          call get_curl(ntot,x,pmass,rho,hh,Bfield,curlB)
+          call get_curl(1,ntot,x,pmass,rho,hh,Bfield,curlB)
           if (ntot.gt.npart) curlB(:,npart+1:ntot) = 0.
           
           call output(time,nsteps)   ! output div B and Bfield after correction
