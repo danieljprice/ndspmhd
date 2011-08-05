@@ -825,6 +825,38 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       endif
     enddo
     grgrwkern(0) = grgrwkern(1)    
+
+  case(22)
+!
+!--Q-gaussian from Fulk & Quinn 1996
+!  
+    kernellabel = 'Q-Gaussian'    
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 0.643998 ! 0.7764 from Mathematica
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select  
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       if (q.lt.radkern) then
+          wkern(i) = (1.-0.25*q2)*exp(-q2)
+          grwkern(i) = 0.5*q*(q2 - 5.)*exp(-q2)
+          grgrwkern(i) = -0.5*exp(-q2)*(2.*q2*q2 - 13.*q2 + 5.)
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
   case(30)
 !
 !--these are the Ferrer's spheres from Dehnen (2001)
@@ -998,6 +1030,237 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
          grgrwkern(i) = 0.
       endif
     enddo
+
+  case(41)
+!
+!--particle splitting kernel (cubic spline gradient  * q)
+!   
+    kernellabel = 'particle splitting'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.66666666666
+      case(2)
+        cnormk = 10./(7.*pi)
+      case(3)
+        cnormk = 1./(3.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.1.0) then
+          wkern(i) = q*(3.*q - 2.25*q2)
+          grwkern(i) = 6.*q - 3.*2.25*q2
+          grgrwkern(i) = 6. - 6.*2.25*q
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = q*0.75*(2.-q)**2
+          grwkern(i) = 0.75*(2.-q)**2 - 1.5*q*(2.-q)
+          grgrwkern(i) = -1.5*(2.-q) - 1.5*(2.-q) + 1.5*q
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(42)
+!
+!--Double hump kernel from Fulk & Quinn (1996)
+!   
+    kernellabel = 'double cubic spline'
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 2.0
+      case(2)
+        cnormk = 70./(31.*pi)
+      case(3)
+        cnormk = 10./(9.*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.1.0) then
+          wkern(i) = q2 - 1.5*q4 + 0.75*q4*q
+          grwkern(i) = 2.*q - 6.*q2*q + 3.75*q4
+          grgrwkern(i) = 2. - 18.*q2 + 15.*q2*q
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = 0.25*q2*(2.-q)**3
+          grwkern(i) = 0.5*q*(2.-q)**3 - 0.75*q2*(2.-q)**2
+          grgrwkern(i) = 0.5*(2.-q)**3 - 3.*q*(2.-q)**2 + 1.5*q2*(2.-q)
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(43)
+!
+!--double hump version of the m_6 quintic spline
+!
+    kernellabel = 'double hump M_6 quintic'  
+    radkern = 3.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1) 
+       cnormk = 1./60.
+      case(2)
+       cnormk = 42./(2771.*pi)
+      case(3)
+       cnormk = 1./(168.*pi)
+    end select
+    do i=0,ikern         
+       q2 = i*dq2table
+       q4 = q2*q2
+       q = sqrt(q2)
+       term1 = -5.*(3.-q)**4.
+       if (q.lt.1.0) then
+          wkern(i) = q2*(66.-60.*q2 + 30.*q4 - 10.*q4*q)
+          grwkern(i) = 2.*q*(-35.*q4*q + 90.*q4 - 120.*q2 + 66.)
+          grgrwkern(i) = -12.*(-35.*q4*q - 75.*q4 + 60.*q2 - 11.)
+       elseif ((q.ge.1.0).and.(q.lt.2.0)) then
+          wkern(i) = q2*((3.-q)**5. - 6.*(2.-q)**5.)
+          grwkern(i) = q*(35.*q4*q - 270.*q4 + 750.*q2*q - 840.*q2 + 225.*q + 102)
+          grgrwkern(i) = 6.*(35.*q4*q - 225.*q4 + 500.*q2*q - 420.*q2 + 75.*q + 17)
+       elseif ((q.ge.2.0).and.(q.le.3.0)) then
+          wkern(i) = q2*(3.-q)**5.
+          grwkern(i) = -q*(7.*q - 6.)*(3.-q)**4
+          grgrwkern(i) = -6.*(3. - q)^3*(7.*q2 - 12.*q + 3.)
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(44)
+!
+!--Another double hump kernel from Fulk & Quinn (1996)
+!   
+    kernellabel = 'double hump Lucy/Wendland 4'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.102539
+      case(2)
+        cnormk = 10./(7.*pi)
+      case(3)
+        cnormk = 1./(3.*6.5*pi)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.2.0) then
+          term = (2.+3.*q)*(2.-q)**3
+          wkern(i) = q2*term
+          grwkern(i) = 2.*q*term + q2*(3.*(2.-q)**3 - 3.*(2.+3.*q)*(2.-q)**2)
+          grgrwkern(i) = 2.*term + 2.*q*(3.*(2.-q)**3 - 3.*(2.+3.*q)*(2.-q)**2) &
+                       + q2*(-18.*(2.-q)**2 + 6.*(2.+3.*q)*(2.-q))&
+                       + 2.*q*(3.*(2.-q)**3 - 3.*(2.+3.*q)*(2.-q)**2)
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(45)
+!
+!--double hump Gaussian
+!   
+    kernellabel = 'double Gaussian'    
+  
+    radkern = 10.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 2./sqrt(pi)
+      case(2)
+        cnormk = 1./pi
+      case(3)
+        cnormk = 2./(3.*pi**1.5)
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.radkern) then
+          wkern(i) = q2*exp(-q2)
+          grwkern(i) = -2.*exp(-q2)*q*(q2 - 1.)
+          grgrwkern(i) = 2.*exp(-q2)*(2.*q2*q2 - 5.*q2 + 1.)
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(46)
+!
+!--particle splitting kernel (cubic spline gradient  * q)
+!   
+    kernellabel = 'cubic spline gradient-as-kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.5
+      case(2)
+        cnormk = 10./(7.*pi)
+      case(3)
+        cnormk = 1./(3.*pi)/0.9245
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       q4 = q2*q2
+       if (q.lt.1.0) then
+          wkern(i) = (3.*q - 2.25*q2)
+          grwkern(i) = 3. - 4.5*q
+          grgrwkern(i) = -4.5
+       elseif ((q.ge.1.0).and.(q.le.2.0)) then
+          wkern(i) = 0.75*(2.-q)**2
+          grwkern(i) = -1.5*(2.-q)
+          grgrwkern(i) = 1.5
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
   case(51)
 !
 !--cubic spline with vanishing second moment (using monaghan 1992 method)
@@ -1161,45 +1424,6 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           wkern(i) = exp(-q2)*(1.5 - q2)
           grwkern(i) = exp(-q2)*q*(2.*q2 - 5.)
           grgrwkern(i) = exp(-q2)*(-4.*q4 + 16.*q2 - 5.)
-       else
-          wkern(i) = 0.0
-          grwkern(i) = 0.0
-          grgrwkern(i) = 0.
-       endif
-    enddo
-
-  case(59)
-!
-!--particle splitting kernel (cubic spline gradient  * q)
-!   
-    kernellabel = 'particle splitting'    
-  
-    radkern = 2.0      ! interaction radius of kernel
-    radkern2 = radkern*radkern
-    dq2table = radkern*radkern/real(ikern)    
-    select case(ndim)
-      case(1)
-        cnormk = 0.66666666666
-      case(2)
-        cnormk = 10./(7.*pi)
-      case(3)
-        cnormk = 1./(3.*pi)
-    end select
-!
-!--setup kernel table
-!   
-    do i=0,ikern
-       q2 = i*dq2table
-       q = sqrt(q2)
-       q4 = q2*q2
-       if (q.lt.1.0) then
-          wkern(i) = q*(3.*q - 2.25*q2)
-          grwkern(i) = 6.*q - 3.*2.25*q2
-          grgrwkern(i) = 6. - 6.*2.25*q
-       elseif ((q.ge.1.0).and.(q.le.2.0)) then
-          wkern(i) = q*0.75*(2.-q)**2
-          grwkern(i) = 0.75*(2.-q)**2 - 0.75*q*2.*(2.-q)
-          grgrwkern(i) = -1.5*(2.-q) - 0.75*2.*(2.-q) + 0.75*q*2.
        else
           wkern(i) = 0.0
           grwkern(i) = 0.0
@@ -1625,7 +1849,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
-    kernellabel = 'M_4 cubic'    
+    kernellabel = 'M_4 cubic spline'    
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
