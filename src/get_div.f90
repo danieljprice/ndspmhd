@@ -1,11 +1,13 @@
 !!------------------------------------------------------------------------
-!! Computes an SPH estimate of div B given B
+!! Computes an SPH estimate of div B given a vector B
 !!
 !! This version computes div B on all particles
 !! and therefore only does each pairwise interaction once
 !!
 !! particle quantities are explicitly passed rather than through the 
 !! global modules
+!!
+!! assumes there has been a previous call to density
 !!------------------------------------------------------------------------
 
 SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
@@ -21,9 +23,9 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npart,ntot
  REAL, DIMENSION(ndim,ntot), INTENT(IN) :: x
- REAL, DIMENSION(ntot), INTENT(IN) :: hh,pmass
+ REAL, DIMENSION(ntot), INTENT(IN) :: hh,pmass,rho
  REAL, DIMENSION(ndimV,ntot), INTENT(IN) :: Bin
- REAL, DIMENSION(ntot), INTENT(OUT) :: divB,rho
+ REAL, DIMENSION(ntot), INTENT(OUT) :: divB
 !
 !--define local variables
 !
@@ -37,7 +39,7 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
  REAL :: rij,rij2
  REAL :: hi,hi1,hav,hav1,hj,hj1,h2,hi2,hj2
  REAL :: hfacwab,hfacwabi,hfacwabj
- REAL :: pmassi,pmassj,projdB,gradpsiterm
+ REAL :: pmassi,pmassj,projdB
  REAL, DIMENSION(ndim) :: dx
  REAL, DIMENSION(ndimV) :: dr
 !
@@ -55,7 +57,6 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
 !
  listneigh = 0
  divB = 0.
- gradpsi = 0.
  rho = 0.
 !
 !--Loop over all the link-list cells
@@ -153,19 +154,10 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
 !--calculate div B and grad psi
 !
                 projdB = DOT_PRODUCT(Bin(:,i)-Bin(:,j),dr)
-                gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
 
                 divB(i) = divB(i) - pmassj*projdB*grkerni
                 divB(j) = divB(j) - pmassi*projdB*grkernj            
-                 
-                weight = 1.0
-                if (j.eq.i) weight = 0.5
-                rho(i) = rho(i) + weight*pmassj*wabi
-                rho(j) = rho(j) + weight*pmassi*wabj
-
-                !      ELSE
-                !         PRINT*,' r/h > 2 '      
-                
+                                
              ENDIF
 
          ENDIF! .not. j>npart .and. i>npart   
@@ -185,12 +177,7 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
 !
  DO i=1,npart
     if (rho(i).ge.0.) then
-       if (imhd.ge.11) then ! evolving B
-          gradpsi(:,i) = gradpsi(:,i)/rho(i)
-       else                 ! evolving B/rho
-          gradpsi(:,i) = gradpsi(:,i)/rho(i)**2       
-       endif
-       divB(i) = divB(i)/rho(i)
+       divB(i) = divB(i)/(gradh(i)*rho(i))
     else
        write(*,*) 'ERROR: get_divBgradpsi: rho < 0.'
     endif
@@ -200,9 +187,7 @@ SUBROUTINE get_divBgradpsi(divB,Bin,x,hh,pmass,rho,npart,ntot)
  
  DO i=npart+1,ntot
     j = ireal(i)
-    rho(i) = rho(j)
-    gradpsi(:,i) = 0.
-    !print*,i,Bin(:,i),rho(i)
+    divB(i) = divB(j)
  ENDDO
 ! read*
 
