@@ -195,7 +195,7 @@ SUBROUTINE alloc(newsizein)
 !-----------------------------------------------------------------------------
 !  allocate all arrays (for both first time and reallocation)
 !-----------------------------------------------------------------------------
-
+    idim = newsize
 !
 !--initial particle properties
 !
