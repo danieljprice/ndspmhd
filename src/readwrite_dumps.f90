@@ -18,14 +18,14 @@ subroutine write_dump(t,dumpfile)
  use setup_params
  use derivb
  use rates
- use hterms, only:gradh
+ use hterms, only:gradh,gradsoft
 !
 !--define local variables
 !
  implicit none
  real, intent(in) :: t
  character(len=*), intent(in) :: dumpfile
- integer :: nprint,ndata
+ integer :: nprint,ndata,i
  integer :: ierr,iformat
 
  if (idumpghost.eq.1) then
@@ -48,7 +48,7 @@ subroutine write_dump(t,dumpfile)
     ndata = ndim + 11 + 3*ndimV ! number of columns apart from co-ords
     iformat = 2
  else
-    ndata = ndim + 9 + ndimV
+    ndata = ndim + 11 + ndimV
     iformat = 1
     if (igeom.gt.1) then
        ndata = ndata + 2 + ndimV
@@ -83,9 +83,9 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) psi(1:nprint)
      !--info only
      write(idatfile) pr(1:nprint)
-     write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
+     write(idatfile) gradh(1:nprint) !!!-drhodt(1:nprint)/rho(1:nprint)
      write(idatfile) divB(1:nprint)
-     write(idatfile) curlB(:,1:nprint)
+     write(idatfile) Bevol(:,1:nprint)
   else
      !--essential variables
      write(idatfile) x(:,1:nprint)
@@ -97,12 +97,20 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) alpha(1:2,1:nprint)
      !--info only
      write(idatfile) pr(1:nprint)
-     write(idatfile) -drhodt(1:nprint)/rho(1:nprint)
-     write(idatfile) gradh(1:nprint)
+     write(idatfile) gradh(1:nprint)  !!-drhodt(1:nprint)/rho(1:nprint)
+     write(idatfile) gradsoft(1:nprint)
+     write(idatfile) poten(1:nprint)
+     do i=1,nprint
+        psi(i) = sqrt(dot_product(force(1:ndim,i),force(1:ndim,i)))
+     enddo
+     write(idatfile) psi(1:nprint)
+     psi = 0.
      if (igeom.gt.1) then
         write(idatfile) rho(1:nprint)
         write(idatfile) sqrtg(1:nprint)
-        write(idatfile) pmom(:,1:nprint)
+        do i=1,ndimV
+           write(idatfile) pmom(i,1:nprint)
+        enddo
      endif
   endif
 
