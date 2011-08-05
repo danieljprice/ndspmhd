@@ -2,7 +2,7 @@
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
 !!--------------------------------------------------------------------
-	 
+         
 subroutine step
  use dimen_mhd
  use debug
@@ -24,7 +24,7 @@ subroutine step
 !--define local variables
 !
  implicit none
- integer :: i,j,jdim,ikernavprev,ierr
+ integer :: i
  real :: hdt
 !
 !--allow for tracing flow
@@ -47,12 +47,12 @@ subroutine step
 !--Mid-point Predictor step
 !      
  do i=1,npart
-    if (itype(i).EQ.1 .or. itype(i).EQ.2) then	! fixed particles
+    if (itype(i).EQ.1 .or. itype(i).EQ.2) then        ! fixed particles
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
-       Bevol(:,i) = Bevolin(:,i)	     
+       Bevol(:,i) = Bevolin(:,i)     
        if (iener.NE.0) en(i) = enin(i)
-       hh(i) = hhin(i)	    
+       hh(i) = hhin(i)            
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(:,i) = alphain(:,i)
     else
@@ -67,13 +67,13 @@ subroutine step
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        if (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
        if (ihvar.EQ.1) then
-!	   hh(i) = hfact(pmass(i)/rho(i))**dndim	! my version
-	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim		! Joe's	   
+!           hh(i) = hfact(pmass(i)/rho(i))**dndim        ! my version
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! Joe's           
        elseif (ihvar.EQ.2 .OR. ihvar.EQ.3) then
           hh(i) = hhin(i) + hdt*dhdt(i)
        endif
        if (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
-       if (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
+       if (ANY(iavlim.NE.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)           
     endif
 
  enddo
@@ -106,25 +106,25 @@ subroutine step
        x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        if (ihvar.EQ.2) then
           hh(i) = hhin(i) + dt*dhdt(i)
-	  if (hh(i).LE.0.) then
-	     write(iprint,*) 'step: hh -ve ',i,hh(i)
-	     call quit
-	  endif
+          if (hh(i).LE.0.) then
+             write(iprint,*) 'step: hh -ve ',i,hh(i)
+             call quit
+          endif
        endif
        if (icty.GE.1) then
           rho(i) = rhoin(i) + dt*drhodt(i)
           if (rho(i).LE.0.) then
              write(iprint,*) 'step: rho -ve ',i,rho(i)
-    	     call quit
+                 call quit
           endif
        endif
-       if (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
-       if (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)	  
+       if (ANY(iavlim.NE.0)) alpha(:,i) = min(alphain(:,i) + dt*daldt(:,i),1.0)
+       if (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)          
     endif
- enddo	 	
+ enddo                 
 !
 !--update density using a full summation every so often
-!	 
+!         
  if (MOD(nsteps,ndirect).EQ.0) then
     call iterate_density
     do i=1,npart
@@ -136,7 +136,7 @@ subroutine step
 ! 
 ! if (idivBzero.NE.0) call divBcorrect
 !
- if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
+ if (ANY(ibound.NE.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--set new timestep from courant/forces condition
 !
