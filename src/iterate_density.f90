@@ -162,15 +162,18 @@ subroutine iterate_density
 !
               if (usenumdens .and. (hnew.le.0 .or. gradhn(i).le.0)) then
                  nwarn = nwarn + 1
-                 !print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
+!                 !print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
                  hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
               elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.0)) then
-                 nwarn = nwarn + 1
+!                 nwarn = nwarn + 1
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
+              elseif (itsdensity.gt.100) then
+                 hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen              
               endif
               if (numneigh(i).le.1) then
+                 nwarn = nwarn + 1
                  !print*,'NO NEIGHBOURS : rho = ',rho(i),' h = ',hnew,hh(i)
-                 write(iprint,*) ' WARNING: particle ',i,' has no neighbours, increasing h'
+                 !write(iprint,*) ' WARNING: particle ',i,' has no neighbours, increasing h'
                  hnew = max(hh(i),hnew) + psep
               endif
 !
@@ -214,7 +217,7 @@ subroutine iterate_density
            endif   ! itype .NE. 1
         enddo
         if (nwarn.gt.0) then
-           write(iprint,*) ' WARNING: h or omega < 0 in iterations ',nwarn,' times'
+           write(iprint,*) ' WARNING: h or omega < 0 or no neighbours in iterations ',nwarn,' times'
         endif
         if (nrhosmall.gt.0) then
            write(iprint,"(a,i3,a,i8,a)") ' WARNING: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
