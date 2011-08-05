@@ -100,10 +100,14 @@ subroutine get_rates
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
  real :: stressterm, stressmax
+ logical, parameter :: itiming = .false.
+ real :: t1,t2,t3,t4,t5
 !
 !--allow for tracing flow
 !      
  if (trace) write(iprint,*) ' Entering subroutine get_rates'
+
+ if (itiming) call cpu_time(t1)
 !
 !--allocate memory for local arrays
 !
@@ -149,7 +153,6 @@ subroutine get_rates
     enddo
     if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
  endif
-
 !
 !--set MHD quantities to zero if mhd not set
 !
@@ -190,6 +193,9 @@ subroutine get_rates
     case default      ! this gives the usual continuity, momentum and induction eqns
        phi(1:ntotal) = 1.0 
  end select
+
+ if (itiming) call cpu_time(t2)
+
 !
 !--Loop over all the link-list cells
 !
@@ -301,6 +307,8 @@ subroutine get_rates
  
 666 continue
 
+ if (itiming) call cpu_time(t3)
+
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
@@ -324,6 +332,7 @@ subroutine get_rates
         stop 'unknown igravity setting in forces'
     end select
  endif
+ if (itiming) call cpu_time(t4)
 
  if (trace) write(iprint,*) 'Finished main rates loop'
  fhmax = 0.0
@@ -345,6 +354,19 @@ subroutine get_rates
  
     rho1i = 1./rho(i)
 !
+!--compute JxB force from the Euler potentials (if using second derivs)
+!  also divide by rho for J and div B calculated the "normal" way
+!
+    if (imhd.ne.0) then
+       if (imagforce.eq.4) then
+          call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
+          force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
+       else
+          curlB(:,i) = curlB(:,i)*rho1i
+       endif
+       divB(i) = divB(i)*rho1i
+    endif
+!
 !--add external (body) forces
 !
     if (iexternal_force.ne.0) then
@@ -355,15 +377,6 @@ subroutine get_rates
 !--add source terms (derivatives of metric) to momentum equation
 !
     if (allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
-!
-!--do the divisions by rho etc (this is for speed - so calculations are not
-!  done multiple times within the loop)
-!
-    if (imhd.ne.0) then
-       divB(i) = divB(i)*rho1i            !*rhoi
-       curlB(:,i) = curlB(:,i)*rho1i
-    endif    
-    !!graddivv(:,i) = graddivv(:,i)
 !
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
@@ -515,8 +528,16 @@ subroutine get_rates
  if (allocated(listneigh)) deallocate(listneigh)
  if (allocated(phi)) deallocate(phi,del2u,graddivv)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
-      
- return
+ if (itiming) then
+    call cpu_time(t5)
+    write(iprint,"(50('-'))") 
+    write(iprint,*) 'time for intro   = ',t2-t1,'s'
+    write(iprint,*) 'time for main    = ',t3-t2,'s'
+    write(iprint,*) 'time for gravity = ',t4-t3,'s'
+    write(iprint,*) 'time for final   = ',t5-t4,'s'
+    write(iprint,*) 'total rates time = ',t5-t1,'s'    
+    write(iprint,"(50('-'))") 
+ endif
 
 !--------------------------------------------------------------------------------------
 !--------------------------------------------------------------------------------------
@@ -651,10 +672,11 @@ contains
     vsig2j = spsoundj**2 + valfven2j                                    
     vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
     vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
-    if (vsigproji.lt.0. .or. vsigprojj.lt.0.) then
-       write(iprint,*) ' rates: vsig det < 0 ', &
-       'i: ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i,      &
-       'j: ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+    if (vsigproji.lt.0.) then
+       write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
+       call quit 
+    elseif (vsigprojj.lt.0.) then
+       write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
        call quit  
     endif
     vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
@@ -701,14 +723,12 @@ contains
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
           !!prterm = (pri - prj)/rhoij*grkern
        endif
-    else
-       prterm = 0.
+       !
+       !--add pressure terms to force
+       !
+       force(:,i) = force(:,i) - pmassj*prterm*dr(:)
+       force(:,j) = force(:,j) + pmassi*prterm*dr(:)
     endif
-    !
-    !--add pressure terms to force
-    !
-    force(:,i) = force(:,i) - pmassj*prterm*dr(:)
-    force(:,j) = force(:,j) + pmassi*prterm*dr(:)
 
 !    force(:,i) = force(:,i) + pmassj*(pr(i)/rho(i)*dri(:)*grkerni &
 !                            + pr(j)/rho(j)*drj(:)*grkernj)
@@ -925,21 +945,10 @@ contains
 !----------------------------------------------------------------
   subroutine mhd_terms
     implicit none
+    real :: dalphaterm
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
-    !
-    !--calculate curl B for current (only if field is 3D)
-    !  this is used in the switch for the artificial resistivity term
-    !
-    if (ndimB.eq.3) then
-       curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
-       curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
-       curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
-    elseif (ndimB.eq.2) then  ! just Jz in 2D
-       curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
-       curlBi(2) = 0.
-    endif
     
     select case(imagforce)
     case(1)      ! vector form (dot products)
@@ -997,28 +1006,56 @@ contains
     !
     !--compute rho * current density J
     !
-    curlB(:,i) = curlB(:,i) - pmassj*curlBi(:)*grkern
-    curlB(:,j) = curlB(:,j) - pmassi*curlBi(:)*grkern
+    if (imagforce.eq.4) then
     !
-    !--add Lorentz force to total force
-    !              
-    select case(imagforce)
-    case(1)
-       fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
-       fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
-       force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
-       force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
-    case(5)    ! Morris' Hybrid force
-       fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-       fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
-       force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
-       force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
-    case default       ! symmetric forces fmagxi = -fmagxj
-       fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
-       fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
-       force(:,i) = force(:,i) + pmassj*(fmagi(:))
-       force(:,j) = force(:,j) - pmassi*(fmagi(:))
-    end select
+    !--compute J via a direct second derivative for the vector/Euler potentials
+    !  (J = -\nabla^2 \alpha)
+    !
+       if (ndim.eq.2) then
+          ! this is -\nabla^2 \alpha (equivalent to -\nabla^2 A_z in 2D)
+          dalphaterm = 2.*(Bevol(1,i)-Bevol(1,j))/rij
+          curlB(3,i) = curlB(3,i) - pmassj*rho1j*dalphaterm*grkerni
+          curlB(3,j) = curlB(3,j) + pmassi*rho1i*dalphaterm*grkernj
+       else
+          stop 'JxB force not yet implemented in 3D'
+       endif
+    else
+       !
+       !--calculate curl B for current (only if field is 3D)
+       !  this is used in the switch for the artificial resistivity term
+       !
+       if (ndimV.eq.3) then
+          call cross_product3D(dB,dr,curlBi)
+!          curlBi(1) = dB(2)*dr(3) - dB(3)*dr(2)
+!          curlBi(2) = dB(3)*dr(1) - dB(1)*dr(3)
+!          curlBi(3) = dB(1)*dr(2) - dB(2)*dr(1)
+       elseif (ndimV.eq.2) then  ! just Jz in 2D
+          curlBi(1) = dB(1)*dr(2) - dB(2)*dr(1)
+          curlBi(2) = 0.
+       endif
+       curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
+       curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+       !
+       !--add Lorentz force to total force
+       !              
+       select case(imagforce)
+       case(1)
+          fmag(:,i) = fmag(:,i) + pmassj*fmagi(:)/rho2i
+          fmag(:,j) = fmag(:,j) - pmassi*fmagj(:)/rho2j
+          force(:,i) = force(:,i) + pmassj*fmagi(:)/rho2i
+          force(:,j) = force(:,j) - pmassi*fmagj(:)/rho2j
+       case(5)    ! Morris' Hybrid force
+          fmag(:,i) = fmag(:,i) + pmassj*(faniso(:)-fiso*dr(:))
+          fmag(:,j) = fmag(:,j) + pmassi*(faniso(:)+fiso*dr(:))
+          force(:,i) = force(:,i) + pmassj*(faniso(:)-fiso*dr(:))
+          force(:,j) = force(:,j) + pmassi*(faniso(:)+fiso*dr(:))                           
+       case default      ! symmetric forces fmagxi = -fmagxj
+          fmag(:,i) = fmag(:,i) + pmassj*(fmagi(:))
+          fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
+          force(:,i) = force(:,i) + pmassj*(fmagi(:))
+          force(:,j) = force(:,j) - pmassi*(fmagi(:))
+       end select
+    endif
     
     !--------------------------------------------------------------------------------
     !  time derivative of magnetic field (divide by rho later)
