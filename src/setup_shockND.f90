@@ -23,12 +23,13 @@ subroutine setup
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
  real :: dsmooth, exx, delta, const
- real :: massp,Bxinit,Byleft,Byright,Bzleft,Bzright
+ real :: massp,masspleft,masspright,Bxinit,Byleft,Byright,Bzleft,Bzright
  real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
  real, dimension(ndim) :: sidelength,xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright
  real :: total_mass, volume
  character(len=20) :: shkfile
+ logical :: equalmass
 !
 !--allow for tracing flow
 !
@@ -38,24 +39,25 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 20.    
+ dsmooth = 20.   
+ equalmass = .false. 
  const = sqrt(4.*pi)
- densleft = 1.0
+ densleft = 1.08
  densright = 1.0
- prleft = 20.0
+ prleft = 0.95
  prright = 1.0
- vxleft = 10.
- vxright = -10.
- vyleft = 0.
+ vxleft = 1.2
+ vxright = 0.
+ vyleft = 0.01
  vyright = 0.
- vzleft = 0.
+ vzleft = 0.5
  vzright = 0.
  if (imhd.ne.0) then
-    Bxinit = 5./const
-    Byleft = 5./const
-    Byright = 5./const
-    Bzleft = 0.
-    Bzright = 0.
+    Bxinit = 2./const
+    Byleft = 3.6/const
+    Byright = 4./const
+    Bzleft = 2./const
+    Bzright = 2./const
  endif 
 !
 !--read shock parameters from the .shk file
@@ -125,7 +127,7 @@ subroutine setup
  xmax(1) = xmin(1) + boxlength
  if (ndim.ge.2) then
     xmin(2:ndim) = 0.0   !-0.5*boxlength*sidelength(2:ndim)/sidelength(1)
-    xmax(2:ndim) = xmin(2:ndim) + 6.*psep !!!abs(xmin(2:ndim))
+    xmax(2:ndim) = xmin(2:ndim) + 4.*psep !!!abs(xmin(2:ndim))
  endif
 !
 !--extend boundaries if inflow
@@ -137,7 +139,7 @@ subroutine setup
     xmax(1) = xmax(1) - vxright*tmax
  endif
  
- xshock = (xmax(1) + xmin(1))/2.0
+ xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
 
 !
 !--now setup the shock
@@ -152,21 +154,31 @@ subroutine setup
 !
  xmaxleft(1) = xshock
  xminright(1) = xshock
- 
- print*,' left half  ',xminleft,' to ',xmaxleft
- print*,' right half ',xminright,' to ',xmaxright
-! massp = (psep**ndim)*densright
  psepleft = psep
  psepright = psep*(densleft/densright)**(1./ndim)
+
+ if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
+    print*,' left half  ',xminleft,' to ',xmaxleft
+    print*,' right half ',xminright,' to ',xmaxright
+! massp = (psep**ndim)*densright
+    call set_uniform_cartesian(1,psepleft,xminleft,xmaxleft,.false.)  ! set left half
+    xmin = xminleft
+    volume = PRODUCT(xmaxleft-xminleft)
+    total_mass = volume*densleft
+    massp = total_mass/npart
+    masspleft = massp
+    masspright = massp
  
- call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,.false.)  ! set left half
- xmin = xminleft
- volume = PRODUCT(xmaxleft-xminleft)
- total_mass = volume*densleft
- massp = total_mass/npart
- 
- call set_uniform_cartesian(2,psepright,xminright,xmaxright,.false.) ! set right half
- xmax = xmaxright
+    call set_uniform_cartesian(1,psepright,xminright,xmaxright,.false.) ! set right half
+    xmax = xmaxright
+ else  ! set all of volume if densities are equal
+    call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
+    volume = PRODUCT(xmax-xmin)
+!    vol_left = PRODUCT(xmaxleft-xminleft)
+    masspleft = densleft*volume/REAL(npart)
+!    vol_right = PRODUCT(xmaxright-xminright)
+    masspright = densright*volume/REAL(npart)
+ endif
 
  print*,'npart = ',npart
 !
@@ -200,12 +212,14 @@ subroutine setup
        dens(i) = densright
        uu(i) = uuright 
        vel(1,i) = vxright
+       pmass(i) = masspright
        if (ndimV.ge.2) vel(2,i) = vyright
        if (ndimV.ge.3) vel(3,i) = vzright 
        if (ndimV.ge.2) Bfield(2,i) = Byright
        if (ndimV.ge.3) Bfield(3,i) = Bzright
     elseif (delta.LT.-dsmooth) then
        dens(i) = densleft
+       pmass(i) = masspleft
        uu(i) = uuleft
        vel(1,i) = vxleft
        if (ndimV.ge.2) vel(2,i) = vyleft
@@ -215,6 +229,7 @@ subroutine setup
     else
        exx = exp(delta)       
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
+       pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
        vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
@@ -231,8 +246,7 @@ subroutine setup
 !       endif
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
-    endif       
-    pmass(i) = massp    
+    endif           
     Bfield(1,i) = Bxinit
  enddo
  
