@@ -15,7 +15,6 @@ SUBROUTINE setup
  USE eos
  USE options
  USE part
- USE part_in
  USE setup_params
 !
 !--define local variables
@@ -41,8 +40,8 @@ SUBROUTINE setup
  anglexy = 30.	! angle in degrees x,y plane
 ! anglez = 45.	! angle in degrees z plane
  anglexy = anglexy*pi/180.	! convert to radians
- runit(1) = COS(anglexy)
- runit(2) = SIN(anglexy)
+ runit(1) = 0.5*SQRT(3.) !COS(anglexy)
+ runit(2) = 0.5	!SIN(anglexy)
 ! runit(3) = 0.
  WRITE(iprint,*) ' runit = ',runit
 !

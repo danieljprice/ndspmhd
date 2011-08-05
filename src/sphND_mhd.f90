@@ -62,7 +62,10 @@ PROGRAM SUPERSPMHD_ND
 !--version number
 !
     version = 'NDSPMHD-3D-v5-1'
-!   * smoothing length iteration on single particles works   
+!   * smoothing length iteration on single particles works 
+!   * conservative2primitive and primitive2conservative
+!   * eos rehashed
+!   * setup is on primitive variables  
 !    version = 'NDSPMHD-3D-v5-0'
 !   *** saved as working 3D version ***
 !   * equations use general alternative formulation
