@@ -7,32 +7,34 @@ program kernelplot
  integer :: nkernels,nacross,ndown,nepszero,ipos,i1,i2
  integer, dimension(10) :: iplotorder
  real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos,rhoi,delsqrhoi
- real, dimension(0:ikern) :: dqkern
- logical :: samepage,plotstability,plotkernel
+ real, dimension(0:ikern) :: dqkern,dqgaus
+ logical :: samepage,plotstability,plotkernel,plotgaussian
 !! character(len=50) :: text
 
- !data iplotorder /0, 2, 3, 10, 64, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
- data iplotorder /61, 60, 15, 34, 11, 13, 16, 16, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 3, 30, 31, 32, 65, 13, 16, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 2
+ nkernels = 4
  ianticlump = 0
  epszero = 0.0
  nepszero = 0
  samepage = .false.
  plotkernel = .true.
  plotstability = .true.
+ plotgaussian  = .true.
  nacross = 4
  ndown = 1
  xmin = 0.0
  xmax = 3.3
 !! ymin = 0.01
  ymin = -3.5  !!3.5
-!! ymax = 2.4
- ymax = 3.99
-! ymax = 1.5
+ ymax = 2.4
+! ymax = 3.99
+ ymax = 1.5
+ !ymax = 0.7 ! use for 3D
  
- ymin = -0.9 !2.2
- !ymax = 1.4
+ ymin = -2.2
+ ymax = 1.4
  ipos = 1
  ndim = 1
 
@@ -81,6 +83,7 @@ program kernelplot
        q = sqrt(q2)
        dqkern(i) = q
     enddo
+    !call pgsls(1)
     if (samepage) then
        hpos = 0.7
        vpos = 3.0
@@ -123,7 +126,7 @@ program kernelplot
        if (ikernel.eq.102) ymax = maxval(wij(1:ikern)/dqkern(1:ikern)**2)*1.5
        print*,'max = ',ymax
        !if (ikernel.eq.0) kernelname = 'density'
-       call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','d^2f/dq^2', &
+       call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h','f(q)', &
                      trim(kernelname),0,1,&
                      0.,0.,0.,0.,0.,0.,.false.,.true.)
        call pgmtxt('t',-2.0,0.93,1.0,trim(kernelname))
@@ -154,6 +157,32 @@ program kernelplot
 !  this program.
 !    
     print*,'   plotting kernel...(will crash here if double precision)'
+
+!
+!--plot Gaussian
+!
+    if (plotgaussian .and. ikernel.ne.10) then
+       wij = 0.
+       grwij = 0.
+       grgrwij = 0.
+       call setkern(10,ndim,ierr)
+       dq2table = radkern2/real(ikern)
+       do i=0,ikern
+          q2 = i*dq2table
+          q = sqrt(q2)
+          dqgaus(i) = q
+       enddo
+       call pgsls(4)
+       call pgsci(1)
+       call pgline(ikern+1,dqgaus(0:ikern),wij(0:ikern))
+       call pgsci(2)
+       call pgline(ikern+1,dqgaus(0:ikern),grwij(0:ikern))
+       call pgsci(3)
+       call pgline(ikern+1,dqgaus(0:ikern),grgrwij(0:ikern))
+       call pgsls(1)
+       call pgsci(1)
+       call setkern(ikernel,ndim,ierr)
+    endif
 !
 !--plot kernel
 !
@@ -161,7 +190,7 @@ program kernelplot
 !    call pgsci(7) ! for yellow
     if (ikernel.eq.101) wij(0:ikern) = -wij(0:ikern)
     if (ikernel.eq.102) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
-!    call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
+    call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
        call pgline(ikern+1,dqkern(0:ikern),wijalt(0:ikern))
@@ -184,7 +213,7 @@ program kernelplot
     if (ikernel.lt.100) then
        call pgsls(2)
        call pgsci(2)
-!       call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+       call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
        !!call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
        if (ianticlump.ne.0) then
    !       call pgsls(j+2)

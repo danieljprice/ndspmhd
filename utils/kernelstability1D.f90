@@ -36,7 +36,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !  
   contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
-  normplot = .true.     ! plot normalisation conditions
+  normplot = .false.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
   ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
@@ -239,7 +239,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !     call danpgtile(iplotpos,nacross,ndown, &
 !          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
-!     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
+     call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
      !call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
 !
 !--plot contributions from first and second derivatives

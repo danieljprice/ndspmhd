@@ -23,7 +23,7 @@
 module pagesetup
  implicit none
  public :: redraw_axes, setpage2
- real, parameter, public :: xlabeloffset = 3.0, ylabeloffset = 4.5
+ real(kind=4), parameter, public :: xlabeloffset = 3.0, ylabeloffset = 4.5
  
  private
 
@@ -286,16 +286,16 @@ end subroutine redraw_axes
                       colourbarwidth,titleoffset,isamexaxis,tile) 
   implicit none
   integer, intent(in) :: iplotin,nx,ny,just,axis
-  real, intent(in)    :: xmin, xmax, ymin, ymax, colourbarwidth, titleoffset
-  real, intent(in)    :: vmarginleftin,vmarginrightin,vmargintopin,vmarginbottomin
+  real(kind=4), intent(in)    :: xmin, xmax, ymin, ymax, colourbarwidth, titleoffset
+  real(kind=4), intent(in)    :: vmarginleftin,vmarginrightin,vmargintopin,vmarginbottomin
   character(len=*), intent(in) :: labelx,labely,title
   logical, intent(in) :: isamexaxis,tile
   integer iplot,ix,iy
-  real vptsizeeffx,vptsizeeffy,panelsizex,panelsizey
-  real vmargintop,vmarginbottom,vmarginleft,vmarginright
-  real vptxmin,vptxmax,vptymin,vptymax
-  real aspectratio,devaspectratio,x1,x2,y1,y2
-  real xch,ych
+  real(kind=4) :: vptsizeeffx,vptsizeeffy,panelsizex,panelsizey
+  real(kind=4) :: vmargintop,vmarginbottom,vmarginleft,vmarginright
+  real(kind=4) :: vptxmin,vptxmax,vptymin,vptymax
+  real(kind=4) :: aspectratio,devaspectratio,x1,x2,y1,y2
+  real(kind=4) :: xch,ych
   character(len=10)  :: xopts, yopts
   logical, parameter :: useexactpixelboundaries = .true.
 !

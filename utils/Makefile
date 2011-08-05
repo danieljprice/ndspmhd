@@ -15,7 +15,7 @@ F90C =  gfortran
 F90FLAGS =  -O3 -Wall -fbounds-check
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 LDFLAGS =  -L/usr/X11R6/lib -lX11 -L${PGPLOT_DIR} -lpgplot -lpng
-DBLFLAGS = -r8
+DBLFLAGS = -fdefault-real-8
 ifndef SPLASH_DIR
 SPLASH_DIR=$(HOME)/splash/src
 endif
@@ -44,7 +44,7 @@ OBJMODDUMP = variablesND.o allocateND.o prompting.o \
              readwrite_dumps.o modifydump.o
 
 kernelplot: $(OBJECTS) kernelplot.o kernelstability1D.o
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $<
+	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot.o kernelstability1D.o
 
 kernelplot3D: $(OBJECTS) kernelplot3D.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot3D.o
