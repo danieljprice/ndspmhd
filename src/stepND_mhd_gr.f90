@@ -3,36 +3,38 @@
 !! Change this subroutine to change the timestepping algorithm
 !!--------------------------------------------------------------------
 	 
-SUBROUTINE step
- USE dimen_mhd
- USE debug
- USE loguns
+subroutine step
+ use dimen_mhd
+ use debug
+ use loguns
  
- USE bound
- USE eos
- USE hterms
- USE options
- USE part
- USE part_in
- USE rates
- USE timestep
- USE setup_params
- USE xsph
+ use bound
+ use eos
+ use hterms
+ use options
+ use part
+ use part_in
+ use rates
+ use timestep
+ use setup_params
+ use xsph
+
+ use cons2prim, only:conservative2primitive,getv_from_pmom
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER :: i,j,jdim,ikernavprev,ierr
- REAL :: hdt
+ implicit none
+ integer :: i,j,jdim,ikernavprev,ierr
+ real :: hdt
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine step'
+ if (trace) write(iprint,*) ' Entering subroutine step'
 !
 !--set initial quantities
 !
  hdt = 0.5*dt
- DO i=1,npart
+ do i=1,npart
     xin(:,i) = x(:,i)
     pmomin(:,i) = pmom(:,i)
     Bevolin(:,i) = Bevol(:,i)
@@ -40,99 +42,101 @@ SUBROUTINE step
     hhin(i) = hh(i)
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
- ENDDO   
+ enddo   
 !
 !--Mid-point Predictor step
 !      
- DO i=1,npart
-    IF (itype(i).EQ.1) THEN	! fixed particles
+ do i=1,npart
+    if (itype(i).EQ.1) then	! fixed particles
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)	     
-       IF (iener.NE.0) en(i) = enin(i)
+       if (iener.NE.0) en(i) = enin(i)
        hh(i) = hhin(i)	    
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
        alpha(:,i) = alphain(:,i)
-    ELSE
+    else
        pmom(:,i) = pmomin(:,i) + hdt*force(:,i)
+       if (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
 !--use updated v to change position
-       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i))
+       !print*,i,'predictor'
+       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i),en(i),pr(i),rho(i),dens(i),uu(i))
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 !--do an 'iteration' of this to be on the safe side
-       call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i))
+       !call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i),en(i),pr(i),rhoin(i),dens(i),uu(i))
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
-       IF (ihvar.EQ.1) THEN
+       if (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + hdt*dBevoldt(:,i)
+       if (ihvar.EQ.1) then
 !	   hh(i) = hfact(pmass(i)/rho(i))**dndim	! my version
 	  hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim		! Joe's	   
-       ELSEIF (ihvar.EQ.2 .OR. ihvar.EQ.3) THEN
+       elseif (ihvar.EQ.2 .OR. ihvar.EQ.3) then
           hh(i) = hhin(i) + hdt*dhdt(i)
-       ENDIF
-       IF (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
-       IF (iener.NE.0) en(i) = enin(i) + hdt*dendt(i)
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
-    ENDIF
+       endif
+       if (icty.GE.1) rho(i) = rhoin(i) + hdt*drhodt(i)
+       if (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + hdt*daldt(:,i)	   
+    endif
 
- ENDDO
+ enddo
 !
 !--calculate all derivatives
 !
  call derivs
 
+ !print*,'corrector'
 !
 !--Mid-point Corrector step
 !
- DO i=1,npart
-    IF (itype(i).EQ.1) THEN
+ do i=1,npart
+    if (itype(i).EQ.1) then
        pmom(:,i) = pmomin(:,i)
        rho(i) = rhoin(i)
        Bevol(:,i) = Bevolin(:,i)
-       IF (iener.NE.0) en(i) = enin(i)
+       if (iener.NE.0) en(i) = enin(i)
        x(:,i) = xin(:,i) + hdt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i)) 
        alpha(:,i) = alphain(:,i)
        hh(i) = hhin(i)
-    ELSE
+    else
        pmom(:,i) = pmomin(:,i) + dt*force(:,i)
+       if (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
 !--use updated v to change position
-       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i))
+       call getv_from_pmom(xin(:,i),pmom(:,i),vel(:,i),en(i),pr(i),rho(i),dens(i),uu(i))
        x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
 !--do an 'iteration' of this (with updated x) to be on the safe side
-       call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i))
+       call getv_from_pmom(x(:,i),pmom(:,i),vel(:,i),en(i),pr(i),rho(i),dens(i),uu(i))
        x(:,i) = xin(:,i) + dt*(vel(1:ndim,i) + xsphfac*xsphterm(1:ndim,i))
-       IF (ihvar.EQ.2) THEN
+       if (ihvar.EQ.2) then
           hh(i) = hhin(i) + dt*dhdt(i)
-	  IF (hh(i).LE.0.) THEN
-	     WRITE(iprint,*) 'step: hh -ve ',i,hh(i)
-	     CALL quit
-	  ENDIF
-       ENDIF
-       IF (icty.GE.1) THEN
+	  if (hh(i).LE.0.) then
+	     write(iprint,*) 'step: hh -ve ',i,hh(i)
+	     call quit
+	  endif
+       endif
+       if (icty.GE.1) then
           rho(i) = rhoin(i) + dt*drhodt(i)
-          IF (rho(i).LE.0.) THEN
-             WRITE(iprint,*) 'step: rho -ve ',i,rho(i)
-    	     CALL quit
-          ENDIF
-       ENDIF
-       IF (iener.NE.0) en(i) = enin(i) + dt*dendt(i)
-       IF (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
-       IF (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)	  
-    ENDIF
- ENDDO	 	
+          if (rho(i).LE.0.) then
+             write(iprint,*) 'step: rho -ve ',i,rho(i)
+    	     call quit
+          endif
+       endif
+       if (ANY(iavlim.NE.0)) alpha(:,i) = alphain(:,i) + dt*daldt(:,i)	   
+       if (imhd.NE.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)	  
+    endif
+ enddo	 	
 !
 !--update density using a full summation every so often
 !	 
- IF (MOD(nsteps,ndirect).EQ.0) THEN
-    CALL iterate_density
-    DO i=1,npart
+ if (MOD(nsteps,ndirect).EQ.0) then
+    call iterate_density
+    do i=1,npart
        rhoin(i) = rho(i)
-    ENDDO
- ENDIF
+    enddo
+ endif
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
-! IF (idivBzero.NE.0) CALL divBcorrect
+! if (idivBzero.NE.0) call divBcorrect
 !
- IF (ANY(ibound.NE.0)) CALL boundary	! inflow/outflow/periodic boundary conditions
+ if (ANY(ibound.NE.0)) call boundary	! inflow/outflow/periodic boundary conditions
 !
 !--set new timestep from courant/forces condition
 !
@@ -141,9 +145,9 @@ SUBROUTINE step
 !--need to calculate velocity from particle momentum for next predictor step
 !  (no need to call this from output if called here)
 ! 
- CALL conservative2primitive
+ call conservative2primitive
   
- IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
+ if (trace) write (iprint,*) ' Exiting subroutine step'
       
- RETURN
-END SUBROUTINE step
+ return
+end subroutine step
