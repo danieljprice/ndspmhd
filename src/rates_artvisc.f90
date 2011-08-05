@@ -1,6 +1,9 @@
 !!-------------------------------------------------------------------------
 !! This subroutine computes all of the artificial dissipation terms
 !! and adds them to the appropriate equations
+!!
+!! We should include this in the main rates file, rather than calling it as a
+!! separate subroutine. This is for speed.
 !!-------------------------------------------------------------------------
 
 SUBROUTINE artvis_terms(i,j)
