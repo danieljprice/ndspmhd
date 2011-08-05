@@ -4,60 +4,60 @@
 !     should work in 1, 2 and 3 dimensions
 !----------------------------------------------------------------
 
-SUBROUTINE setup
+subroutine setup
 !
 !--include relevant global variables
 !
- USE dimen_mhd
- USE debug
- USE loguns
- USE bound
- USE eos
- USE options
- USE part
- USE setup_params
- USE uniform_distributions, only:set_uniform_cartesian
+ use dimen_mhd
+ use debug
+ use loguns
+ use bound
+ use eos
+ use options
+ use part
+ use setup_params
+ use uniform_distributions, only:set_uniform_cartesian
 !
 !--define local variables
 !            
- IMPLICIT NONE
- INTEGER :: i
- INTEGER, PARAMETER :: itsmax = 100
-! REAL, PARAMETER :: pi = 3.1415926536
- REAL, PARAMETER :: tol = 1.e-8
- INTEGER :: imax,its,iwave
- REAL, DIMENSION(ndimV) :: Bzero
- REAL :: xcentre,massp
- REAL :: ampl,wk,xlambda,dxmax,denom
- REAL :: dxi,dxprev,xmassfrac,func,fderiv
- REAL :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
- REAL :: vfast,vslow,vcrap,vwave,term,dens1
- REAL :: denszero,uuzero,przero,Rzero
+ implicit none
+ integer :: i
+ integer, parameter :: itsmax = 100
+! real, parameter :: pi = 3.1415926536
+ real, parameter :: tol = 1.e-8
+ integer :: imax,its,iwave
+ real, dimension(ndimV) :: Bzero
+ real :: xcentre,massp
+ real :: ampl,wk,xlambda,dxmax,denom
+ real :: dxi,dxprev,xmassfrac,func,fderiv
+ real :: pri,spsoundi,valfven2i,vamplx,vamply,vamplz
+ real :: vfast,vslow,vcrap,vwave,term,dens1
+ real :: denszero,uuzero,przero,Rzero
  real, dimension(1) :: prtemp,cstemp
 !
 !--allow for tracing flow
 !
- IF (trace) WRITE(iprint,*) ' Entering subroutine setup'
-10 FORMAT(/,'-------------- ',a,' ----------------')
+ if (trace) write(iprint,*) ' Entering subroutine setup'
+10 format(/,'-------------- ',a,' ----------------')
 
- iwave = 0 		! preset wave parameters
+ iwave = 0                 ! preset wave parameters
 !
 !--setup parameters (could read in from a file)
 !
  Bzero = 0.
- IF (iwave.EQ.1) THEN        ! MHD slow wave
+ if (iwave.EQ.1) then        ! MHD slow wave
     ampl = 0.006
     denszero = 1.0
     uuzero = 4.5
-    IF (imhd.ne.0) Bzero(1:3) = SQRT(2.)
-    WRITE(iprint,10) 'MHD slow wave'
- ELSEIF (iwave.EQ.2) THEN    ! MHD fast wave
+    if (imhd.ne.0) Bzero(1:3) = sqrt(2.)
+    write(iprint,10) 'MHD slow wave'
+ elseif (iwave.EQ.2) then    ! MHD fast wave
     ampl = 0.0055
     denszero = 1.0
     uuzero = 0.3
-    IF (imhd.ne.0) Bzero(1:3) = 0.5  
-    WRITE(iprint,10) 'MHD fast wave'
- ELSE                        ! Sound wave
+    if (imhd.ne.0) Bzero(1:3) = 0.5  
+    write(iprint,10) 'MHD fast wave'
+ else                        ! Sound wave
     ampl = 0.05
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
@@ -66,52 +66,52 @@ SUBROUTINE setup
        uuzero = 1.0
     endif
     Rzero = -1.0  !  negative stress parameter
-    OPEN(unit=20,ERR=30,file=trim(rootname)//'.rstress',status='old')
-      READ(20,*) Rzero
-    CLOSE(unit=20)
-    PRINT*,'Read stress file: R parameter = ',Rzero
-30  CONTINUE    
+    open(unit=20,err=30,file=trim(rootname)//'.rstress',status='old')
+      read(20,*) Rzero
+    close(unit=20)
+    print*,'Read stress file: R parameter = ',Rzero
+30  continue
     Bzero(1) = sqrt(2.*(1.-Rzero))
-    WRITE(iprint,10) 'sound wave'
- ENDIF
+    write(iprint,10) 'sound wave'
+ endif
  xlambda = 1.0    
- wk = 2.0*pi/xlambda	! 	wave number
+ wk = 2.0*pi/xlambda        !         wave number
 !
 !--set boundaries
 !
- ibound = 3	! periodic boundaries
- nbpts = 0		! use ghosts not fixed
+ ibound = 3        ! periodic boundaries
+ nbpts = 0                ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
  xmax(1) = 1.0 
- IF (ndim.GE.2) THEN
+ if (ndim.GE.2) then
     xmax(2:ndim) = 6.*psep ! would need to adjust this depending on grid setup
- ENDIF
+ endif
 !
 !--initially set up a uniform density grid (also determines npart)
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
- CALL set_uniform_cartesian(2,psep,xmin,xmax,.false.)
+ call set_uniform_cartesian(2,psep,xmin,xmax,.false.)
  
 ! npart = INT((xmax(1)-xmin(1))/psep)
- massp = 1.0/FLOAT(npart)	! average particle mass
+ massp = 1.0/FLOAT(npart)        ! average particle mass
 !
 !--allocate memory here
 !
-! CALL alloc(npart)
+! call alloc(npart)
 !
 !--setup uniform density grid of particles
 ! 
- DO i=1,npart
+ do i=1,npart
 !    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
     vel(:,i) = 0.
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    IF (imhd.GT.0) THEN 
+    if (imhd.GT.0) then 
        Bfield(:,i) = Bzero
-    ELSE
+    else
        Bfield(:,i) = 0.
-    ENDIF 
+    endif 
  ENDDO
 
  ntotal = npart
@@ -119,7 +119,7 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
- CALL equation_of_state1(przero,spsoundi,uuzero,denszero)
+ call equation_of_state1(przero,spsoundi,uuzero,denszero)
  print*,' gamma = ',gamma
  print*,' pr = ',przero,' cs = ',spsoundi,' u = ',uu(1),' dens = ',dens(1)
 !
@@ -127,72 +127,72 @@ SUBROUTINE setup
 !
  dens1 = 1./denszero
  
- valfven2i = DOT_PRODUCT(Bzero,Bzero)*dens1
- vfast = SQRT(0.5*(spsoundi**2 + valfven2i			&
-                 + SQRT((spsoundi**2 + valfven2i)**2	&
+ valfven2i = dot_product(Bzero,Bzero)*dens1
+ vfast = sqrt(0.5*(spsoundi**2 + valfven2i             &
+                 + sqrt((spsoundi**2 + valfven2i)**2   &
                  - 4.*(spsoundi*Bzero(1))**2*dens1)))
- vslow = SQRT(0.5*(spsoundi**2 + valfven2i			&
-                 - SQRT((spsoundi**2 + valfven2i)**2	&
+ vslow = sqrt(0.5*(spsoundi**2 + valfven2i             &
+                 - sqrt((spsoundi**2 + valfven2i)**2   &
                  - 4.*(spsoundi*Bzero(1))**2*dens1)))
- vcrap = SQRT(spsoundi**2 + valfven2i)
+ vcrap = sqrt(spsoundi**2 + valfven2i)
 
 !----------------------------
 ! set the wave speed to use
 !----------------------------
-		    
- IF (iwave.EQ.1) THEN
+                    
+ if (iwave.EQ.1) then
     vwave = vslow
-    IF (imhd.le.0) WRITE(iprint,*) 'Error: can''t have slow wave if no mhd'
- ELSEIF (iwave.EQ.2) THEN
+    if (imhd.le.0) write(iprint,*) 'Error: can''t have slow wave if no mhd'
+ elseif (iwave.EQ.2) then
     vwave = vfast
- ELSE
+ else
     vwave = spsoundi
- ENDIF
- IF (vwave.le.0.) THEN
-    WRITE(iprint,*) 'Error in setup: vwave = ',vwave
-    STOP
- ENDIF
+ endif
+ if (vwave.le.0.) then
+    write(iprint,*) 'Error in setup: vwave = ',vwave
+    stop
+ endif
   
  dxmax = xmax(1) - xmin(1)
  denom = dxmax - ampl/wk*(COS(wk*dxmax)-1.0)
- WRITE (iprint,*) 'Wave number = ',wk
- WRITE (iprint,*) 'Amplitude = ',ampl
+ write (iprint,*) 'Wave number = ',wk
+ write (iprint,*) 'Amplitude = ',ampl
 !
 !--now perturb the particles appropriately
 !
- DO i=1,npart
+ do i=1,npart
     
     dxi = x(1,i)-xmin(1)
     dxprev = dxmax*2.
-    xmassfrac = dxi/dxmax	! current mass fraction(for uniform density)
-				! determines where particle should be
+    xmassfrac = dxi/dxmax        ! current mass fraction(for uniform density)
+                                ! determines where particle should be
 !
 !--Use rootfinder on the integrated density perturbation
 !  to find the new position of the particle
 !    
     its = 0
-	 
-    DO WHILE ((ABS(dxi-dxprev).GT.tol).AND.(its.LT.itsmax))
+         
+    do while ((abs(dxi-dxprev).gt.tol).and.(its.lt.itsmax))
        dxprev = dxi
        func = xmassfrac*denom - (dxi - ampl/wk*(COS(wk*dxi)-1.0))
        fderiv = -1.0 - ampl*SIN(wk*dxi)
-       dxi = dxi - func/fderiv	! Newton-Raphson iteration
+       dxi = dxi - func/fderiv        ! Newton-Raphson iteration
        its = its + 1 
 !      PRINT*,'iteration',its,'dxi =',dxi 
-    ENDDO
-	 	 	 
-    IF (its.GE.itsmax) THEN
-       WRITE(iprint,*) 'Error: soundwave - too many iterations'
-       CALL quit 
-    ENDIF
-	  
-!    IF (idebug(1:5).EQ.'sound') THEN
-!       WRITE(*,99002) i,its,dxi-dxprev,x(1,i),xmin(1)+dxi
-!99002  FORMAT('Particle',i5,' converged in ',i4,	&
-!       ' iterations, error in x =',1(1pe10.2,1x),/,	&
-!       'previous x = ',1(0pf8.5,1x),			&
+    enddo
+                           
+    if (its.GE.itsmax) then
+       write(iprint,*) 'Error: soundwave - too many iterations'
+       call quit 
+    endif
+          
+!    if (idebug(1:5).EQ.'sound') then
+!       write(*,99002) i,its,dxi-dxprev,x(1,i),xmin(1)+dxi
+!99002  FORMAT('Particle',i5,' converged in ',i4,        &
+!       ' iterations, error in x =',1(1pe10.2,1x),/,        &
+!       'previous x = ',1(0pf8.5,1x),                        &
 !       'moved to x = ',1(0pf8.5,1x)) 
-!    ENDIF
+!    endif
     x(1,i) = xmin(1)+dxi
 
 !
@@ -210,7 +210,7 @@ SUBROUTINE setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-   uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)	! if not polytropic
+   uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)        ! if not polytropic
 !    
 !--perturb density if not using summation
 !
@@ -218,14 +218,14 @@ SUBROUTINE setup
 !    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
     dens(i) = dens(i)*(1.+ampl*SIN(wk*dxi))
 
- ENDDO
+ enddo
 
- WRITE(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
- WRITE(iprint,*) ' sound speed  = ',spsoundi
- WRITE(iprint,*) ' alfven speed = ',SQRT(valfven2i)
- WRITE(iprint,*) ' fast speed   = ',vfast
- WRITE(iprint,*) ' slow speed   = ',vslow
- WRITE(iprint,*) ' wave speed   = ',vwave,iwave
+ write(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
+ write(iprint,*) ' sound speed  = ',spsoundi
+ write(iprint,*) ' alfven speed = ',sqrt(valfven2i)
+ write(iprint,*) ' fast speed   = ',vfast
+ write(iprint,*) ' slow speed   = ',vslow
+ write(iprint,*) ' wave speed   = ',vwave,iwave
  
- RETURN
-END
+ return
+end subroutine setup
