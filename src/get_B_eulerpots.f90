@@ -155,8 +155,10 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
                       gradbeta(:,k,j) = gradbeta(:,k,j) + pmassi*dbeta(k)*dr(:)*grkernj
                    enddo
 
-                   dxdxi(:) = dxdxi(:) + 2.*pmass(j)*(dx(idxdx(1:ndxdx)))*dr(jdxdx(1:ndxdx))*grkerni
-                   dxdx(:,j) = dxdx(:,j) + 2.*pmass(i)*(dx(idxdx(1:ndxdx)))*dr(jdxdx(1:ndxdx))*grkernj
+                   do k=1,ndxdx
+                      dxdxi(k) = dxdxi(k) - pmass(j)*(dx(idxdx(k)))*dr(jdxdx(k))*grkerni
+                      dxdx(k,j) = dxdx(k,j) - pmass(i)*(dx(idxdx(k)))*dr(jdxdx(k))*grkernj
+                   enddo
 
                 end select
 
@@ -178,16 +180,20 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,betapot,Bfie
     case default
        if (use_exact_linear) then
           call compute_rmatrix3D(dxdx(:,i),rmatrix,denom)
+          !print*,i,' normal derivs, gradalpha^z = ',gradalpha(:,3,i)*gradh(i)/rho(i)
           if (abs(denom).gt.epsilon(denom)) then
              ddenom = 1./denom
              do k=1,ndimV
                 call exactlinear3D(gradalpha(:,k,i),gradalpha(:,k,i),rmatrix,ddenom)
                 call exactlinear3D(gradbeta(:,k,i),gradbeta(:,k,i),rmatrix,ddenom)
              enddo
+             !print*,i,' exact derivs, gradalpha^z = ',gradalpha(:,3,i)
           else
+             print*,'WARNING: denominator collapsed in exact linear deriv = ',denom
              gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
              gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
           endif
+          !read*
        else
           gradalpha(:,:,i) = gradalpha(:,:,i)*gradh(i)/rho(i)
           gradbeta(:,:,i) = gradbeta(:,:,i)*gradh(i)/rho(i)
@@ -230,13 +236,17 @@ subroutine compute_rmatrix3D(dxdxi,rmatrix,denom)
 
  rxxi = dxdxi(1)
  rxyi = dxdxi(2)
- rxzi = dxdxi(3)
- ryyi = dxdxi(4)
+ ryyi = dxdxi(3)
+ rxzi = dxdxi(4)
  ryzi = dxdxi(5)
  rzzi = dxdxi(6)
+ 
+ !print*,' got dxdx = ',dxdxi(:)
 
  denom = rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi &
        - rxxi*ryzi*ryzi - ryyi*rxzi*rxzi - rzzi*rxyi*rxyi
+
+ !print*,' gives denom = ',rxxi*ryyi*rzzi,2.*rxyi*rxzi*ryzi,-rxxi*ryzi*ryzi,-ryyi*rxzi*rxzi,-rzzi*rxyi*rxyi
 
  rmatrix(1) = ryyi*rzzi - ryzi*ryzi    ! xx
  rmatrix(2) = rxzi*ryzi - rzzi*rxyi    ! xy

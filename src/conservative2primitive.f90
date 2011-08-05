@@ -106,7 +106,7 @@ subroutine conservative2primitive
      gradpsi(:,:) = 0.
   case(:-3) ! generalised Euler potentials
      
-     remap = .true.
+     remap = .false.
      !--set x0 correctly on ghost particles
      if (any(ibound.gt.1)) then  ! ghost particles
         dxbound(:) = xmax(:) - xmin(:)
@@ -296,10 +296,10 @@ subroutine primitive2conservative
   use rates, only:gradpsi
   use derivB, only:curlB
   implicit none
-  integer :: i,j,iktemp
-  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
+  integer :: i,j,iktemp,iremap,nremap
+  real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi, emagold,emag
   real, dimension(ndimV) :: Binti
-  logical :: isetpolyk
+  logical :: isetpolyk,remap
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative'
 !
@@ -414,7 +414,42 @@ subroutine primitive2conservative
 
      !--compute B = \nabla alpha_k x \nabla \beta^k
      write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... '
-     call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap=.false.)
+     nremap = 1
+     remap = (nremap.gt.1)
+     
+     do iremap=1,nremap
+        call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
+
+        if (remap) then
+           !--remap x0 for all particles
+           x0 = x
+           !--copy remapped Bevol onto boundary/ghost particles
+           if (any(ibound.eq.1)) then
+              do i=1,npart
+                 if (itype(i).eq.1) then ! fixed particles
+                    j = ireal(i)
+                    Bevol(:,i) = Bevol(:,j)
+                 endif
+              enddo
+           endif
+           if (any(ibound.gt.1)) then  ! ghost particles
+              do i=npart+1,ntotal
+                 j = ireal(i)
+                 Bevol(:,i) = Bevol(:,j)
+              enddo
+           endif
+        !
+        !--recompute B field with remapped potentials
+        !
+           emag = emag_calc(pmass,rho,Bfield,npart)
+           if (iremap.eq.1) then
+              emagold = emag
+              print*,' magnetic energy before remapping = ',emagold
+           else
+              print*,' magnetic energy after ',iremap,'nd/th remapping = ',emag, ' change = ',(emag-emagold)/emagold
+           endif
+        endif
+     enddo
      
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
