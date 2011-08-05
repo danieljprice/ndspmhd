@@ -116,7 +116,7 @@ SUBROUTINE setup
 !--get sound speed from equation of state (want average sound speed, so
 !  before the density is perturbed)
 !
-    CALL equation_of_state(pri,spsoundi,uu(i),dens(i),gamma,polyk,1)
+    CALL equation_of_state(pri,spsoundi,uu(i),dens(i))
 !
 !--multiply by appropriate wave speed
 !
