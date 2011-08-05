@@ -893,8 +893,8 @@ contains
        
        if (idivBzero.ge.2) then ! add hyperbolic correction term
           gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-          dBconsdt(:,i) = dBconsdt(:,i) + pmassj*gradpsiterm*dr(:)
-          dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
+          dBconsdt(:,i) = dBconsdt(:,i) + rho1i*pmassj*gradpsiterm*dr(:)
+          dBconsdt(:,j) = dBconsdt(:,j) + rho1j*pmassi*gradpsiterm*dr(:)
        endif
        !
        !   (evolving B)
@@ -904,9 +904,9 @@ contains
        dBconsdt(:,j) = dBconsdt(:,j) + pmassi*(Bj(:)*dvdotr - dvel(:)*projBj)*grkernj
        
        if (idivBzero.ge.2) then  ! add hyperbolic correction term
-          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)   
-          dBconsdt(:,i) = dBconsdt(:,i) + rhoi*pmassj*gradpsiterm*dr(:)
-          dBconsdt(:,j) = dBconsdt(:,j) + rhoj*pmassi*gradpsiterm*dr(:)
+          gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve rho*grad psi)   
+          dBconsdt(:,i) = dBconsdt(:,i) + pmassj*gradpsiterm*dr(:)
+          dBconsdt(:,j) = dBconsdt(:,j) + pmassi*gradpsiterm*dr(:)
        endif
     endif
 		   
