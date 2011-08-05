@@ -51,6 +51,7 @@ subroutine write_infile(infile)
   write(iread,200) C_cour, C_force
   write(iread,210) usenumdens
   write(iread,220) isplitpart,rhocrit
+  write(iread,230) iuse_exact_derivs
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -64,7 +65,7 @@ subroutine write_infile(infile)
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
 100 format(i2,1x,f5.3,2x,1pe10.3,16x,'! variable h, initial h factor, h tolerance')
 110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
-120 format(i2,4x,i1,29x,'! magnetic field (0:off 1:on) and force algorithm(1:vector 2:tensor)')
+120 format(i2,4x,i1,29x,'! MHD (0:no 1-10:B >10:B/rho <0:A -3:GEPs), force type(1:vector 2:tensor)')
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
 140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:on), eta')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
@@ -75,6 +76,7 @@ subroutine write_infile(infile)
 200 format(f7.3,2x,f7.3,2x,18x,'! C_cour, C_force')
 210 format(l1,35x,'! Use number density formulation of gradh')
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
+230 format(i2,34x,'! use exact derivatives for MHD (0:off 1:on)')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -142,6 +144,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) C_Cour, C_force
   read(iread,*,err=50,end=50) usenumdens
   read(iread,*,err=50,end=50) isplitpart,rhocrit
+  read(iread,*,err=50,end=50) iuse_exact_derivs
  close(unit=iread)
 
  goto 55
@@ -149,6 +152,7 @@ subroutine read_infile(infile)
    close(unit=iread)
    infilenew = trim(infile)//'_new'
    write(iprint,*) 'error reading '//trim(infile)//': writing '//trim(infilenew)//' with current options'
+   write(iprint,*) 'mv '//trim(infilenew)//' '//trim(infile)
    call write_infile(infilenew)
    stop
 55 continue

@@ -75,5 +75,6 @@ subroutine set_default_options
    usenumdens = .false.
    isplitpart = 0
    rhocrit = 1.e4
+   iuse_exact_derivs = 0
    
  end subroutine set_default_options
