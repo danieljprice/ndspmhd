@@ -56,13 +56,15 @@ end subroutine curl3D_epsijk
 !  Internal subroutine that inverts a 3x3 matrix
 !+
 !----------------------------------------------------------------
-pure subroutine matrixinvert3D(A,Ainv,ierr)
+subroutine matrixinvert3D(A,Ainv,ierr)
  implicit none
  real, intent(in), dimension(3,3) :: A
  real, intent(out), dimension(3,3) :: Ainv
  integer, intent(out) :: ierr
  real, dimension(3) :: x0,x1,x2,result
  real    :: det, ddet
+ 
+ ierr = 0
  
  x0 = A(1,:)
  x1 = A(2,:)
@@ -74,17 +76,19 @@ pure subroutine matrixinvert3D(A,Ainv,ierr)
  if (abs(det).gt.tiny(det)) then
     ddet = 1./det
  else
+    print*,' matrix = ',A(:,:)
+    print*,' determinant = ',det
     ddet = 0.
     Ainv = 0.
     ierr = 1
     return
  endif
 
- Ainv(1,:) = result(:)*ddet
+ Ainv(:,1) = result(:)*ddet
  call cross_product3D(x2,x0,result)
- Ainv(2,:) = result(:)*ddet
+ Ainv(:,2) = result(:)*ddet
  call cross_product3D(x0,x1,result)
- Ainv(3,:) = result(:)*ddet
+ Ainv(:,3) = result(:)*ddet
 
  return
 end subroutine matrixinvert3D
