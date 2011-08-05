@@ -131,6 +131,7 @@ SUBROUTINE initialise
  divB = 0.
  curlB = 0.
  fmag = 0.
+ psi = 0.
 !
 !--work out whether or not to set up fixed boundary particles
 !
@@ -226,6 +227,7 @@ SUBROUTINE initialise
  dhdt = 0.
  daldt = 0.    
  dBconsdt = 0.
+ dpsidt = 0.
 !
 !--write second header to logfile/screen
 !

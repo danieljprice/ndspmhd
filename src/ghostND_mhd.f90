@@ -202,6 +202,7 @@ SUBROUTINE set_ghost_particles
     rho(i) = rho(j)
     hh(i) = hh(j)
     alpha(i) = alpha(j)
+    psi(i) = psi(j)
 
     en(i) = en(j)
     Bcons(:,i) = Bcons(:,j)
@@ -269,6 +270,7 @@ SUBROUTINE makeghost(jpart,xghost,ireflect)
 ! en(ipart) = en(jpart)
 ! hh(ipart) = hh(jpart)
 ! alpha(ipart) = alpha(jpart)
+! psi(ipart) = psi(jpart)
 ! Bcons(:,ipart) = Bcons(:,jpart)
 ! divB(ipart) = divB(jpart)
 

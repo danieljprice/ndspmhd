@@ -14,9 +14,8 @@ SUBROUTINE divBcorrect(npts,ntot)
  USE timestep
  IMPLICIT NONE
  REAL, PARAMETER :: pi = 3.14159265358979
- REAL, PARAMETER :: fourpi1 = 1./(4.*pi)
  INTEGER :: ntot,npts
- REAL :: phi
+ REAL :: phi,dpi
  REAL, DIMENSION(npts) :: source
  REAL, DIMENSION(ntot) :: divBonrho
  REAL, DIMENSION(ndim,npts) :: gradphi
@@ -25,6 +24,15 @@ SUBROUTINE divBcorrect(npts,ntot)
 !      
  IF (trace) WRITE(iprint,*) ' Entering subroutine divBcorrect'
  IF (npts.ne.npart) STOP 'npts should be = npart for memory allocation'
+ SELECT CASE(ndim)
+  CASE(2)
+     dpi = 1./(2.*pi)
+  CASE(3)
+     dpi = 1./(4.*pi)
+  CASE default
+     WRITE(iprint,*) 'divergence correction can''t be done in 1D'
+     RETURN
+ END SELECT
 
  SELECT CASE(idivBzero)
  
@@ -42,10 +50,10 @@ SUBROUTINE divBcorrect(npts,ntot)
 !
 !--specify the source term for the Poisson equation
 !    
-       source(1:npart) = pmass(1:npart)*divBonrho(1:npart)*fourpi1
+       source(1:npart) = pmass(1:npart)*divBonrho(1:npart)*dpi
 !
 !--calculate the correction to the magnetic field
-!
+! 
        print*,' calculating correction to magnetic field...'
        CALL direct_sum_poisson(x(:,1:npart),source,phi,gradphi,npart)
 !
