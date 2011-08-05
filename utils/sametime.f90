@@ -14,7 +14,7 @@ PROGRAM combinedat
  INTEGER, PARAMETER :: nfilesmax=200
  INTEGER, PARAMETER :: npartmax = 2000
  INTEGER :: ifile,nfiles,infile,ioutfile
- INTEGER :: nsteps,ncol
+ INTEGER :: nsteps
  INTEGER :: int_from_string
  CHARACTER(len=24), DIMENSION(nfilesmax) :: filename
  CHARACTER(len=20) :: rootname
@@ -92,10 +92,9 @@ PROGRAM combinedat
        READ(infile,*,END=221) time(ifile),npart(ifile),nprint(ifile), &
                               gamma(ifile),hfact(ifile),ndim(ifile),  &
                               ndimV(ifile),ndata(ifile)
-       ncol = ndata(ifile)			      			      
-       READ(infile,*,END=222) (dat(1:ncol,k,ifile), k=1,nprint(ifile))
+       IF (ndata(ifile).GT.ncolmax) STOP 'n columns > array limits: no output'			      			      
+       READ(infile,*,END=222) (dat(1:ndata(ifile),k,ifile), k=1,nprint(ifile))
        PRINT*,' t = ',time(ifile)
-!       PRINT*,' first line = ',dat(ifile,1:ncol,1)
 
       GOTO 223
 221   CONTINUE	! timestep not there at all
@@ -114,7 +113,7 @@ PROGRAM combinedat
                          gamma(ifile),hfact(ifile),ndim(ifile),  &
 			 ndimV(ifile),ndata(ifile)
        DO k=1,nprint(ifile)
-          WRITE(ioutfile,10) dat(1:ncol,k,ifile)
+          WRITE(ioutfile,10) dat(1:ndata(ifile),k,ifile)
        ENDDO  
 10     FORMAT (16(1pe14.6,1x))	! make sure the format statement has >/=	
 					! max number of columns in the write statement
