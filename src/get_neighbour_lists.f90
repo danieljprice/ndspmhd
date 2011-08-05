@@ -217,9 +217,66 @@ contains
     endif
 !
 !--then work out which cells current cell should interact with
+!  (loop from previous block 
 !
+    n3d = 1
+    n2d = 1
+    if (ndim.ge.2) then
+       n2d = 3
+       ineighcell = ineighcell - ncellsx(1)
+    endif
+    if (ndim.eq.3) then
+       n3d = 3
+       ineighcell = ineighcell - ncellsxy
+    endif
+    ineighcell = icell - ncellsxy - ncellsx(1) - 2
+    
+    do k=1,n3d
+       ineighcell = ineighcell + ncellsxy
+       do j=1,n2d
+          ineighcell = ineighcell + ncellsx(1)
+          do i=1,3
+             ineighcell = ineighcell + 1
+             
+             nneighcell = nneighcell + 1
+             neighcell(nneighcell) = ineighcell
+          enddo
+       enddo
+    enddo
+
     nneighcell = 1
-    neighcell(1) = icell   ! always interacts with itself
+    neighcell(1) = icell - 1  ! always interacts with itself
+    neighcell(2) = icell
+    neighcell(3) = icell + 1
+    if (ndim.ge.2) then
+       neighcell(4) = icell + ncellsx(1) - 1
+       neighcell(5) = icell + ncellsx(1)
+       neighcell(6) = icell + ncellsx(1) + 1
+       neighcell(7) = icell - ncellsx(1) - 1
+       neighcell(8) = icell - ncellsx(1)
+       neighcell(9) = icell - ncellsx(1) + 1
+       if (ndim.ge.3) then
+          neighcell(10) = icell + ncellsxy + ncellsx(1) - 1
+          neighcell(11) = icell + ncellsxy + ncellsx(1)
+          neighcell(12) = icell + ncellsxy + ncellsx(1) + 1
+          neighcell(13) = icell + ncellsxy - 1
+          neighcell(14) = icell + ncellsxy
+          neighcell(15) = icell + ncellsxy + 1
+          neighcell(16) = icell + ncellsxy - ncellsx(1) - 1
+          neighcell(17) = icell + ncellsxy - ncellsx(1)
+          neighcell(18) = icell + ncellsxy - ncellsx(1) + 1
+          neighcell(19) = icell - ncellsxy + ncellsx(1) - 1
+          neighcell(20) = icell - ncellsxy + ncellsx(1)
+          neighcell(21) = icell - ncellsxy + ncellsx(1) + 1
+          neighcell(22) = icell - ncellsxy - 1
+          neighcell(23) = icell - ncellsxy
+          neighcell(24) = icell - ncellsxy + 1
+          neighcell(25) = icell - ncellsxy - ncellsx(1) - 1
+          neighcell(26) = icell - ncellsxy - ncellsx(1)
+          neighcell(27) = icell - ncellsxy - ncellsx(1) + 1
+       endif
+    endif
+    
  
     if (.not.rightmost) then         ! cell to the right
        nneighcell = nneighcell + 1
@@ -240,7 +297,7 @@ contains
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell + ncellsx(1) + 1
        endif
-       elseif (ndim.GE.2 .AND..not.bottomrow) then
+    elseif (ndim.GE.2 .AND..not.bottomrow) then
        if (.not.leftmost) then         ! below, left
           nneighcell = nneighcell + 1
           neighcell(nneighcell) = icell - ncellsx(1) - 1
