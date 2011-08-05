@@ -14,7 +14,8 @@ SUBROUTINE divBcorrect(npts,ntot)
  USE part
  USE timestep
 
- USE getdivB
+ use getdivB
+ use getcurl
  
  IMPLICIT NONE
  INTEGER, INTENT(IN) :: npts, ntot
@@ -23,7 +24,6 @@ SUBROUTINE divBcorrect(npts,ntot)
  REAL :: phi,dpi,ecrap,momcrap
  REAL, DIMENSION(npts) :: source
  REAL, DIMENSION(size(rho)) :: divBonrho
- REAL, DIMENSION(ndimV,size(rho)) :: curlBonrho
  REAL, DIMENSION(ndimV,npts) :: sourcevec,curlA
  REAL, DIMENSION(ndim,npts) :: gradphi
  LOGICAL :: debugging
@@ -135,11 +135,8 @@ SUBROUTINE divBcorrect(npts,ntot)
 !--calculate div B source term for poisson equation
 !       
        if (debugging) write(iprint,*) ' calculating current before correction'
-       call get_curl(curlBonrho,ntot)
-       if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
-       do i=1,ntot
-          curlB(:,i) = rho(i)*curlBonrho(:,i)
-       enddo
+       call get_curl(ntot,x,pmass,rho,hh,Bfield,curlB)
+       if (ntot.gt.npart) curlB(:,npart+1:ntot) = 0.
        
        if (debugging) then
           write(iprint,*) ' calculating div B before correction'
@@ -155,7 +152,7 @@ SUBROUTINE divBcorrect(npts,ntot)
 !    
        sourcevec = 0.
        do i=1,npart
-          sourcevec(:,i) = pmass(i)*curlBonrho(:,i)*dpi
+          sourcevec(:,i) = pmass(i)*curlB(:,i)/rho(i)*dpi
        enddo
 !
 !--calculate the correction to the magnetic field
@@ -199,11 +196,8 @@ SUBROUTINE divBcorrect(npts,ntot)
           enddo
           divB(1:ntot) = rho(1:ntot)*divBonrho(1:ntot)
           
-          call get_curl(curlBonrho,ntot)
-          if (ntot.gt.npart) curlBonrho(:,npart+1:ntot) = 0.
-          do i=1,ntot
-             curlB(:,i) = rho(i)*curlBonrho(:,i)
-          enddo
+          call get_curl(ntot,x,pmass,rho,hh,Bfield,curlB)
+          if (ntot.gt.npart) curlB(:,npart+1:ntot) = 0.
           
           call output(time,nsteps)   ! output div B and Bfield after correction
           call evwrite(real(icall),ecrap,momcrap)

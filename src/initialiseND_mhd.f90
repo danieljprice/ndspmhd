@@ -222,7 +222,7 @@ subroutine initialise
  do i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
-    bevolin(:,i) = bevol(:,i)
+    Bevolin(:,i) = Bevol(:,i)
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)

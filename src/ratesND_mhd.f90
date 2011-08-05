@@ -154,7 +154,7 @@ subroutine get_rates
 !
 !--set MHD quantities to zero if mhd not set
 !
- if (imhd.le.0) then  ! these quantities are still used if mhd off
+ if (imhd.eq.0) then  ! these quantities are still used if mhd off
     Bi(:) = 0.
     Bj(:) = 0.
     Brhoi(:) = 0.
@@ -227,15 +227,10 @@ subroutine get_rates
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
-       if (imhd.ge.11) then      ! if mag field variable is B
-          Bi(:) = Bevol(:,i)
-          Brhoi(:) = Bi(:)*rho1i
-       elseif (imhd.gt.0) then      ! if mag field variable is B/rho
-          Brhoi(:) = Bevol(:,i)
-          Bi(:) = Bfield(:,i)
-       endif
        ! mhd definitions
        if (imhd.ne.0) then
+          Bi(:) = Bfield(:,i)
+          Brhoi(:) = Bi(:)*rho1i
           Brho2i = dot_product(Brhoi,Brhoi)
           valfven2i = Brho2i*rhoi
           alphaBi = alpha(3,i)
@@ -392,6 +387,8 @@ subroutine get_rates
        if (idivBzero.ge.2) then
           gradpsi(:,i) = gradpsi(:,i)*rho1i**2      
        endif
+    else
+       dBevoldt(:,i) = 0.
     endif
 !
 !--calculate maximum force/h for the timestep condition
@@ -446,7 +443,7 @@ subroutine get_rates
        !
        !--artificial resistivity parameter if iavlim > 10
        !
-       if (iavlim(3).ne.0 .and. imhd.gt.0) then
+       if (iavlim(3).ne.0 .and. imhd.ne.0) then
           !--calculate source term for the resistivity parameter
           sourceJ = SQRT(DOT_PRODUCT(curlB(:,i),curlB(:,i))*rho1i)
           sourcedivB = 10.*abs(divB(i))*SQRT(rho1i)
@@ -636,15 +633,10 @@ contains
     phii_on_phij = phii/phi(j)
     phij_on_phii = phi(j)*phii1       
     sqrtgj = sqrtg(j)      
-    !-- mhd definitions --!
-    if (imhd.ge.11) then      ! if B is mag field variable
-       Bj(:) = Bevol(:,j)
-       Brhoj(:) = Bj(:)*rho1j
-    elseif (imhd.ne.0) then      ! if B/rho is mag field variable
-       Brhoj(:) = Bevol(:,j)
-       Bj(:) = Bfield(:,j)
-    endif
+    !-- mhd definitions --
     if (imhd.ne.0) then
+       Bj(:) = Bfield(:,j)
+       Brhoj(:) = Bj(:)*rho1j       
        dB(:) = Bi(:) - Bj(:)
        projBi = dot_product(Bi,dr)
        projBj = dot_product(Bj,dr)
@@ -842,20 +834,19 @@ contains
     !  resistivity in induction equation
     !  (applied everywhere)
     !--------------------------------------------
-    if (imhd.ne.0) then
-    if (iav.ge.2) then
-       Bvisc(:) = dB(:)*rhoav1
-    else
-       Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
-    endif
-    dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
-    
-    !
-    !--add to d(B/rho)/dt (converted to dB/dt later if required)
-    !
-    dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
-    dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
+    if (imhd.gt.0) then
+       if (iav.ge.2) then
+          Bvisc(:) = dB(:)*rhoav1
+       else
+          Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
+       endif
+       dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
 
+       !
+       !--add to d(B/rho)/dt (converted to dB/dt later if required)
+       !
+       dBevoldt(:,i) = dBevoldt(:,i) + rhoi*pmassj*dBdtvisc(:)               
+       dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
     endif
 
     !--------------------------------------------------
@@ -886,15 +877,15 @@ contains
        !
        !  magnetic energy terms - applied everywhere
        !
-       if (imhd.ne.0) then
-       if (iav.ge.2) then
-          B2i = dot_product(Bi,Bi) ! total magnetic energy 
-          B2j = dot_product(Bj,Bj) 
-       else
-          B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
-          B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
-       endif
-       qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
+       if (imhd.gt.0) then
+          if (iav.ge.2) then
+             B2i = dot_product(Bi,Bi) ! total magnetic energy 
+             B2j = dot_product(Bj,Bj) 
+          else
+             B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
+             B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
+          endif
+          qdiff = qdiff + alphaB*0.5*(B2i-B2j)*rhoav1
        endif
        !
        !  add to total energy equation
@@ -923,7 +914,7 @@ contains
        !
        !  add magnetic energy term - applied everywhere
        !
-       if (imhd.ne.0) then
+       if (imhd.gt.0) then
           if (iav.ge.2) then
              vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
           else
@@ -1082,7 +1073,7 @@ contains
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
-    case default  ! non-conservative (usual) form
+    case (:0) ! non-conservative (usual) form
        dBevoldt(:,i) = dBevoldt(:,i)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
        dBevoldt(:,j) = dBevoldt(:,j)             &

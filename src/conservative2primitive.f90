@@ -18,6 +18,7 @@ subroutine conservative2primitive
   use bound
   use eos
   use part
+  use getcurl
   implicit none
   integer :: i,j,nerr
   real :: B2i, v2i
@@ -32,10 +33,13 @@ subroutine conservative2primitive
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
      Bfield = Bevol
-  elseif (imhd.ne.0) then ! if using B/rho as conserved variable
+  elseif (imhd.gt.0) then ! if using B/rho as conserved variable
      do i=1,npart
         Bfield(:,i) = Bevol(:,i)*rho(i)
      enddo
+  else ! if using vector potential
+     write(iprint,*) 'getting B field from vector potential...'
+     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
   endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
@@ -103,6 +107,7 @@ subroutine primitive2conservative
   use part
   use setup_params
   use timestep
+  use getcurl
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav
@@ -139,10 +144,13 @@ subroutine primitive2conservative
 !  
   if (imhd.ge.11) then    ! if using B as conserved variable
      Bevol = Bfield
-  elseif (imhd.ne.0) then ! if using B/rho as conserved variable
+  elseif (imhd.gt.0) then ! if using B/rho as conserved variable
      do i=1,npart
         Bevol(:,i) = Bfield(:,i)/rho(i)
      enddo
+  else ! if using vector potential
+     write(iprint,*) 'getting B field from vector potential (init)...'
+     call get_curl(npart,x,pmass,rho,hh,Bevol,Bfield)
   endif
 !
 !--calculate conserved energy (or entropy) from the thermal energy
