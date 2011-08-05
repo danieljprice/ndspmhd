@@ -66,7 +66,7 @@ else
 #
    echo 'building documentation...'
    cd /tmp/$builddir/docs
-   latex supersphplot > /tmp/latex.output
+   latex supersphplot
    bibtex supersphplot >> /tmp/latex.output
    latex supersphplot >> /tmp/latex.output
    latex supersphplot >> /tmp/latex.output
@@ -77,10 +77,12 @@ else
    cp supersphplot.ps.gz ~/web/supersphplot/userguide
    cp supersphplot.pdf ~/web/supersphplot/userguide
    echo 'building html documentation...'
-   nedit ~/web/supersphplot/main.html &
+   nedit ~/web/supersphplot/index.html &
    latex2html supersphplot.tex
    rm -r ~/web/supersphplot/userguide/html
    mv supersphplot ~/web/supersphplot/userguide/html
    rm *.aux *.blg *.dvi *.log *.toc
+   cd ~/web
+   chmod -R a+r *
    
 endif
