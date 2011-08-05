@@ -71,7 +71,7 @@ end subroutine setkernels
 subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel)
  implicit none         !  define local variables
  integer, intent(in) :: ikernel, ndim
- real, intent(out), dimension(:) :: wkern,grwkern,grgrwkern
+ real, intent(out), dimension(0:ikern) :: wkern,grwkern,grgrwkern
  character(len=*), intent(out) :: kernellabel
  integer :: i,j,npower,n
  real :: q,q2,q4,cnormk,cnormkaniso
