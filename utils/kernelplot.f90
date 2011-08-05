@@ -8,16 +8,16 @@ program kernelplot
  use setup_params
 
  implicit none
- integer :: i,j,nkernels,nacross,ndown,ilinestyle,nepszero
+ integer :: i,j,nkernels,nacross,ndown,ilinestyle,nepszero,ipos
  integer, dimension(10) :: iplotorder
  real :: q,q2,xmin,xmax,ymin,ymax,epszero,hpos,vpos
  real, dimension(0:ikern) :: dqkern
  logical :: samepage
  character(len=50) :: text
 
- data iplotorder /0, 13, 10, 7, 5, 6, 4, 2, 8, 21/   ! order in which kernels are plotted
+ data iplotorder /101, 102, 0, 7, 5, 6, 4, 2, 8, 21/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 10
+ nkernels = 3
  iprint = 6   ! make sure output from kernel setup goes to screen
  ianticlump = 0
  epszero = 0.0
@@ -25,12 +25,13 @@ program kernelplot
  hfact = 1.5
  samepage = .false.
  trace = .true.
- nacross = 5
- ndown = 2
+ nacross = 1
+ ndown = 3
  xmin = 0.0
  xmax = 3.2
- ymin = -2.0  !!3.5
- ymax = 1.7
+ ymin = 0.01 !!-2.0  !!3.5
+ ymax = 2.4 !!1.7
+ ipos = 1
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
@@ -46,7 +47,9 @@ program kernelplot
     !!call pglabel('r/h','W, \(2266)W ',' ')
  else
     call pgbegin(0,'?',1,1) 
+    !!call pgpap(5.85,2./sqrt(2.))
  endif
+ call pgslw(2)
 
  eps = epszero
  neps = nepszero
@@ -104,15 +107,21 @@ program kernelplot
 !!       if (nkernels.eq.1) call pglabel('r/h','W(r/h), \(2266)W(r/h) ',TRIM(kernelname))
        
     else
-       call pgsch(0.6)
+       call pgsch(1.5)
        if (mod(j,nacross*ndown).eq.1 .or. nacross*ndown.eq.1) call pgpage
        !call pgenv(0.0,3.0,-3.5,1.7,1,1) !-3.5 1.7
+       ymax = maxval(wij(1:ikern))*1.5
+       if (ikernel.eq.101) ymax = maxval(abs(wij(1:ikern)))*1.5
+       if (ikernel.eq.102) ymax = maxval(wij(1:ikern)/dqkern(1:ikern)**2)*1.5
+       print*,'max = ',ymax
+       if (ikernel.eq.0) kernelname = 'density'
        call danpgtile(j,nacross,ndown,xmin,xmax,ymin,ymax,  &
-                      'r/h',' ',TRIM(kernelname),1,1)
+                      'r/h',' ',TRIM(kernelname),0,1)
 !!       call pgwnad(0.0,3.0,-3.5,1.7) ! pgwnad or pgswin
 !!       call pgbox('bcnst',0.0,0,'1bvcnst',0.0,0)
 !!       call pglabel('r/h',' ',TRIM(kernelname))
        call pgsci(1)
+       ipos = 1
     endif
 
 !
@@ -126,37 +135,50 @@ program kernelplot
 !--plot kernel
 !
     call pgsls(1)
+    if (ikernel.eq.101) wij(0:ikern) = -wij(0:ikern)
+    if (ikernel.eq.102) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
        call pgline(ikern+1,dqkern(0:ikern),wijaniso(0:ikern))
     endif
+    !!call legend(ipos,trim(kernelname),0.5,3.0)
+    if (ikernel.eq.101) then
+       call pgsls(2)
+       call pgline(ikern,dqkern(1:ikern),1./dqkern(1:ikern))
+       call legend(ipos,'1/r',0.78,3.0)
+    elseif (ikernel.eq.102) then
+       call pgsls(2)
+       call pgline(ikern+1,dqkern(0:ikern),1./dqkern(0:ikern)**2)
+       call legend(ipos,'1/r\u2',0.78,3.0)
+    endif
 !
 !--kernel gradient
 !    
     call pgsls(2)
-    call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
+!    call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
    !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwij(0:ikern))
     if (ianticlump.ne.0) then
 !       call pgsls(j+2)
        !!write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
-       !!call legend(j,text,0.5,3.0)
+       !!call legend(ipos,text,0.5,3.0)
        call pgline(ikern+1,dqkern(0:ikern),grwijaniso(0:ikern))
       !! call pgline(ikern+1,dqkern(0:ikern),dqkern(0:ikern)*grwijaniso(0:ikern))    
     endif
 !
 !--second derivative
 !
-    call pgsls(3)
-    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
-    if (ianticlump.ne.0) then
-       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
-    endif
+!    call pgsls(3)
+!    call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+!    if (ianticlump.ne.0) then
+!       call pgline(ikern+1,dqkern(0:ikern),grgrwijaniso(0:ikern))    
+!    endif
     call pgsls(1)
 !    call pgsci(1)
  enddo
  
- read*
+ call pgend
+ stop
 !
 !--plot stability separately
 !
@@ -190,7 +212,7 @@ end program kernelplot
 !
 subroutine legend(icall,text,hpos,vposin)
   implicit none
-  integer, intent(in) :: icall
+  integer, intent(inout) :: icall
   character(len=*), intent(in) :: text
   real, intent(in) :: vposin
   real, dimension(2) :: xline,yline
@@ -220,7 +242,8 @@ subroutine legend(icall,text,hpos,vposin)
 !     !!call pgline(2,xline,yline)            ! draw line segment
    if (icall.gt.0) then
      call pgline(2,xline,yline)            ! draw line segment
-   endif  
+   endif
+   icall = icall + 1
 !
 !--write text next to line segment
 !  
