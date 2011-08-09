@@ -221,7 +221,7 @@ module timestep
 ! (time step criterion from forces, courant condition)
 !
  real :: dtforce, dtcourant, C_force, C_cour, C_rho, dtrho
- real :: dtav
+ real :: dtav, dtdrag
  logical, parameter :: dtfixed = .false.
 
 end module timestep

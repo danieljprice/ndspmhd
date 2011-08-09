@@ -434,6 +434,7 @@ subroutine get_rates
  endif
  
  fmean(:) = 0.
+ dtdrag = huge(dtdrag)
  do i=1,npart
  
     rhoi  = rho(i)
@@ -702,6 +703,12 @@ subroutine get_rates
        case DEFAULT
           dpsidt(i) = 0.
     end select
+!
+!--calculate drag timestep
+!
+    if (idrag.ne.0 .and. Kdrag.gt.0.) then
+       dtdrag = min(dtdrag,rhoi/Kdrag)
+    endif
  enddo
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
@@ -723,7 +730,7 @@ subroutine get_rates
 !--set rates to zero on ghosts/fixed particles
 !
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
-    if (itype(i).eq.1 .or. i.gt.npart) then
+    if (itype(i).eq.itypebnd .or. i.gt.npart) then
        force(:,i) = 0.0
        drhodt(i) = 0.0
        dhdt(i) = 0.0
