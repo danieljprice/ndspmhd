@@ -15,15 +15,17 @@ module kernels
  integer :: ianticlump,neps
  real, parameter, private :: pi = 3.141592653589
  real, dimension(0:ikern) :: wij,grwij,wijalt,grwijalt
+ real, dimension(0:ikern) :: wijdrag,grwijdrag,grgrwijdrag
  real :: dq2table,ddq2table,radkern2,radkern,eps
 !--these variables for force softening only
  real, dimension(0:ikern) :: potensoft,fsoft,dphidh
 !--these variables needed for plotting and analysis only (not in rates etc)
  real, dimension(0:ikern) :: grgrwij,grgrwijalt
- character(len=100) :: kernelname,kernelnamealt
+ character(len=100) :: kernelname,kernelnamealt,kernelnamedrag
  
- public :: wij,grwij,grgrwij
+ public  :: wij,grwij,grgrwij
  public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
+ public  :: setkerndrag, interpolate_kerneldrag
  private :: setkerntable
 
 contains
@@ -42,6 +44,21 @@ subroutine setkern(ikernel,ndim,ierr)
  call setkerntable(ikernel,ndim,wij,grwij,grgrwij,kernelname,ierr)
  
 end subroutine setkern
+
+!----------------------------------------------------------------------
+! This is the interface routine (public) -- calls setkerndrag once only
+!
+!----------------------------------------------------------------------
+subroutine setkerndrag(ikernel,ndim,ierr)
+ implicit none
+ integer, intent(in)  :: ikernel, ndim
+ integer, intent(out) :: ierr
+!
+!--setup kernel tables for primary kernel
+!
+ call setkerntable(ikernel,ndim,wijdrag,grwijdrag,grgrwijdrag,kernelnamedrag,ierr)
+ 
+end subroutine setkerndrag
 
 !-----------------------------------------------------------------
 ! This is another interface routine (public) -- calls setkern twice
@@ -2013,6 +2030,31 @@ subroutine interpolate_kernel(q2,w,gradw)
  gradw = (grwij(index)+ dgrwdx*dxx)
  
 end subroutine interpolate_kernel
+
+subroutine interpolate_kerneldrag(q2,w)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w
+ real :: dxx,dwdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw and interpolate for each
+! 
+ dwdx =  (wijdrag(index1)-wijdrag(index))*ddq2table
+ w = (wijdrag(index)+ dwdx*dxx)
+ 
+end subroutine interpolate_kerneldrag
 
 !!----------------------------------------------------------------------
 !! same but for kernel *and* modified kernel in anticlumping term

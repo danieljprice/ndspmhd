@@ -365,7 +365,7 @@ subroutine get_rates
               if (itype(j).eq.itypei .or. itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) then              
                  call rates_core
               else
-!                 call drag_term
+                 call drag_forces
               endif
            else      ! if outside 2h
 !              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)
@@ -762,6 +762,99 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
+  subroutine drag_forces
+    use kernels, only:interpolate_kerneldrag  
+    use options, only:idrag,Kdrag    
+    implicit none
+    integer :: itypej
+    logical :: iskip_drag
+    real    :: rhoiplusj
+    real    :: dv2,vij,V0,f,dragterm,dragterm_en
+    real, dimension(ndimV) :: drdrag
+    real, parameter :: pow_drag_exp = 0.4
+    real, parameter :: a2_set       = 0.5
+    real, parameter :: a3_set       = 0.5
+
+!
+!--setup the parameters
+!
+    f = 0.
+    iskip_drag = .false.   
+!
+!--get informations on the differential velocities
+!
+    velj(:) = vel(:,j)
+    dvel(:) = veli(:) - velj(:)
+    dv2     = dot_product(dvel,dvel)
+    
+    if (rij.le.epsilon(rij)) then !two particles at the same position
+       if (dv2.le.epsilon(dv2)) then !no differential velocity => no drag
+           drdrag(1:ndim) = 0.
+           iskip_drag      = .true.
+       else ! Change dr so that the drag is colinear to the differential velocity
+           vij            = sqrt(dv2)
+           drdrag(1:ndim) = dvel(1:ndim)/vij
+       endif
+    else ! dr = drdrag
+       drdrag(1:ndim) = dr(1:ndim)    
+    endif
+
+!---start the drag calculation    
+    if (.not.iskip_drag) then
+!
+!--get the j particle extra properties
+!
+    
+    itypej    = itype(j)
+    pmassj    = pmass(j)
+    rhoj      = rho(j)
+    rhoiplusj = rhoi+rhoj
+    !--FIX THE TIMESTEP !!  if (Kdrag .gt. tiny(Kdrag)) dtdrag = min(dtdrag,1./(rhoiplusj*Kdrag))
+!
+!--calculate the kernel(s)
+! 
+    call interpolate_kerneldrag(q2i,wabi)
+    wabi     = wabi*hfacwabi
+!
+!--calculate the quantities needed for the drag force
+!
+    V0 = dot_product(dvel,drdrag)
+    select case(idrag)
+       case(1) !--linear regime
+          f = 1.
+       case(2) !--power law
+          f = dv2**(0.5*pow_drag_exp)
+       case(3) !--quadratic
+          f = sqrt(dv2)
+       case(4) !--cubic expansion
+          f = 1. + a3_set*dv2
+       case(5) !--PM expression
+          f = sqrt(1. + a2_set*dv2)
+       case default
+          print*,'this value for idrag does not exist'         
+    end select
+ 
+!
+!--update the force and the energy
+!   
+    dragterm    = ndim*wabi*Kdrag*f*V0
+    dragterm_en = dragterm*V0
+ 
+    forcei(:) = forcei(:) - dragterm*pmassj*drdrag(:)
+    force(:,j) = force(:,j) + dragterm*pmassi*drdrag(:)
+
+    if (itypei.eq.itypegas) then
+       dudt(i)   = dudt(i) + pmassj*dragterm_en
+    endif
+    if (itypej.eq.itypegas) then
+       dudt(j)   = dudt(j) + pmassi*dragterm_en
+    endif
+ 
+    else
+       print*,'drag skipped: particles have the same velocities and the same position'
+    endif
+    
+  end subroutine drag_forces
 !--------------------------------------------------------------------------------------
 ! This is the interaction between the particle pairs
 ! Note that local variables are used from get_rates

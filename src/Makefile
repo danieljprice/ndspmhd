@@ -12,7 +12,7 @@ EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
 ifndef SPLASH_DIR
-   SPLASH_DIR=${HOME}/splash/src
+   SPLASH_DIR=${HOME}/recherche/splash/src
 endif
 
 DOUBLEPRECISION= yes

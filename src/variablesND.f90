@@ -112,7 +112,7 @@ end module loguns
 module options
  use dimen_mhd
  implicit none
- integer :: iener,icty,iav,ikernav
+ integer :: iener,icty,iav,ikernav,idrag
  integer :: iprterm,idumpghost,ihvar
  integer :: imhd,imagforce,idivbzero   !  (mhd options)
  integer :: iexternal_force,ixsph,isplitpart
@@ -121,6 +121,7 @@ module options
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
+ real :: Kdrag
  character(len=12) :: geom
  logical :: usenumdens
 end module
