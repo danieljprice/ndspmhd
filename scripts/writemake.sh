@@ -4,7 +4,7 @@
 # @(#) directory
 #
 if [ $# -lt 1 ]; then
-   echo Usage: $0 nD
+   echo "Usage: $0 nD [setup_blah.f90]";
 else
    echo '#'
    echo '#--Makefile to remake the executable and copy to this directory'
@@ -25,6 +25,12 @@ else
    echo '	cd ${NDSPMHD_DIR}; make 2D; cd -; cp ${NDSPMHD_DIR}/2DSPMHD .'
    echo '1D: checkdir'
    echo '	cd ${NDSPMHD_DIR}; make 1D; cd -; cp ${NDSPMHD_DIR}/1DSPMHD .'
+   echo '3DGR: checkdir'
+   echo '	cd ${NDSPMHD_DIR}; make 3DGR; cd -; cp ${NDSPMHD_DIR}/3DGRSPMHD .'
+   echo '2DGR: checkdir'
+   echo '	cd ${NDSPMHD_DIR}; make 2DGR; cd -; cp ${NDSPMHD_DIR}/2DGRSPMHD .'
+   echo '1DGR: checkdir'
+   echo '	cd ${NDSPMHD_DIR}; make 1DGR; cd -; cp ${NDSPMHD_DIR}/1DGRSPMHD .'
    echo 'edit: checkdir checkeditor'
    echo '	cd ${NDSPMHD_DIR}; make edit'$1
    echo 'moddump: checkdir'
