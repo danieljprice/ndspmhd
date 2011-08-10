@@ -235,7 +235,7 @@ subroutine setup
     do i=1,npart
        if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
-          itype(i) = 1
+          itype(i) = itypebnd
           nbpts = nbpts + 1
        endif
     enddo
