@@ -12,7 +12,7 @@ EDITOR = nedit
 KNOWN_SYSTEM=no
 SHELL = /bin/sh
 ifndef SPLASH_DIR
-   SPLASH_DIR=${HOME}/recherche/splash/src
+   SPLASH_DIR=${HOME}/splash/src
 endif
 
 DOUBLEPRECISION= yes
@@ -64,7 +64,7 @@ ifeq ($(SYSTEM), gfortran)
    F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8
    SYSTEMFILE= system_unix.f90
-   DEBUGFLAG= -g -frange-check
+   DEBUGFLAG= -g -fcheck=all
    OMPFLAG= -fopenmp
    ENDIANFLAGBIG= -fconvert=big-endian
    ENDIANFLAGLITTLE= -fconvert=little-endian
