@@ -131,6 +131,7 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) pmom(i,1:nprint)
      enddo
   endif
+  write(idatfile) itype(1:nprint)
 
  close(unit=idatfile)
 
@@ -337,6 +338,11 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     do i=1,2
        read(ireadf,iostat=ierr) alpha(i,1:npart)
     enddo
+ endif
+
+ read(ireadf,iostat=ierr) itype(1:npart)
+ if (ierr /= 0) then
+    write(iprint,*) 'WARNING: itype array not present in file'
  endif
 !
 !--close the file
