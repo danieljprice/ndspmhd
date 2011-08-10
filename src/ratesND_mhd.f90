@@ -362,9 +362,11 @@ subroutine get_rates
               !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
               !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
               !enddo
-              if (itype(j).eq.itypei .or. itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) then              
+              if (itype(j).eq.itypei &
+                  .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
+                  .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
                  call rates_core
-              else
+              elseif (idrag.gt.0) then
                  call drag_forces
               endif
            else      ! if outside 2h
@@ -807,7 +809,7 @@ contains
     endif
 
 !---start the drag calculation    
-    if (.not.iskip_drag) then
+    !if (.not.iskip_drag) then
 !
 !--get the j particle extra properties
 !
@@ -857,9 +859,9 @@ contains
        dudt(j)   = dudt(j) + pmassi*dragterm_en
     endif
  
-    else
-       print*,'drag skipped: particles have the same velocities and the same position'
-    endif
+    !else
+       !  print*,'drag skipped: particles have the same velocities and the same position'
+    !endif
     
   end subroutine drag_forces
 !--------------------------------------------------------------------------------------
