@@ -2071,7 +2071,7 @@ subroutine interpolate_kernels(q2,w,gradw,gradwalt,gradgradwalt)
  index = int(q2*ddq2table)
  index1 = index + 1
  if (index.gt.ikern .or. index.lt.0) index = ikern
- if (index1.gt.ikern .or. index.lt.0) index1 = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
 !
 !--find increment from index point to actual value of q2
 !
@@ -2079,7 +2079,7 @@ subroutine interpolate_kernels(q2,w,gradw,gradwalt,gradgradwalt)
 !
 !--calculate slope for w, gradw, waniso, gradwaniso
 !  and interpolate for each
-! 
+!
  w = wij(index)
  dwdx =  (wij(index1)-w)*ddq2table
  w = w + dwdx*dxx
@@ -2244,7 +2244,7 @@ subroutine interpolate_kernel_curl(q2,gradwalt,gradgradwalt)
  index = int(q2*ddq2table)
  index1 = index + 1
  if (index.gt.ikern .or. index.lt.0) index = ikern
- if (index1.gt.ikern .or. index.lt.0) index1 = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
 !
 !--find increment from index point to actual value of q2
 !
