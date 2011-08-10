@@ -76,6 +76,17 @@ subroutine conservative2primitive
         end where
      enddo
   endif
+!
+!--make fixed particles exact replicas of their closest particle
+!
+  if (any(ibound.eq.1)) then
+     do i=1,npart
+        if (itype(i).eq.itypebnd) then
+           j = ireal(i)
+           call copy_particle(i,j)
+        endif
+     enddo
+  endif
  
   return
 end subroutine conservative2primitive
@@ -133,6 +144,7 @@ subroutine primitive2conservative
   use part
   use setup_params
   use timestep
+  use utils, only:minmaxave
   implicit none
   integer :: i,j,iktemp,ierr
   real :: lorentzfactor, v2i, hmin, hmax, hav, polyki, gam1
@@ -224,6 +236,17 @@ subroutine primitive2conservative
      enddo
   endif
 !
+!--make fixed particles exact replicas of their closest particle
+!
+  if (any(ibound.eq.1)) then
+     do i=1,npart
+        if (itype(i).eq.itypebnd) then
+           j = ireal(i)
+           call copy_particle(i,j)
+        endif
+     enddo
+  endif
+!
 !--call rates to get initial timesteps, div B etc
 !
   call get_rates     
@@ -306,7 +329,7 @@ subroutine solve_conservative2primitivei(pmomi,eni,rhoi,gamma,veli,uui,densi,pri
   real, parameter :: tol = 1.e-8
   logical :: converged
   real :: h,hnew,lorentzfactor
-  real :: fh,dfh,gam1,pmommag,vmag,pmom2,grad
+  real :: fh,dfh,gam1,pmommag,vmag,pmom2 !,grad
   real :: hmin,hmax,fhmin,dfhmin,hin
  
   pmom2 = dot_product(pmomi(:),pmomi(:))
