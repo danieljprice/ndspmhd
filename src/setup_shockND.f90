@@ -26,7 +26,7 @@ subroutine setup
  use uniform_distributions
  use cons2prim, only:primitive2conservative
  implicit none
- integer :: i,npartold,nparty
+ integer :: i,npartold,nparty,ntypes,ngas,ndust,jtype,npartprev
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
  real :: dsmooth, exx, delta, const, fac
@@ -37,6 +37,9 @@ subroutine setup
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,mach_R,mach_L,vjump,gamm1
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
+ 
+ ntypes = 1
+ if (idrag.gt.0) ntypes = 2
 !
 !--allow for tracing flow
 !
@@ -133,7 +136,7 @@ subroutine setup
  if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright))) then
     ibound(1) = 1               ! fixed x particles
  else
-    ibound(1) = 1                ! reflecting in x
+    ibound(1) = 2                ! reflecting in x
  endif
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
@@ -163,6 +166,9 @@ subroutine setup
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
 
+ ngas = 0
+ ndust = 0
+ over_types: do jtype=1,ntypes
 !
 !--now setup the shock
 ! 
@@ -178,6 +184,7 @@ subroutine setup
  xminright(1) = xshock
  psepleft = psep
  psepright = psep*(densleft/densright)**(1./ndim)
+ npartprev = npart
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
     if (stretchx .and. ndim.ge.2) then
@@ -192,7 +199,7 @@ subroutine setup
        xmin(1) = xshock - npart/nparty*psep !!! = xminleft
        volume = PRODUCT(xmaxleft-xminleft)
        total_mass = volume*densleft
-       massp = total_mass/npart
+       massp = total_mass/(npart - npartprev)
        print*,'particle mass = ',massp
        masspleft = massp
        masspright = massp
@@ -210,7 +217,7 @@ subroutine setup
        xmin = xminleft
        volume = PRODUCT(xmaxleft-xminleft)
        total_mass = volume*densleft
-       massp = total_mass/npart
+       massp = total_mass/(npart - npartprev)
        masspleft = massp
        masspright = massp
 
@@ -221,12 +228,21 @@ subroutine setup
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
-    masspleft = densleft*volume/REAL(npart)
+    masspleft = densleft*volume/REAL(npart - npartprev)
 !    vol_right = PRODUCT(xmaxright-xminright)
-    masspright = densright*volume/REAL(npart)
+    masspright = densright*volume/REAL(npart - npartprev)
  endif
 
- print*,'npart = ',npart
+ if (jtype.eq.1) then
+    ngas = npart
+    itype(1:ngas) = itypegas
+ elseif (jtype.eq.2) then
+    ndust = npart - ngas
+    itype(ngas+1:ngas+ndust) = itypedust
+ endif
+
+ enddo over_types
+ print*,'npart = ',npart,' ngas = ',ngas,' ndust = ',ndust
 !
 !--if using moving boundaries, fix the particles near the boundaries
 !
@@ -235,7 +251,7 @@ subroutine setup
     do i=1,npart
        if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
-          itype(i) = itypebnd
+          if (itype(i).eq.itypegas) itype(i) = itypebnd
           nbpts = nbpts + 1
        endif
     enddo
@@ -294,6 +310,13 @@ subroutine setup
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
     endif           
     Bfield(1,i) = Bxinit
+    !
+    !--override settings for dust particles
+    !
+    if (itype(i).eq.itypedust) then
+       uu(i) = 0.
+       Bfield(:,i) = 0.
+    endif
  enddo
 !
 !--setup const component of mag field which can be subtracted
@@ -338,6 +361,9 @@ subroutine setup
           uu(i) = prleft/(gam1*dens(i))
        else
           uu(i) = prright/(gam1*dens(i))
+       endif
+       if (itype(i).eq.itypedust) then
+          uu(i) = 0.
        endif
     enddo
  endif 
