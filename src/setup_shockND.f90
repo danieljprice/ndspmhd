@@ -213,13 +213,16 @@ subroutine setup
        print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
        print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
    !!    massp = (psep**ndim)*densright
-       call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
+   !    if (jtype.eq.1) then
+          call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
+            ! set left half
+          volume = PRODUCT(xmaxleft-xminleft)
+          total_mass = volume*densleft
+          massp = total_mass/(npart - npartprev)
+          masspleft = massp
+          masspright = massp  
+   !    endif
        xmin = xminleft
-       volume = PRODUCT(xmaxleft-xminleft)
-       total_mass = volume*densleft
-       massp = total_mass/(npart - npartprev)
-       masspleft = massp
-       masspright = massp
 
        call set_uniform_cartesian(2,psepright,xminright,xmaxright,fill=.true.) ! set right half
        xmax = xmaxright

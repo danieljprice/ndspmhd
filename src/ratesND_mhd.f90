@@ -778,6 +778,7 @@ contains
     integer :: itypej
     logical :: iskip_drag
     real    :: dv2,vij,V0,f,dragterm,dragterm_en
+    real    :: wabj,wab,hfacwabj
     real, dimension(ndimV) :: drdrag
     real, parameter :: pow_drag_exp = 0.4
     real, parameter :: a2_set       = 0.5
@@ -817,11 +818,21 @@ contains
     pmassj    = pmass(j)
     rhoj      = rho(j)
     rhoij = rhoi*rhoj
+    hfacwabj = (1./hh(j)**ndim)
 !
 !--calculate the kernel(s)
 ! 
     call interpolate_kerneldrag(q2i,wabi)
     wabi     = wabi*hfacwabi
+    call interpolate_kerneldrag(q2j,wabj)
+    wabj     = wabj*hfacwabj
+    !wab = 0.5*(wabi + wabj)
+    if (itypei.eq.itypegas) then
+       wab = wabi
+    else
+       wab = wabj
+    endif
+    
 !
 !--calculate the quantities needed for the drag force
 !
@@ -844,7 +855,7 @@ contains
 !
 !--update the force and the energy
 !   
-    dragterm    = ndim*wabi*Kdrag*f*V0/rhoij
+    dragterm    = ndim*wab*Kdrag*f*V0/rhoij
     dragterm_en = dragterm*V0
  
     forcei(:) = forcei(:) - dragterm*pmassj*drdrag(:)
