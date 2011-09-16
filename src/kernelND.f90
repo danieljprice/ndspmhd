@@ -98,8 +98,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: q,q2,q4,q3,q5,q6,q7,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
- real :: ddterm1,ddterm2,ddterm3,ddterm4
- real :: alpha,beta,gamma,a,b,c,wdenom,wint
+ real :: ddterm1,ddterm2,ddterm3,ddterm4,w0
+ real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
 
  cnormk = 0.0
  wkern = 0.
@@ -867,6 +867,158 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           wkern(i) = (1.-0.25*q2)*exp(-q2)
           grwkern(i) = 0.5*q*(q2 - 5.)*exp(-q2)
           grgrwkern(i) = -0.5*exp(-q2)*(2.*q2*q2 - 13.*q2 + 5.)
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(23)
+!
+!--this is the m_6 quintic spline (S. Rosswog)
+!
+    kernellabel = 'Linear Core M_6 quintic'  
+    radkern = 3.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    w0 = 80.7721808180
+    qs = 0.7592984881
+    a  = 55.2040173925
+    select case(ndim)
+      case(1) 
+!       cnormk = 1./120.
+       cnormk = 0.0079541232
+      case(2)
+       !cnormk = 7./(478*pi)
+       cnormk = 0.0046023237
+      case(3)
+       !cnormk = 1./(120.*pi)
+       cnormk = 0.0026427689
+    end select
+    do i=0,ikern         
+       q2 = i*dq2table
+       q4 = q2*q2
+       q = sqrt(q2)
+       term1 = -5.*(3.-q)**4.
+       if (q.lt.qs) then
+          wkern(i) = w0 - a*q
+          grwkern(i) = -a
+          grgrwkern(i) = 0.       
+       elseif (q.lt.1.0) then
+          wkern(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
+          grwkern(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
+       elseif ((q.ge.1.0).and.(q.lt.2.0)) then
+          wkern(i) = (3.-q)**5. - 6.*(2.-q)**5.
+          grwkern(i) = term1 + 30*(2.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
+       elseif ((q.ge.2.0).and.(q.le.3.0)) then
+          wkern(i) = (3.-q)**5.
+          grwkern(i) = term1
+          grgrwkern(i) = 20.*(3.-q)**3.
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(24)
+!
+!--this is the m_6 quintic spline (S. Rosswog)
+!
+    kernellabel = 'Quartic Core M_6 quintic'  
+    radkern = 3.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    qs = 0.7592984881
+    a  = 11.017537
+    b  = -38.111922
+    c  = -16.619585
+    d  = 69.785768
+    select case(ndim)
+      case(1) 
+       cnormk = 8.245880e-3
+      case(2)
+       cnormk = 4.649647e-3
+      case(3)
+       cnormk = 2.650839e-3
+    end select
+    do i=0,ikern
+       q2 = i*dq2table
+       q4 = q2*q2
+       q = sqrt(q2)
+       term1 = -5.*(3.-q)**4
+       if (q.lt.qs) then
+          wkern(i) = a*q4 + b*q2 + c*q + d
+          grwkern(i) = 4.*a*q2*q + 2.*b*q + c
+          grgrwkern(i) = 12.*a*q2 + 2.*b
+       elseif (q.lt.1.0) then
+          wkern(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
+          grwkern(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
+       elseif ((q.ge.1.0).and.(q.lt.2.0)) then
+          wkern(i) = (3.-q)**5. - 6.*(2.-q)**5.
+          grwkern(i) = term1 + 30*(2.-q)**4.
+          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
+       elseif ((q.ge.2.0).and.(q.le.3.0)) then
+          wkern(i) = (3.-q)**5.
+          grwkern(i) = term1
+          grgrwkern(i) = 20.*(3.-q)**3.
+       else
+          wkern(i) = 0.0
+          grwkern(i) = 0.0
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
+  case(25)
+!
+!--Linear Quartic kernel from Valcke et al. (2010), as used by Rosswog (2010)
+!  
+    kernellabel = 'Linear-Quartic'
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    qs = 0.3
+    alpha = 1./(qs**3 - 3.*qs**2 + 3.*qs - 1.)
+    a = 0.5*alpha
+    b = -alpha*(1. + qs)
+    c = 3.*alpha*qs
+    d = -alpha*(3.*qs - 1.)
+    e = alpha*(2.*qs - 1.)/2.
+    f = a*qs**4 + b*qs**3 + c*qs*qs + d*qs + e + qs
+    select case(ndim)
+      case(1)
+         cnormk = 2.235
+      case(2)
+         cnormk = 2.962
+      case(3)
+!         cnormk = 4.*pi*((f/3.*qs**3 - 0.25*qs**4) &
+!                + a/7.*qs**7 + b/6.*qs**6 + c/5.*qs**5 + 0.25*d*qs**4 + e/3.*qs**3)
+!         print*,cnormk,3.947
+         cnormk = 3.947
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select  
+    cnormk = cnormk/radkern**ndim
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       u = 0.5*q
+       u2 = u*u
+       if (u.lt.qs) then
+          wkern(i) = f - u
+          grwkern(i) = -0.5
+          grgrwkern(i) = 0.
+       elseif (u.le.1.) then
+          wkern(i) = a*u2*u2 + b*u2*u + c*u2 + d*u + e
+          grwkern(i) = 2.*a*u2*u + 1.5*b*u2 + 1.*c*u + 0.5*d
+          grgrwkern(i) = 3.*a*u2 + 1.5*b*u + 0.5*c
        else
           wkern(i) = 0.
           grwkern(i) = 0.
