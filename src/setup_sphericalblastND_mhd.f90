@@ -7,7 +7,7 @@
 !!  the thermal energy) is set to some large quantity in a small circle    !!
 !!  around the origin                                                      !!
 !!                                                                         !!
-!!  magnetic field of strength 10g in the x-direction                      !!
+!!  magnetic field of strength 10G in the x-direction                      !!
 !!                                                                         !!                                                                        !!
 !!-------------------------------------------------------------------------!!
 
@@ -39,10 +39,10 @@ subroutine setup
 !            	    
  ibound = 3     ! fixed ghosts
  nbpts = 0
- xmin(:) = -0.5     ! same xmin in all dimensions
- xmax(:) = 0.5
- xmin(2) = -0.75
- xmax(2) = 0.75
+ xmin(:) = -1.     ! same xmin in all dimensions
+ xmax(:) = 1.
+! xmin(2) = -0.75
+! xmax(2) = 0.75
  denszero = 1.0
  przero = 0.1
  
@@ -101,6 +101,7 @@ subroutine modify_dump
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
  logical, parameter :: dosedov = .false.
+ logical, parameter :: delzanna_bucciantini_2002 = .true.
  
  write(iprint,*) 'modifying dump by adding blast'
 
@@ -117,13 +118,21 @@ subroutine modify_dump
 !    bzero(2) = sqrt(2.*pi)
  endif
  if (specialrelativity) then
-    rblast = 0.04
-    przero = 1.0
-    denszero = 1.
-    prblast = 1000.
-    enblast = 1.0
-    prblast = gam1*enblast/(4./3.*pi*rblast**3)
-    write(iprint,*) 'using setup for special relativistic problem'
+    if (delzanna_bucciantini_2002) then
+       write(iprint,*) 'using setup for Del Zanna & Bucciantini special relativistic problem'
+       rblast = 0.4
+       przero = 1.0
+       denszero = 1.
+       prblast = 1000.
+    else
+       rblast = 0.04
+       przero = 1.0
+       denszero = 1.
+   !    prblast = 1000.
+       enblast = 1.0
+       prblast = gam1*enblast/(4./3.*pi*rblast**3)
+       write(iprint,*) 'using setup for special relativistic problem'
+    endif
  elseif (dosedov) then
     rblast = 2.*hfact*psep      ! radius of the initial blast
     przero = 0.0                ! initial pressure
