@@ -136,7 +136,7 @@ subroutine get_rates
     allocate( divBsym(ntotal), STAT=ierr )
     if (ierr.ne.0) write(iprint,*) ' Error allocating divBsym, ierr = ',ierr
  endif
- if (imhd.ne.0) then
+ if (imhd.ne.0 .and. iuse_exact_derivs.gt.0) then
     allocate( dveldx(ndim,ndimV,ntotal), STAT=ierr )
     if (ierr.ne.0) write(iprint,*) ' Error allocating dveldx, ierr = ',ierr
  endif
@@ -888,7 +888,7 @@ contains
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
     real :: altrhoi,altrhoj,gammastar,vperp2
-    real :: enthalpi,enthalpj,term
+    real :: enthalpi,enthalpj,term,denom,term1
 
    pmassj = pmass(j)
 !
@@ -1015,12 +1015,12 @@ contains
        !
        ! special relativistic signal velocities
        !
+       enthalpi = 1. + uui + pri/dens(i)
+       enthalpj = 1. + uuj + prj/dens(j)
+       spsoundi = sqrt(gamma*pri/(dens(i)*enthalpi))
+       spsoundj = sqrt(gamma*prj/(dens(j)*enthalpj))
        select case(iav)
        case(5)
-          enthalpi = 1. + uui + pri/dens(i)
-          enthalpj = 1. + uuj + prj/dens(j)
-          spsoundi = sqrt(gamma*pri/dens(i)/enthalpi)
-          spsoundj = sqrt(gamma*prj/dens(j)/enthalpj)
           vsigi = max((veli(1) + spsoundi)/(1. + veli(1)*spsoundi), &
                       (veli(1) - spsoundi)/(1. - veli(1)*spsoundi))
           vsigj = max((velj(1) + spsoundj)/(1. + velj(1)*spsoundj), &
@@ -1033,21 +1033,14 @@ contains
           vsig = 1.
        case(3)
           !
-          ! vsig derived by Joe (2001), identical to Font et al.
+          ! this is vsig(1) from Chow & Monaghan '97 (equation 5.7)
           !
-          
-          vperp2 = v2i - projvi**2
-          vsigi = (projvi*(1.-spsoundi**2) &
-                  - spsoundi*sqrt((1.-v2i)*(1.-projvi**2 - spsoundi**2*vperp2))) &
-                  /(1. + v2i*spsoundi**2)
-          vperp2 = v2j - projvj**2
-          vsigj = (projvj*(1.-spsoundj**2) &
-                  - spsoundj*sqrt((1.-v2j)*(1.-projvj**2 - spsoundj**2*vperp2))) &
-                  /(1. + v2j*spsoundj**2)
+          vstar= abs((projvi-projvj)/(1.0-(projvi*projvj))) ! (equation 4.20)
+          vsigi=(spsoundi+vstar)/(1.0+(spsoundi*vstar))
+          vsigj=(spsoundj+vstar)/(1.0+(spsoundj*vstar))
+          !pmomstar
+          vsig=min(vsigi+vsigj+vstar,1.)
 
-          !vsigi = (spsoundi + projvi)/(1. + projvi*spsoundi)
-          !vsigj = (spsoundj + projvj)/(1. + projvj*spsoundj)
-          vsig = min(0.5*(vsigi + vsigj),1.)
        case(2)
           !
           ! vsig(2) from Chow & Monaghan '97 (equation 5.9)
@@ -1061,16 +1054,28 @@ contains
           vsig=abs(((vsigi+projvi)/(1.+vsigi*projvi))-((vsigj-projvj)/(1.-vsigj*projvj)))
 
        case default
+
           !
-          ! this is vsig(1) from Chow & Monaghan '97 (equation 5.7)
+          ! vsig from the maximum eigenvalue, (e.g. Font et al., Rosswog 2010, Joe 2001)
           !
-          vstar= abs((projvi-projvj)/(1.0-(projvi*projvj))) ! (equation 4.20)
-          vsigi=(spsoundi+vstar)/(1.0+(spsoundi*vstar))
-          vsigj=(spsoundj+vstar)/(1.0+(spsoundj*vstar))
-          !pmomstar
-          vsig=min(vsigi+vsigj+vstar,1.)
+          
+          vperp2 = v2i - projvi**2
+          denom  = (1. - v2i*spsoundi**2)
+          term   = spsoundi*sqrt((1.-v2i)*(1.-projvi**2 - spsoundi**2*vperp2))
+          term1  = projvi*(1.-spsoundi**2)
+          vsigi  = max(term1 + term,abs(term1 - term))/denom
+          
+          vperp2 = v2j - projvj**2
+          denom  = (1. - v2j*spsoundj**2)
+          term   = spsoundj*sqrt((1.-v2j)*(1.-projvj**2 - spsoundj**2*vperp2))
+          term1  = projvj*(1. - spsoundj**2)
+          vsigj  = max(term1 + term,abs(term1 - term))/denom
+
+          vsig = max(vsigi,vsigj)
+          !print*,' vsig = ',vsigi,vsigj,spsoundi,spsoundj
 
        end select
+       if (vsig.gt.1) stop 'error: vsig > 1'
        vsigu = vsig
        vsigdtc = vsig
 
@@ -1540,15 +1545,18 @@ contains
     lorentzfactorstarj=1.0/(sqrt(1.0-(projvj**2)))
     
     dens1j = 1./dens(j)
-    estari=lorentzfactorstari*(1.0+alphau*(uu(i)+(pri*dens1i)))-(pri*rho1i)*alphau
-    estarj=lorentzfactorstarj*(1.0+alphau*(uu(j)+(prj*dens1j)))-(prj*rho1j)*alphau
+    estari=lorentzfactorstari*(1.0+alphau*(uu(i))+0.*(pri*dens1i))-0.*(pri*rho1i)
+    estarj=lorentzfactorstarj*(1.0+alphau*(uu(j))+0.*(prj*dens1j))-0.*(prj*rho1j)
     
-    pmomstari=veli*(estari+alphau*(pri*rho1i))
-    pmomstarj=velj*(estarj+alphau*(prj*rho1j))
+!    pmomstari=veli*(estari+0.*(pri*rho1i))
+!    pmomstarj=velj*(estarj+0.*(prj*rho1j))
+    
+    pmomstari = veli*lorentzfactorstari
+    pmomstarj = velj*lorentzfactorstarj
 
     dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))
     
-    if (dvdotr.lt.0) then            
+    if (dvdotr.lt.0) then
        visc = alphaav*term*dpmomdotr
        forcei(:) = (forcei(:) - pmassj*visc*dr(:))
        forcej(:) = (forcej(:) + pmassi*visc*dr(:))
@@ -1592,6 +1600,10 @@ contains
        !
        !  add to entropy equation
        !
+       !if (qdiffi.gt.1.e-8 .or. qdiffj.gt.1.e-8) then
+       !   print*,'error, negative entropy generation ',qdiffi,qdiffj
+          !stop
+       !endif
        dudt(i) = (dudt(i) + alphaav*lorentzi*pmassj*term*qdiffi)
        dudt(j) = (dudt(j) + alphaav*lorentzj*pmassi*term*qdiffj)
 
