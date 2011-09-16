@@ -34,7 +34,8 @@ subroutine setup
  real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
  real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
- real :: total_mass, volume, cs_L,cs2_L,cs2_R,mach_R,mach_L,vjump,gamm1
+ real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
+ real :: tstopl,tstopr,psepreql,psepreqr
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
  
@@ -269,6 +270,18 @@ subroutine setup
  else
     uuleft = 3.*prleft/(2.*densleft)
     uuright = 3.*prright/(2.*densright)
+ endif
+ 
+ if (idrag.gt.0) then
+    cs_L  = sqrt(gamma*prleft/densleft)
+    cs_R  = sqrt(gamma*prright/densright)
+    tstopl = densleft*densleft/(Kdrag*(densleft + densleft))
+    tstopr = densright*densright/(Kdrag*(densright + densright))
+    psepreql = cs_L*tstopl/hfact
+    psepreqr = cs_R*tstopr/hfact
+    print*,'left, need ',(xshock-xmin)/psepreql,' got ',(xshock-xmin)/psepleft
+    print*,'right, need ',(xmax-xmin)/psepreqr,' got ',(xmax-xshock)/psepright
+    read*
  endif
 
  do i=1,npart
