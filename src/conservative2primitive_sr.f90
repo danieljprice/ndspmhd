@@ -53,7 +53,7 @@ subroutine conservative2primitive
         print*,' pmom=',pmom(:,i)
         print*,' rho*=',rho(i)
         if (iener.gt.0) print*,' en=',en(i)
-        !stop
+        stop
      endif
      itsmax = max(abs(ierr),itsmax)
      !
@@ -123,7 +123,7 @@ subroutine getv_from_pmom(xi,pmomi,veli,eni,pri,rhoi,densi,uui)
    print*,' pmom=',pmomi(:)
    print*,' rho*=',rhoi
    if (iener.gt.0) print*,' en=',eni
-   !stop
+   stop
 endif
 
 
