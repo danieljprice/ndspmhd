@@ -159,7 +159,8 @@ subroutine initialise
  elseif (ikernel.eq.3) then
     call setkerndrag(43,ndim,ierr1)
  else
-    stop 'cannot get matching drag kernel'
+    call setkerndrag(42,ndim,ierr1)
+    if (idrag.gt.0) stop 'cannot get matching drag kernel'
  endif
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  write(iprint,"(' Drag kernel = ',a)") trim(kernelnamedrag)
