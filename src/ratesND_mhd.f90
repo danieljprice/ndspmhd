@@ -1849,8 +1849,8 @@ contains
           
           if (imagforce.eq.6) then
           !--subtract B(div B) term from magnetic force
-             forcei(:) = forcei(:) - 0.5*Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
-             forcej(:) = forcej(:) + 0.5*Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcej(:) = forcej(:) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
           endif
        end select
     endif
