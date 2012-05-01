@@ -144,7 +144,7 @@ contains
              rij2 = dot_product(dx,dx)
              q2i = rij2*hi21
              q2j = rij2*hj1*hj1
-!          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2),dx,hi,hj
+!          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2i),dx,hi,hj
 !       
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
