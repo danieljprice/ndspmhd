@@ -542,7 +542,11 @@ subroutine get_rates
     case(11:19,21:) ! evolving B
        dBevoldt(:,i) = sqrtg(i)*dBevoldt(:,i) + Bevol(:,i)*rho1i*drhodt(i)
        if (idivBzero.ge.2) then
-          gradpsi(:,i) = gradpsi(:,i)*rho1i
+          !gradpsi(:,i) = gradpsi(:,i)*rho1i
+          gradpsi(:,i) = gradpsi(:,i)*rhoi
+          if (nsubsteps_divB.le.0) then
+             dBevoldt(:,i) = dBevoldt(:,i) + gradpsi(:,i)
+          endif
        endif
     case(10,20) ! remapped B/rho or remapped B
        dBevoldt(:,i) = 0.
@@ -629,12 +633,12 @@ subroutine get_rates
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)
+       if (damp.lt.tiny(0.)) dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)
     elseif (iener.eq.4) then
        dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
        if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
     elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
-       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
+       if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
        dendt(i) = dudt(i)
@@ -701,7 +705,8 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)         
+          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)
+          !if (abs(psi(i)).gt.0.) print*,' idivBzero',i,vsig2max,divB(i),psi(i)       
        case DEFAULT
           dpsidt(i) = 0.
     end select
@@ -1484,15 +1489,17 @@ contains
        !
        !  add to thermal energy equation
        !
-       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
-       
-       !--entropy dissipation
-       if (iener.eq.1) then
-          if (alphau.gt.0.) stop 'entropy dissipation is wrong'
-          vissu = alphau*(en(i)-en(j))
-          dendt(i) = dendt(i) + pmassj*(termu*(vissu))
-          dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
+       if (damp.lt.tiny(0.)) then
+          dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
+          dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
+
+          !--entropy dissipation
+          if (iener.eq.1) then
+             if (alphau.gt.0.) stop 'entropy dissipation is wrong'
+             vissu = alphau*(en(i)-en(j))
+             dendt(i) = dendt(i) + pmassj*(termu*(vissu))
+             dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
+          endif
        endif
        
        !if (icty.eq.1) then
@@ -1927,8 +1934,9 @@ contains
     endif
 
     if (idivBzero.ge.2) then ! add hyperbolic correction term
-       gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-       gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
+       !gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
+       gradpsiterm = (psi(i)*rho21i*grkerni + psi(j)*rho21j*grkernj)
+       gradpsi(:,i) = gradpsi(:,i) - pmassj*gradpsiterm*dr(:)
        gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
     endif
 
