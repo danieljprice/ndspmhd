@@ -224,7 +224,8 @@ CONS2PRIM = conservative2primitive.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES= sphND_mhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
-         allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
+         allocateND.f90 kernel_erbs_utils.f90 kernelND.f90 \
+         readwrite_dumps.f90 \
          get_neighbour_lists.f90 penrose.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
