@@ -189,6 +189,7 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
 #SETUP2D = setup_tearingmode2D.f90
+#SETUP2D = setup_gresho2D.f90
 endif
 
 ifndef SETUP3D
