@@ -32,7 +32,8 @@ subroutine conservative2primitive
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   use timestep, only:time,nsteps
-  use part_in, only:Bevolin
+  use part_in, only:Bevolin,velin
+  !use khsetup, only:densmedium,denszero,smoothl,yprofile,przero
   implicit none
   integer :: i,j,nerr,k
   real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
@@ -245,7 +246,20 @@ subroutine conservative2primitive
   case(5)
      call smooth_variable(en,uu,x,pmass,hh,rho)
   case default    ! en = thermal energy
-     uu = en
+     if (damp.gt.0.) then
+        uu = en
+     !   do i=1,npart
+     !      dx = x(2,i) - xmin(2)
+     !      uu(i) = przero/((gamma - 1.)*yprofile(dx,denszero,densmedium,smoothl))
+     !      en(i) = uu(i)
+     !   enddo
+        if (mod(nsteps,10).eq.0) then
+           vel(:,i) = 0.
+           velin(:,i) = 0.
+        endif
+     else
+        uu = en
+     endif
   end select
 !
 !--call equation of state calculation
