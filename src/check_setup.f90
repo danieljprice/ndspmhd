@@ -6,7 +6,8 @@ subroutine check_setup
   use debug
   use loguns
   use part
-  use options, only:igravity
+  use options, only:igravity,ibound
+  use bound,   only:xmin,xmax
   implicit none
   integer :: i,j
   real, parameter :: vbig = 1.e12
@@ -48,6 +49,9 @@ subroutine check_setup
         write(iprint,20) 'uu < 0 ',uu(i),i
         stop
      endif
+     if (hh(i).lt.0.) then
+        write(iprint,20) 'h <= 0',hh(i),i
+     endif
 !
 !--check for huge velocities
 !
@@ -64,8 +68,29 @@ subroutine check_setup
      endif
      
      xcentre(:) = xcentre(:) + pmass(i)*x(:,i)
+!
+!--check for particles outside the boundary
+!
+     do j=1,ndim
+        if (ibound(j).gt.0) then
+           if (x(j,i).lt.xmin(j) .or. x(j,i).gt.xmax(j)) then
+              write(iprint,20) 'particle outside boundary',x(1,i),i
+              stop
+           endif
+        endif
+     enddo
      
+     if (itype(i).lt.0 .or. itype(i).gt.1000) then
+        write(iprint,30) 'particle type out of range ',itype(i),i
+        stop
+     endif
   enddo
+  
+  if (all((pmass(1:ntotal)-pmass(1)).lt.tiny(0.))) then
+     write(iprint,"(a)") ' -> equal mass particles'
+  else
+     write(iprint,"(a)") ' WARNING: Unequal mass particles used'  
+  endif
 !
 !--check that no particles are on top of each other
 !
@@ -105,6 +130,7 @@ subroutine check_setup
 
 10 format(/,' ERROR IN PARTICLE SETUP: ',a,/)
 20 format(/,' ERROR IN PARTICLE SETUP: ',a,1pe10.3,' particle ',i5,/)
+30 format(/,' ERROR IN PARTICLE SETUP: ',a,i10,' particle ',i5,/)
 
    write(iprint,*) '-> centre of mass is at : ',xcentre(:)
 

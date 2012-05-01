@@ -169,7 +169,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  real, intent(out) :: tfile
  logical, optional, intent(in) :: copysetup
  integer :: i,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
- integer :: ierr, iformat,lengeom
+ integer :: ierr, iformat,lengeom,nread
  character(len=len(geom)) :: geomfile
  real :: gammafile,hfactfile
  logical :: iexist
@@ -207,6 +207,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  endif
  write(iprint,*) 'time = ',tfile,' in dump file '
  write(iprint,*) 'xmin = ',xmin(1:ndimfile),' xmax = ',xmax(1:ndimfile)
+ write(iprint,*) 'ibound = ',ibound(1:ndimfile),' npart in file = ',npartfile
 !
 !--copy setup options from header if desired
 !
@@ -300,6 +301,8 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  if (ierr /= 0) stop 'error reading dumpfile'
  read(ireadf,iostat=ierr) pmass(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
+ nread = ndim + ndimV + 4
+ 
  if (iformat.eq.2 .or. iformat.eq.4 .and. imhd.ne.0) then
     do i=1,3
        read(ireadf,iostat=ierr) alpha(i,1:npart)
@@ -311,6 +314,8 @@ subroutine read_dump(dumpfile,tfile,copysetup)
        read(ireadf,iostat=ierr) Bfield(i,1:npart)
     enddo
     read(ireadf,iostat=ierr) psi(1:npart)
+    nread = nread + 4 + ndimV
+    
     !--read vector/euler potentials if required
     if (imhd.lt.0) then
        !--skip other quantities
@@ -328,17 +333,24 @@ subroutine read_dump(dumpfile,tfile,copysetup)
           write(iprint,*) 'please enter values for Bconst:'
           read*,Bconst(1:ndimV)
        endif
+       nread = nread + 5 + 3*ndimV
     endif
  elseif (iformat.eq.2) then
     !--read alpha in MHD format
     do i=1,3
        read(ireadf,iostat=ierr) alpha(i,1:npart)    
     enddo
+    nread = nread + 3
  else
     do i=1,2
        read(ireadf,iostat=ierr) alpha(i,1:npart)
     enddo
+    nread = nread + 2
  endif
+ !--skip extra quantities that come after alpha but before itype
+ do i=1,ncolumns-nread
+    read(ireadf,iostat=ierr)
+ enddo
 
  read(ireadf,iostat=ierr) itype(1:npart)
  if (ierr /= 0) then

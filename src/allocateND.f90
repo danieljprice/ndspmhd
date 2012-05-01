@@ -276,6 +276,7 @@ subroutine alloc(newsizein,sortlist)
 !--particle type
 !
     allocate(itype(newsize),numneigh(newsize))
+    itype(:) = 0 ! give type 0 by default
 !
 !--mhd quantities and derivatives
 !
