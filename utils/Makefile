@@ -21,7 +21,7 @@ SPLASH_DIR=$(HOME)/splash/src
 endif
 
 .SUFFIXES:
-.SUFFIXES:.f .f90 .o
+.SUFFIXES:.f .f90 .o .mod
 VPATH=../src $(SPLASH_DIR)
 # Fortran flags same as F90
 FC = $(F90C)
@@ -36,7 +36,7 @@ CC = $(F90C)
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS=setpage.o kernelND.o legend.o
+OBJECTS=setpage.o kernel_erbs_utils.o kernelND.o legend.o
 
 OBJSPHDERIV = kernelND.o sphderiv.o
 
@@ -50,6 +50,8 @@ kernelplot: $(OBJECTS) kernelplot.o kernelstability1D.o
 
 kernelplot3D: $(OBJECTS) kernelplot3D.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot3D.o
+
+kernelplot.o : kernelND.o
 
 sametime : sametime.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ sametime.o
@@ -83,6 +85,9 @@ dimen3D.o :
 
 variablesND.o :
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/variablesND.f90 -o $@
+
+kernelND.o :
+	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
 
 allocateND.o : variablesND.o
 	$(F90C) -c $(DBLFLAGS) $(F90FLAGS) ../src/allocateND.f90 -o $@

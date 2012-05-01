@@ -10,6 +10,7 @@
 !-----------------------------------------------------------------------------
 
 module kernels
+ use erbskernels, only:geterbskernel1,geterbskernel2
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
@@ -2004,6 +2005,58 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           grwkern(i) = 0.0
           grgrwkern(i) = 0.
        endif
+    enddo
+
+  case (80)
+!
+!--Expo-rational B-Spline kernel
+!   
+    kernellabel = 'expo-rational B-spline kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.5
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call geterbskernel1(q/2.,wkern(i),grwkern(i),grgrwkern(i))
+    enddo
+
+  case (81)
+!
+!--Expo-rational B-Spline kernel
+!   
+    kernellabel = 'integrated erbs kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 0.5
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call geterbskernel2(q/2.,wkern(i),grwkern(i),grgrwkern(i))
     enddo
 
   case default  
