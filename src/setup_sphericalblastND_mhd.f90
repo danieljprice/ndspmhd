@@ -39,8 +39,8 @@ subroutine setup
 !            	    
  ibound = 3     ! fixed ghosts
  nbpts = 0
- xmin(:) = -1.     ! same xmin in all dimensions
- xmax(:) = 1.
+ xmin(:) = -0.5     ! same xmin in all dimensions
+ xmax(:) = 0.5
 ! xmin(2) = -0.75
 ! xmax(2) = 0.75
  denszero = 1.0
@@ -53,7 +53,7 @@ subroutine setup
 !--setup uniform density grid of particles
 !  (determines particle number and allocates memory)
 !
- call set_uniform_cartesian(1,psep,xmin,xmax,offset=.true.) ! 2 = close packed arrangement
+ call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.) ! 2 = close packed arrangement
 
  ntotal = npart
 !
@@ -101,6 +101,7 @@ subroutine modify_dump
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
  logical, parameter :: dosedov = .false.
+ logical, parameter :: terryparams= .true.
  logical, parameter :: delzanna_bucciantini_2002 = .true.
  
  write(iprint,*) 'modifying dump by adding blast'
@@ -140,6 +141,13 @@ subroutine modify_dump
     enzero = 0.
     prblast = gam1*enblast/(4./3.*pi*rblast**3)
     !enblast = enblast/massp   ! enblast is now the energy to put in a single particle
+ elseif (terryparams) then
+    rblast = 0.125              ! radius of the initial blast
+    przero = 1.0                ! initial pressure
+    prblast = 100.0             ! initial pressure within rblast
+    if (imhd.ne.0) then
+       Bzero(1) = 10. !*const
+    endif
  else
     rblast = 0.1                ! radius of the initial blast
     przero = 0.1                ! initial pressure
