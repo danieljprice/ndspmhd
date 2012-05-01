@@ -5,6 +5,7 @@
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,spsound)
   use options, only:ibound
+  use eos,     only:gamma,polyk
   use bound, only:xmax,xmin
   use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega0,Omega2,domegadr,pi
   implicit none
@@ -15,9 +16,11 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,sps
   real, dimension(ndimV), intent(out) :: fext
   real, dimension(ndim) :: dr
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,sink
-  real :: q2i,betai,gradwkernbound
+  real :: q2i,betai,gradwkernbound,expterm
   real, parameter :: Rtorus = 1.0, dfac = 1.1
   real, parameter :: Asin = 100., Bsin = 2.0
+  real, parameter :: smoothl = 0.025
+  real :: densmid,denszero,densmedium,yi,dens,ddensdy
 
   fext(:) = 0.
   select case(iexternal_force)
@@ -128,6 +131,33 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,sps
 !--gravity (2)
 !
     if (ndim.ge.2) fext(2) = -0.5
+
+  case(10)
+!
+!--potential for relaxation into Kelvin-Helmholtz initial conditions
+!
+     denszero = 1.
+     densmedium = 2.
+     densmid = 0.5*(denszero - densmedium)
+     yi = xpart(2) - xmin(2)
+     if (yi.gt.0.75) then
+        expterm = exp(-(yi-0.75)/smoothl)
+        dens    = denszero - densmid*expterm
+        ddensdy = densmid/smoothl*expterm
+     elseif (yi.gt.0.5) then
+        expterm = exp(-(0.75-yi)/smoothl)
+        dens    = densmedium + densmid*expterm
+        ddensdy = densmid/smoothl*expterm
+     elseif (yi.gt.0.25) then
+        expterm = exp((-yi + 0.25)/smoothl)
+        dens    = densmedium + densmid*expterm
+        ddensdy = -densmid/smoothl*expterm
+     else
+        expterm = exp((yi - 0.25)/smoothl)
+        dens    = denszero - densmid*expterm
+        ddensdy = -densmid/smoothl*expterm
+     endif
+     fext(2) = polyk*gamma*dens**(gamma-2.)*ddensdy
 
   case default
      

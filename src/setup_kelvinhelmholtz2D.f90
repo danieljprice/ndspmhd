@@ -1,8 +1,52 @@
 !----------------------------------------------------------------
 !     Set up a Kelvin-Helmholtz instability test as
 !     in Jim Stone et al. (Athena test suite)
+!     Also does Wang et al. (2010)
 !----------------------------------------------------------------
 
+!--stuff we need in other routines
+module khsetup
+ implicit none
+ real, parameter :: denszero = 1.
+ real, parameter :: densmedium = 2.
+ real, parameter :: vzero = 0.5
+ real, parameter :: vmedium = -0.5
+ real, parameter :: smoothl = 0.025
+ real, parameter :: przero = 2.5
+ logical, parameter :: wang = .true.     ! use EITHER wang OR robertson
+ logical, parameter :: robertson = .false.
+
+contains
+!
+!--y profile of density and velocity for Wang setup
+!
+real function yprofile(yi,azero,amedium,smoothl)
+ implicit none
+ real, intent(in) :: yi,azero,amedium,smoothl
+ real :: amid,expterm
+
+ amid = 0.5*(azero - amedium)
+ if (yi.gt.0.75) then
+    expterm = exp(-(yi-0.75)/smoothl)
+    yprofile = azero - amid*expterm
+ elseif (yi.gt.0.5) then
+    expterm = exp(-(0.75-yi)/smoothl)
+    yprofile = amedium + amid*expterm
+ elseif (yi.gt.0.25) then
+    expterm = exp((-yi + 0.25)/smoothl)
+    yprofile = amedium + amid*expterm
+ else
+    expterm = exp((yi - 0.25)/smoothl)
+    yprofile = azero - amid*expterm
+ endif
+
+end function yprofile
+
+end module khsetup
+
+!
+!--main setup routine
+!
 subroutine setup
 !
 !--include relevant global variables
@@ -19,21 +63,24 @@ subroutine setup
  
  use uniform_distributions
  use cons2prim, only:primitive2conservative
+ use khsetup, only:denszero,densmedium,vzero,vmedium,smoothl,yprofile,&
+                   przero,wang,robertson
 !
 !--define local variables
 !            
  implicit none
  integer :: i,iseed,ipart
  real :: massp,volume,totmass,ran1
- real :: denszero,densmedium,przero,psepmedium,vzero,vmedium
+ real :: psepmedium
+ real :: densmid,vmid,expterm,yi
  real, dimension(ndim) :: xminregion,xmaxregion
- logical, parameter :: equalmass = .false.
- logical, parameter :: robertson = .true.
+ logical, parameter :: equalmass = .true.
 !
 !--allow for tracing flow
 !
  if (trace) write(iprint,*) ' entering subroutine setup(kh)'
  if (ndim.ne.2) stop 'error: need ndim=2 for this problem'
+ if (robertson .and. wang) stop 'error, need robertson OR wang, not both'
 !
 !--set boundaries
 ! 	    
@@ -48,10 +95,8 @@ subroutine setup
 !
 !--set up the uniform density grid
 !
- denszero = 1.0
- densmedium = 2.0
- przero = 2.5
  if (.not.equalmass) then
+    if (wang) stop 'wang needs equal mass'
 !
 !--unequal masses setup whole grid
 ! 
@@ -110,8 +155,9 @@ subroutine setup
 !
  ibound = 3     ! boundaries
  iseed = -23864
- vzero = -0.5
- vmedium = 0.5
+
+ vmid = 0.5*(vzero - vmedium)
+ densmid = 0.5*(denszero - densmedium)
 !
 !--now assign particle properties
 ! 
@@ -122,6 +168,12 @@ subroutine setup
        vel(2,i) = 0.01*sin(2.*pi*x(1,i))
        dens(i) = denszero + Rfunc(x(2,i))*(densmedium-denszero)
        pmass(i) = massp*(dens(i)/denszero)
+    elseif (wang) then
+       yi = x(2,i) - xmin(2)
+       vel(1,i) = yprofile(yi,vzero,vmedium,smoothl)
+       dens(i)  = yprofile(yi,denszero,densmedium,smoothl)       
+       vel(2,i) = 0.01*sin(2.*2.*pi*(x(1,i)-xmin(1)))
+       pmass(i) = 1.5/real(npart)
     else
        if (abs(x(2,i)).lt.0.25) then
           vel(1,i) = vmedium
@@ -147,10 +199,16 @@ subroutine setup
           vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
        endif
     endif
-    uu(i) = przero/((gamma-1.)*dens(i))
+    if (iener.gt.0) then
+       uu(i) = przero/((gamma-1.)*dens(i))
+    else
+       uu(i) = 1.5
+    endif
     Bfield(:,i) = 0.
     Bfield(1,i) = 0.5
  enddo
+
+ if (wang) call stretch_to_make_density_profile(x,npart,xmin(2))
  
  !!omegakh = sqrt(densmedium/denszero)*1.0/(denszero + densmedium)
  print*,' tau_kh = ',sqrt(densmedium/denszero)*(1./6.)
@@ -158,11 +216,13 @@ subroutine setup
 !--get rho from a sum and then set u to give a
 !  smooth pressure
 !
+ if (iener.gt.0) then
  write(iprint,*) 'calling density to make smooth pressure jump...'
- call primitive2conservative
+! call primitive2conservative
  do i=1,npart
     uu(i) = przero/((gamma - 1.)*rho(i))
  enddo
+ endif
 !
 !--allow for tracing flow
 !
@@ -181,6 +241,78 @@ real function Rfunc(y)
  print*,' Rfunc = ',Rfunc
  
 end function Rfunc
+
+subroutine stretch_to_make_density_profile(x,np,ymin)
+ implicit none
+ real, dimension(:,:), intent(inout) :: x
+ integer, intent(in) :: np
+ real, intent(in) :: ymin
+ integer :: i,its
+ real :: yi,ynew
+ 
+ do i=1,np
+    yi = x(2,i) - ymin
+    !--solve M(y) = 0.
+    ynew = yi
+    do its=1,12 ! overkill, but not costly
+       ynew = ynew - (Massprofile(ynew) - Massprofile_orig(yi))/yprofile(ynew,denszero,densmedium,smoothl)
+    enddo
+    x(2,i) = ymin + ynew
+ enddo
+
+end subroutine stretch_to_make_density_profile
+!
+!--desired mass profile
+!
+real function Massprofile(yi)
+ implicit none
+ real, intent(in) :: yi
+ real :: sum,sum1,sum2,sum3,sum4,densmid
+
+ densmid = 0.5*(denszero - densmedium)
+ sum1 = 0.25*denszero + (exp(-0.25/smoothl) - 1.)*smoothl*densmid
+ sum2 = 0.25*densmedium + (1. - exp(-0.25/smoothl))*smoothl*densmid
+ sum3 = 0.25*densmedium + (1. - exp(-0.25/smoothl))*smoothl*densmid
+
+ if (yi.gt.0.75) then
+    expterm = exp(-(yi-0.75)/smoothl)
+    sum4 = denszero*(yi-0.75) + (expterm - 1.)*smoothl*densmid
+    sum  = sum1 + sum2 + sum3 + sum4
+    !print*,'sum = ',sum1,sum2,sum3,sum4
+ elseif (yi.gt.0.5) then
+    expterm = exp(-(0.75-yi)/smoothl)
+    sum3 = densmedium*(yi-0.5) + (expterm - exp(-0.25/smoothl))*smoothl*densmid
+    sum  = sum1 + sum2 + sum3
+ elseif (yi.gt.0.25) then
+    expterm = exp((-yi + 0.25)/smoothl)
+    sum2 = densmedium*(yi-0.25) + (1. - expterm)*smoothl*densmid
+    sum  = sum1 + sum2
+ else
+    expterm = exp((yi - 0.25)/smoothl)
+    sum = denszero*yi - exp(-0.25/smoothl)*(exp(yi/smoothl) - 1.)*smoothl*densmid
+ endif
+ Massprofile = sum
+
+end function Massprofile
+
+!
+!--mass profile that we started from
+!
+real function Massprofile_orig(yi)
+ implicit none
+ real, intent(in) :: yi
+ real :: sum
+
+ if (yi.gt.0.75) then
+    sum = 0.25*denszero + 0.5*densmedium + (yi-0.75)*denszero
+ elseif (yi.gt.0.25) then
+    sum = 0.25*denszero + (yi-0.25)*densmedium
+ else
+    sum = yi*denszero
+ endif
+ Massprofile_orig = sum
+
+end function Massprofile_orig
  
 end subroutine setup
 
@@ -190,29 +322,44 @@ subroutine modify_dump
  use options, only:imhd
  use timestep, only:time
  use setup_params, only:pi
+ use bound, only:xmin
+ use eos,   only:gamma
+ use khsetup, only:smoothl,vzero,vmedium,yprofile,wang,przero
  implicit none
  integer :: i
+ real :: yi
 !
 !--now assign particle properties
 !
  write(iprint,*) 'modifying dump with velocities for Kelvin-Helmholtz run'
+ !print*,vzero,vmedium,wang,przero
+ !read*
  do i=1,ntotal
     vel(:,i) = 0.
-    if (abs(x(2,i)).lt.0.25) then
-       vel(1,i) = 0.5 
+    if (wang) then
+       yi = x(2,i) - xmin(2)
+       vel(1,i) = yprofile(yi,vzero,vmedium,smoothl)
+       vel(2,i) = 0.01*sin(2.*2.*pi*(x(1,i)-xmin(1)))
+       uu(i) = przero/((gamma - 1.)*dens(i))
+       !print*,uu(i),dens(i),przero
     else
-       vel(1,i) = -0.5
-    endif
-!
-!--add random velocity perturbation
-!
-    !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
-    !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
-    if (abs(x(2,i)-0.25).lt.0.025 .or. abs(x(2,i)+0.25).lt.0.025) then
-       vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
+       if (abs(x(2,i)).lt.0.25) then
+          vel(1,i) = 0.5 
+       else
+          vel(1,i) = -0.5
+       endif
+       !
+       !--add random velocity perturbation
+       !
+       !!vel(1,i) = vel(1,i)*(1.0 + 0.01*(ran1(iseed)-0.5))
+       !!vel(2,i) = 0.01*(ran1(iseed)-0.5)
+       if (abs(x(2,i)-0.25).lt.0.025 .or. abs(x(2,i)+0.25).lt.0.025) then
+          vel(2,i) = 0.025*sin(2.*pi*(x(1,i)+0.5)*6.)
+       endif
     endif
  enddo
 
  time = 0.
+ print*,'time = ',time
  
 end subroutine modify_dump
