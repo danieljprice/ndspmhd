@@ -2018,7 +2018,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
       case(1)
-        cnormk = 0.5
+        cnormk = 1.
       case default
        write(*,666)
        ierr = 1
@@ -2030,7 +2030,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       call geterbskernel1(q/2.,wkern(i),grwkern(i),grgrwkern(i))
+       call geterbskernel1(q,wkern(i),grwkern(i),grgrwkern(i))
     enddo
 
   case (81)
@@ -2044,7 +2044,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
       case(1)
-        cnormk = 0.5
+        cnormk = 1.
       case default
        write(*,666)
        ierr = 1
@@ -2056,7 +2056,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       call geterbskernel2(q/2.,wkern(i),grwkern(i),grgrwkern(i))
+       call geterbskernel2(q,wkern(i),grwkern(i),grgrwkern(i))
     enddo
 
   case default  

@@ -19,25 +19,26 @@ subroutine geterbskernel1(q,w,gw,ggw)
  real, parameter :: normerbs = 0.6034501612189381
 
  absq = abs(q)
- if (absq .ge. 1) then
+ if (absq .ge. 2) then
     w   = 0.
     gw  = 0.
     ggw = 0.       
  elseif(absq .le. tiny(0.)) then
-    w   = 1.
+    w   = 0.5
     gw  = 0.
     ggw = 0.
  else
-    rinter1 = absq-0.5
-    rinter2 = absq*(1.-absq)
-    rinter3 = - rinter1*rinter1/rinter2
-    gw      = -exp(rinter3)
-    rinter4 = -0.5*rinter1/(rinter2*rinter2)
-    ggw     = rinter4 *gw   
-    call qromb(psierbs,absq,1.,w)
+    rinter1 = absq-1.
+    rinter2 = absq*(2.-absq)
+    rinter3 = -rinter1*rinter1/rinter2
+    gw      = -0.25/normerbs*exp(rinter3)     
+    rinter4 = -2*rinter1/(rinter2*rinter2)
+    ggw     = rinter4*gw  
+    call qromb(psierbs,absq,2.,w)
+    w = 0.25*w/normerbs
     if (q.lt.0.) then
        gw = -gw
-    endif
+    endif  
  endif
 
 end subroutine geterbskernel1
@@ -58,13 +59,13 @@ real, parameter :: normerbs = 0.6034501612189381
  if (q.lt.0.) then
     gw = -gw
  endif
- if (absq.ge.1) then
+ if (absq.ge.2) then
     w   = 0.
  elseif(absq.le.tiny(0.)) then
-    w = 1.
+    w = 0.5
  else
-    call qromb(intsupererbs,absq,1.,w)
-    w = -2*w
+    call qromb(intsupererbs,absq,2.,w)
+    w = -w
  endif 
 
 end subroutine geterbskernel2
@@ -162,19 +163,18 @@ end module
      implicit none
      real :: x
      real :: rinter1,rinter2,rinter3
-     real,parameter:: normerbs = 0.6034501612189381
 
-     if (x .le. tiny(0.)) then
-        psierbs = 0.
-     elseif (x .ge. 1.) then
-        psierbs = 0.       
-     else
-        rinter1 = x - 0.5
-        rinter2 = x*(1.-x)
-        rinter3 = - rinter1*rinter1/rinter2
-        psierbs = exp(rinter3)
-     endif
-     psierbs = psierbs/normerbs
+      if (x .le. tiny(0.)) then
+         psierbs = 0.
+      elseif (x .ge. 2.) then
+         psierbs = 0.       
+      else
+         rinter1 = x - 1.
+         rinter2 = x*(2.-x)
+         rinter3 = - rinter1*rinter1/rinter2
+         psierbs = exp(rinter3)
+      endif
+
      end function psierbs
 !------------------------------------------------------------------
      real function psisupererbs(x)
@@ -184,46 +184,47 @@ end module
      real    :: rinter1,rinter2,rinter3
      real,parameter:: normerbs = 0.6034501612189381
 
-     if (x .lt. 0.5) then
-        xint = 1.-x
+     if (x .lt. 1.) then
+        xint = 2.-x
         fsym = -1
      else   
         xint = x
         fsym = 1
      endif
 
-     if(abs(xint - 0.5) .le. tiny(0.)) then  
+     if(abs(xint - 1.) .le. tiny(0.)) then  
         psisupererbs = 0.
-     elseif (xint .ge. 1.) then
+     elseif (xint .ge. 2.) then
         psisupererbs = 0.       
      else   
-        rinter1 = xint-0.75
-        rinter2 = (xint - 0.5)*(1.-xint)
+        rinter1 = xint-1.5
+        rinter2 = (xint - 1.)*(2.-xint)
         rinter3 = - rinter1*rinter1/rinter2
         psisupererbs = fsym*exp(rinter3)     
      endif
+        psisupererbs = 0.5*psisupererbs/normerbs
+
      end function psisupererbs
 
 !------------------------------------------------------------------
      real function intsupererbs(x)
      implicit none
      real :: x,xint,xtest,psisupererbs
-     real,parameter:: normerbs = 0.6034501612189381
 
-     if (x.lt.0.5) then
-        xint = 1.- x
+     if (x.lt.1.) then
+        xint = 2.- x
      else
         xint = x
      endif
 
-     if (abs(xint - 0.5) .le. tiny(0.)) then
-        intsupererbs = -1.
-     elseif (xint .ge. 1) then
+     if (abs(xint - 1.) .le. tiny(0.)) then
+        intsupererbs = -0.5
+     elseif (xint .ge. 2.) then
         intsupererbs = 0.
      else
         xtest =psisupererbs(xint)
-        call qromb(psisupererbs,xint,1.,intsupererbs)
-        intsupererbs = -2.*intsupererbs/normerbs       
-     endif
+        call qromb(psisupererbs,xint,2.,intsupererbs)
+        intsupererbs = -intsupererbs      
+      endif
      end function intsupererbs
 
