@@ -3,16 +3,19 @@
 !! Computes external (body) forces on a particle given its co-ordinates
 !!
 !!-----------------------------------------------------------------------
-subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,spsound)
+subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, & 
+                           spsound,itypei,rhoi)
   use options, only:ibound
   use eos,     only:gamma,polyk
   use bound, only:xmax,xmin
+  use streaming
+  use part, only: itypegas,itypedust
   use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega0,Omega2,domegadr,pi
   implicit none
-  integer, intent(in) :: iexternal_force,ndim,ndimV
+  integer, intent(in) :: iexternal_force,ndim,ndimV,itypei
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndimV), intent(in) :: vpart
-  real, intent(in) :: hpart,spsound
+  real, intent(in) :: hpart,spsound,rhoi
   real, dimension(ndimV), intent(out) :: fext
   real, dimension(ndim) :: dr
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,sink
@@ -158,6 +161,21 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart,sps
         ddensdy = -densmid/smoothl*expterm
      endif
      fext(2) = polyk*gamma*dens**(gamma-2.)*ddensdy
+
+  case(11)
+!
+!--this is for the 2D cartesian shearing box for SI
+!
+     if (itypei.eq.itypegas) then
+        fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*(vpart(3)+eta/rhoi)
+     elseif (itypei.eq.itypedust) then
+        fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*vpart(3)
+     else
+        print*,'external_forces SI: unexpected type of particles'
+        stop
+     endif
+     fext(2) = 0.
+     fext(3) = -2.*Omega0*vpart(1)
 
   case default
      
