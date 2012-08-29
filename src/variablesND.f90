@@ -112,7 +112,8 @@ end module loguns
 module options
  use dimen_mhd
  implicit none
- integer :: iener,icty,iav,ikernav,idrag
+ integer :: iener,icty,iav,ikernav
+ integer :: idrag_nature,idrag_structure,ismooth
  integer :: iprterm,idumpghost,ihvar
  integer :: imhd,imagforce,idivbzero   !  (mhd options)
  integer :: iexternal_force,ixsph,isplitpart
@@ -139,13 +140,13 @@ module part
  integer, parameter :: itypedust = 2
  integer, parameter :: itypebnd2 = 11
  integer, dimension(:), allocatable :: itype
- real, dimension(:), allocatable :: pmass,sqrtg
- real, dimension(:,:), allocatable :: x   
- real, dimension(:), allocatable :: dens,rho,pr,uu,en,hh,psi,spsound
- real, dimension(:,:), allocatable :: vel,pmom,sourceterms,alpha
- real, dimension(:,:), allocatable :: Bfield, Bevol, x0
- real, dimension(:), allocatable :: rho0
- real, dimension(ndimB) :: Bconst
+ real, dimension(:), allocatable    :: pmass,sqrtg
+ real, dimension(:,:), allocatable  :: x   
+ real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound
+ real, dimension(:,:), allocatable  :: vel,pmom,sourceterms,alpha
+ real, dimension(:,:), allocatable  :: Bfield, Bevol, x0
+ real, dimension(:), allocatable    :: rho0
+ real, dimension(ndimB)             :: Bconst
 end module part 
 
 !-------------------------------------------------------------------
@@ -166,7 +167,9 @@ end module
 module rates
  implicit none
  real, dimension(:), allocatable :: drhodt,dudt,dendt,dhdt,dpsidt,poten
+ real, dimension(:), allocatable :: dubarydt
  real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
+ real, dimension(:,:), allocatable :: vbary
  real :: potengrav
 end module rates
 
@@ -193,10 +196,11 @@ module setup_params
 !
 !--parameters for 2D-MRI simulations
 !
- real, parameter :: Rcentre = 100.
+ real, parameter :: Rcentre = 1.
  real, parameter :: Omega2 = 1./Rcentre**3
  real, parameter :: Omega0 = Rcentre**(-1.5)
- real, parameter :: domegadr = 1.5
+!--for a Keplerian rotation, domegadr = -dlnOmega/dlnr = q = -2A/Omega0 = 1.5 
+ real, parameter :: domegadr = 1.5 !--1.5
  real :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer
  real, parameter :: omegafixed = 1.0
  
@@ -244,3 +248,12 @@ module xsph
  real, dimension(:,:), allocatable :: xsphterm
  real :: xsphfac
 end module xsph
+
+!-------------------------------------------------------------------
+! etavz factor
+!-------------------------------------------------------------------
+module streaming
+  implicit none
+  real, parameter :: eta=0.005
+end module streaming
+
