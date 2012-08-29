@@ -18,6 +18,7 @@ contains
 subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
+ use part, only:itype,itypegas
 !
 !--define local variables
 !
@@ -50,10 +51,12 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  endif
 
  if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
-    where (rho > 0.)
-      pr = polyk*rho**gamma
-      vsound = sqrt(gamma*pr/rho)
-    end where 
+    where (rho > 0. .AND. itype.EQ.itypegas)
+       pr = polyk*rho**gamma
+       vsound = sqrt(gamma*pr/rho)
+    elsewhere
+      pr = 0.
+    end where
     if (abs(gamma1).gt.1.e-3) then       
        where (rho > 0.) 
        uu = pr/(gamma1*rho)
@@ -109,7 +112,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
     endif
     if (abs(gamma1).gt.1.e-3) then       
        if (rho > 0.) then
-       uu = pr/(gamma1*rho)
+          uu = pr/(gamma1*rho)
        endif
     endif   
  else      ! adiabatic
