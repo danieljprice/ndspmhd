@@ -92,6 +92,17 @@ ifeq ($(SYSTEM), ifort)
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
 endif
 
+ifeq ($(SYSTEM), msg)
+    F90C= ifort
+    F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
+    DBLFLAG= -r8
+    DEBUGFLAG= -C
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+endif
+
 
 # Set other optional flags depending on settings
 
@@ -137,11 +148,11 @@ ifndef SETUP1D
 #SETUP1D = setup_toystar1D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
-#SETUP1D = setup_wave_x_ND_mhd.f90
+SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
-SETUP1D = setup_shockND.f90
+#SETUP1D = setup_shockND.f90
 #SETUP1D = setup_acousticshockND.f90
 #SETUP1D = setup_Bxpeak25D_mhd.f90
 #SETUP1D = setup_clareshk1D.f90
@@ -156,7 +167,7 @@ ifndef SETUP2D
 #SETUP2D = setup_sphericalblastND_mhd.f90
 #SETUP2D = setup_polytropeND.f90
 #SETUP2D = setup_rotor2D_mhd.f90
-SETUP2D = setup_unifdisND.f90
+#SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_unifsphND.f90
 #SETUP2D = setup_unifdis_cyl.f90
 #SETUP2D = setup_disc2D.f90
@@ -171,6 +182,8 @@ SETUP2D = setup_unifdisND.f90
 #SETUP2D = setup_disc2D_2.f90
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
+#SETUP2D = setup_wave_x_ND_mhd.f90
+SETUP2D = setup_SI.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
@@ -229,7 +242,7 @@ SOURCES= sphND_mhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
          get_neighbour_lists.f90 penrose.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
-         get_curl.f90 get_B_eulerpots.f90 \
+         get_curl.f90 get_B_eulerpots.f90 get_vbary.f90\
          smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
          resistivity_implicit.f90 \
