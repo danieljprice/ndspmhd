@@ -261,6 +261,7 @@ subroutine conservative2primitive
         uu = en
      endif
   end select
+ 
 !
 !--call equation of state calculation
 !
@@ -375,7 +376,7 @@ subroutine primitive2conservative
 !--also work out what polyk should be if using iener = 0
 !  (only do this once, otherwise give an error)
 !
-     if (iener.eq.0 .and. iexternal_force.ne.10) then
+     if (iener.eq.0 .and. itype(i).eq.itypegas .and. iexternal_force.ne.10) then
         gam1 = gamma - 1.
         if (gamma.le.1.0001) then
            polyki = 2./3.*uu(i)
