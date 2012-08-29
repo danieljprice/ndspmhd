@@ -53,6 +53,7 @@ PROGRAM SUPERSPMHD_ND
  INTEGER, PARAMETER :: maxruns = 20
  INTEGER :: i,iprev,irun, nruns
  CHARACTER(LEN=120), DIMENSION(maxruns) :: runname
+ runname(1) = 'a'
 !
 !--version number
 !
