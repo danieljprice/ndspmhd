@@ -52,7 +52,7 @@ subroutine write_infile(infile)
   write(iread,210) usenumdens
   write(iread,220) isplitpart,rhocrit
   write(iread,230) iuse_exact_derivs, nsteps_remap
-  write(iread,240) idrag, Kdrag
+  write(iread,240) idrag_nature,idrag_structure,Kdrag,ismooth
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -78,7 +78,7 @@ subroutine write_infile(infile)
 210 format(l1,35x,'! Use number density formulation of gradh')
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
 230 format(i2,2x,i4,30x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
-240 format(i2,1x,1pe9.3,24x,'! drag type, Kdrag')
+240 format(i2,1x,i2,1x,1pe9.3,1x,i2,21x,'! drag type,drag form, Kdrag,ismooth')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -147,7 +147,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) usenumdens
   read(iread,*,err=50,end=50) isplitpart,rhocrit
   read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
-  read(iread,*,err=50,end=50) idrag,Kdrag
+  read(iread,*,err=50,end=50) idrag_nature,idrag_structure,Kdrag,ismooth
  close(unit=iread)
 
  goto 55
