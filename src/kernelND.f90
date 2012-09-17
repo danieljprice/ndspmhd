@@ -2059,6 +2059,117 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        call geterbskernel2(q,wkern(i),grwkern(i),grgrwkern(i))
     enddo
 
+   case(99)
+!   
+!--Hexic M7 kernel, used to test the streaming instability
+!
+    kernellabel = 'M_7 hexic'    
+
+    radkern = 3.5
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./720.  !--=1/(7!):OK
+      case(2)
+         cnormk = 256./(113149.*pi)
+      case(3)
+         cnormk = 1./(840*pi)
+    end select  
+    do i=0,ikern 
+       q2 = i*dq2table
+       q  = sqrt(q2)
+       q3 = q*q2
+       q4 = q2*q2
+       q5 = q3*q2
+       q6 = q3*q3
+       if (q.lt.0.5) then
+          wkern(i) = -20.*q6 + 105.*q4 - 288.75*q2+367.9375
+          grwkern(i) = -120.*q5+420.*q3-577.5*q
+          grgrwkern(i) =  -600.*q4+1260.*q2-577.5
+       elseif ((q.ge.0.5) .and. (q.lt.1.5)) then
+          wkern(i) =15.*q6-105.*q5+236.25*q4-87.5*q3 &
+                    -255.9375*q2-6.5625*q+368.484375
+          grwkern(i) = 90.*q5-525.*q4+945.*q3 &
+                      -262.5*q2-511.875*q-6.5625
+          grgrwkern(i) = 450.*q4-2100.*q3+2835.*q2-525.*q-511.875   
+       elseif ((q.ge.1.5).and. (q.lt.2.5)) then
+          wkern(i)=-6.*q6+84.*q5-472.5*q4+1330.*q3 &
+                   -1850.625*q2+950.25*q+129.28125
+          grwkern(i) =  -36.*q5+420.*q4-1890.*q3 &
+                       +3990.*q2-3701.25*q+950.25
+          grgrwkern(i) =  -180.*q4+1680.*q3-5670.*q2+7980.*q-3701.25
+       elseif ((q.ge.2.5).and. (q.lt.3.5)) then
+          wkern(i) =q6-21.*q5+183.75*q4-857.5*q3 &
+                    +2250.9375*q2-3151.3125*q+1838.265625
+          grwkern(i) = 6.*q5-105.*q4+735.*q3-2572.5*q2 &
+                      +4501.875*q-3151.3125
+          grgrwkern(i) = 30.*q4-420.*q3+2205.*q2-5145.*q+4501.875 
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+   case(100)
+!   
+!--Heptic M8 kernel, used to test the streaming instability
+!
+    kernellabel = 'M_8 heptic'    
+
+    radkern = 4.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./5040.  !--=1/(7!):OK
+      case(2)
+         cnormk = 9./(29740.*pi)
+      case(3)
+         cnormk = 1./(6720.*pi)
+    end select  
+    do i=0,ikern 
+       q2 = i*dq2table
+       q  = sqrt(q2)
+       q3 = q*q2
+       q4 = q2*q2
+       q5 = q3*q2
+       q6 = q3*q3
+       q7 = q6*q
+       if (q.lt.1.0) then
+          wkern(i) = 35.*q7 - 140.*q6 + 560.*q4 &
+                     - 1680.*q2+ 2416.
+          grwkern(i) = 245.*q6 - 840.*q5 + 2240.*q3 - 3360.*q
+          grgrwkern(i) =  1470.*q5  - 4200.*q4  &
+                        + 6720.*q2 - 3360.
+       elseif ((q.ge.1.0) .and. (q.lt.2.0)) then
+          wkern(i) = -21.*q7 + 252.*q6 - 1176.*q5 + 2520.*q4 &
+                     - 1960.*q3  - 504.*q2  - 392.*q + 2472.
+          grwkern(i) = -147.*q6 + 1512.*q5 - 5880.*q4 &
+                       + 10080.*q3 - 5880.*q2 - 1008.*q - 392.
+          grgrwkern(i) = -882.*q5 + 7560.*q4 &
+                        - 23520.*q3 +30240.*q2 -11760.*q - 1008.   
+       elseif ((q.ge.2.0).and. (q.lt.3.0)) then
+          wkern(i) = 7.*q7 - 140.*q6 + 1176.*q5 - 5320.*q4 &
+                     + 13720.*q3 - 19320.*q2 + 12152.*q - 1112.
+          grwkern(i) =  49.*q6 -  840.*q5 + 5880.*q4 &
+                       - 21280.*q3 + 41160.*q2 - 38640.*q + 12152.
+          grgrwkern(i) =  294.*q5 - 4200.*q4 &
+                        + 23520.*q3 - 63840.*q2 + 82320.*q - 38640.
+       elseif ((q.ge.3.0).and. (q.lt.4.0)) then
+          wkern(i) = -q7 + 28.*q6 - 336.*q5 + 2240.*q4 &
+                     - 8960.*q3 + 21504.*q2 - 28672.*q + 16384.
+          grwkern(i) = -7.*q6 + 168.*q5 - 1680.*q4 &
+                      + 8960.*q3 - 26880.*q2 + 43008.*q - 28672.
+          grgrwkern(i) = -42.*q5 +  840.*q4 &
+                          - 6720.*q3 + 26880.*q2 - 53760.*q + 43008.  
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
   case default  
 !
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
