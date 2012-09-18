@@ -14,7 +14,7 @@ program kernelplot
  !data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
 ! data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
 
- data iplotorder /0, 3, 61, 62, 31, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 3, 10, 80, 81, 14, 13, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 4
  ianticlump = 0
@@ -23,7 +23,7 @@ program kernelplot
  samepage = .false.
  plotkernel = .true.
  plotstability = .true.
- plotgaussian  = .false.
+ plotgaussian  = .true.
  nacross = 2
  ndown = 2
  xmin = 0.0

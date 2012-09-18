@@ -36,10 +36,10 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !  
   contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
-  normplot = .true.     ! plot normalisation conditions
+  normplot = .false.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
-  ikx = 1  !!nkx/2        ! frequency for cs vs R or h plots
+  ikx = 12 !nkx/2 !1  !!nkx/2        ! frequency for cs vs R or h plots
   nplots = 1
   nacross = nacrossin
   ndown = ndownin
@@ -73,8 +73,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
   else                  ! y axis is h
 !     ymin = 0.5*psep
 !     ymax = 5.0*psep
-     ymin = 1.0*psep
-     ymax = 2.0*psep
+     ymin = 0.8*psep
+     ymax = 2.8*psep
      labely = 'h / \Deltap'
   endif
 !
@@ -220,17 +220,17 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      print*,' grgrWnorm = ',grgrWnorm(1:10),ny
      if (iplotpos.eq.1) call legend(ipos,'d^2W/dx^2',hpos,vpos)
 !--second derivative normalisation term
-     call pgsls(4)
-     call pgsci(4)
-     call pgline(ny,yaxis(1:ny),grgrWnorm2(1:ny))
-     do i=2,ny
-        if ((grgrWnorm2(i-1).ge.1. .and. grgrWnorm2(i).lt.1.) .or. &
-            (grgrWnorm2(i-1).lt.1. .and. grgrWnorm2(i).ge.1.)) then
-           print*,'crosses unity at ',yaxis(i-1),0.5*(yaxis(i-1) + yaxis(i)),yaxis(i)
-        endif
-     enddo
-     print*,' Brookshaw del^2 = ',grgrWnorm2(1:10),ny
-     if (iplotpos.eq.1) call legend(ipos,'Brookshaw d^2W/dx^2',hpos,vpos)
+     !call pgsls(4)
+     !call pgsci(4)
+     !call pgline(ny,yaxis(1:ny),grgrWnorm2(1:ny))
+     !do i=2,ny
+     !   if ((grgrWnorm2(i-1).ge.1. .and. grgrWnorm2(i).lt.1.) .or. &
+     !       (grgrWnorm2(i-1).lt.1. .and. grgrWnorm2(i).ge.1.)) then
+     !      print*,'crosses unity at ',yaxis(i-1),0.5*(yaxis(i-1) + yaxis(i)),yaxis(i)
+     !   endif
+     !enddo
+     !print*,' Brookshaw del^2 = ',grgrWnorm2(1:10),ny
+     !if (iplotpos.eq.1) call legend(ipos,'Brookshaw d^2W/dx^2',hpos,vpos)
 
      call pgsci(1)
      call pgsls(1)
@@ -240,10 +240,11 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !--plot just the line along kx = 0
 !
      !!call pgsch(1.2)
+     do ikx=1,nkx,5
      call pgsch(1.0)
      !!if (iplotpos.eq.1) call pgpage
-     datmin = 0.75  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
-     datmax = 1.15  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
+     datmin = 0.8 !0.95  !!min(minval(tterm1),minval(tterm2)) !!,minval(tterm3),minval(tterm4)) !-2.0   !!1.0
+     datmax = 1.2 !1.05  !!max(maxval(tterm1),maxval(tterm2))   !,maxval(tterm3),maxval(tterm4))
      !datmax = 16
      !datmax = maxval(dat(ikx,1:ny))   !!5.5 !!sqrt(maxval(dat(ikx,1:ny)))
 
@@ -254,6 +255,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !          ymin,ymax,datmin,datmax,labely,'cs',' ',0,0)
      if (nplots.gt.1) call pgsls(iplotpos)
      call pgline(ny,yaxis(1:ny),sqrt(abs(dat(ikx,1:ny))))
+     print*,'last entry = ',1./rhosum(ny)
      !call pgline(ny,yaxis(1:ny),dat(ikx,1:ny))
 !
 !--plot contributions from first and second derivatives
@@ -265,6 +267,12 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call pgsls(2) !sci(2)
      call pgsci(2)
 !--second derivative normalisation term
+     call pgsls(3)
+     call pgsci(3)
+     call pgline(ny,yaxis(1:ny),grgrWnorm(1:ny))
+     print*,' grgrWnorm = ',grgrWnorm(1:10),ny
+     if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
+
      !call pgline(ny,yaxis(1:ny),0.5*tterm1(1:ny))
      !print*,' tterm = ',0.5*tterm1(1:10),ny
      !if (iplotpos.eq.1) call legend(ipos,'grad^2 W norm',hpos,vpos)
@@ -287,7 +295,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
      call pgline(ny,yaxis(1:ny),rhosum(1:ny))
      if (iplotpos.eq.1) call legend(ipos,'density estimate',hpos,vpos)
      call pgsci(1)
-     read*
+     !  read*
 
      write(text,"(a,f3.1,a,i1)") '\ge = ',eps,', n = ',neps
      !if (nplots.gt.1) then
@@ -319,6 +327,8 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 
      call pgsch(charheight)
      call pgsls(1)
+     enddo
+     
   endif
 
   enddo mainloop
