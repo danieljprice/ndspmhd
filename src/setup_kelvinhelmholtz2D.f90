@@ -13,7 +13,7 @@ module khsetup
  real, parameter :: vmedium = -0.5
  real, parameter :: smoothl = 0.025
  real, parameter :: przero = 2.5
- logical, parameter :: wang = .true.     ! use EITHER wang OR robertson
+ logical, parameter :: wang = .false.     ! use EITHER wang OR robertson
  logical, parameter :: robertson = .false.
 
 contains
@@ -75,6 +75,7 @@ subroutine setup
  real :: densmid,vmid,expterm,yi
  real, dimension(ndim) :: xminregion,xmaxregion
  logical, parameter :: equalmass = .true.
+ logical, parameter :: symmetric = .false.
 !
 !--allow for tracing flow
 !
@@ -114,7 +115,7 @@ subroutine setup
     xmaxregion(1) = xmax(1)
     xminregion(2) = -0.5
     xmaxregion(2) = -0.25
-    call set_uniform_cartesian(1,psep,xminregion,xmaxregion,fill=.true.)
+    call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
 !
 !--determine particle mass from npart in first region
 !
@@ -122,31 +123,41 @@ subroutine setup
     totmass = denszero*volume
     massp = totmass/float(npart) ! average particle mass
 
-!    xminregion(2) = 0.25
-!    xmaxregion(2) = 0.5
-!    call set_uniform_cartesian(1,psep,xminregion,xmaxregion,fill=.true.)
+    if (.not.symmetric) then
+       xminregion(2) = 0.25
+       xmaxregion(2) = 0.5
+       call set_uniform_cartesian(2,psep,xminregion,xmaxregion,fill=.true.)
+    endif
+    !npart = 0
 !
 !--setup -0.25 < y < 0.25
 ! 
     xminregion(2) = -0.25
-    xmaxregion(2) = 0.
+    if (symmetric) then
+       xmaxregion(2) = 0.
+    else
+       xmaxregion(2) = 0.25
+    endif
     psepmedium = psep*(denszero/densmedium)**(1./ndim)
-    call set_uniform_cartesian(1,psepmedium,xminregion,xmaxregion,fill=.true.)
-!
-!--reallocate memory to new size of list
-!
-    call alloc(2*npart)
-!
-!--reflect particles above and below the y axis
-!
-    ipart = npart
-    do i=1,npart
-       ipart = ipart + 1
-       x(1,ipart) = x(1,i)
-       x(2,ipart) = -x(2,i)
-    enddo
-    npart = ipart
-    ntotal = npart
+    call set_uniform_cartesian(2,psepmedium,xminregion,xmaxregion,fill=.true.)
+
+    if (symmetric) then
+    !
+    !--reallocate memory to new size of list
+    !
+       call alloc(2*npart)
+    !
+    !--reflect particles above and below the y axis
+    !
+       ipart = npart
+       do i=1,npart
+          ipart = ipart + 1
+          x(1,ipart) = x(1,i)
+          x(2,ipart) = -x(2,i)
+       enddo
+       npart = ipart
+       ntotal = npart
+    endif
  endif
  npart = ntotal
  print*,'npart =',npart
@@ -217,11 +228,11 @@ subroutine setup
 !  smooth pressure
 !
  if (iener.gt.0) then
- write(iprint,*) 'calling density to make smooth pressure jump...'
-! call primitive2conservative
- do i=1,npart
-    uu(i) = przero/((gamma - 1.)*rho(i))
- enddo
+    write(iprint,*) 'calling density to make smooth pressure jump...'
+    call primitive2conservative
+    do i=1,npart
+       uu(i) = przero/((gamma - 1.)*rho(i))
+    enddo
  endif
 !
 !--allow for tracing flow
