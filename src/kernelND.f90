@@ -134,8 +134,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        q = sqrt(q2)
        if (q.lt.0.5) then
           wkern(i) = (2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4
-          grwkern(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10*(0.5-q)**4)
-          grgrwkern(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10*(0.5-q)**2)
+          grwkern(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10.*(0.5-q)**3)
+          grgrwkern(i) = 12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10.*(0.5-q)**2)
        elseif (q.lt.1.5) then
           wkern(i) = (2.5-q)**4 - 5.*(1.5-q)**4
           grwkern(i) = -4.*((2.5-q)**3 - 5.*(1.5-q)**3)
@@ -174,22 +174,61 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        term1 = -5.*(3.-q)**4.
        if (q.lt.1.0) then
           wkern(i) = 66.-60.*q2 + 30.*q4 - 10.*q4*q
-          grwkern(i) = term1 + 30*(2.-q)**4. - 75.*(1.-q)**4.
-          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3. + 300.*(1.-q)**3.
+          grwkern(i) = term1 + 30*(2.-q)**4 - 75.*(1.-q)**4
+          grgrwkern(i) = 20.*(3.-q)**3 - 120.*(2.-q)**3 + 300.*(1.-q)**3
        elseif ((q.ge.1.0).and.(q.lt.2.0)) then
-          wkern(i) = (3.-q)**5. - 6.*(2.-q)**5.
-          grwkern(i) = term1 + 30*(2.-q)**4.
-          grgrwkern(i) = 20.*(3.-q)**3. - 120.*(2.-q)**3.
+          wkern(i) = (3.-q)**5 - 6.*(2.-q)**5
+          grwkern(i) = term1 + 30*(2.-q)**4
+          grgrwkern(i) = 20.*(3.-q)**3 - 120.*(2.-q)**3
        elseif ((q.ge.2.0).and.(q.le.3.0)) then
-          wkern(i) = (3.-q)**5.
+          wkern(i) = (3.-q)**5
           grwkern(i) = term1
-          grgrwkern(i) = 20.*(3.-q)**3.
+          grgrwkern(i) = 20.*(3.-q)**3
        else
           wkern(i) = 0.0
           grwkern(i) = 0.0
           grgrwkern(i) = 0.
        endif
     enddo
+
+  case(4)
+!
+!--quartic spline
+!  
+    kernellabel = 'M_5 quartic (2h)'    
+
+    radkern = 2.
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 3125./24576.  !(2.5/2.)**4*1./24.
+      case(2)
+         cnormk = 46875./(153472.*pi)
+      case(3)
+         cnormk = 15625./(65536.*pi)
+    end select  
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       if (q.lt.0.4) then
+          wkern(i) = (2.-q)**4 - 5.*(1.2-q)**4 + 10.*(0.4-q)**4
+          grwkern(i) = -4.*((2.-q)**3 - 5.*(1.2-q)**3 + 10.*(0.4-q)**3)
+          grgrwkern(i) = 12.*((2.-q)**2 - 5.*(1.2-q)**2 + 10.*(0.4-q)**2)
+       elseif (q.lt.1.2) then
+          wkern(i) = (2.-q)**4 - 5.*(1.2-q)**4
+          grwkern(i) = -4.*((2.-q)**3 - 5.*(1.2-q)**3)
+          grgrwkern(i) = 12.*((2.-q)**2 - 5.*(1.2-q)**2)
+       elseif (q.lt.2.) then
+          wkern(i) = (2.-q)**4
+          grwkern(i) = -4.*((2.-q)**3)
+          grgrwkern(i) = 12.*((2.-q)**2)
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo 
 
   case(5,6,7)
 !
