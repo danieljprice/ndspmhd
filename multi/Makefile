@@ -21,10 +21,10 @@ FFLAGS = $(F90FLAGS)
 %.o : %.f90
 	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
-SOURCES= multirun.f90
+SOURCES= multirun_dtconvergence.f90
  
 OBJECTS = dimen1D.o variablesND.o defaults.o eos.o \
-          kernelND.o readwrite_infile.o \
+          kernel_erbs_utils.o kernelND.o readwrite_infile.o \
 	  $(SOURCES:.f90=.o)
 
 multirun: $(OBJECTS)	
@@ -38,6 +38,9 @@ eos.o :
 
 kernelND.o :
 	$(F90C) -c $(F90FLAGS) ../src/kernelND.f90 -o $@
+
+kernel_erbs_utils.o :
+	$(F90C) -c $(F90FLAGS) ../src/kernel_erbs_utils.f90 -o $@
 
 variablesND.o :
 	$(F90C) -c $(F90FLAGS) ../src/variablesND.f90 -o $@
