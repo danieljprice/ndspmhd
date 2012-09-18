@@ -122,10 +122,19 @@ subroutine write_header(icall,infile,evfile,logfile)
 
     if (imhd.ne.0) then
        write (iprint,70) imagforce,idivBzero,ianticlump,eps,neps
-70  format(' MHD options: ',/,                                        &
+70     format(' MHD options: ',/, &
          6x,' Lorentz force    : ',i2,5x,' div B correction  :',i2,/,        &
          6x,' Artificial stress: ',i2,5x,' with eps = ',f4.2,', neps = ',i2,/)
- endif
+
+       select case(iresist)
+       case(3)
+          write(iprint,"(a,es10.3)") ' Physical resistivity ON (explicit), variable eta, fac = ',etamhd
+       case(2)
+          write(iprint,"(a,es10.3)") ' Physical resistivity ON (implicit), constant eta = ',etamhd
+       case(1)
+          write(iprint,"(a,es10.3)") ' Physical resistivity ON (explicit), constant eta = ',etamhd
+       end select
+    endif
 !
 !--artificial viscosity options
 !     
