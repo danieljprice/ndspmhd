@@ -12,7 +12,7 @@ program kernelplot3D
  real    :: psep,dx,dy,dz,wsum,wabi,gradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
  real    :: dwdhi,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi
- logical :: samepage,plotall,plot_moments, plot_kernels,plot_gradw
+ logical :: samepage,plotall,plot_moments, plot_kernels,plot_gradw, plot_cubic
 !! character(len=50) :: text
  integer, parameter :: npts = 101 !241 !76 !51
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
@@ -22,18 +22,19 @@ program kernelplot3D
  real, parameter :: pi = 3.1415926536
  real, dimension(10) :: sums
 
- !data iplotorder /0, 3, 51, 52, 53, 59, 64, 65, 14, 13/   ! order in which kernels are plotted
- data iplotorder /0, 3, 42, 43, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
+ data iplotorder /0, 10, 42, 45, 53, 59, 64, 65, 14, 13/   ! order in which kernels are plotted
+ !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
  plot_moments = .false. ! either plot kernel moments or density/normalisation conditions
- plot_kernels = .false.
+ plot_kernels = .true.
  plot_gradw = .true.
+ plot_cubic = .false.  ! plot cubic spline as a comparison
 
  if (plotall) then
     nkernels = 70
  else
-    nkernels = 10
+    nkernels = 4
  endif
  samepage = .false.
  nacross = 2
@@ -152,6 +153,7 @@ program kernelplot3D
                    sums(4) = sums(4) - mi/rhoi*gradwi*dx*dx*rij1
                    sums(5) = sums(5) - mi/rhoi*gradwi*dx*dy*rij1
                    sums(6) = sums(6) - mi/rhoi*gradwi*dx*dz*rij1
+                   sums(7) = sums(7) + mi/rhoi*gradwi*dx*rij1
                 endif
              endif
           enddo
@@ -174,12 +176,12 @@ program kernelplot3D
              !yplot(i) = log10(erri)
              if (plot_gradw) yplot(i) = sums(4)
              if (ikernel.eq.0) cubic1(i) = yplot(i)
-             !yplot(i) = sums(2)
+             yplot(i) = sums(2)
           endif
           if (isetup.eq.2) then
              yplot2(i) = wsum
              !yplot2(i) = log10(erri)
-             !yplot2(i) = sums(2)
+             yplot2(i) = sums(2)
              if (plot_gradw) yplot2(i) = sums(4)
              if (ikernel.eq.0) cubic2(i) = yplot2(i)
           endif
@@ -278,42 +280,47 @@ subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
 
  xmin = minval(xplot)
  xmax = maxval(xplot)
- !ymin = -0.08
- !ymax = 0.12
+ ymin = -0.05
+ ymax = 0.12
  !ymin = minval(yplot2) - 0.005
  !ymax = maxval(yplot2) + 0.005
  !if (j.eq.1) then
  if (plot_gradw) then
-    ymin = 0.97
-    ymax = 1.03 
+    ymin = 0.9
+    ymax = 1.1
     ylabel = '\nabla W_{norm}'
  else
- ymin = 0.997
- ymax = 1.001
- ylabel = 'W(norm)'
+ !ymin = 0.95
+ !ymax = 1.08
+ !ylabel = 'W(norm)'
  ylabel = 'R_{xy}'
  endif
  !endif
 
- call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/r',trim(ylabel), &
+ call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/\gDx',trim(ylabel), &
                trim(kernelname),0,1,&
                0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
  call pgmtxt('t',-2.0_4,0.96_4,1.0_4,trim(kernelname))
 !--cubic spline
  call pgsci(2)
- call pgsls(4)
- call pgline(size(xplot),xplot,cubic1)
+ if (plot_cubic) then
+    call pgsls(4)
+    call pgline(size(xplot),xplot,cubic1)
+ endif
 !--current kernel 
+print*,'yplot = ',yplot
  call pgsls(1)
  call pgline(size(xplot),xplot,yplot)
 
  call pgsci(3)
 !--cubic spline
- call pgsls(4)
- call pgline(size(xplot),xplot,cubic2)
+ if (plot_cubic) then
+    call pgsls(4)
+    call pgline(size(xplot),xplot,cubic2)
+ endif
 !--current kernel 
  call pgsls(2)
- call pgline(size(xplot),xplot,yplot2)
+! call pgline(size(xplot),xplot,yplot2)
 
 
  call pgsci(1)
