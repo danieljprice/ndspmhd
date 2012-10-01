@@ -23,8 +23,9 @@ module kernels
 !--these variables needed for plotting and analysis only (not in rates etc)
  real, dimension(0:ikern) :: grgrwij,grgrwijalt
  character(len=100) :: kernelname,kernelnamealt,kernelnamedrag
- 
+
  public  :: wij,grwij,grgrwij
+ public  :: wijdrag,grwijdrag,grgrwijdrag
  public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
  public  :: setkerndrag, interpolate_kerneldrag
  private :: setkerntable
@@ -50,15 +51,14 @@ end subroutine setkern
 ! This is the interface routine (public) -- calls setkerndrag once only
 !
 !----------------------------------------------------------------------
-subroutine setkerndrag(ikernel,ndim,ierr)
+subroutine setkerndrag(ikerneldrag,ndim,ierr)
  implicit none
- integer, intent(in)  :: ikernel, ndim
+ integer, intent(in)  :: ikerneldrag, ndim
  integer, intent(out) :: ierr
 !
 !--setup kernel tables for primary kernel
 !
- call setkerntable(ikernel,ndim,wijdrag,grwijdrag,grgrwijdrag,kernelnamedrag,ierr)
- 
+ call setkerntable(ikerneldrag,ndim,wijdrag,grwijdrag,grgrwijdrag,kernelnamedrag,ierr)
 end subroutine setkerndrag
 
 !-----------------------------------------------------------------
@@ -78,7 +78,6 @@ subroutine setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
 !--setup kernel tables for alternative kernel
 ! 
  call setkerntable(ikernelalt,ndim,wijalt,grwijalt,grgrwijalt,kernelnamealt,ierr2)
- 
 end subroutine setkernels
 
 !-----------------------------------------------------------------
@@ -1526,7 +1525,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       q3 = q*q2
       q4 = q2*q2
       q5 = q3*q2
-      q6 = q3*q4
+      q6 = q3*q3
       q7 = q6*q
       if (q.lt.0.5) then
          wkern(i)     = 1./40.*(575./8. - 105.*q2 + 54.*q4)
@@ -2046,6 +2045,39 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+  case(79)
+!  
+!--Bump function
+!
+    kernellabel = 'Bump kernel'    
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./2.481250006
+      case(2)
+         cnormk = 1./6.505988642
+      case(3)
+         cnormk = 1./14.85711424
+    end select  
+    do i=0,ikern 
+       q2    = i*dq2table
+       alpha    = 1./(4.-q2)
+       beta     = exp(-alpha)
+       q        = sqrt(q2)
+       if (q2.lt.4.) then    
+          wkern    = beta
+          grwkern  = -2.*q*beta*alpha**2
+          grgrwkern = 2.*beta*alpha**4*(-6.*q2 + 3*q2*q2-16.)
+       else
+          wkern = 0.
+          grwkern = 0.
+          grgrwkern = 0.
+       endif
+    enddo
+
   case (80)
 !
 !--Expo-rational B-Spline kernel
@@ -2150,6 +2182,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           grgrwkern(i) = 0.
        endif
     enddo
+
+
    case(100)
 !   
 !--Heptic M8 kernel, used to test the streaming instability
@@ -2209,8 +2243,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
-  case default  
-!
+  case default
+    
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
     kernellabel = 'M_4 cubic spline'    
@@ -2386,6 +2420,9 @@ subroutine interpolate_kernel(q2,w,gradw)
  
 end subroutine interpolate_kernel
 
+!!----------------------------------------------------------------------
+!! function to interpolate linearly from drag kernel tables
+!!----------------------------------------------------------------------
 subroutine interpolate_kerneldrag(q2,w)
  implicit none
  integer :: index,index1
@@ -2404,7 +2441,7 @@ subroutine interpolate_kerneldrag(q2,w)
 !
  dxx = q2 - index*dq2table
 !
-!--calculate slope for w, gradw and interpolate for each
+!--calculate slope for w and interpolate for each
 ! 
  dwdx =  (wijdrag(index1)-wijdrag(index))*ddq2table
  w = (wijdrag(index)+ dwdx*dxx)
