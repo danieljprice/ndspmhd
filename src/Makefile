@@ -148,7 +148,7 @@ ifndef SETUP1D
 #SETUP1D = setup_toystar1D.f90
 #SETUP1D = setup_shock1DND_mhd2.f90
 #SETUP1D = setup_advection1D_mhd.f90
-SETUP1D = setup_wave_x_ND_mhd.f90
+#SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_turbulenceND_mhd.f90 set_powerspec1D.f90 
 #SETUP1D = setup_sphericalblastND_mhd.f90
 #SETUP1D = setup_alfvenwaveND_x.f90
@@ -159,6 +159,7 @@ SETUP1D = setup_wave_x_ND_mhd.f90
 #SETUP1D = setup_resist1D.f90
 #SETUP1D = setup_anyrho1Dran.f90
 #SETUP1D = setup_resistivityND_mhd.f90
+SETUP1D = setup_dustybox.f90
 endif
 
 ifndef SETUP2D
@@ -183,7 +184,8 @@ ifndef SETUP2D
 #SETUP2D = setup_logodivB.f90
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_wave_x_ND_mhd.f90
-SETUP2D = setup_SI.f90
+#SETUP2D = setup_SI.f90
+SETUP2D = setup_SIsimple.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
@@ -203,6 +205,7 @@ SETUP2D = setup_SI.f90
 #SETUP2D= setup_highex2D.f90
 #SETUP2D = setup_tearingmode2D.f90
 #SETUP2D = setup_gresho2D.f90
+#SETUP2D = setup_vertepi.f90
 endif
 
 ifndef SETUP3D

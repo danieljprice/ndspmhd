@@ -50,13 +50,13 @@ subroutine setup
 
  integer, parameter          :: ntypes = 2
  integer, parameter          :: itsmax = 20
- real, parameter             :: ampl   = 1.d-3
+ real, parameter             :: ampl   = 1.!d-3
  real, parameter             :: tol    = 1.e-8
 ! real, parameter             :: corr   = 0.99975747 !--correction to handle the real SPH density
  real, parameter             :: corr   = 0.99994416703041011
  real, parameter             :: vcorrg   = 0.99930182
  real, parameter             :: vcorrd   = 0.99930212
- character(len=10),parameter :: lin    = 'appB'
+ character(len=10),parameter :: lin    = 'linA'
  
 !-------------------------------------------------------------
 ! set the external forces and the boundary conditions
@@ -69,11 +69,8 @@ subroutine setup
  if (ndimV.ne.3) stop 'error: we need ndimV=3 for this problem'
 
 !--set position of disc patch for coriolis & centrifugal forces
- if (trim(lin).ne.'appB') then
-    iexternal_force = 11 ! additional correction due to the background pressure gradient
- else
-    iexternal_force = 5
- endif
+! iexternal_force = 10 ! additional correction due to the background pressure gradient
+ iexternal_force = 5
 
 !-get the drag quantities and the SI perturbations
  call getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
@@ -84,16 +81,10 @@ subroutine setup
  ibound(:) = 3     ! periodic in y,z
  ibound(1) = 5     ! shearing box in x (==R)
  nbpts = 0         ! use ghosts not fixed
- asize = 1.0       ! box size (corresponds to Bai/Stone 2010)
- if (trim(lin).ne.'appB') then
-     xmin(:) = -asize*eta/Bigkx  ! set position of boundaries
-     xmax(:) = asize*eta/Bigkx
-     psep    = psep*eta /Bigkx
- else    
-     xmin(:) = -1.  ! set position of boundaries
-     xmax(:) =  1. 
- endif
-
+ asize = pi !1.0       ! box size (corresponds to Bai/Stone 2010)
+ xmin(:) = -asize*eta/Bigkx  ! set position of boundaries
+ xmax(:) = asize*eta/Bigkx
+ psep    = psep*eta /Bigkx
  if (abs(asize-1.).lt.tiny(0.)) print*,'WARNING: if asize .ne. 1, change cs'
 
 !-------------------------------------------------------------
@@ -104,6 +95,7 @@ subroutine setup
  ngas  = 0
  ndust = 0
  do jtype=1,ntypes
+!    IF (jtype.eq.2) psep = psep*2.
   call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
   if (jtype.eq.1) then
     ngas = npart
@@ -132,15 +124,16 @@ subroutine setup
  massp       =     totmass/FLOAT(ngas)
  masspdust   = totmassdust/FLOAT(ndust)
  !--kx,kz in code units (one wavelenght per box)
- kx          = kxfac*2.*pi/L
- kz          = kzfac*2.*pi/L
+ kx          = kxfac*1.!2.*pi/L
+ kz          = kzfac*1.!2.*pi/L
 
+! kz = 0.
  print *, 'kx, ky', kx, kz
 !-------------------------------------------------------------
 ! setup the gas quantities
 !-------------------------------------------------------------
-
- cs0    = 0.1   !--cfJY07
+! cs0    = 0.1   !--cfJY07
+! gamma = 1.
  przero = denszero*cs0*cs0/gamma
  uuzero = przero/(denszero*(gamma-1.))
  polyk0 = przero/denszero**gamma
@@ -210,23 +203,21 @@ subroutine setup
 !-------------------------------------------------------------
  Rrhog = Rrhog*denszero!*ampl
  Irhog = Irhog*denszero!*ampl
- Rrhod = Rrhod*ampl*denszero
+ Rrhod =  Rrhod*ampl*denszero
  Irhod = 0. 
-!--convert the data YJ in code units (v(code) = eta v(YJ))
- if (trim(lin).ne.'appB') then
-     Rux   = ampl*Rux*eta
-     Iux   = ampl*Iux*eta
-     Ruy   = ampl*Ruy*eta
-     Iuy   = ampl*Iuy*eta
-     Ruz   = ampl*Ruz*eta
-     Iuz   = ampl*Iuz*eta
-     Rwx   = ampl*Rwx*eta
-     Iwx   = ampl*Iwx*eta
-     Rwy   = ampl*Rwy*eta
-     Iwy   = ampl*Iwy*eta
-     Rwz   = ampl*Rwz*eta
-     Iwz   = ampl*Iwz*eta
- endif
+!--convert the data YJ in code units (v(code) = eta v(YJ)) 
+ Rux   = ampl*Rux*eta
+ Iux   = ampl*Iux*eta
+ Ruy   = ampl*Ruy*eta
+ Iuy   = ampl*Iuy*eta
+ Ruz   = ampl*Ruz*eta
+ Iuz   = ampl*Iuz*eta
+ Rwx   = ampl*Rwx*eta
+ Iwx   = ampl*Iwx*eta
+ Rwy   = ampl*Rwy*eta
+ Iwy   = ampl*Iwy*eta
+ Rwz   = ampl*Rwz*eta
+ Iwz   = ampl*Iwz*eta
 
  do i=1,ntotal
        xi      = x(1,i)
@@ -257,14 +248,10 @@ subroutine setup
        vel(1,i) = vgxNSH
        vel(3,i) = -domegadr*Omega0*xi + vgyNSH
        if (iperturb.eqv. .true.) then
-          if (iperturb.eqv. .true. .AND. trim(lin).ne.'appB') then 
-             vel(1,i) = vel(1,i) + (Rux*cokx - Iux*sikx)*cokz
-          else
-             vel(1,i) = vel(1,i) + Rux*cos(kx*xi + kz*zi)
-          endif   
-             
-          vel(2,i) = vel(2,i) - (Ruz*sikx + Iuz*cokx)*sikz
-          vel(3,i) = vel(3,i) + (Ruy*cokx - Iuy*sikx)*cokz
+          vel(1,i) = vel(1,i) + (Rux*cokx - Iux*sikx)*cokz
+!!!          vel(2,i) = vel(2,i) - (Ruz*sikx + Iuz*cokx)*sikz
+          vel(2,i) = vel(2,i) + Ruy*cos(kx*xi + kz*zi)
+!          vel(3,i) = vel(3,i) + (Ruy*cokx - Iuy*sikx)*cokz
        endif
        
        dens(i)  = denszero
@@ -402,7 +389,11 @@ subroutine getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
     kzfac = 1.0
 
     Rux = 1.0d-3
+!    Ruy = 1.0d-3
 
+    Rrhog = 0.0
+    IRhog = 0.0
+    Rrhod = 0.0
     Bigkx = 1.0
     Bigkz = 1.0
 
@@ -528,7 +519,7 @@ end subroutine getperturb
  
    xi0 = xi
    its = 0
-   xprev = 1.E6
+!   xprev = 1.E6
    do while ((abs(xi-xprev).gt.tol).and.(its.lt.itsmax))
       xprev  = xi
       func   = xi0 - xi -cokz0/kx*(Rrho*sin(kx*xi) + Irho*(cos(kx*xi) - 1.))
@@ -560,7 +551,7 @@ end subroutine getperturb
   
   zi0 = zi
   its = 0
-  zprev = 1.E6
+!  zprev = 1.E6
   do while ((abs(zi-zprev).gt.tol).and.(its.lt.itsmax))
      zprev  = zi
      func   = zi0 - zi - fx0/kz*sin(kz*zi)

@@ -8,6 +8,10 @@ contains
 !! Computes the barycentric velocity in two steps
 !! Indicate which one is computed
 !! This routine is used for calculating high drag regimes
+!!
+!!istep = 1: first part of the Kdrag barycentric
+!!istep = 2: second part of the Kdrag barycentric
+!!istep = 3: Monaghan-like type of barycentric
 !!------------------------------------------------------------------------
 
 subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
@@ -43,7 +47,7 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
  logical :: iskip_drag
  real    :: coeff_gei_1,coeff_dq_1,coeff_dq_4
  real    :: pmassi,rhoi,dubarydt_outi
- real    :: pmassj,rhoj,rhoij
+ real    :: pmassj,pmassij,rhoj,rhoij
  real    :: dv2,vij,V0,f,dragcoeff,dragterm
  real    :: s2_over_m,spsoundgas
  real    :: hi,hi1,hi21,hfacwabi
@@ -64,11 +68,11 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
                             ,npart,ntotal
 !
 !--sanity check
-!                            
- if ((istep.ne.1).and.(istep.ne.2)) then
-    print*,'in get_vbary, istep ne to 1 or 2',istep
+!
+ if ((istep.ne.1).and.(istep.ne.2).and.((istep.ne.3))) then
+    print*,'in get_vbary, istep ne to 1 or 2 or 3',istep
     stop
- endif            
+ endif
 !
 !--initialise quantities
 !
@@ -94,7 +98,7 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
 !--get the list of neighbours for this cell 
 !  (common to all particles in the cell)
 !
-    call get_neighbour_list(icell,listneigh,nneigh)    
+    call get_neighbour_list(icell,listneigh,nneigh)
 !
 !--now loop over all particles in the current cell
 !
@@ -122,9 +126,9 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
        loop_over_neighbours: do n = idone+1,nneigh
           j      = listneigh(n)
           itypej = itype(j)
-          if ((j.ne.i) .and. .not.(j.gt.npart .and. i.gt.npart) .and. (itypei.ne.itypej)) then
+!          if ((j.ne.i) .and. .not.(j.gt.npart .and. i.gt.npart) .and. (itypei.ne.itypej)) then
+          if ((j.ne.i).and. (itypei.ne.itypej)) then
              ! do count particle with itself
-             
              xj(:)    = x(:,j)
              dx(:)    = xi(:) - xj(:)
              rij2     = dot_product(dx,dx)
@@ -142,7 +146,7 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
 !--get informations on the differential velocities
 !
               vbary_inj(:) = vbary_in(:,j)
-              if (istep.eq.1) then
+              if ((istep.eq.1).or.(istep.eq.3)) then
                  dvel(:)   = vbary_ini(:) - vbary_inj(:)
               else
                  dvel(:)   = 0.5*(vbary_ini(:) - vbary_inj(:))
@@ -161,12 +165,13 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
                  drdrag(:) = dr(:)
               endif
 
-!---start the drag calculation    
+!---start the drag calculation
    !if (.not.iskip_drag) then
 !
 !--get the j particle extra properties
 !
                 pmassj    = pmass(j)
+                pmassij   = pmassi + pmassj
                 rhoj      = rho(j)
                 rhoij     = rhoi+rhoj !Careful rhoij .ne. rhoi*rhoj here
                 if (itypei.eq.itypegas) then
@@ -182,7 +187,7 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
                 call interpolate_kerneldrag(q2j,wabj)
                 wabj     = wabj*hfacwabj
                 if (itypei.eq.itypegas) then
-                   wab = wabi                   
+                   wab = wabi
                 else
                    wab = wabj
                 endif
@@ -190,7 +195,6 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
 !--calculate the quantities needed for the drag force
 !
                 V0 = dot_product(dvel,drdrag)
-
                 select case(idrag_nature)
                     case(1) !--constant drag
                        dragcoeff = Kdrag/(rhoi*rhoj)
@@ -228,10 +232,10 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
                          case(2) !--Epstein
                             f = sqrt(1. + coeff_dq_4*dv2/(spsoundgas*spsoundgas))
                          case default
-                            print*,'ERROR drag calculation PM: wrong drag nature'          
+                            print*,'ERROR drag calculation PM: wrong drag nature'
                       end select
                    case default
-                      print*,'this value for idrag_structure does not exist'         
+                      print*,'this value for idrag_structure does not exist'
                 end select
                 
 
@@ -240,15 +244,33 @@ subroutine get_vbary(istep,vbary_in,itype,x,hh,pmass,rho,vbary_out,dubarydt_out)
 !   
                 if (istep.eq.1) then
                    dragterm = ndim*wab*f*V0/dragcoeff
-                else
+                elseif(istep.eq.2) then             
                    dragterm = - ndim*wab*dragcoeff*f*V0
+                elseif (istep.eq.3) then
+                   dragterm = ndim*wab*V0/rhoij
+                else
+                  print*,'no other type of istep in vbary'
+                  stop
                 endif
                 
-                vbary_outi(:)  = vbary_outi(:) - & 
-                                pmassj/(rhoj*rhoij)*dragterm*drdrag(:)                                                              
-                vbary_out(:,j) = vbary_out(:,j) + &
-                                pmassi/(rhoi*rhoij)*dragterm*drdrag(:)
-!----------------------------------------------------------------------                                                                
+                if (istep.eq.1) then
+                    vbary_outi(:)  = vbary_outi(:) - & 
+                                    pmassj/(rhoj*rhoij)*dragterm*drdrag(:)
+                    vbary_out(:,j) = vbary_out(:,j) + &
+                                    pmassi/(rhoi*rhoij)*dragterm*drdrag(:)
+                elseif(istep.eq.2) then
+                    vbary_outi(:)  = vbary_outi(:) - pmassj*dragterm*drdrag(:)
+                    vbary_out(:,j) = vbary_out(:,j) + pmassi*dragterm*drdrag(:)
+                elseif (istep.eq.3) then
+                    vbary_outi(:)  = vbary_outi(:) - & 
+                                     pmassj*dragterm*drdrag(:)
+                    vbary_out(:,j) = vbary_out(:,j) + &
+                                     pmassi*dragterm*drdrag(:)
+                else
+                   print*,'no other type of istep in vbary'
+                   stop
+                endif
+!----------------------------------------------------------------------
                 if (itypei.eq.itypegas) then
                    dubarydt_outi   = dubarydt_outi + pmassj/(rhoj*rhoij)*dragterm
                 endif

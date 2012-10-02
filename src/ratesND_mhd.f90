@@ -22,6 +22,7 @@ subroutine get_rates
   
  use fmagarray
  use derivB
+ use getvbary
  use get_neighbour_lists
  use grutils,       only:metric_diag,dot_product_gr
  use getBeulerpots, only:compute_rmatrix,exactlinear
@@ -60,6 +61,17 @@ subroutine get_rates
  real, dimension(ndimV) :: veli,velj,dvel,fmean
  real, dimension(ndimV) :: dr
  real :: dvdotr
+!
+!  (barycentric velocity)
+!
+ logical :: iconv_bary
+ integer :: nstep_bary
+ real    :: vbary2,vbary2_max 
+ real, dimension(ndimV) :: vbaryi 
+ real, parameter        :: tol_conv = 1.d-7
+ real, parameter        :: vref     = 1.d-4
+ real, dimension(ndimV,ntotal) :: vsmoothed
+
 !
 !  (mhd)
 !     
@@ -144,12 +156,17 @@ subroutine get_rates
 !
 !--initialise quantities
 !      
- dtcourant = 1.e6  
- dtav = huge(dtav)
- zero = 1.e-10
- vsigmax = 0.
- dr(:) = 0.
- nclumped = 0
+ dtcourant  = 1.e6  
+ dtav       = huge(dtav)
+ zero       = 1.e-10
+ vsigmax    = 0.
+ dr(:)      = 0.
+ nclumped   = 0
+ vbary2     = 0.
+ vbary2_max = 0.
+ nstep_bary = 0
+ iconv_bary = .false.
+ vsmoothed(:,:) =0.
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -282,6 +299,7 @@ subroutine get_rates
        rho21i = rho1i*rho1i
        dens1i = 1./dens(i)
        pri = max(pr(i) - pext,0.)
+!       print *, 'PRI ', pr(i), pext, itype(i)
        prneti = pri - pequil(iexternal_force,xi(:),rhoi)
        pmassi = pmass(i)
        Prho2i = pri*rho21i
@@ -334,7 +352,7 @@ subroutine get_rates
        loop_over_neighbours: do n = idone+1,nneigh
        
            j = listneigh(n)
-           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
+           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then ! don't count particle with itself
            dx(:) = xi(:) - x(:,j)
            !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
            hj = hh(j)
@@ -366,7 +384,7 @@ subroutine get_rates
                   .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
                   .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
                  call rates_core
-              elseif (idrag.gt.0) then
+              elseif (idrag_nature.gt.0) then !-- drag step if required
                  call drag_forces
               endif
            else      ! if outside 2h
@@ -383,7 +401,7 @@ subroutine get_rates
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
 
        iprev = i
-       if (iprev.ne.-1) i = ll(i)            ! possibly should be only IF (iprev.NE.-1)
+       if (iprev.ne.-1) i = ll(i) ! possibly should be only IF (iprev.NE.-1)
        
     enddo loop_over_cell_particles
             
@@ -393,7 +411,63 @@ subroutine get_rates
 666 continue
 
  if (itiming) call cpu_time(t3)
+ 
+!----------------------------------------------------------------------------
+!  if ismooth.eq.1, calculate the drag type barycentric velocity in one step
+!---------------------------------------------------------------------------- 
 
+ if (ismooth.eq.1) then 
+       call get_vbary(1,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
+       !--careful: size(vbary_out) in get_vbary .ne. size(vel)=size(vbary)
+       vsmoothed(:,:) = vbary(:,:)    
+       call get_vbary(2,vsmoothed,itype,x,hh,pmass,rho,vbary,dubarydt)
+       do i=1,ntotal
+          vbaryi(:)  = vbary(:,i)
+          vel(:,i)   = vel(:,i) + vbaryi(:)
+       enddo
+ endif
+ 
+!----------------------------------------------------------------------------
+!  if ismooth.eq.2, calculate the drag type barycentric velocity until converged
+!---------------------------------------------------------------------------- 
+
+ !--loop over the barycentric step until converged
+ if (ismooth.eq.2) then
+ print*,'iconv_bary',iconv_bary
+   ! do while (.not.iconv_bary)
+     nstep_bary = nstep_bary + 1      
+       call get_vbary(1,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
+       !--careful: size(vbary_out) in get_vbary .ne. size(vel)=size(vbary)
+       vsmoothed(:,:) = vbary(:,:)    
+       call get_vbary(2,vsmoothed,itype,x,hh,pmass,rho,vbary,dubarydt)
+       do i=1,ntotal
+          vbaryi(:)  = vbary(:,i)
+          print*,'before',vel(1,i),vbaryi(1),itype(i)
+          vel(:,i)   = vel(:,i) + vbaryi(:)
+          print*,'after',vel(1,i),itype(i)            
+          vbaryi(:)  = 1.d4*vbaryi(:)
+          vbary2     = dot_product(vbaryi,vbaryi)
+          vbary2_max = max(vbary2_max,vbary2)
+
+       enddo
+       if (vbary2_max.le.tol_conv) iconv_bary = .true.
+       vbary2_max = 0.
+   ! enddo
+    print*,nstep_bary,' steps required to converge the barycentric velocity'
+    nstep_bary = 0
+ endif
+ 
+!----------------------------------------------------------------------------
+!  if ismooth.eq.3, calculate the Monaghan type barycentric velocity in one step
+!---------------------------------------------------------------------------- 
+
+ if (ismooth.eq.3) then 
+       call get_vbary(3,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
+       do i=1,ntotal
+          vbaryi(:)  = vbary(:,i)     
+          vel(:,i)   = vel(:,i) + vbaryi(:)
+       enddo      
+ endif 
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
@@ -465,9 +539,11 @@ subroutine get_rates
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
-                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i))
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i), &
+                            rhoi)
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
+    
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
@@ -713,7 +789,7 @@ subroutine get_rates
 !
 !--calculate drag timestep
 !
-    if (idrag.ne.0 .and. Kdrag.gt.0.) then
+    if (idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
        dtdrag = min(dtdrag,rhoi/Kdrag)
     endif
  enddo
@@ -777,23 +853,38 @@ subroutine get_rates
 
 contains
   subroutine drag_forces
-    use kernels, only:interpolate_kerneldrag  
-    use options, only:idrag,Kdrag    
+!--DIRTY declarations for the hack  
+    use kernels, only:interpolate_kerneldrag,interpolate_kernel  
+    use options, only:idrag_nature,idrag_structure,Kdrag   
     implicit none
     integer :: itypej
     logical :: iskip_drag
-    real    :: dv2,vij,V0,f,dragterm,dragterm_en
-    real    :: wabj,wab,hfacwabj
+    real    :: coeff_gei_1,coeff_dq_1,coeff_dq_4
+    real    :: dv2,vij,V0,f,dragcoeff,dragterm,dragterm_en,dragcheck
+    real    :: s2_over_m,spsoundgas
+    real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
+    real    :: dt1,dt12
+    real    :: gkeri,gkerj
     real, dimension(ndimV) :: drdrag
     real, parameter :: pow_drag_exp = 0.4
     real, parameter :: a2_set       = 0.5
     real, parameter :: a3_set       = 0.5
-
+    real, parameter :: pi  = 3.141592653589
 !
 !--setup the parameters
 !
-    f = 0.
-    iskip_drag = .false.   
+    iskip_drag  = .false.
+    coeff_gei_1 = 4./3.*sqrt(8.*pi/gamma)
+    coeff_dq_1  = sqrt(0.5*gamma)
+    coeff_dq_4  = 9.*pi*gamma/128.
+    s2_over_m   = 1./coeff_gei_1
+    f           = 0.
+    V0          = 0.
+    dragcoeff   = 0.
+    dragcheck   = 0.
+!    dt1         = 1./tout
+          dt1         = 1./(1.8716d-2)
+    dt12        = dt1*dt1
 !
 !--get informations on the differential velocities
 !
@@ -807,10 +898,10 @@ contains
            iskip_drag      = .true.
        else ! Change dr so that the drag is colinear to the differential velocity
            vij            = sqrt(dv2)
-           drdrag(1:ndim) = dvel(1:ndim)/vij
+           drdrag(:) = dvel(:)/vij
        endif
     else ! dr = drdrag
-       drdrag(1:ndim) = dr(1:ndim)    
+      drdrag(:)       = dr(:)
     endif
 
 !---start the drag calculation    
@@ -818,31 +909,70 @@ contains
 !
 !--get the j particle extra properties
 !
-    
-    itypej    = itype(j)
-    pmassj    = pmass(j)
-    rhoj      = rho(j)
-    rhoij = rhoi*rhoj
-    hfacwabj = (1./hh(j)**ndim)
+!--Hack special SI    
+    itypej     = itype(j)
+    pmassj     = pmass(j)
+    rhoj       = rho(j)
+    rhoij      = rhoi*rhoj
+    rhoiplusj  = rhoi+rhoj
+    rhoiplusj2 = rhoiplusj*rhoiplusj
+
+    if (itypei.eq.itypegas) then
+       spsoundgas = spsound(i)
+    else
+       spsoundgas = spsound(j)
+    endif
 !
 !--calculate the kernel(s)
-! 
+!
+    hfacwabj = (1./hh(j)**ndim)
+!-- HACK
+!    call interpolate_kernel(q2i,wabi,gkeri)
+!--OK
     call interpolate_kerneldrag(q2i,wabi)
     wabi     = wabi*hfacwabi
-    call interpolate_kerneldrag(q2j,wabj)
+!--DIRTY HACK
+!   call interpolate_kernel(q2j,wabj,gkerj) 
+!-OK
+   call interpolate_kerneldrag(q2j,wabj)
     wabj     = wabj*hfacwabj
     !wab = 0.5*(wabi + wabj)
     if (itypei.eq.itypegas) then
        wab = wabi
     else
        wab = wabj
-    endif
-    
+    endif   
 !
 !--calculate the quantities needed for the drag force
 !
     V0 = dot_product(dvel,drdrag)
-    select case(idrag)
+    
+    select case(idrag_nature)
+        case(1) !--constant drag
+           dragcoeff = Kdrag/rhoij
+        case(2) !--Epstein regime
+           select case(idrag_structure)
+              case(1,4,5) !--linear, third order, PM expression
+                 dragcoeff = coeff_gei_1*s2_over_m*spsoundgas
+              case(3)
+                 dragcoeff = pi*s2_over_m
+              case default
+                 print*,'ERROR drag calculation: wrong idrag_structure'
+           end select
+    end select
+
+!--If ismooth.eq.1, the correction to the barycentric velocity is calculated
+!--using Kequiv = K*(ts/Deltat)**2
+
+    if (ismooth.gt.0) then
+        dragcoeff = 0.
+!--WARNING: oeder 1 removed for DEBUG ONLY
+!       dragcheck = dragcoeff
+!       dragcoeff = dt12*rhoij/(dragcoeff*rhoiplusj2)
+!       if (dragcoeff.gt.dragcheck) print*,'WARNING: barycentric drag may be incorrect'
+    endif
+    
+    select case(idrag_structure)
        case(1) !--linear regime
           f = 1.
        case(2) !--power law
@@ -850,33 +980,48 @@ contains
        case(3) !--quadratic
           f = sqrt(dv2)
        case(4) !--cubic expansion
-          f = 1. + a3_set*dv2
+          select case(idrag_nature)
+             case(1) !--forced drag
+                f = 1. + a3_set*dv2
+             case(2) !--Epstein
+                f = 1. + 0.2*coeff_dq_1*coeff_dq_1*dv2/(spsoundgas*spsoundgas)
+             case default
+                print*,'ERROR drag calculation cubic: wrong drag nature' 
+          end select
        case(5) !--PM expression
-          f = sqrt(1. + a2_set*dv2)
+          select case(idrag_nature)
+             case(1) !--forced drag
+                f = sqrt(1. + a2_set*dv2)
+             case(2) !--Epstein
+                f = sqrt(1. + coeff_dq_4*dv2/(spsoundgas*spsoundgas))
+             case default
+                print*,'ERROR drag calculation PM: wrong drag nature'          
+          end select
        case default
-          print*,'this value for idrag does not exist'         
+          print*,'this value for idrag_structure does not exist'         
     end select
- 
 !
 !--update the force and the energy
-!   
-    dragterm    = ndim*wab*Kdrag*f*V0/rhoij
-    dragterm_en = dragterm*V0
+!
  
-    forcei(:) = forcei(:) - dragterm*pmassj*drdrag(:)
-    force(:,j) = force(:,j) + dragterm*pmassi*drdrag(:)
-
+!--DIRTY HACK
+!    dragterm    = wab*dragcoeff*f
+!--OK
+    dragterm    = ndim*wab*dragcoeff*f*V0        
+    dragterm_en = dragterm*V0
+!--DIRTY HACK    
+!    forcei(:)   = forcei(:)  - dragterm*pmassj*dvel(:)
+!    force(:,j)  = force(:,j) + dragterm*pmassi*dvel(:)    
+!-OK
+    forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
+!-OK
+    force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
        dudt(i)   = dudt(i) + pmassj*dragterm_en
     endif
     if (itypej.eq.itypegas) then
        dudt(j)   = dudt(j) + pmassi*dragterm_en
     endif
- 
-    !else
-       !  print*,'drag skipped: particles have the same velocities and the same position'
-    !endif
-    
   end subroutine drag_forces
 !--------------------------------------------------------------------------------------
 ! This is the interaction between the particle pairs
@@ -1181,6 +1326,8 @@ contains
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
           !!prterm = (pri - prj)/rhoij*grkern
 
+!          print *, 'pr ', phii_on_phij,Prho2i,sqrtgi,grkerni, &
+!                 phij_on_phii, Prho2j, sqrtgj,grkernj
           if (iprterm.eq.10) then
 !
 !--Ritchie and Thomas force eqn.
@@ -1200,6 +1347,7 @@ contains
        !
        !--add pressure terms to force
        !
+!       print *, 'pres ', prterm, dr(1), dr(2)
        forcei(:) = forcei(:) - pmassj*prterm*dr(:) !- pmassj*wab*rij
        forcej(:) = forcej(:) + pmassi*prterm*dr(:) !+ pmassi*wab*rij
     elseif (iprterm.eq.-2) then
@@ -1853,10 +2001,9 @@ contains
 !          fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
           forcei(:) = forcei(:) + pmassj*(fmagi(:))
           forcej(:) = forcej(:) - pmassi*(fmagi(:))
-          
           if (imagforce.eq.6) then
           !--subtract B(div B) term from magnetic force
-             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)   
              forcej(:) = forcej(:) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
           endif
        end select

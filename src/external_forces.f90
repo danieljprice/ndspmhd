@@ -4,7 +4,7 @@
 !!
 !!-----------------------------------------------------------------------
 subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, & 
-                           spsound,itypei,rhoi)
+                           spsound,itypei)
   use options, only:ibound
   use eos,     only:gamma,polyk
   use bound, only:xmax,xmin
@@ -15,7 +15,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
   integer, intent(in) :: iexternal_force,ndim,ndimV,itypei
   real, dimension(ndim), intent(in) :: xpart
   real, dimension(ndimV), intent(in) :: vpart
-  real, intent(in) :: hpart,spsound,rhoi
+  real, intent(in) :: hpart,spsound
   real, dimension(ndimV), intent(out) :: fext
   real, dimension(ndim) :: dr
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,sink
@@ -167,7 +167,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
 !--this is for the 2D cartesian shearing box for SI
 !
      if (itypei.eq.itypegas) then
-        fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*(vpart(3)+eta/rhoi)
+        fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*(vpart(3)+eta)
      elseif (itypei.eq.itypedust) then
         fext(1) = 2.*domegadr*Omega2*xpart(1) + 2.*Omega0*vpart(3)
      else

@@ -26,7 +26,10 @@ subroutine setup
  real :: massp,totmass
  real :: denszero,uuzero,cs0,polyk0
  real :: przero,Bzeroz,asize,betamhd,ran1,wavekmin,valfvenz
- integer, parameter :: ipert = 1
+ real :: ksi,dksidX0,wavenum,wavenumsq,U,Omega2_wave
+ integer, parameter :: ipert = 2
+ integer, parameter :: isheartest = 1
+ real, parameter    :: ksi0 = 1.d-5
 !
 !--allow for tracing flow
 !
@@ -57,13 +60,14 @@ subroutine setup
 !--setup uniform density grid of particles (2D) with sinusoidal field/velocity
 !  determines particle number and allocates memory
 !
- call set_uniform_cartesian(2,psep,xmin,xmax)        ! 2 = close packed arrangement
+ call set_uniform_cartesian(1,psep,xmin,xmax)        ! 2 = close packed arrangement
 
  ntotal = npart
 !
 !--determine particle mass
 !
- totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
+ totmass = denszero*(xmax(1)-xmin(1))*(xmax(1)-xmin(1))
+!--CAREFUL WITH (2) totmass = denszero*(xmax(2)-xmin(2))*(xmax(1)-xmin(1))
  massp = totmass/float(ntotal) ! average particle mass
 !
 !--sound speed
@@ -95,24 +99,44 @@ subroutine setup
 ! write(iprint,*) ' qmin = ',wavekmin
  write(iprint,*) 'most unstable wavelength = ',2.*pi/wavekmin
 
+!--setup quantities for the linear inertial waves
+ if (imhd.eq.0 .and. isheartest.eq.1) then
+    wavenum     = 2.*pi/(xmax(1) -xmin(1))
+    wavenumsq   = wavenum*wavenum
+    Omega2_wave = 2.*(2.-domegadr)*Omega0*Omega0
+    U           = sqrt(cs0*cs0 + Omega2_wave/wavenumsq)
+ endif
+
 !
 !--now assign particle properties
 ! 
  iseed = -213
  do i=1,ntotal
+    if (imhd.eq.0 .and. isheartest.eq.1) then
+       ksi     = ksi0*sin(wavenum*x(1,i))  !--Here, x(1,i) =X0
+       dksidX0 = wavenum*ksi0*cos(wavenum*x(1,i))
+       x(1,i)  = x(1,i) + ksi !--now x(1,i) = X
+    endif
     vel(:,i) = 0. !0.01*(ran1(iseed)-0.5)*cs0
-    vel(3,i) = -domegadr*Omega0*x(1,i))
+    vel(3,i) = -domegadr*Omega0*x(1,i)
     dens(i) = denszero
+    if (imhd.eq.0 .and. isheartest.eq.1) then
+       vel(1,i) = vel(1,i) -U*dksidX0
+       vel(3,i) = vel(3,i) - (2.-domegadr)*Omega0*ksi
+       dens(i)  = dens(i)/(1.+dksidX0)
+    endif
     pmass(i) = massp
     uu(i) = uuzero   !*(1. + 0.01*(ran1(iseed)-0.5)) ! isothermal
-    select case(ipert)
-    case(2)
-       vel(1,i) = 0.
-    case(1)
-       vel(1,i) = 0.01*cs0
-    case default
-       stop 'invalid ipert'
-    end select
+    if (isheartest.eq.0) then
+       select case(ipert)
+       case(2)
+          vel(1,i) = 0.
+       case(1)
+          vel(1,i) = 0.01*cs0
+       case default
+          stop 'invalid ipert'
+       end select
+    endif
     
     if (imhd.gt.0) then
        Bfield(:,i) = 0.

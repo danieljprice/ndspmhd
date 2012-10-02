@@ -122,7 +122,7 @@ module options
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
- real :: Kdrag,prbackground
+ real :: Kdrag
  character(len=12) :: geom
  logical :: usenumdens
 end module
@@ -254,6 +254,6 @@ end module xsph
 !-------------------------------------------------------------------
 module streaming
   implicit none
-  real, parameter :: eta=0.005
+  real, parameter :: eta=0.
 end module streaming
 

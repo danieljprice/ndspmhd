@@ -15,7 +15,7 @@ subroutine initialise
  use derivb
  use eos
  use fmagarray
- use kernels,only:setkernels,kernelname,kernelnamealt,setkerndrag,kernelnamedrag
+ use kernels,only:setkern,setkernels,kernelname,kernelnamealt,setkerndrag,kernelnamedrag
  use hterms
  use rates
  use timestep
@@ -154,18 +154,24 @@ subroutine initialise
 !
  ikernelalt = ikernel
  call setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
- if (ikernel.eq.0) then
-    call setkerndrag(42,ndim,ierr1)
- elseif (ikernel.eq.3) then
-    call setkerndrag(43,ndim,ierr1)
- else
-    call setkerndrag(42,ndim,ierr1)
-    if (idrag.gt.0) stop 'cannot get matching drag kernel'
- endif
+     if (ikernel.eq.0) then
+        call setkerndrag(42,ndim,ierr)
+     elseif (ikernel.eq.3) then
+        call setkerndrag(43,ndim,ierr)
+     elseif (ikernel.eq.99) then
+         call setkerndrag(99,ndim,ierr)
+       print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'    
+     elseif (ikernel.eq.100) then
+        call setkerndrag(100,ndim,ierr)
+        print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'
+     else
+        call setkerndrag(42,ndim,ierr)
+        if (idrag_nature.gt.0) stop 'cannot get matching drag kernel'
+     endif
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  write(iprint,"(' Drag kernel = ',a)") trim(kernelnamedrag)
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
- if (ierr1.ne.0 .or. ierr2.ne.0) stop 'error with kernel setup' 
+ if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup' 
  npart = 0
 
  if (ifile.lt.0) then
@@ -178,7 +184,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- if (ifile.eq.0) call modify_dump
+! if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  

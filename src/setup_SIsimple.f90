@@ -44,8 +44,10 @@ subroutine setup
  real :: Rux,Iux,Ruy,Iuy,Ruz,Iuz,Rwx,Iwx,Rwy,Iwy,Rwz,Iwz
  real :: Rrhog,Irhog,Rrhod,Irhod
  real :: onepluseps,denomNSH,vgxNSH,vgyNSH,vdxNSH,vdyNSH
- real :: xi,zi,cokx0,sikx0,cokz0,fx0
- real :: cokx,sikx,cokz,sikz,kxfac, kzfac
+ real :: xi,zi,cokx0,sikx0,cokz0,sikz0
+ real :: hL
+! real :: x1,x2,x3,x4,z1,z2,z3,z4,pert,xstart,zstart
+ real :: kxfac, kzfac
  logical :: iperturb
 
  integer, parameter          :: ntypes = 2
@@ -56,7 +58,7 @@ subroutine setup
  real, parameter             :: corr   = 0.99994416703041011
  real, parameter             :: vcorrg   = 0.99930182
  real, parameter             :: vcorrd   = 0.99930212
- character(len=10),parameter :: lin    = 'appB'
+ character(len=10),parameter :: lin    = 'appBsimple'
  
 !-------------------------------------------------------------
 ! set the external forces and the boundary conditions
@@ -69,11 +71,8 @@ subroutine setup
  if (ndimV.ne.3) stop 'error: we need ndimV=3 for this problem'
 
 !--set position of disc patch for coriolis & centrifugal forces
- if (trim(lin).ne.'appB') then
-    iexternal_force = 11 ! additional correction due to the background pressure gradient
- else
-    iexternal_force = 5
- endif
+ iexternal_force = 11 ! additional correction due to the background pressure gradient
+! iexternal_force = 5
 
 !-get the drag quantities and the SI perturbations
  call getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
@@ -84,15 +83,13 @@ subroutine setup
  ibound(:) = 3     ! periodic in y,z
  ibound(1) = 5     ! shearing box in x (==R)
  nbpts = 0         ! use ghosts not fixed
- asize = 1.0       ! box size (corresponds to Bai/Stone 2010)
- if (trim(lin).ne.'appB') then
-     xmin(:) = -asize*eta/Bigkx  ! set position of boundaries
-     xmax(:) = asize*eta/Bigkx
-     psep    = psep*eta /Bigkx
- else    
-     xmin(:) = -1.  ! set position of boundaries
-     xmax(:) =  1. 
- endif
+ asize = 1.0!pi       ! box size (corresponds to Bai/Stone 2010)
+! xmin(:) = -asize*eta/Bigkx  ! set position of boundaries
+! xmax(:) = asize*eta/Bigkx
+! psep    = psep*eta/Bigkx
+ xmin(:) = -asize!_-*0.05
+ xmax(:) = asize!--*0.05
+ psep    = psep!--*0.05
 
  if (abs(asize-1.).lt.tiny(0.)) print*,'WARNING: if asize .ne. 1, change cs'
 
@@ -124,22 +121,20 @@ subroutine setup
     Kdrag = (denszerodust*corr)*Omega0/tausmode
  endif
  print*,'WARNING: Kdrag has been modified to correspond to the SI test. Kdrag=',Kdrag
-
 !--determine particle mass
  L           = (xmax(1) - xmin(1))!*eta/Bigkx
+ hL          = 0.5*L
  totmass     =     denszero*L*L
  totmassdust = denszerodust*L*L
  massp       =     totmass/FLOAT(ngas)
  masspdust   = totmassdust/FLOAT(ndust)
  !--kx,kz in code units (one wavelenght per box)
- kx          = kxfac*2.*pi/L
+ kx          = 0. !--kxfac*2.*pi/L
  kz          = kzfac*2.*pi/L
 
- print *, 'kx, ky', kx, kz
 !-------------------------------------------------------------
 ! setup the gas quantities
 !-------------------------------------------------------------
-
  cs0    = 0.1   !--cfJY07
  przero = denszero*cs0*cs0/gamma
  uuzero = przero/(denszero*(gamma-1.))
@@ -153,7 +148,6 @@ subroutine setup
  write(iprint,*) ' orbital time = ',2.*pi/Omega0
  write(iprint,*) ' c / (R omega) = ',cs0/(Rcentre*Omega0)
 
-
 !-------------------------------------------------------------
 ! setup the parameters for the SI test
 !-------------------------------------------------------------
@@ -164,15 +158,15 @@ subroutine setup
     vgxNSH = 0.        
     vgyNSH = -eta      
     vdxNSH = 0.        
-    vdyNSH = 0.        
- case('NSH','linA','linAwg','linB') !--enforce the SPH solution for the background
+    vdyNSH = 0.     
+ case('NSH','NSHpert','linA','linAwg','linB') !--enforce the SPH solution for the background
  !quantities calculated for eta=0.01
-    vgxNSH =  1.873813705237E-04 !3.75094634d-4*0.5*vcorrg
-    vgyNSH = -2.50469218d-3*0.5
-    vdxNSH = -6.246053793239E-05 !-1.25031547d-4*0.5*vcorrd
-    vdyNSH = -2.49843602d-3*0.5
+    vgxNSH = 1.873813705237E-04 !3.75094634d-4*0.5*vcorrg ! 1.87381344594547123e-04
+    vgyNSH = -2.50469218d-3*0.5 ! -1.25235010733846901d-3
+    vdxNSH = -6.246053793239E-05 !-1.25031547d-4*0.5*vcorrd !-6.24605585029068132e-05
+    vdyNSH = -2.49843602d-3*0.5 ! -1.24921927251258388
 
- case('appB')
+ case('appB','appBsimple')
     vgxNSH = 0.
     vgyNSH = 0.
     vdxNSH = 0.
@@ -208,25 +202,24 @@ subroutine setup
 !-------------------------------------------------------------
 ! assign particles properties
 !-------------------------------------------------------------
- Rrhog = Rrhog*denszero!*ampl
- Irhog = Irhog*denszero!*ampl
+ Rrhog = Rrhog*denszero*ampl
+ Irhog = Irhog*denszero*ampl
  Rrhod = Rrhod*ampl*denszero
+ 
  Irhod = 0. 
-!--convert the data YJ in code units (v(code) = eta v(YJ))
- if (trim(lin).ne.'appB') then
-     Rux   = ampl*Rux*eta
-     Iux   = ampl*Iux*eta
-     Ruy   = ampl*Ruy*eta
-     Iuy   = ampl*Iuy*eta
-     Ruz   = ampl*Ruz*eta
-     Iuz   = ampl*Iuz*eta
-     Rwx   = ampl*Rwx*eta
-     Iwx   = ampl*Iwx*eta
-     Rwy   = ampl*Rwy*eta
-     Iwy   = ampl*Iwy*eta
-     Rwz   = ampl*Rwz*eta
-     Iwz   = ampl*Iwz*eta
- endif
+!--convert the data YJ in code units (v(code) = eta v(YJ)) 
+ Rux   = ampl*Rux*eta
+ Iux   = ampl*Iux*eta
+ Ruy   = ampl*Ruy*eta
+ Iuy   = ampl*Iuy*eta
+ Ruz   = ampl*Ruz*eta
+ Iuz   = ampl*Iuz*eta
+ Rwx   = ampl*Rwx*eta
+ Iwx   = ampl*Iwx*eta
+ Rwy   = ampl*Rwy*eta
+ Iwy   = ampl*Iwy*eta
+ Rwz   = ampl*Rwz*eta
+ Iwz   = ampl*Iwz*eta
 
  do i=1,ntotal
        xi      = x(1,i)
@@ -234,38 +227,84 @@ subroutine setup
        cokx0   = cos(kx*xi)
        sikx0   = sin(kx*xi)
        cokz0   = cos(kz*zi)
+       sikz0   = sin(kz*zi)
 !-------------------------------------------------------------
 ! start with the gas particles
 !-------------------------------------------------------------
     if (itype(i).eq.itypegas) then
-       if (iperturb.eqv. .true. .AND. trim(lin).ne.'appB') then
-   !setup a density perturbation (Rrhog*cokx - Irhog*sikx)*cokz       
-   !--setup the perturbation on x
-          call deltarhox(xi,cokz0,kx,Rrhog,Irhog)
-          x(1,i) = xi
-   !--setup the perturbation on z
-          fx0    = Rrhog*cokx0 - Irhog*sikx0       
-          call deltarhoz(zi,fx0,kz)
-          x(2,i) = zi
+       if (iperturb.eqv. .true. .AND. trim(lin).ne.'appB' &
+           .and. trim(lin).ne.'appBsimple') then
+       !setup a density perturbation Rrhog*cos(kx*x + kz*z) - Irhog*sin(kx*x + kz*z) 
+!          xstart  = xi 
+!          zstart  = zi
+!          !CAREFUL: keep 0.5 factor only for perturbations in 2D !
+!          !--term 1 : Rrhog*cos(kx*x)*cos(kz*z)
+!           pert = 0.5*Rrhog*cokz0/denszero
+!           call deltarho_cos(xi,pert,kx,-hL,hL) !--pert in x
+!           x1   = xi - xstart
+!           xi   = xstart          
+!           pert = 0.5*Rrhog*cokx0/denszero  
+!           call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+!           z1   = zi - zstart
+!           zi   = zstart
+!          
+!          !--term 2 : -Rrhog*sin(kx*x)*sin(kz*z)
+!            pert = -0.5*Rrhog*sikz0/denszero
+!            call deltarho_sin(xi,pert,kx,-hL,hL) !--pert in x
+!            x2   = xi - xstart
+!            xi   = xstart          
+!            pert = -0.5*Rrhog*sikx0/denszero 
+!            call deltarho_sin(zi,pert,kz,-hL,hL) !--pert in z
+!            z2   = zi - zstart
+!            zi   = zstart
+!                    
+!          !--term 3 : -Irhog*sin(kx*x)*cos(kz*z)
+!            call deltarho_sin(xi,pert,kx,-hL,hL) !--pert in x
+!            x3   = xi - xstart
+!            xi   = xstart          
+!            pert = -0.5*Irhog*sikx0/denszero  
+!            call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+!            z3   = zi - zstart
+!            zi   = zstart         
+!          
+!           !--term 4 : -Irhog*cos(kx*x)*sin(kz*z)
+!            pert = -0.5*Irhog*sikz0/denszero
+!            call deltarho_cos(xi,pert,kx,-hL,hL) !--pert in x
+!            x4   = xi - xstart
+!            xi   = xstart          
+!            pert = -0.5*Irhog*cokx0/denszero  
+!            call deltarho_sin(zi,pert,kz,-hL,hL) !--pert in z
+!            z4   = zi - zstart
+!            zi   = zstart          
+          
+!          !--sum all the contributions
+!          x(1,i) = xstart + x1 + x2 + x3 + x4
+!          x(2,i) = zstart + z1 + z2 + z3 + z4
+!          xi     = x(1,i)
+!          zi     = x(2,i)
+  
+!----for adding a pert in kz only--------------------------- 
+         !pert = 1.d-7
+         !call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+         !x(2,i) = zi    
+!-----------------------------------------------------------------          
        endif
        !--setup the kinematic quantities (v = vk + vNSH86 + vpert)
-       cokx = cos(kx*xi)
-       sikx = sin(kx*xi)
-       cokz = cos(kz*zi)
-       sikz = sin(kz*zi)
        vel(:,i) = 0.
        vel(1,i) = vgxNSH
        vel(3,i) = -domegadr*Omega0*xi + vgyNSH
-       if (iperturb.eqv. .true.) then
-          if (iperturb.eqv. .true. .AND. trim(lin).ne.'appB') then 
-             vel(1,i) = vel(1,i) + (Rux*cokx - Iux*sikx)*cokz
-          else
-             vel(1,i) = vel(1,i) + Rux*cos(kx*xi + kz*zi)
-          endif   
-             
-          vel(2,i) = vel(2,i) - (Ruz*sikx + Iuz*cokx)*sikz
-          vel(3,i) = vel(3,i) + (Ruy*cokx - Iuy*sikx)*cokz
-       endif
+                         
+!----for adding a pert in kz only-------------------------------- 
+         vel(1,i) = vel(1,i) + 1.d-7*cos(kz*zi)
+         vel(2,i) = vel(2,i) + 0.*cos(kz*zi)
+         vel(3,i) = vel(3,i) + 1.d-7*cos(kz*zi)        
+!----------------------------------------------------------------- 
+       
+!       if (iperturb.eqv. .true.) then 
+!          vel(1,i) = vel(1,i) + Rux*cos(kx*xi + kz*zi) - Iux*sin(kx*xi + kz*zi)
+!          vel(2,i) = vel(2,i) + Ruz*cos(kx*xi + kz*zi) - Iuz*sin(kx*xi + kz*zi)
+!          vel(3,i) = vel(3,i) + Ruy*cos(kx*xi + kz*zi) - Iuy*sin(kx*xi + kz*zi)          
+!       endif
        
        dens(i)  = denszero
        pmass(i) = massp
@@ -285,29 +324,82 @@ subroutine setup
 ! now setup the dust particles
 !-------------------------------------------------------------
     elseif(itype(i).eq.itypedust) then
-       if (iperturb .eqv. .true. .AND. trim(lin).ne.'appB') then
-   !setup a density perturbation (Rrhod*cokx - Irhod*sikx)*cokz  
-   !--setup the perturbation on x
-          call deltarhox(xi,cokz0,kx,Rrhod,Irhod)
-          x(1,i) = xi
-   !--setup the perturbation on z
-          fx0    = Rrhod*cokx0 - Irhod*sikx0
-          call deltarhoz(zi,fx0,kz)
-          x(2,i) = zi
+       if (iperturb .eqv. .true. .AND. trim(lin).ne.'appB' &
+           .and. trim(lin).ne.'appBsimple') then
+       !setup a density perturbation Rrhod*cos(kx*x + kz*z) - Irhod*sin(kx*x + kz*z) 
+!          xstart  = xi 
+!          zstart  = zi
+!          !--term 1 : Rrhod*cos(kx*x)*cos(kz*z)
+!          pert = 0.5*Rrhod*cokz0/denszerodust
+!          call deltarho_cos(xi,pert,kx,-hL,hL) !--pert in x
+!          x1   = xi - xstart
+!          xi   = xstart          
+!          pert = 0.5*Rrhod*cokx0/denszerodust  
+!          call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+!          z1   = zi - zstart
+!          zi   = zstart
+!          
+!         !--term 2 : -Rrhod*sin(kx*x)*sin(kz*z)
+!          pert = -0.5*Rrhod*sikz0/denszerodust
+!          call deltarho_sin(xi,pert,kx,-hL,hL) !--pert in x
+!          x2   = xi - xstart
+!          xi   = xstart          
+!          pert = -0.5*Rrhod*sikx0/denszerodust  
+!          call deltarho_sin(zi,pert,kz,-hL,hL) !--pert in z
+!          z2   = zi - zstart
+!          zi   = zstart
+!
+!        !--term 3 : -Irhod*sin(kx*x)*cos(kz*z)
+!          pert = -0.5*Irhod*cokz0/denszerodust
+!          call deltarho_sin(xi,pert,kx,-hL,hL) !--pert in x
+!          x3   = xi - xstart
+!          xi   = xstart          
+!          pert = -0.5*Irhod*sikx0/denszerodust 
+!          call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+!          z3   = zi - zstart
+!          zi   = zstart         
+!
+!        !--term 4 : -Irhod*cos(kx*x)*sin(kz*z)
+!          pert = -0.5*Irhod*sikz0/denszerodust
+!          call deltarho_cos(xi,pert,kx,-hL,hL) !--pert in x
+!          x4   = xi - xstart
+!          xi   = xstart          
+!          pert = -0.5*Irhod*cokx0/denszerodust 
+!          call deltarho_sin(zi,pert,kz,-hL,hL) !--pert in z
+!          z4   = zi - zstart
+!          zi   = zstart          
+          
+          !--sum all the contributions
+!          x(1,i) = xstart + x1 + x2 + x3 + x4
+!          x(2,i) = zstart + z1 + z2 + z3 + z4
+!          xi     = x(1,i)
+!          zi     = x(2,i)
+
+
+!----for adding a pert in kz only--------------------------- 
+        ! pert = 1.d-7/denszerodust
+        ! call deltarho_cos(zi,pert,kz,-hL,hL) !--pert in z
+        ! x(2,i) = zi         
+!-----------------------------------------------------------------        
+
        endif
     !--setup the kinematic quantities (v = vk + vNSH86 + vpert)
-       cokx = cos(kx*xi)
-       sikx = sin(kx*xi)
-       cokz = cos(kz*zi)
-       sikz = sin(kz*zi)
        vel(:,i) = 0.
        vel(1,i) = vdxNSH
        vel(3,i) = -domegadr*Omega0*xi + vdyNSH 
-       if (iperturb.eqv. .true.) then
-          vel(1,i) = vel(1,i) + (Rwx*cokx - Iwx*sikx)*cokz
-          vel(2,i) = vel(2,i) - (Rwz*sikx + Iwz*cokx)*sikz
-          vel(3,i) = vel(3,i) + (Rwy*cokx - Iwy*sikx)*cokz
-       endif
+       
+!----for adding a pert in kz only-------------------------------- 
+!         vel(1,i) = vel(1,i) + 1.d-7*cos(kz*zi)
+!         vel(2,i) = vel(2,i) + 0.*cos(kz*zi)
+!         vel(3,i) = vel(3,i) + 1.d-7*cos(kz*zi)        
+!-----------------------------------------------------------------      
+       
+       
+!       if (iperturb.eqv. .true.) then
+!          vel(1,i) = vel(1,i) + Rwx*cos(kx*xi + kz*zi) - Iwx*sin(kx*xi + kz*zi)
+!          vel(2,i) = vel(2,i) + Rwz*cos(kx*xi + kz*zi) - Iwz*sin(kx*xi + kz*zi)
+!          vel(3,i) = vel(3,i) + Rwy*cos(kx*xi + kz*zi) - Iwy*sin(kx*xi + kz*zi)
+!       endif
        dens(i)  = denszerodust
        pmass(i) = masspdust
        uu(i)    = 0.
@@ -394,6 +486,13 @@ subroutine getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
     Bigkx             = 30.
     Bigkz             = 30.
     dust_to_gas_ratio = 3.d0
+    
+ case('NSHpert')
+    iperturb = .true.
+    tausmode          = 0.1
+    Bigkx             = 30.
+    Bigkz             = 30.
+    dust_to_gas_ratio = 3.d0 
 
  case('appB')
     tausmode = 1.0
@@ -402,10 +501,21 @@ subroutine getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
     kzfac = 1.0
 
     Rux = 1.0d-3
+!    Ruy = 1.0d-3
 
+    Rrhog = 0.0
+    IRhog = 0.0
+    Rrhod = 0.0
     Bigkx = 1.0
     Bigkz = 1.0
-
+    
+ case('appBsimple')
+    iperturb = .true.
+    tausmode          = 3.d0
+    Bigkx             = 30.
+    Bigkz             = 30.
+    dust_to_gas_ratio = 3.d0
+     
  case('linAwg')
     Bigkx             = 30.
     Bigkz             = 30.
@@ -511,66 +621,88 @@ subroutine getperturb(lin,Bigkx,Bigkz,tausmode,dust_to_gas_ratio,Rux,Iux, &
     stop
  end select
 end subroutine getperturb
- 
+
+
 !--------------------------------------------------------------------------------
-!-setup the density perturbation on x 
+!-setup to add a 'Ampl*cos(ki*xi)' type density perturbation
 !--------------------------------------------------------------------------------
- subroutine deltarhox(xi,cokz0,kx,Rrho,Irho)
+ subroutine deltarho_cos(xi,pert,ki,ximin,ximax)
   implicit none
   
   real, intent(inout) :: xi
-  real, intent(in)    :: cokz0,kx,Rrho,Irho
+  real, intent(in)    :: pert,ki,ximin,ximax
   
   integer :: its
-  real    :: xi0,xprev,func,fderiv
+  real    :: deltaxi0,xprev,func,fderiv,denom,deltamax
   integer, parameter :: itsmax = 20
   real, parameter    :: tol = 1.e-12
- 
-   xi0 = xi
-   its = 0
-   xprev = 1.E6
-   do while ((abs(xi-xprev).gt.tol).and.(its.lt.itsmax))
-      xprev  = xi
-      func   = xi0 - xi -cokz0/kx*(Rrho*sin(kx*xi) + Irho*(cos(kx*xi) - 1.))
-      fderiv = -1. - cokz0*(Rrho*cos(kx*xi) - Irho*sin(kx*xi))
-      xi     = xi - func/fderiv        ! Newton-Raphson iteration
-      its    = its + 1
-   enddo
-   if (its.GE.itsmax) then
-      print*,'Error: SI on x - too many iterations'
+
+!--Sanity check
+   deltamax   = ximax - ximin
+   if (deltamax.le.0) then
+      print*,'setup: deltamax<0 !'
       stop
    endif 
 
- end subroutine deltarhox
+   if (abs(ki).gt.tiny(0.)) then 
+      deltaxi0   = xi - ximin  
+      denom      = deltamax + pert/ki*(sin(ki*ximax) - sin(ki*ximin) )  
+      its   = 0
+      xprev = 1.E6
+      do while ((abs(xi-xprev).gt.tol).and.(its.lt.itsmax))
+         xprev  = xi
+         func   = deltaxi0*denom/deltamax - (xi-ximin) -pert/ki*(sin(ki*xi) - sin(ki*ximin))
+         fderiv = -1. - pert*cos(ki*xi)
+         xi     = xi - func/fderiv        ! Newton-Raphson iteration
+         its    = its + 1
+      enddo
+      if (its.GE.itsmax) then
+         print*,'Error: SI on x - too many iterations'
+         stop
+      endif 
+   endif
+
+ end subroutine deltarho_cos
 
 
 !--------------------------------------------------------------------------------
-!-setup the density perturbation on z 
+!-setup to add a 'Ampl*sin(ki*xi)' type density perturbation 
 !--------------------------------------------------------------------------------
- subroutine deltarhoz(zi,fx0,kz)
+ subroutine deltarho_sin(xi,pert,ki,ximin,ximax)
   implicit none
-
-  real, intent(inout) :: zi
-  real, intent(in)    :: fx0,kz
-
+  
+  real, intent(inout) :: xi
+  real, intent(in)    :: pert,ki,ximin,ximax
+  
   integer :: its
-  real    :: zi0,zprev,func,fderiv
+  real    :: deltaxi0,xprev,func,fderiv,denom,deltamax
   integer, parameter :: itsmax = 20
   real, parameter    :: tol = 1.e-12
   
-  zi0 = zi
-  its = 0
-  zprev = 1.E6
-  do while ((abs(zi-zprev).gt.tol).and.(its.lt.itsmax))
-     zprev  = zi
-     func   = zi0 - zi - fx0/kz*sin(kz*zi)
-     fderiv = -1. - fx0*cos(kz*zi)
-     zi     = zi - func/fderiv        ! Newton-Raphson iteration
-     its    = its + 1
-  enddo
-  if (its.GE.itsmax) then
-     print*,'Error: SI on z(gas) - too many iterations'
-     stop
-  endif
+!--Sanity check
+   deltamax   = ximax - ximin
+   if (deltamax.le.0) then
+      print*,'setup: deltamax<0 !'
+      stop
+   endif  
+ 
+   if (abs(ki).gt.tiny(0.)) then
+      deltaxi0   = xi - ximin
+      denom      = deltamax - pert/ki*(cos(ki*ximax)-cos(ki*ximin))
+      its   = 0
+      xprev = 1.E6
+      do while ((abs(xi-xprev).gt.tol).and.(its.lt.itsmax))
+         xprev  = xi
+         func   = deltaxi0*denom/deltamax - (xi-ximin) +pert/ki*(cos(ki*xi) - cos(ki*ximin))
+         fderiv = -1. - pert*sin(ki*xi)
+         xi     = xi - func/fderiv        ! Newton-Raphson iteration
+         its    = its + 1
+      enddo
+      if (its.GE.itsmax) then
+         print*,'Error: SI on x - too many iterations'
+         stop
+      endif
+   endif
   
- end subroutine deltarhoz
+ end subroutine deltarho_sin
+

@@ -40,7 +40,7 @@ subroutine setup
  logical :: equalmass, stretchx
  
  ntypes = 1
- if (idrag.gt.0) ntypes = 2
+ if (idrag_nature.gt.0) ntypes = 2
 !
 !--allow for tracing flow
 !
