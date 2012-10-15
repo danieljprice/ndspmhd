@@ -11,6 +11,7 @@
 
 module kernels
  use erbskernels, only:geterbskernel1,geterbskernel2
+ use csplinekernels, only:getcsplinekernel
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
@@ -94,7 +95,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real, intent(out), dimension(0:ikern) :: wkern,grwkern,grgrwkern
  character(len=*), intent(out) :: kernellabel
  integer, intent(out) :: ierr
- integer :: i,j,npower,n
+ integer :: i,j,npower,n,ncspline
  real :: q,q2,q4,q3,q5,q6,q7,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
@@ -2045,6 +2046,47 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+  case(74,75,76)
+!  
+!--cspline kernel
+!
+    if (ikernel.eq.74) then
+       kernellabel = 'cspline cubic of order 4'
+       ncspline = 4
+    elseif (ikernel.eq.75) then
+       kernellabel = 'cspline quartic of order 5'
+       ncspline = 5           
+    elseif (ikernel.eq.76) then
+       kernellabel = 'cspline quintic of order 6'
+       ncspline = 6 
+    else
+       print*,'kernelND cspline - incorrect csplines'
+       stop
+    endif
+    
+    radkern = 0.5* real(ncspline)      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        print*,'cspline do not be used in 1D'
+        stop
+      case(2)
+        cnormk = 1.
+      case(3)
+        print*,'cspline do not be used in 3D'
+        stop        
+    end select        
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call getcsplinekernel(ncspline,radkern,q, &
+                             wkern(i),grwkern(i),grgrwkern(i))
+    enddo      
+
   case(79)
 !  
 !--Bump function
@@ -2129,6 +2171,67 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        q = sqrt(q2)
        call geterbskernel2(q,wkern(i),grwkern(i),grgrwkern(i))
     enddo
+    
+   case(95) 
+   
+!   
+!--Optimal kernel OM5 = 4*M_5 - 5*M_4, correctly normalised 
+!
+    kernellabel = 'OM_5 = optimal kernel of order 5'    
+
+    radkern = 2.5
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./66.  !--=1/(7!):OK
+      case(2)
+         cnormk = 24./(863.*pi)
+      case(3)
+         cnormk = 1./(60*pi)
+    end select  
+    do i=0,ikern 
+       q2 = i*dq2table
+       q  = sqrt(q2)
+       if (q.lt.0.5) then
+          wkern(i) = 4.*((2.5-q)**4 - 5.*(1.5-q)**4 + 10.*(0.5-q)**4) &
+                     -20.*(1. - 1.5*q2 + 0.75*q*q2) 
+          grwkern(i) = 4.*(-4.*((2.5-q)**3 - 5.*(1.5-q)**3 + 10.*(0.5-q)**3)) &
+                      -20.*(-3.*q+ 2.25*q2)
+          grgrwkern(i) = 4.*(12.*((2.5-q)**2 - 5.*(1.5-q)**2 + 10.*(0.5-q)**2)) &
+                        -20.*(-3. + 4.5*q) 
+       elseif ((q.ge.0.5) .and. (q.lt.1.)) then
+          wkern(i) =4.*((2.5-q)**4 - 5.*(1.5-q)**4) &
+                      -20.*(1. - 1.5*q2 + 0.75*q*q2)
+          grwkern(i) = 4.*(-4.*((2.5-q)**3 - 5.*(1.5-q)**3)) &
+                      -20.*(-3.*q+ 2.25*q2)
+          grgrwkern(i) =4.*(12.*((2.5-q)**2 - 5.*(1.5-q)**2) ) &
+                      -20.*(-3. + 4.5*q)
+       elseif ((q.ge.1.) .and. (q.lt.1.5)) then
+          wkern(i) =4.*((2.5-q)**4 - 5.*(1.5-q)**4) &
+                      -20.*(0.25*(2.-q)**3)
+          grwkern(i) = 4.*(-4.*((2.5-q)**3 - 5.*(1.5-q)**3)) &
+                      -20.*(-0.75*(2.-q)**2)
+          grgrwkern(i) =  4.*(12.*((2.5-q)**2 - 5.*(1.5-q)**2) )   &
+                      -20.*(1.5*(2.-q))         
+       elseif ((q.ge.1.5).and. (q.lt.2.)) then
+          wkern(i)=4.*((2.5-q)**4) &
+                      -20.*(0.25*(2.-q)**3)
+          grwkern(i) = 4.*(-4.*((2.5-q)**3)) &
+                      -20.*(-0.75*(2.-q)**2)
+          grgrwkern(i) = 4.*(12.*((2.5-q)**2)) &
+                      -20.*(1.5*(2.-q))
+       elseif ((q.ge.2.).and. (q.lt.2.5)) then
+          wkern(i) =4.*((2.5-q)**4)
+          grwkern(i) =4.*(-4.*((2.5-q)**3))
+          grgrwkern(i) =4.*(12.*((2.5-q)**2))
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+    
 
    case(99)
 !   
