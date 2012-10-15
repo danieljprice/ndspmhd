@@ -185,7 +185,7 @@ ifndef SETUP2D
 #SETUP2D = setup_mri2D.f90
 #SETUP2D = setup_wave_x_ND_mhd.f90
 #SETUP2D = setup_SI.f90
-SETUP2D = setup_SIsimple.f90
+#SETUP2D = setup_SIsimple.f90
 #SETUP2D = setup_torus2D.f90
 #SETUP2D = setup_kelvinhelmholtz2D.f90
 #SETUP2D = setup_blobevap2D.f90
@@ -205,7 +205,7 @@ SETUP2D = setup_SIsimple.f90
 #SETUP2D= setup_highex2D.f90
 #SETUP2D = setup_tearingmode2D.f90
 #SETUP2D = setup_gresho2D.f90
-#SETUP2D = setup_vertepi.f90
+SETUP2D = setup_vertepi.f90
 endif
 
 ifndef SETUP3D
@@ -240,7 +240,8 @@ CONS2PRIM = conservative2primitive.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES= sphND_mhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
-         allocateND.f90 kernel_erbs_utils.f90 kernelND.f90 \
+         allocateND.f90 \
+         kernel_erbs_utils.f90  kernel_cspline_utils.f90 kernelND.f90 \
          readwrite_dumps.f90 \
          get_neighbour_lists.f90 penrose.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
