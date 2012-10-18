@@ -305,6 +305,7 @@ subroutine iterate_density
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
+     call quit
   elseif ((itsdensity.gt.1 .and. ndim.ge.2)) then
      write(iprint,*) ' Finished density, iterations = ', &
                      itsdensity, ncalctotal,' used rhomin = ',rhomin
