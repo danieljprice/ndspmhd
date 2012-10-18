@@ -272,7 +272,7 @@ subroutine setup
     uuright = 3.*prright/(2.*densright)
  endif
  
- if (idrag.gt.0) then
+ if (idrag_nature.gt.0) then
     cs_L  = sqrt(gamma*prleft/densleft)
     cs_R  = sqrt(gamma*prright/densright)
     tstopl = densleft*densleft/(Kdrag*(densleft + densleft))
