@@ -50,7 +50,7 @@ PROGRAM SUPERSPMHD_ND
  USE loguns
  USE versn
  IMPLICIT NONE
- INTEGER, PARAMETER :: maxruns = 20
+ INTEGER, PARAMETER :: maxruns = 200
  INTEGER :: i,iprev,irun, nruns
  CHARACTER(LEN=120), DIMENSION(maxruns) :: runname
  runname(1) = 'a'
