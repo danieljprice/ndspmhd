@@ -1241,20 +1241,27 @@ contains
        !
        !--max signal velocity (my version)
        !
-       vsig2i = spsoundi**2 + valfven2i
-       vsig2j = spsoundj**2 + valfven2j                                    
-       vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
-       vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
-       if (vsigproji.lt.0.) then
-          write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
-          call quit 
-       elseif (vsigprojj.lt.0.) then
-          write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
-          print*,j,'rho,dens = ',rho(j),dens(j)
-          call quit  
+       if (imhd.ne.0) then
+          vsig2i = spsoundi**2 + valfven2i
+          vsig2j = spsoundj**2 + valfven2j                                    
+          vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
+          vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
+          if (vsigproji.lt.0.) then
+             write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
+             call quit 
+          elseif (vsigprojj.lt.0.) then
+             write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+             print*,j,'rho,dens = ',rho(j),dens(j)
+             call quit  
+          endif
+          vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
+          vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
+          vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+       else
+          vsigi = spsoundi
+          vsigj = spsoundj
+          vsignonlin = 0.
        endif
-       vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-       vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
        vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
        !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
@@ -1264,8 +1271,6 @@ contains
        vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
        !vsigu = sqrt(0.5*(psi(i) + psi(j)))
        !vsigu = abs(dvdotr)
-
-       vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
 
        ! vsigdtc is the signal velocity used in the timestep control
        vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
