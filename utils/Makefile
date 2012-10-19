@@ -36,7 +36,7 @@ CC = $(F90C)
 #%.f90 :
 #	$(F90C) $(F90FLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS=setpage.o kernel_erbs_utils.o kernelND.o legend.o
+OBJECTS=setpage.o kernel_cspline_utils.o kernel_erbs_utils.o kernelND.o legend.o
 
 OBJSPHDERIV = kernelND.o sphderiv.o
 
