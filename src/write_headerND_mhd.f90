@@ -223,6 +223,7 @@ subroutine write_header(icall,infile,evfile,logfile)
     case(3)
        fNneigh = 4./3.*pi*(radkern*hfact)**3
     end select
+    print "(a,f9.3)",' Kernel radius = ',radkern
     
     write (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh, fNneigh
 240 format(' Variable smoothing length: ',/,                                &
