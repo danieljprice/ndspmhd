@@ -48,20 +48,22 @@ ifeq ($(SYSTEM), g95)
 endif
 
 ifeq ($(SYSTEM), mymac)
-    F90C= g95
-    F90FLAGS= -O3 -g -Wall -Wno=112,140 -ffast-math -funroll-loops -finline-functions -falign-loops=16
-    DBLFLAG= -r8
-    DEBUGFLAG= -g -ftrace=full -fbounds-check
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -fendian='BIG'
-    ENDIANFLAGLITTLE= -fendian='LITTLE'
-# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
+#  gfortran compiler (part of gcc 4.x.x)
+   F90C= gfortran-mp-4.7
+   F90FLAGS= -Ofast -Wall -g -fwhole-program -flto -ftree-vectorize -mtune=native
+   DBLFLAG= -fdefault-real-8
+   SYSTEMFILE= system_f2003.f90
+   DEBUGFLAG= -g -fcheck=all
+   OMPFLAG= -fopenmp
+   ENDIANFLAGBIG= -fconvert=big-endian
+   ENDIANFLAGLITTLE= -fconvert=little-endian
+   KNOWN_SYSTEM=yes
 endif
 
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    F90C= gfortran
-   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   F90FLAGS= -O3 -Wall -funroll-loops -g -ftree-vectorize #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -fcheck=all
