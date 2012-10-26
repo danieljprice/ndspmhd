@@ -14,9 +14,9 @@ program kernelplot
  !data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
 ! data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
 
- data iplotorder /0, 2, 3, 10, 80, 81, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 18, 19, 20, 21, 74, 13, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- nkernels = 4
+ nkernels = 6
  ianticlump = 0
  epszero = 0.0
  nepszero = 0
@@ -24,7 +24,7 @@ program kernelplot
  plotkernel = .true.
  plotstability = .true.
  plotgaussian  = .true.
- nacross = 2
+ nacross = 3
  ndown = 2
  xmin = 0.0
  xmax = 3.3
@@ -190,8 +190,8 @@ program kernelplot
 !
     call pgsls(1)
 !    call pgsci(7) ! for yellow
-    if (ikernel.eq.101) wij(0:ikern) = -wij(0:ikern)
-    if (ikernel.eq.102) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
+    if (ikernel.eq.1001) wij(0:ikern) = -wij(0:ikern)
+    if (ikernel.eq.1002) wij(1:ikern) = wij(1:ikern)/dqkern(1:ikern)**2
     call pgline(ikern+1,dqkern(0:ikern),wij(0:ikern))
     if (ianticlump.ne.0) then
 !       !!call pgsls(j+2)
@@ -200,11 +200,11 @@ program kernelplot
 !    call pgsls(5)
 !    call pgline(ikern+1,dqkern(0:ikern),dphidh(0:ikern))
     !!call legend(ipos,trim(kernelname),0.5,3.0)
-    if (ikernel.eq.101) then
+    if (ikernel.eq.1001) then
        call pgsls(2)
        call pgline(ikern,dqkern(1:ikern),1./dqkern(1:ikern))
        call legend(ipos,'1/r',0.78,3.0)
-    elseif (ikernel.eq.102) then
+    elseif (ikernel.eq.1002) then
        call pgsls(2)
        call pgline(ikern+1,dqkern(0:ikern),1./dqkern(0:ikern)**2)
        call legend(ipos,'1/r\u2',0.78,3.0)
@@ -212,7 +212,7 @@ program kernelplot
 !
 !--kernel gradient
 !    
-    if (ikernel.lt.100) then
+    if (ikernel.le.1000) then
        call pgsls(2)
        call pgsci(2)
        call pgline(ikern+1,dqkern(0:ikern),grwij(0:ikern))
@@ -228,7 +228,7 @@ program kernelplot
 !
 !--second derivative and deriv w.r.t. h
 !
-    if (ikernel.lt.100) then
+    if (ikernel.le.1000) then
        call pgsci(3)
        call pgsls(3)
        call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
