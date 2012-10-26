@@ -41,6 +41,7 @@ subroutine setup
  xmin(:) = -0.5   ! set position of boundaries
  xmax(:) = 0.5
  if (use_rings) then
+    if (ndim.eq.3) stop 'gresho vortex with rings not implemented in 3D'
     rmax = 0.4
  else
     rmax = 0.
@@ -94,7 +95,7 @@ subroutine setup
  do i=1,ntotal
     phi = atan2(x(2,i),x(1,i))
     vel(:,i) = 0.
-    r = sqrt(dot_product(x(:,i),x(:,i)))
+    r = sqrt(dot_product(x(1:2,i),x(1:2,i)))
     if (r.lt.0.2) then
        vphi = 5.*r
        pri  = 5. + 25./(2.)*r*r
