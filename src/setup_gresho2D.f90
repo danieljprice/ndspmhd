@@ -26,6 +26,7 @@ subroutine setup
  integer :: i,ir,iphi,nr,ipart,nphi
  real :: massp,volume,totmass,deltaphi
  real :: denszero,r,ri,pri,vphi,phi,rmin,rmax
+ logical, parameter :: use_rings = .false.
 !
 !--allow for tracing flow
 !
@@ -39,48 +40,51 @@ subroutine setup
  nbpts = 0      ! use ghosts not fixed
  xmin(:) = -0.5   ! set position of boundaries
  xmax(:) = 0.5
- rmax = 0.4
+ if (use_rings) then
+    rmax = 0.4
+ else
+    rmax = 0.
+ endif
 !
 !--set up the uniform density grid
 !
  call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.,rmin=rmax)
  npart = ntotal
  print*,'npart =',npart
+
+ if (use_rings) then
 !
 !--set up particles on rings
 !
- rmin = 0.
- nr = int((rmax - rmin)/psep)
- 
- call alloc(5*npart)
- 
- ipart = npart
- do ir = 1,nr
-    ri = rmin + (ir-1)*psep
-    deltaphi = psep
-    nphi = int((2.*pi*ri)/deltaphi) + 1
-    deltaphi = 2.*pi/real(nphi)
-    print*,'nphi = ',nphi,npart+ipart
+    rmin = 0.
+    nr = int((rmax - rmin)/psep)
 
-    do iphi = 1,nphi
-       phi = (iphi-1)*deltaphi
-       ipart = ipart + 1
-       if (ipart.gt.size(dens)) call alloc(10*size(dens))
-       x(1,ipart) = ri*cos(phi)
-       x(2,ipart) = ri*sin(phi)
+    call alloc(5*npart)
+
+    ipart = npart
+    do ir = 1,nr
+       ri = rmin + (ir-1)*psep
+       deltaphi = psep
+       nphi = int((2.*pi*ri)/deltaphi) + 1
+       deltaphi = 2.*pi/real(nphi)
+       print*,'nphi = ',nphi,npart+ipart
+
+       do iphi = 1,nphi
+          phi = (iphi-1)*deltaphi
+          ipart = ipart + 1
+          if (ipart.gt.size(dens)) call alloc(10*size(dens))
+          x(1,ipart) = ri*cos(phi)
+          x(2,ipart) = ri*sin(phi)
+       enddo
     enddo
- enddo
- npart = ipart
- ntotal = npart
- 
- !denszero = (npart*massp)/(pi*rmax**2)
- print*,' dens = ',denszero
-
-
+    npart = ipart
+    ntotal = npart
+ endif
 !
 !--determine particle mass
 !
  denszero = 1.0
+ print*,' dens = ',denszero
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
@@ -95,8 +99,8 @@ subroutine setup
        vphi = 5.*r
        pri  = 5. + 25./(2.)*r*r
     elseif (r.lt.0.4) then
-       vphi = 2. - 5.*r    
-       pri  = 9. + 25./(2.)*r*r - 20.*r + 4.*log(r/0.2)
+       vphi = 2. - 5.*r
+       pri  = 9. + 25./(2.)*r*r - 20.*r + 4.*log(5.*r)
     else
        vphi = 0.
        pri = 3. + 4.*log(2.)
