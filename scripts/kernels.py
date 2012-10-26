@@ -409,6 +409,17 @@ def sinq(R,n):
     name = "[sin(q)/q]**%i" %n
     return(f,name)
 
+def w2(R):
+    f = Piecewise(((1 - q/R)**4*(1 + 4*q/R),q < R), (0, True))
+    return(f,'Wendland 2/3D kernel of degree 2')
+
+def w4(R):
+    f = Piecewise(((1 - q/R)**6*(1 + 6*q/R + sympify(35)/3*(q/R)**2),q < R), (0, True))
+    return(f,'Wendland 2/3D kernel of degree 4')
+
+def w6(R):
+    f = Piecewise(((1 - q/R)**8*(1 + 8*q/R + 25*(q/R)**2 + 32*(q/R)**3),q < R), (0, True))
+    return(f,'Wendland 2/3D kernel of degree 6')
 
 #string = sympify(0.0625*q +q**2*q + 2 + q**4/3 + 100./40000.*q**5)
 #print "string = ",string
@@ -418,8 +429,8 @@ def sinq(R,n):
 f = symbols('f',cls=Function)
 q = symbols('q')
 R = 2 #sympify(5)/2
-f, name = sinq(R,3)
-#print diff((sin(q)/q)**4,q)
+#f, name = sinq(R,3)
+f, name = w6(R);
 #
 #--construct Guillaume's super-kernels for 3D
 #
