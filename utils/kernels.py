@@ -10,6 +10,7 @@ def getkernelfuncs(w,R):
     c2D = sympify(1)/(integrate(2*pi*q*w,(q,0,R)))
     c3D = sympify(1)/(integrate(4*pi*q*q*w,(q,0,R)))
     var = integrate(q*q*w,(q,0,R))
+    return (dw, d2w, c1D, c2D, c3D, dw, dw, dw)
     #
     #--force softening function
     #
@@ -103,11 +104,17 @@ def fmte(e):
     s = "%s" %fmt(e)
     f = sympify(s)
     g = "%s" %simplify(f)
-    if len(g) <= len(s) + 5:
+    if len(g) <= len(s) + 1:
        s = g
-    s = re.sub("q\*\*6","q2*q2*q2", s)
-    s = re.sub("q\*\*5","q2*q2*q", s)
-    s = re.sub("q\*\*4","q2*q2", s)
+    s = re.sub("q\*\*12","q6*q6", s)
+    s = re.sub("q\*\*11","q6*q4*q", s)
+    s = re.sub("q\*\*10","q6*q4", s)
+    s = re.sub("q\*\*9","q8*q", s)
+    s = re.sub("q\*\*8","q8", s)
+    s = re.sub("q\*\*7","q6*q", s)
+    s = re.sub("q\*\*6","q6", s)
+    s = re.sub("q\*\*5","q4*q", s)
+    s = re.sub("q\*\*4","q4", s)
     s = re.sub("q\*\*3","q2*q", s)
     s = re.sub("q\*\*2","q2", s)
     s = re.sub("q\*\*\(-2\.\)","1./q2",s)
@@ -165,6 +172,9 @@ def printkernel_ndspmhd(w,R,name):
     print "    end select"
     print "    do i=0,ikern"
     print "       q2 = i*dq2table"
+    print "       q4 = q2*q2"
+    print "       q6 = q4*q2"
+    print "       q8 = q4*q4"
     print "       q = sqrt(q2)"
     if isinstance(w, Piecewise):
        for i, (e, c) in enumerate(w.args):
@@ -354,7 +364,7 @@ def intconst(g):
     return g
 
 def m4(R):
-    f = Piecewise((1 - sympify(3)/2*q*q + sympify(3)/4*q**3,q < 1), (sympify(1)/4*(2-q)**3, q < 2), (0, True))
+    f = Piecewise((1 - sympify(3)/2*q*q + sympify(3)/4*q**3,q < R/2), (sympify(1)/4*(2-q)**3, q < R), (0, True))
     return(f,'M4 cubic')
 
 def intm4(R):
@@ -382,6 +392,24 @@ def m6(R):
     f = Piecewise((term1 + term2 + term3,q < sympify(1)/3*R), (term1 + term2, q < sympify(2)/3*R), (term1, q < R), (0, True))
     return(f,'M6 quintic')
 
+def w2_1D(R):
+    f = Piecewise(((1 - q/R)**3*(1 + 3*q/R),q < R), (0, True))
+    return(f,'Wendland 1D kernel of degree 2')
+
+def w4_1D(R):
+    f = Piecewise(((1 - q/R)**5*(1 + 5*q/R + 8*(q/R)**2),q < R), (0, True))
+    return(f,'Wendland 1D kernel of degree 4')
+
+def w6_1D(R):
+    f = Piecewise(((1 - q/R)**7*(1 + 7*q/R + 19*(q/R)**2 + 21*(q/R)**3),q < R), (0, True))
+    return(f,'Wendland 1D kernel of degree 6')
+
+def sinq(R,n):
+    f = Piecewise(((sin(pi*q/R)/q)**n,q < R), (0, True))
+    name = "[sin(q)/q]**%i" %n
+    return(f,name)
+
+
 #string = sympify(0.0625*q +q**2*q + 2 + q**4/3 + 100./40000.*q**5)
 #print "string = ",string
 #print "news = %s \n" %fmte(string)
@@ -389,8 +417,9 @@ def m6(R):
 #sys.exit()
 f = symbols('f',cls=Function)
 q = symbols('q')
-R = sympify(5)/2
-f, name = m5(R)
+R = 2 #sympify(5)/2
+f, name = sinq(R,3)
+#print diff((sin(q)/q)**4,q)
 #
 #--construct Guillaume's super-kernels for 3D
 #
