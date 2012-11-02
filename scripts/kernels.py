@@ -370,7 +370,7 @@ def intconst(g):
     return g
 
 def m4(R):
-    f = Piecewise((1 - sympify(3)/2*q*q + sympify(3)/4*q**3,q < R/2), (sympify(1)/4*(2-q)**3, q < R), (0, True))
+    f = Piecewise((sympify(1)/4*(R-q)**3 - (R/2 - q)**3,q < R/2), (sympify(1)/4*(R-q)**3, q < R), (0, True))
     return(f,'M4 cubic')
 
 def intm4(R):
@@ -434,15 +434,15 @@ def w6(R):
 #sys.exit()
 f = symbols('f',cls=Function)
 q = symbols('q')
-R = sympify(3)
+R = sympify(2)
 #R = sympify(5)/2
 #f, name = sinq(R,3)
-f, name = m6(R);
+f, name = m4(R);
 #
 #--construct Guillaume's super-kernels for 3D
 #
 #g = piecewise_fold(-diff(f,q)/q)
 #name = '3D quintic spline'
-printkernel(f,R)
-#printkernel_ndspmhd(f,R,name)
+#printkernel(f,R)
+printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
