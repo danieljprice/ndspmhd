@@ -1,16 +1,18 @@
 #!/opt/local/bin/python2.7
 from __future__ import division
 from sympy import *
-q, x = symbols('q x')
+q, x, y = symbols('q x y')
+
+def getnorm(w,R):
+    c1D = sympify(1)/(2*integrate(w,(q,0,R)))
+    c2D = sympify(1)/(integrate(2*pi*q*w,(q,0,R)))
+    c3D = sympify(1)/(integrate(4*pi*q*q*w,(q,0,R)))
+    return (c1D, c2D, c3D)
 
 def getkernelfuncs(w,R):
     dw  = diff(w,q)
     d2w = diff(dw,q)
-    c1D = sympify(1)/(2*integrate(w,(q,0,R)))
-    c2D = sympify(1)/(integrate(2*pi*q*w,(q,0,R)))
-    c3D = sympify(1)/(integrate(4*pi*q*q*w,(q,0,R)))
-    var = integrate(q*q*w,(q,0,R))
-    return (dw, d2w, c1D, c2D, c3D, dw, dw, dw)
+    c1D, c2D, c3D = getnorm(w,R)
     #
     #--force softening function
     #
@@ -64,26 +66,46 @@ def getkernelfuncs(w,R):
     
     return (dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh)
 
+def getvar(w,R):
+    c1D, c2D, c3D = getnorm(w,R)
+    var = (integrate(c1D*q*q*w,(q,0,R)),
+           integrate(c2D*q*q*2*pi*q*w,(q,0,R)),
+           integrate(c3D*q*q*4*pi*q*q*w,(q,0,R)))
+    varcubic = (sympify(1)/6, sympify(31)/49, sympify(9)/10)
+    relvar = (var[0]/varcubic[0], var[1]/varcubic[1], var[2]/varcubic[2])
+    reldev = (sqrt(1.0*relvar[0]),sqrt(1.0*relvar[1]),sqrt(1.0*relvar[2]))
+    return (var,relvar,reldev)
+
+def getreldev(w,R):
+    var, relvar, reldev = getvar(w,R)
+    return (reldev)
+
+def printvariances(w,R):
+    var, relvar, reldev = getvar(w,R)
+    print "\nVariance of kernel:"
+    print var[0],var[1],var[2]
+    print "\nVariance and standard dev relative to cubic:"
+    print relvar[0],relvar[1],relvar[2]
+    print reldev[0],reldev[1],reldev[2]
+    return
+
 def printkernel(w,R):
     dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh = getkernelfuncs(w,R)
-    print "\nW:"
+    print "\n%s W:" %name
     print w
     print "\nFirst derivative:"
     print dw
     print "\n2nd derivative:"
     print d2w
-    print "\n1D normalisation:"
-    print c1D
-    print "\n2D normalisation:"
-    print c2D
-    print "\n3D normalisation:"
-    print c3D
+    print "\nnormalisation:"
+    print "[ %s, %s, %s ]" %(c1D,c2D,c3D)
     print "\n3D normalisation of artificial viscosity term:"
     avnorm = -sympify(2)*pi/15*c3D*integrate(q*q*q*dw,(q,0,R))
     print avnorm
     print "\n2D normalisation of artificial viscosity term:"
     avnorm = -pi/8*c2D*integrate(q*q*dw,(q,0,R))
     print avnorm
+    printvariances(w,R)
 
 # utility to format output of real numbers correctly for Fortran floating point
 def fmt(e):
@@ -373,15 +395,32 @@ def m4(R):
     f = Piecewise((sympify(1)/4*(R-q)**3 - (R/2 - q)**3,q < R/2), (sympify(1)/4*(R-q)**3, q < R), (0, True))
     return(f,'M4 cubic')
 
-def intm4(R):
-    f, name = m4(R)
+def intkernel(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-q*f,q))
+    g = intconst(g)
+    name = "integrated %s" %(name)
+    return(g,name)
+
+def intkernel2(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-q*f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(-q*g,q))
+    g = intconst(g)
+    name = "twice-integrated %s" %(name)
+    return(g,name)
+
+def intkernel3(wref,R):
+    f, name = wref(R)
     g = piecewise_fold(integrate(-q*f,q))
     g = intconst(g)
     g = piecewise_fold(integrate(-q*g,q))
     g = intconst(g)
     g = piecewise_fold(integrate(-q*g,q))
     g = intconst(g)
-    return(g,'triple-integrated M4')
+    name = "triple-integrated %s" %(name)
+    return(g,name)
 
 def m5(R):
     term1 = sympify((R-q)**4)
@@ -427,22 +466,43 @@ def w6(R):
     f = Piecewise(((1 - q/R)**8*(1 + 8*q/R + 25*(q/R)**2 + 32*(q/R)**3),q < R), (0, True))
     return(f,'Wendland 2/3D kernel of degree 6')
 
+def bcubic(R):
+    f = Piecewise(((sympify(10) - sympify(13)*q**2 + sympify(6)*q**3)/16,q < 1), ((2 - q)**2*(5 - sympify(2)*q)/16, q < 2),(0, True))
+    return(f,'Better cubic')
+
+def intm4(R):
+    return(intkernel(m4,R))
+
+def int2m4(R):
+    return(intkernel2(m4,R))
+
+def int3m4(R):
+    return(intkernel3(m4,R))
+
+def intm5(R):
+    return(intkernel(m5,R))
+
+def intm6(R):
+    return(intkernel(m6,R))
+
+def f6(R):
+    f = Piecewise(((1 - (q/R)**2)**6,q < R), (0, True))
+    return(f,'Ferrers n=6')
+
 #string = sympify(0.0625*q +q**2*q + 2 + q**4/3 + 100./40000.*q**5)
 #print "string = ",string
 #print "news = %s \n" %fmte(string)
 #import sys
 #sys.exit()
-f = symbols('f',cls=Function)
-q = symbols('q')
 R = sympify(2)
 #R = sympify(5)/2
 #f, name = sinq(R,3)
-f, name = m4(R);
-#
-#--construct Guillaume's super-kernels for 3D
-#
-#g = piecewise_fold(-diff(f,q)/q)
-#name = '3D quintic spline'
+f, name = f6(R);
 #printkernel(f,R)
-printkernel_ndspmhd(f,R,name)
+
+for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+   f, name = x(R)
+   reldev = getreldev(f,R)
+   print x.__name__,reldev[0],reldev[1],reldev[2]
+#printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
