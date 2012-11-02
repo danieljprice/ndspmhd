@@ -10,6 +10,7 @@ program multirun
  use setup_params
  use timestep
  use xsph
+ use kernels, only:setkern,radkern
  
  use infiles
  implicit none
@@ -53,14 +54,18 @@ program multirun
  else
     hfact = 0.75
     dhfac = 0.025
- endif 
+ endif
 
+ call setkern(ikernel,ndim,ierr)
+ print*,' ikernel = ',ikernel
+ print*,' radkernel = ',radkern
+ hfact = hfact/(0.5*radkern)
  print*,' initial hfact = ',hfact
 
  do i=1,nruns
     hfact = hfact + dhfac
-    print*,' hfact = ',hfact
     write(string,"(f5.3)") hfact
+    print*,' hfact = ',trim(string)
      
     infile = trim(filename)//trim(adjustl(string))//'.in'
 
