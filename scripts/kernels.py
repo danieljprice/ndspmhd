@@ -78,6 +78,12 @@ def printkernel(w,R):
     print c2D
     print "\n3D normalisation:"
     print c3D
+    print "\n3D normalisation of artificial viscosity term:"
+    avnorm = -sympify(2)*pi/15*c3D*integrate(q*q*q*dw,(q,0,R))
+    print avnorm
+    print "\n2D normalisation of artificial viscosity term:"
+    avnorm = -pi/8*c2D*integrate(q*q*dw,(q,0,R))
+    print avnorm
 
 # utility to format output of real numbers correctly for Fortran floating point
 def fmt(e):
@@ -428,14 +434,15 @@ def w6(R):
 #sys.exit()
 f = symbols('f',cls=Function)
 q = symbols('q')
-R = 2 #sympify(5)/2
+R = sympify(3)
+#R = sympify(5)/2
 #f, name = sinq(R,3)
-f, name = w6(R);
+f, name = m6(R);
 #
 #--construct Guillaume's super-kernels for 3D
 #
 #g = piecewise_fold(-diff(f,q)/q)
 #name = '3D quintic spline'
-#printkernel(f,R)
-printkernel_ndspmhd(f,R,name)
+printkernel(f,R)
+#printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
