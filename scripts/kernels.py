@@ -106,6 +106,22 @@ def printkernel(w,R):
     avnorm = -pi/8*c2D*integrate(q*q*dw,(q,0,R))
     print avnorm
     printvariances(w,R)
+    return
+
+def printheader_latex():
+    print "\\begin{tabular}{|l|l|l|l|l|l|l|l|}\n"
+    print "\\hline\nName & Functional form & C$_{1D}$ & C$_{2D}$ & C$_{3D}$ & $\sigma^2_{1D}$ & $\sigma^2_{2D}$ & $\sigma^2_{3D}$\\\\ \n"
+
+def printfooter_latex():
+    print "\\hline\\end{tabular}\n"
+
+def printkernel_latex(w,R):
+    c1D, c2D, c3D = getnorm(w,R)
+    var, relvar, reldev = getvar(w,R)
+    print "\\hline\n%s & $" %fmttex(name)
+    print latex(w)
+    print "$ & $%s$ & $%s$ & $%s$ & $%s$ & $%s$ & $%s$ \\\\" %(latex(c1D),latex(c2D),latex(c3D),latex(var[0]),latex(var[1]),latex(var[2]))
+    return
 
 # utility to format output of real numbers correctly for Fortran floating point
 def fmt(e):
@@ -179,6 +195,13 @@ def fmtp(e):
 def fmtn(e):
     s = "%s" %fmte(e)
     s = wrapit(s,25)
+    return s
+
+# format names for LaTeX output
+def fmttex(s):
+    import re
+    s = re.sub("\^\S+","$\g<0>$", s)
+    s = re.sub("\_\S+","$\g<0>$", s)
     return s
 
 def printkernel_ndspmhd(w,R,name):
@@ -393,13 +416,13 @@ def intconst(g):
 
 def m4(R):
     f = Piecewise((sympify(1)/4*(R-q)**3 - (R/2 - q)**3,q < R/2), (sympify(1)/4*(R-q)**3, q < R), (0, True))
-    return(f,'M4 cubic')
+    return(f,'M_4 cubic')
 
 def intkernel(wref,R):
     f, name = wref(R)
     g = piecewise_fold(integrate(-q*f,q))
     g = intconst(g)
-    name = "integrated %s" %(name)
+    name = "Integrated %s" %(name)
     return(g,name)
 
 def intkernel2(wref,R):
@@ -408,7 +431,7 @@ def intkernel2(wref,R):
     g = intconst(g)
     g = piecewise_fold(integrate(-q*g,q))
     g = intconst(g)
-    name = "twice-integrated %s" %(name)
+    name = "Twice-integrated %s" %(name)
     return(g,name)
 
 def intkernel3(wref,R):
@@ -419,7 +442,7 @@ def intkernel3(wref,R):
     g = intconst(g)
     g = piecewise_fold(integrate(-q*g,q))
     g = intconst(g)
-    name = "triple-integrated %s" %(name)
+    name = "Triple-integrated %s" %(name)
     return(g,name)
 
 def m5(R):
@@ -427,7 +450,7 @@ def m5(R):
     term2 = -5*(sympify(3)/5*R - q)**4
     term3 = 10*(sympify(1)/5*R - q)**4
     f = Piecewise((term1 + term2 + term3,q < sympify(1)/5*R), (term1 + term2, q < sympify(3)/5*R), (term1, q < R), (0, True))
-    return(f,'M5 quartic')
+    return(f,'M_5 quartic')
 
 def m6(R):
     f = symbols('f',cls=Function)
@@ -435,19 +458,19 @@ def m6(R):
     term2 = -6*(sympify(2)/3*R - q)**5
     term3 = 15*(sympify(1)/3*R - q)**5
     f = Piecewise((term1 + term2 + term3,q < sympify(1)/3*R), (term1 + term2, q < sympify(2)/3*R), (term1, q < R), (0, True))
-    return(f,'M6 quintic')
+    return(f,'M_6 quintic')
 
 def w2_1D(R):
     f = Piecewise(((1 - q/R)**3*(1 + 3*q/R),q < R), (0, True))
-    return(f,'Wendland 1D kernel of degree 2')
+    return(f,'Wendland 1D C^2')
 
 def w4_1D(R):
     f = Piecewise(((1 - q/R)**5*(1 + 5*q/R + 8*(q/R)**2),q < R), (0, True))
-    return(f,'Wendland 1D kernel of degree 4')
+    return(f,'Wendland 1D C^4')
 
 def w6_1D(R):
     f = Piecewise(((1 - q/R)**7*(1 + 7*q/R + 19*(q/R)**2 + 21*(q/R)**3),q < R), (0, True))
-    return(f,'Wendland 1D kernel of degree 6')
+    return(f,'Wendland 1D C^6')
 
 def sinq(R,n):
     f = Piecewise(((sin(pi*q/R)/q)**n,q < R), (0, True))
@@ -456,15 +479,15 @@ def sinq(R,n):
 
 def w2(R):
     f = Piecewise(((1 - q/R)**4*(1 + 4*q/R),q < R), (0, True))
-    return(f,'Wendland 2/3D kernel of degree 2')
+    return(f,'Wendland 2/3D C^2')
 
 def w4(R):
     f = Piecewise(((1 - q/R)**6*(1 + 6*q/R + sympify(35)/3*(q/R)**2),q < R), (0, True))
-    return(f,'Wendland 2/3D kernel of degree 4')
+    return(f,'Wendland 2/3D C^4')
 
 def w6(R):
     f = Piecewise(((1 - q/R)**8*(1 + 8*q/R + 25*(q/R)**2 + 32*(q/R)**3),q < R), (0, True))
-    return(f,'Wendland 2/3D kernel of degree 6')
+    return(f,'Wendland 2/3D C^6')
 
 def bcubic(R):
     f = Piecewise(((sympify(10) - sympify(13)*q**2 + sympify(6)*q**3)/16,q < 1), ((2 - q)**2*(5 - sympify(2)*q)/16, q < 2),(0, True))
@@ -497,12 +520,19 @@ def f6(R):
 R = sympify(2)
 #R = sympify(5)/2
 #f, name = sinq(R,3)
-f, name = f6(R);
+f, name = m4(R);
 #printkernel(f,R)
 
+#R = symbols('R')
+printheader_latex()
 for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
-   f, name = x(R)
-   reldev = getreldev(f,R)
-   print x.__name__,reldev[0],reldev[1],reldev[2]
+    f, name = x(R)
+    printkernel_latex(f,R)
+printfooter_latex()
+
+#for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+#   f, name = x(R)
+#   reldev = getreldev(f,R)
+#   print x.__name__,1.0/reldev[0],1.0/reldev[1],1.0/reldev[2]
 #printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
