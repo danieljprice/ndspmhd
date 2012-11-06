@@ -11,7 +11,7 @@
 
 module kernels
  use erbskernels, only:geterbskernel1,geterbskernel2
- use csplinekernels, only:getcsplinekernel
+ use csplinekernels, only:getcsplinekernel,getcsplinekernelder
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
@@ -95,7 +95,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real, intent(out), dimension(0:ikern) :: wkern,grwkern,grgrwkern
  character(len=*), intent(out) :: kernellabel
  integer, intent(out) :: ierr
- integer :: i,j,npower,n,ncspline
+ integer :: i,j,npower,n,ncspline,ncspline1,ncspline2
  real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
@@ -2262,6 +2262,46 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        call getcsplinekernel(ncspline,radkern,q, &
                              wkern(i),grwkern(i),grgrwkern(i))
     enddo      
+
+  case(77,78)
+!  
+!--quartic cspline kernel derivative, for a cubic lattice with n=2
+!
+    if (ikernel.eq.77) then
+       kernellabel = 'cspline quartic derivative of orders 4+1'
+       ncspline1 = 4
+       ncspline2 = 1       
+    elseif (ikernel.eq.78) then
+       kernellabel = 'cspline quartic derivative of orders 3+2'
+       ncspline1 = 3
+       ncspline2 = 2          
+    else
+       print*,'kernelND cspline - incorrect csplines derivatives'
+       stop
+    endif
+    
+    radkern = 0.5* real( + sqrt(2.)*ncspline2)      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        print*,'cspline derivative do not be used in 1D'
+        stop
+      case(2)
+        cnormk = 1.
+      case(3)
+        print*,'cspline derivative do not be used in 3D'
+        stop        
+    end select        
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call getcsplinekernelder(ncspline1,ncspline2,radkern,q, &
+                                wkern(i),grwkern(i),grgrwkern(i))
+    enddo
 
   case(79)
 !  

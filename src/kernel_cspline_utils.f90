@@ -5,7 +5,7 @@
 !-------------------------------------------------------
 module csplinekernels
  implicit none
- public :: getcsplinekernel
+ public :: getcsplinekernel,getcsplinekernelder
 
  private
 
@@ -46,7 +46,45 @@ subroutine getcsplinekernel(nc,radkern,q,w,gw,ggw)
 
 end subroutine getcsplinekernel
 
+subroutine getcsplinekernelder(nc1,nc2,radkern,q,w,gw,ggw)
+ implicit none
+ integer, intent(in) :: nc1,nc2
+ real, intent(in)    :: q,radkern
+ real, intent(out)   :: w
+ real, intent(out)   :: gw
+ real, intent(out)   :: ggw
+ real                :: absq
+ real, parameter     :: rlim = 2.d2
+ real, external :: besselstuffder,dbesselstuffder
+ real, external :: ddbesselstuffder,ddzbesselstuffder
+
+ absq = abs(q)
+ if (abs(q).lt.radkern) then
+    call qromb_twoparamder(besselstuffder,nc1,nc2,q,0.,rlim,w)
+    if (w.lt.0.) w = 0.
+    call qromb_twoparamder(dbesselstuffder,nc1,nc2,q,0.,rlim,gw)
+    gw = -gw
+    if (gw.gt.0.) gw = 0.
+    if (q.gt.tiny(0.)) then
+       call qromb_twoparamder(ddbesselstuffder,nc1,nc2,q,0.,rlim,ggw)
+       ggw = - ggw - gw/q
+    else
+       call qromb_twoparamder(ddzbesselstuffder,nc1,nc2,q,0.,rlim,ggw)
+       ggw = -0.5*ggw
+    endif
+ else
+    w   = 0.
+    gw  = 0.
+    ggw = 0.
+ endif
+
+end subroutine getcsplinekernelder
+
 end module
+
+!------------------------------------------------------------------
+!--utilities for the standard csplines
+!------------------------------------------------------------------
 
 !------------------------------------------------------------------
      SUBROUTINE qromb_twoparam(func,nc,q,a,b,ss)
@@ -212,3 +250,141 @@ end module
      ddzbesselstuff = rinter1*x*x*x
 
      end function ddzbesselstuff
+
+!------------------------------------------------------------------
+!--utilities for the csplines derivatives
+!------------------------------------------------------------------
+
+!------------------------------------------------------------------
+     SUBROUTINE qromb_twoparamder(func,nc1,nc2,q,a,b,ss)
+     implicit none
+     INTEGER JMAX,JMAXP,K,KM,nc1,nc2
+     REAL a,b,func,q,ss,EPS
+     EXTERNAL func
+     PARAMETER (EPS=1.d-8, JMAX=30, JMAXP=JMAX+1, K=5, KM=K-1)
+     INTEGER j
+     REAL dss,h(JMAXP),s(JMAXP)
+     real, parameter :: tol = 1.d-9
+     h(1)=1.
+     do 11 j=1,JMAX
+       call trapzd_twoparamder(func,nc1,nc2,q,a,b,s(j),j)
+       if (j.ge.K) then
+         call polint_two(h(j-KM),s(j-KM),K,0.,ss,dss)
+  !--lines added to hack some spurious breaks------------
+         if (j.ne.K .and. j.ne.K+1) then !added
+            if (abs(dss).le.EPS*abs(ss)) return
+            if (abs(dss).lt.tol) return  !added
+  !            print*,abs(dss),abs(ss)
+         endif
+  !-------------------------------------------------------         
+       endif
+       s(j+1)=s(j)
+       h(j+1)=0.25*h(j)
+11    continue
+     print*,'too many steps in qromb_twoparam'
+     end subroutine qromb_twoparamder
+
+!------------------------------------------------------------------
+     SUBROUTINE trapzd_twoparamder(func,nc1,nc2,q,a,b,s,n)
+     implicit none
+     INTEGER n,nc1,nc2
+     REAL a,b,s,func,q
+     INTEGER it,j
+     REAL del,sum,tnm,x
+     if (n.eq.1) then
+       s=0.5*(b-a)*(func(a,q,nc1,nc2)+func(b,q,nc1,nc2))
+     else
+       it=2**(n-2)
+       tnm=it
+       del=(b-a)/tnm
+       x=a+0.5*del
+       sum=0.
+       do j=1,it
+         sum=sum+func(x,q,nc1,nc2)
+         x=x+del
+       enddo
+       s=0.5*(s+(b-a)*sum/tnm)
+     endif
+     return
+     END subroutine trapzd_twoparamder
+
+!------------------------------------------------------------------
+     real function besselstuffder(x,q,nc1,nc2)
+     implicit none
+     integer, intent(in) :: nc1,nc2
+     real, intent(in)    :: x,q
+     real :: ker1,ker2,rinter1
+     real, parameter    :: pi    = 3.141592653589
+     real, parameter    :: sqrt2 = 1.414213562373
+
+     if (x .le. tiny(0.)) then
+        ker1 = 1.
+        ker2 = 1.        
+     else
+        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker2 = 2.*BesJ1(0.5*sqrt2*x)/(0.5*sqrt2*x)
+     endif
+     rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
+     besselstuffder = rinter1*x*BesJ0(q*x)
+
+     end function besselstuffder
+!------------------------------------------------------------------
+     real function dbesselstuffder(x,q,nc1,nc2)    
+     implicit none
+     integer, intent(in) :: nc1,nc2
+     real, intent(in)    :: x,q
+     real :: ker1,ker2,rinter1
+     real, parameter    :: pi    = 3.141592653589
+     real, parameter    :: sqrt2 = 1.414213562373
+     
+     if (x .le. tiny(0.)) then
+        ker1 = 1.
+        ker2 = 1.
+     else
+        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker2 = 2.*BesJ1(0.5*sqrt2*x)/(0.5*sqrt2*x)
+     endif
+     rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
+     dbesselstuffder = rinter1*x*x*BesJ1(q*x)
+
+     end function dbesselstuffder
+ !------------------------------------------------------------------
+     real function ddbesselstuffder(x,q,nc1,nc2)  
+     implicit none
+     integer, intent(in) :: nc1,nc2
+     real, intent(in)    :: x,q
+     real :: ker1,ker2,rinter1
+     real, parameter    :: pi    = 3.141592653589
+     real, parameter    :: sqrt2 = 1.414213562373     
+
+     if (x .le. tiny(0.)) then
+        ker1 = 1.
+        ker2 = 1.        
+     else
+        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker2 = 2.*BesJ1(0.5*sqrt2*x)/(0.5*sqrt2*x)        
+     endif
+     rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
+     ddbesselstuffder = rinter1*x*x*x*BesJ0(q*x)
+
+     end function ddbesselstuffder    
+ !------------------------------------------------------------------
+     real function ddzbesselstuffder(x,q,nc1,nc2)   
+     implicit none
+     integer, intent(in) :: nc1,nc2
+     real, intent(in)    :: x,q
+     real :: ker1,ker2,rinter1
+     real, parameter    :: pi    = 3.141592653589
+     real, parameter    :: sqrt2 = 1.414213562373     
+
+     if (x .le. tiny(0.)) then
+        ker1 = 1.
+        ker2 = 1.        
+     else
+        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker2 = 2.*BesJ1(0.5*sqrt2*x)/(0.5*sqrt2*x)         
+     endif
+     rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
+     ddzbesselstuffder = rinter1*x*x*x
+
+     end function ddzbesselstuffder
