@@ -2277,21 +2277,21 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        ncspline2 = 2          
     else
        print*,'kernelND cspline - incorrect csplines derivatives'
-       stop
+       ierr = 2
+       return
     endif
     
-    radkern = 0.5* real( + sqrt(2.)*ncspline2)      ! interaction radius of kernel
+    radkern = 3. !0.5* real(3.0 + sqrt(2.)*ncspline2)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
-      case(1)
-        print*,'cspline derivative do not be used in 1D'
-        stop
       case(2)
         cnormk = 1.
-      case(3)
-        print*,'cspline derivative do not be used in 3D'
-        stop        
+      case default
+        write(*,666)
+        ierr = 1
+        print*,'cspline derivative not implemented in ',ndim,'D'
+        return
     end select        
 !
 !--setup kernel table
