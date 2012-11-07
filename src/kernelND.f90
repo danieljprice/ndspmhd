@@ -96,7 +96,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  character(len=*), intent(out) :: kernellabel
  integer, intent(out) :: ierr
  integer :: i,j,npower,n,ncspline,ncspline1,ncspline2
- real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso
+ real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso,secondz
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0
@@ -1354,6 +1354,91 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
          grgrwkern(i) = 0.
       endif
     enddo
+    
+  case(35)
+!  
+!--Bump function
+!
+    kernellabel = 'Bump kernel'    
+
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./2.481250006
+      case(2)
+         cnormk = 1./6.505988642
+      case(3)
+         cnormk = 1./14.85711424
+    end select  
+    do i=0,ikern 
+       q2    = i*dq2table
+       alpha    = 1./(4.-q2)
+       beta     = exp(-alpha)
+       q        = sqrt(q2)
+       if (q2.lt.4.) then    
+          wkern    = beta
+          grwkern  = -2.*q*beta*alpha**2
+          grgrwkern = 2.*beta*alpha**4*(-6.*q2 + 3*q2*q2-16.)
+       else
+          wkern = 0.
+          grwkern = 0.
+          grgrwkern = 0.
+       endif
+    enddo
+
+  case (36)
+!
+!--Expo-rational B-Spline kernel
+!   
+    kernellabel = 'expo-rational B-spline kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 1.
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call geterbskernel1(q,wkern(i),grwkern(i),grgrwkern(i))
+    enddo
+
+  case (37)
+!
+!--Expo-rational B-Spline kernel
+!   
+    kernellabel = 'integrated erbs kernel'    
+  
+    radkern = 2.0      ! interaction radius of kernel
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)    
+    select case(ndim)
+      case(1)
+        cnormk = 1.
+      case default
+       write(*,666)
+       ierr = 1
+       return
+    end select
+!
+!--setup kernel table
+!   
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       call geterbskernel2(q,wkern(i),grwkern(i),grgrwkern(i))
+    enddo
 
   case(41)
 !
@@ -2263,25 +2348,58 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
                              wkern(i),grwkern(i),grgrwkern(i))
     enddo      
 
-  case(77,78)
+  case(77,78,79,80,81,82,83,84)
 !  
 !--quartic cspline kernel derivative, for a cubic lattice with n=2
 !
-    if (ikernel.eq.77) then
+    select case(ikernel)
+      case(77)
        kernellabel = 'cspline quartic derivative of orders 4+1'
        ncspline1 = 4
-       ncspline2 = 1       
-    elseif (ikernel.eq.78) then
+       ncspline2 = 1
+       secondz   = sqrt(2.)      
+      case(78)
        kernellabel = 'cspline quartic derivative of orders 3+2'
        ncspline1 = 3
-       ncspline2 = 2          
-    else
+       ncspline2 = 2
+       secondz   = sqrt(2.)              
+      case(79)
+       kernellabel = 'cspline quartic derivative of orders 4+1'
+       ncspline1 = 4
+       ncspline2 = 1
+       secondz   = 0.5*sqrt(2.)      
+      case(80)
+       kernellabel = 'cspline quartic derivative of orders 3+2'
+       ncspline1 = 3
+       ncspline2 = 2
+       secondz   = 0.5*sqrt(2.)      
+      case(81)
+       kernellabel = 'cspline quartic derivative of orders 4+1'
+       ncspline1 = 4
+       ncspline2 = 1
+       secondz   = sqrt(3.)      
+      case(82)
+       kernellabel = 'cspline quartic derivative of orders 3+2'
+       ncspline1 = 3
+       ncspline2 = 2
+       secondz   = sqrt(3.)              
+      case(83)
+       kernellabel = 'cspline quartic derivative of orders 4+1'
+       ncspline1 = 4
+       ncspline2 = 1
+       secondz   = 0.5*sqrt(3.)      
+      case(84)
+       kernellabel = 'cspline quartic derivative of orders 3+2'
+       ncspline1 = 3
+       ncspline2 = 2
+       secondz   = 0.5*sqrt(3.)
+      
+      case default
        print*,'kernelND cspline - incorrect csplines derivatives'
        ierr = 2
-       return
-    endif
-    
-    radkern = 3. !0.5* real(3.0 + sqrt(2.)*ncspline2)      ! interaction radius of kernel
+       return           
+    end select
+    radkern = 0.5* real(ncspline1 + secondz*ncspline2)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2299,94 +2417,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
-       call getcsplinekernelder(ncspline1,ncspline2,radkern,q, &
+       call getcsplinekernelder(ncspline1,ncspline2,secondz,radkern,q, &
                                 wkern(i),grwkern(i),grgrwkern(i))
     enddo
-
-  case(79)
-!  
-!--Bump function
-!
-    kernellabel = 'Bump kernel'    
-
-    radkern = 2.0
-    radkern2 = radkern*radkern
-    dq2table = radkern2/real(ikern)
-    select case(ndim)
-      case(1)
-         cnormk = 1./2.481250006
-      case(2)
-         cnormk = 1./6.505988642
-      case(3)
-         cnormk = 1./14.85711424
-    end select  
-    do i=0,ikern 
-       q2    = i*dq2table
-       alpha    = 1./(4.-q2)
-       beta     = exp(-alpha)
-       q        = sqrt(q2)
-       if (q2.lt.4.) then    
-          wkern    = beta
-          grwkern  = -2.*q*beta*alpha**2
-          grgrwkern = 2.*beta*alpha**4*(-6.*q2 + 3*q2*q2-16.)
-       else
-          wkern = 0.
-          grwkern = 0.
-          grgrwkern = 0.
-       endif
-    enddo
-
-  case (80)
-!
-!--Expo-rational B-Spline kernel
-!   
-    kernellabel = 'expo-rational B-spline kernel'    
-  
-    radkern = 2.0      ! interaction radius of kernel
-    radkern2 = radkern*radkern
-    dq2table = radkern*radkern/real(ikern)    
-    select case(ndim)
-      case(1)
-        cnormk = 1.
-      case default
-       write(*,666)
-       ierr = 1
-       return
-    end select
-!
-!--setup kernel table
-!   
-    do i=0,ikern
-       q2 = i*dq2table
-       q = sqrt(q2)
-       call geterbskernel1(q,wkern(i),grwkern(i),grgrwkern(i))
-    enddo
-
-  case (81)
-!
-!--Expo-rational B-Spline kernel
-!   
-    kernellabel = 'integrated erbs kernel'    
-  
-    radkern = 2.0      ! interaction radius of kernel
-    radkern2 = radkern*radkern
-    dq2table = radkern*radkern/real(ikern)    
-    select case(ndim)
-      case(1)
-        cnormk = 1.
-      case default
-       write(*,666)
-       ierr = 1
-       return
-    end select
-!
-!--setup kernel table
-!   
-    do i=0,ikern
-       q2 = i*dq2table
-       q = sqrt(q2)
-       call geterbskernel2(q,wkern(i),grwkern(i),grgrwkern(i))
-    enddo
+    
 
  case(91)
 !
