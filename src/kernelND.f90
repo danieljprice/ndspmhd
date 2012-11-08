@@ -101,6 +101,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
+ character(len=20) :: filename
+ logical :: iexist
+ integer :: ierrf
+ integer, parameter :: lu = 55
 
  cnormk = 0.0
  wkern = 0.
@@ -2412,15 +2416,46 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
         return
     end select        
 !
-!--setup kernel table
+!--read the preset table from a data file if it exists
 !   
-    do i=0,ikern
-       q2 = i*dq2table
-       q = sqrt(q2)
-       call getcsplinekernelder(ncspline1,ncspline2,secondz,radkern,q, &
-                                wkern(i),grwkern(i),grgrwkern(i))
-    enddo
-    
+    write(filename,"(a,i2.2,'.dat')") 'kernel',ikernel
+    inquire(file=filename,exist=iexist)
+    if (iexist) then
+       open(unit=lu,file=filename,status='old',iostat=ierrf)
+       print*,'reading kernel from '//trim(filename)
+       if (ierrf.eq.0) then
+          do i=0,ikern
+             read(lu,*,iostat=ierrf) wkern(i),grwkern(i),grgrwkern(i)
+          enddo
+       endif
+       close(unit=lu)
+    else
+       print*,trim(filename)//' does not exist, creating kernel table'
+       ierrf = 1
+    endif
+!
+!--if file not found or errors reading from it, recreate the kernel table
+!  and write a new data file
+!
+    if (ierrf.ne.0) then
+       do i=0,ikern
+          q2 = i*dq2table
+          q = sqrt(q2)
+          call getcsplinekernelder(ncspline1,ncspline2,secondz,radkern,q, &
+                                   wkern(i),grwkern(i),grgrwkern(i))
+       enddo
+       open(unit=lu,file=trim(filename),status='replace',iostat=ierrf)
+       if (ierrf.ne.0) then
+          print*,'ERROR: could not write to '//trim(filename)
+       else
+          print*,'WRITING kernel to file: '//trim(filename)
+          do i=0,ikern
+             write(lu,*,iostat=ierrf) wkern(i),grwkern(i),grgrwkern(i)
+          enddo
+          if (ierrf.ne.0) print*,'ERROR writing to '//trim(filename)
+       endif
+       close(unit=lu)
+    endif
 
  case(91)
 !
