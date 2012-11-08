@@ -64,7 +64,7 @@ ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    F90C= gfortran
    F90FLAGS= -O3 -Wall -funroll-loops -g -ftree-vectorize #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
-   DBLFLAG= -fdefault-real-8
+   DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -fcheck=all
    OMPFLAG= -fopenmp
