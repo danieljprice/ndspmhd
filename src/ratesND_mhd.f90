@@ -237,7 +237,7 @@ subroutine get_rates
 !
 !--skip the whole neighbour thing if it is doing nothing
 !
- if (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.lt.3) then
+ if (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.lt.3 .and. iprterm.ne.-2) then
     write(iprint,*) 'skipping rates'
     goto 666
  endif
