@@ -259,6 +259,7 @@ subroutine setup
 !            zi   = zstart
 !                    
 !          !--term 3 : -Irhog*sin(kx*x)*cos(kz*z)
+!            pert = -0.5*Irhog*cokz0/denszero
 !            call deltarho_sin(xi,pert,kx,-hL,hL) !--pert in x
 !            x3   = xi - xstart
 !            xi   = xstart          
