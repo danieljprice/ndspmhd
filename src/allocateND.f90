@@ -39,7 +39,6 @@ subroutine alloc(newsizein,sortlist)
  integer :: i,newsize,ioldsize,idumsize
  real, dimension(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
  real, dimension(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
- real, dimension(newsizein) :: dumdubarydt
  real, dimension(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  real, dimension(newsizein) :: dumpsi,dumrho0
  real, dimension(newsizein) :: dumhh,dumgradh,dumgradhn,dumgradsoft,dumgradgradh,dumpr,dumspsound
@@ -47,13 +46,16 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndim,newsizein) :: dumxin,dumx
  real, dimension(ndimv,newsizein) :: dumvelin,dumvel,dumBevolin
  real, dimension(ndimv,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
- real, dimension(ndimv,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi,dumvbary
+ real, dimension(ndimv,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
 !--gr terms
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
  real, dimension(ndxdx,newsizein) :: dumdxdx
  real, dimension(ndim,newsizein) :: dumx0
+!--dust
+! real, dimension(newsizein) :: dumrhodusttogas
+! real, dimension(newsizein) :: dumdeltav
 
  logical :: reallocate, isortparts
 !
@@ -163,9 +165,6 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) dumsourceterms(:,1:idumsize) = sourceterms(:,1:idumsize)
     if (allocated(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
-    if (allocated(vbary)) dumvbary(:,1:idumsize) = vbary(:,1:idumsize)
-    if (allocated(dubarydt)) dumdubarydt(1:idumsize) = &
-                               dubarydt(1:idumsize)
     
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
     dumx0(:,1:idumsize) = x0(:,1:idumsize)
@@ -194,8 +193,6 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(Bevol)) deallocate(Bevol)
     if (allocated(dBevoldt)) deallocate(dBevoldt)
     if (allocated(gradpsi)) deallocate(gradpsi)
-    if (allocated(vbary)) deallocate(vbary)
-    if (allocated(dubarydt)) deallocate(dubarydt)
 !
 !--equation of state
 !
@@ -268,8 +265,6 @@ subroutine alloc(newsizein,sortlist)
     allocate(Bevol(ndimb,newsize))
     allocate(Bfield(ndimb,newsize),dBevoldt(ndimb,newsize))  ! mag field
     allocate(gradpsi(ndimb,newsize))
-    allocate(vbary(ndimv,newsize))
-    allocate(dubarydt(newsize))
     if (igravity.ne.0) allocate(poten(newsize))
 !
 !--equation of state
@@ -351,10 +346,7 @@ subroutine alloc(newsizein,sortlist)
     gradsoft(1:idumsize) = dumgradsoft(iorder(1:idumsize))
     gradgradh(1:idumsize) = dumgradgradh(iorder(1:idumsize))
     if (allocated(poten)) poten(1:idumsize) = dumpoten(iorder(1:idumsize))
-    if (allocated(vbary)) vbary(:,1:idumsize) = &
-                             dumvbary(:,iorder(1:idumsize))    
-    if (allocated(dubarydt)) dubarydt(1:idumsize) = &
-                               dumdubarydt(iorder(1:idumsize))    
+
     pr(1:idumsize) = dumpr(iorder(1:idumsize))
     spsound(1:idumsize) = dumspsound(iorder(1:idumsize))
 !    ll(1:idumsize) = dumll(1:idumsize)
@@ -368,7 +360,7 @@ subroutine alloc(newsizein,sortlist)
     pmomin(:,1:idumsize) = dumpmomin(:,iorder(1:idumsize))
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
-    endif    
+    endif
     dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize)
     x0(:,1:idumsize) = dumx0(:,1:idumsize)
     rho0(1:idumsize) = dumrho0(1:idumsize)

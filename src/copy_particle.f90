@@ -40,8 +40,6 @@ subroutine copy_particle(i,j)
   dens(i) = dens(j)
   itype(i) = itype(j)
   if (allocated(pmom)) pmom(:,i) = pmom(:,j)
-  vbary(:,i) = vbary(:,j)
-  dubarydt(i) = dubarydt(j)
 
   force(:,i) = force(:,j)
   drhodt(i) = drhodt(j)

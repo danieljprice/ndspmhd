@@ -22,7 +22,6 @@ subroutine get_rates
   
  use fmagarray
  use derivB
- use getvbary
  use get_neighbour_lists
  use grutils,       only:metric_diag,dot_product_gr
  use getBeulerpots, only:compute_rmatrix,exactlinear
@@ -61,17 +60,6 @@ subroutine get_rates
  real, dimension(ndimV) :: veli,velj,dvel,fmean
  real, dimension(ndimV) :: dr
  real :: dvdotr
-!
-!  (barycentric velocity)
-!
- logical :: iconv_bary
- integer :: nstep_bary
- real    :: vbary2,vbary2_max 
- real, dimension(ndimV) :: vbaryi 
- real, parameter        :: tol_conv = 1.d-7
- real, parameter        :: vref     = 1.d-4
- real, dimension(ndimV,ntotal) :: vsmoothed
-
 !
 !  (mhd)
 !     
@@ -125,7 +113,7 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
- real :: stressmax!,stressterm
+ real :: stressmax,stressterm
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
 !
@@ -162,11 +150,6 @@ subroutine get_rates
  vsigmax    = 0.
  dr(:)      = 0.
  nclumped   = 0
- vbary2     = 0.
- vbary2_max = 0.
- nstep_bary = 0
- iconv_bary = .false.
- vsmoothed(:,:) =0.
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -209,8 +192,8 @@ subroutine get_rates
           !stressterm = max(1.5*B2i - pr(i),0.)
           !stressmax = max(stressterm,stressmax)
        else
-          !stressterm = max(0.5*B2i - pr(i),0.)
-          !stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
+          stressterm = max(0.5*B2i - pr(i),0.)
+          stressmax = max(stressterm,stressmax,maxval(Bconst(:)))
        endif
     enddo
     if (stressmax.gt.tiny(stressmax)) write(iprint,*) 'stress correction = ',stressmax
@@ -412,62 +395,6 @@ subroutine get_rates
 
  if (itiming) call cpu_time(t3)
  
-!----------------------------------------------------------------------------
-!  if ismooth.eq.1, calculate the drag type barycentric velocity in one step
-!---------------------------------------------------------------------------- 
-
- if (ismooth.eq.1) then 
-       call get_vbary(1,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
-       !--careful: size(vbary_out) in get_vbary .ne. size(vel)=size(vbary)
-       vsmoothed(:,:) = vbary(:,:)    
-       call get_vbary(2,vsmoothed,itype,x,hh,pmass,rho,vbary,dubarydt)
-       do i=1,ntotal
-          vbaryi(:)  = vbary(:,i)
-          vel(:,i)   = vel(:,i) + vbaryi(:)
-       enddo
- endif
- 
-!----------------------------------------------------------------------------
-!  if ismooth.eq.2, calculate the drag type barycentric velocity until converged
-!---------------------------------------------------------------------------- 
-
- !--loop over the barycentric step until converged
- if (ismooth.eq.2) then
- print*,'iconv_bary',iconv_bary
-   ! do while (.not.iconv_bary)
-     nstep_bary = nstep_bary + 1      
-       call get_vbary(1,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
-       !--careful: size(vbary_out) in get_vbary .ne. size(vel)=size(vbary)
-       vsmoothed(:,:) = vbary(:,:)    
-       call get_vbary(2,vsmoothed,itype,x,hh,pmass,rho,vbary,dubarydt)
-       do i=1,ntotal
-          vbaryi(:)  = vbary(:,i)
-          print*,'before',vel(1,i),vbaryi(1),itype(i)
-          vel(:,i)   = vel(:,i) + vbaryi(:)
-          print*,'after',vel(1,i),itype(i)            
-          vbaryi(:)  = 1.d4*vbaryi(:)
-          vbary2     = dot_product(vbaryi,vbaryi)
-          vbary2_max = max(vbary2_max,vbary2)
-
-       enddo
-       if (vbary2_max.le.tol_conv) iconv_bary = .true.
-       vbary2_max = 0.
-   ! enddo
-    print*,nstep_bary,' steps required to converge the barycentric velocity'
-    nstep_bary = 0
- endif
- 
-!----------------------------------------------------------------------------
-!  if ismooth.eq.3, calculate the Monaghan type barycentric velocity in one step
-!---------------------------------------------------------------------------- 
-
- if (ismooth.eq.3) then 
-       call get_vbary(3,vel,itype,x,hh,pmass,rho,vbary,dubarydt)
-       do i=1,ntotal
-          vbaryi(:)  = vbary(:,i)     
-          vel(:,i)   = vel(:,i) + vbaryi(:)
-       enddo      
- endif 
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
@@ -960,17 +887,6 @@ contains
                  print*,'ERROR drag calculation: wrong idrag_structure'
            end select
     end select
-
-!--If ismooth.eq.1, the correction to the barycentric velocity is calculated
-!--using Kequiv = K*(ts/Deltat)**2
-
-    if (ismooth.gt.0) then
-        dragcoeff = 0.
-!--WARNING: oeder 1 removed for DEBUG ONLY
-!       dragcheck = dragcoeff
-!       dragcoeff = dt12*rhoij/(dragcoeff*rhoiplusj2)
-!       if (dragcoeff.gt.dragcheck) print*,'WARNING: barycentric drag may be incorrect'
-    endif
     
     select case(idrag_structure)
        case(1) !--linear regime
@@ -1256,7 +1172,9 @@ contains
           endif
           vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
           vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
-          vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+          vsignonlin = 0.5*(vsigi + vsigj) + abs(dvdotr)
+          !vsignonlin = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
+          !vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
        else
           vsigi = spsoundi
           vsigj = spsoundj
