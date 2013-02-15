@@ -489,6 +489,10 @@ def w6(R):
     f = Piecewise(((1 - q/R)**8*(1 + 8*q/R + 25*(q/R)**2 + 32*(q/R)**3),q < R), (0, True))
     return(f,'Wendland 2/3D C^6')
 
+def pcubic(R):
+    f = Piecewise((q**3 - 6*q + 6,q < 1),((2-q)**3,q < 2), (0, True))
+    return(f,'A peaked cubic')
+
 def bcubic(R):
     f = Piecewise(((sympify(10) - sympify(13)*q**2 + sympify(6)*q**3)/16,q < 1), ((2 - q)**2*(5 - sympify(2)*q)/16, q < 2),(0, True))
     return(f,'Better cubic')
@@ -512,27 +516,27 @@ def f6(R):
     f = Piecewise(((1 - (q/R)**2)**6,q < R), (0, True))
     return(f,'Ferrers n=6')
 
-#string = sympify(0.0625*q +q**2*q + 2 + q**4/3 + 100./40000.*q**5)
-#print "string = ",string
-#print "news = %s \n" %fmte(string)
-#import sys
-#sys.exit()
+def printalltex():
+    R = sympify(2)
+    printheader_latex()
+    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+        f, name = x(R)
+        printkernel_latex(f,R)
+    printfooter_latex()
+
+def print_stddevs():
+    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+       f, name = x(R)
+       reldev = getreldev(f,R)
+       print x.__name__,1.0/reldev[0],1.0/reldev[1],1.0/reldev[2]
+
 R = sympify(2)
 #R = sympify(5)/2
-#f, name = sinq(R,3)
-f, name = m4(R);
-#printkernel(f,R)
-
 #R = symbols('R')
-printheader_latex()
-for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
-    f, name = x(R)
-    printkernel_latex(f,R)
-printfooter_latex()
+#f, name = sinq(R,3)
+f, name = pcubic(R)
 
-#for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
-#   f, name = x(R)
-#   reldev = getreldev(f,R)
-#   print x.__name__,1.0/reldev[0],1.0/reldev[1],1.0/reldev[2]
-#printkernel_ndspmhd(f,R,name)
+#printkernel(f,R)
+printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
+#printall_tex
