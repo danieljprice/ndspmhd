@@ -203,6 +203,7 @@ ifndef SETUP2D
 #SETUP2D = setup_rayleightaylor2D_abel.f90
 #SETUP2D = setup_blobweirdshape.f90
 #SETUP2D= setup_taylorcouette2D.f90
+#SETUP2D= setup_taylorgreen2D.f90
 #SETUP2D= setup_nova2D.f90
 #SETUP2D= setup_highex2D.f90
 #SETUP2D = setup_tearingmode2D.f90
