@@ -54,7 +54,14 @@ subroutine copy_particle(i,j)
   fmag(:,i) = fmag(:,j)
   divB(i) = divB(j)
   curlB(:,i) = curlB(:,j)
-  
+!
+!  dust
+!
+  dusttogas(i)    = dusttogas(j)
+  ddusttogasdt(i) = ddusttogasdt(j)
+  deltav(:,i)     = deltav(:,j)
+  ddeltavdt(:,i)  = ddeltavdt(:,j)
+
   if (allocated(rho0)) rho0(i) = rho0(j)
   !gradmatrix(:,:,i) = gradmatrix(:,:,j)
 !

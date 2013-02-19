@@ -148,7 +148,7 @@ module part
  real, dimension(:), allocatable    :: rho0
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
- real, dimension(:), allocatable    :: rhodusttogas
+ real, dimension(:), allocatable    :: dusttogas
 end module part 
 
 !-------------------------------------------------------------------
@@ -160,7 +160,8 @@ module part_in
  real, dimension(:), allocatable :: rhoin,prin,hhin,enin,psiin
  real, dimension(:,:), allocatable :: xin,velin,pmomin,alphain
  real, dimension(:,:), allocatable :: Bevolin
- real, dimension(:,:), allocatable :: deltavin,rhodustogasin
+ real, dimension(:,:), allocatable :: deltavin
+ real, dimension(:),   allocatable :: dusttogasin
 end module
 
 !-------------------------------------------------------------------
@@ -171,7 +172,8 @@ module rates
  implicit none
  real, dimension(:), allocatable :: drhodt,dudt,dendt,dhdt,dpsidt,poten
  real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
- real, dimension(:,:), allocatable :: ddeltavdt,drhodusttogasdt
+ real, dimension(:,:), allocatable :: ddeltavdt
+ real, dimension(:), allocatable   :: ddusttogasdt
  real :: potengrav
 end module rates
 

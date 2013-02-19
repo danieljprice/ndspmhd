@@ -29,8 +29,8 @@ subroutine step
 !
  implicit none
  integer :: i,j,nsplit
- real, dimension(ndimV,npart) :: forcein,dBevoldtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin
+ real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
+ real, dimension(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin,ddusttogasdtin
  real, dimension(3,npart) :: daldtin
  real :: hdt
  real, dimension(ndim)  :: xcyl,velcyl
@@ -62,6 +62,9 @@ subroutine step
     dendtin(i) = dendt(i)
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
+    
+    ddusttogasdtin(i) = ddusttogasdt(i)
+    ddeltavdtin(:,i)  = ddeltavdt(:,i)
  enddo
 !
 !--if doing divergence correction then do correction to magnetic field
@@ -101,6 +104,8 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
+       dusttogas(i) = dusttogasin(i)
+       deltav(:,i) = deltavin(:,i)
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
@@ -116,6 +121,8 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
+       dusttogas(i) = dusttogasin(i) + dt*ddusttogasdtin(i)
+       deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
     endif
  enddo
 !
@@ -139,6 +146,8 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
+       dusttogas(i) = dusttogasin(i)
+       deltav(:,i)  = deltavin(:,i)
     else
        vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
        if (imhd.ne.0) then
@@ -159,7 +168,11 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
-    endif 
+       
+       dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
+       deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+
+    endif
               
  enddo
 !
