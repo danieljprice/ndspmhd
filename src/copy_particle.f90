@@ -13,7 +13,7 @@ subroutine copy_particle(i,j)
   use part
   use rates
   use xsph
-  use options, only:imhd
+  use options, only:imhd,idust
   !use matrixcorr
   implicit none
   integer :: i,j
@@ -57,10 +57,12 @@ subroutine copy_particle(i,j)
 !
 !  dust
 !
-  dusttogas(i)    = dusttogas(j)
-  ddusttogasdt(i) = ddusttogasdt(j)
-  deltav(:,i)     = deltav(:,j)
-  ddeltavdt(:,i)  = ddeltavdt(:,j)
+  if (idust.eq.1) then
+     dusttogas(i)    = dusttogas(j)
+     ddusttogasdt(i) = ddusttogasdt(j)
+     deltav(:,i)     = deltav(:,j)
+     ddeltavdt(:,i)  = ddeltavdt(:,j)
+  endif
 
   if (allocated(rho0)) rho0(i) = rho0(j)
   !gradmatrix(:,:,i) = gradmatrix(:,:,j)

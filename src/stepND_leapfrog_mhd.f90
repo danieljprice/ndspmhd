@@ -63,8 +63,10 @@ subroutine step
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
     
-    ddusttogasdtin(i) = ddusttogasdt(i)
-    ddeltavdtin(:,i)  = ddeltavdt(:,i)
+    if (idust.eq.1) then
+       ddusttogasdtin(i) = ddusttogasdt(i)
+       ddeltavdtin(:,i)  = ddeltavdt(:,i)
+    endif
  enddo
 !
 !--if doing divergence correction then do correction to magnetic field
@@ -104,8 +106,10 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       dusttogas(i) = dusttogasin(i)
-       deltav(:,i) = deltavin(:,i)
+       if (idust.eq.1) then
+          dusttogas(i) = dusttogasin(i)
+          deltav(:,i) = deltavin(:,i)
+       endif
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
@@ -121,8 +125,10 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
-       dusttogas(i) = dusttogasin(i) + dt*ddusttogasdtin(i)
-       deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
+       if (idust.eq.1) then
+          dusttogas(i) = dusttogasin(i) + dt*ddusttogasdtin(i)
+          deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
+       endif
     endif
  enddo
 !
@@ -146,8 +152,10 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       dusttogas(i) = dusttogasin(i)
-       deltav(:,i)  = deltavin(:,i)
+       if (idust.eq.1) then
+          dusttogas(i) = dusttogasin(i)
+          deltav(:,i)  = deltavin(:,i)
+       endif
     else
        vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
        if (imhd.ne.0) then
@@ -169,11 +177,12 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
-       dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
-       deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
-
+       if (idust.eq.1) then
+          dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
+          deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+       endif
     endif
-              
+
  enddo
 !
 !--if doing divergence correction then do correction to magnetic field
