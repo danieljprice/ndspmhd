@@ -52,7 +52,7 @@ subroutine write_infile(infile)
   write(iread,210) usenumdens
   write(iread,220) isplitpart,rhocrit
   write(iread,230) iuse_exact_derivs, nsteps_remap
-  write(iread,240) idrag_nature,idrag_structure,Kdrag,ismooth
+  write(iread,240) idust,idrag_nature,idrag_structure,Kdrag,ismooth
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -60,7 +60,7 @@ subroutine write_infile(infile)
 30 format(f14.12,22x,'! gamma ')
 40 format(i2,1x,f5.3,28x,'! type of energy equation, polyk(for iener=0)')
 50 format(i2,1x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv), ndirect, maxdensits')
-60 format(i2,36x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
+60 format(i2,34x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
 70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphaB(min), beta')
 80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, aB limiter, decay constant for this(0.1-0.2)')
 90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
@@ -72,13 +72,13 @@ subroutine write_infile(infile)
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
 160 format(i2,1x,1pe9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
-180 format(i3,34x,'! kernel type (0: cubic spline, 3:quintic)')
+180 format(i3,33x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i2,34x,'! external force (1: toy star, 2:1/r^2 )')
-200 format(es10.3,2x,f7.3,2x,18x,'! C_cour, C_force')
+200 format(es10.3,2x,f7.3,2x,15x,'! C_cour, C_force')
 210 format(l1,35x,'! Use number density formulation of gradh')
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
-230 format(i2,2x,i4,30x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
-240 format(i2,1x,i2,1x,1pe9.3,1x,i2,21x,'! drag type,drag form, Kdrag,ismooth')
+230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
+240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -147,7 +147,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) usenumdens
   read(iread,*,err=50,end=50) isplitpart,rhocrit
   read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
-  read(iread,*,err=50,end=50) idrag_nature,idrag_structure,Kdrag,ismooth
+  read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
  close(unit=iread)
 
  goto 55

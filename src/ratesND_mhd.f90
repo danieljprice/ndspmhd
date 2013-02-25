@@ -367,7 +367,7 @@ subroutine get_rates
                   .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
                   .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
                  call rates_core
-              elseif (idrag_nature.gt.0) then !-- drag step if required
+              elseif (idust.eq.2 .and. idrag_nature.gt.0) then !-- drag step if required
                  call drag_forces
               endif
            else      ! if outside 2h
@@ -716,7 +716,7 @@ subroutine get_rates
 !
 !--calculate drag timestep
 !
-    if (idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
+    if (idust.eq.2 .and. idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
        dtdrag = min(dtdrag,rhoi/Kdrag)
     endif
  enddo

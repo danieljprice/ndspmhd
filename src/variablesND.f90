@@ -114,7 +114,7 @@ module options
  implicit none
  integer :: iener,icty,iav,ikernav
  integer :: idrag_nature,idrag_structure,ismooth
- integer :: iprterm,idumpghost,ihvar
+ integer :: iprterm,idumpghost,ihvar,idust
  integer :: imhd,imagforce,idivbzero   !  (mhd options)
  integer :: iexternal_force,ixsph,isplitpart
  integer :: igravity,ikernel,ikernelalt,iresist

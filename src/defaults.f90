@@ -77,5 +77,10 @@ subroutine set_default_options
    rhocrit = 1.e4
    iuse_exact_derivs = 0
    nsteps_remap = 0
+   idust = 0
+   idrag_nature = 0
+   idrag_structure = 0
+   Kdrag = 0.
+   ismooth = 0
    
  end subroutine set_default_options
