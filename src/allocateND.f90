@@ -54,8 +54,8 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndxdx,newsizein) :: dumdxdx
  real, dimension(ndim,newsizein) :: dumx0
 !--dust
- real, dimension(newsizein)       :: dumdusttogas,dumddusttogasdt
- real, dimension(ndimV,newsizein) :: dumdeltav,dumddeltavdt
+ real, dimension(newsizein)       :: dumdusttogas,dumdusttogasin,dumddusttogasdt
+ real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
 
  logical :: reallocate, isortparts
 !
@@ -170,6 +170,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(ddusttogasdt)) dumddusttogasdt(1:idumsize) = ddusttogasdt(1:idumsize)
     if (allocated(deltav))       dumdeltav(:,1:idumsize)     = deltav(:,1:idumsize)
     if (allocated(ddeltavdt))    dumddeltavdt(:,1:idumsize)  = ddeltavdt(:,1:idumsize)
+    if (allocated(dusttogasin))    dumdusttogasin(1:idumsize) = dusttogasin(1:idumsize)
+    if (allocated(deltavin))       dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
     
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
     dumx0(:,1:idumsize) = x0(:,1:idumsize)
@@ -241,7 +243,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(deltav))       deallocate(deltav)
     if (allocated(ddusttogasdt)) deallocate(ddusttogasdt)
     if (allocated(ddeltavdt))    deallocate(ddeltavdt)
-
+    if (allocated(dusttogasin)) deallocate(dusttogasin)
+    if (allocated(deltavin))    deallocate(deltavin)
 
     endif
 
@@ -317,10 +320,12 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-   allocate(dusttogas(newsize))
-   allocate(ddusttogasdt(newsize))
-   allocate(deltav(ndimV,newsize))
-   allocate(ddeltavdt(ndimV,newsize))
+   if (idust.eq.1) then
+      allocate(dusttogas(newsize),dusttogasin(newsize))
+      allocate(ddusttogasdt(newsize))
+      allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
+      allocate(ddeltavdt(ndimV,newsize))
+   endif
  endif
  
  if (reallocate .or. isortparts) then
@@ -387,10 +392,14 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-    dusttogas(1:idumsize)    = dumdusttogas(1:idumsize)
-    ddusttogasdt(1:idumsize) = dumddusttogasdt(1:idumsize)
-    deltav(:,1:idumsize)       = dumdeltav(:,1:idumsize)
-    ddeltavdt(:,1:idumsize)    = dumddeltavdt(:,1:idumsize)
+    if (idust.eq.1) then
+       dusttogas(1:idumsize)    = dumdusttogas(1:idumsize)
+       ddusttogasdt(1:idumsize) = dumddusttogasdt(1:idumsize)
+       deltav(:,1:idumsize)     = dumdeltav(:,1:idumsize)
+       ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,1:idumsize)
+       dusttogasin(1:idumsize)  = dumdusttogasin(1:idumsize)
+       deltavin(:,1:idumsize)   = dumdeltavin(:,1:idumsize)
+    endif
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
