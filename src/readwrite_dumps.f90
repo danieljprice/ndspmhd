@@ -58,6 +58,10 @@ subroutine write_dump(t,dumpfile)
     ncolumns = ncolumns + 2 + ndimV
     iformat = iformat + 2
  endif
+ if (idust.eq.1) then
+    iformat = 5
+    ncolumns = ncolumns + ndimV + 1
+ endif
  
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
       ncolumns,iformat,ibound,xmin(1:ndim),xmax(1:ndim),len(geom),geom
@@ -129,6 +133,12 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) sqrtg(1:nprint)
      do i=1,ndimV
         write(idatfile) pmom(i,1:nprint)
+     enddo
+  endif
+  if (idust.eq.1) then
+     write(idatfile) dusttogas(1:nprint)
+     do i=1,ndimV
+        write(idatfile) deltav(i,1:nprint)
      enddo
   endif
   write(idatfile) itype(1:nprint)
@@ -244,6 +254,9 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  elseif (imhd.lt.0 .and. (ncolumns.lt.(ndim + 5*ndimV + 12) .or. iformat.ne.2)) then
     write(iprint,*) 'ERROR: cannot re-start with vector potential from this file'
     stop
+ elseif (idust.eq.1 .and. (iformat.ne.5)) then
+    write(iprint,*) 'ERROR: idust=1 but dump file does not contain dusttogas or deltav arrays'
+    stop
  endif
 !
 !--switch current geometry to that of the file if not convertible
@@ -346,6 +359,12 @@ subroutine read_dump(dumpfile,tfile,copysetup)
        read(ireadf,iostat=ierr) alpha(i,1:npart)
     enddo
     nread = nread + 2
+ endif
+ if (idust.eq.1 .and. iformat.eq.5) then
+    read(ireadf,iostat=ierr) dusttogas(1:npart)
+    do i=1,ndimV
+       read(ireadf,iostat=ierr) deltav(i,1:npart)
+    enddo
  endif
  !--skip extra quantities that come after alpha but before itype
  do i=1,ncolumns-nread
