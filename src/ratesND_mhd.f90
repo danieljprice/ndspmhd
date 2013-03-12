@@ -102,8 +102,8 @@ subroutine get_rates
  real, dimension(ndimV) :: deltavi,deltavj
  real :: rhodusttogasi,rhodusttogasj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
- real :: prdusttogasi,prdusttogasj
- real :: deltav2i,deltav2j,rhog2i
+ real :: deltav2i,deltav2j,rhog2i,rhogasi,rhodusti
+ real :: dtstop
 !
 !  (kernel related quantities)
 !
@@ -294,15 +294,12 @@ subroutine get_rates
        rho21i = rho1i*rho1i
        dens1i = 1./dens(i)
        if (idust.eq.1) then
-          rhodusttogasi = dusttogas(i)
-          deltavi(:)   = deltav(:,i)
-          deltav2i     = dot_product(deltavi,deltavi)
+          rhodusttogasi  = dusttogas(i)
+          deltavi(:)     = deltav(:,i)
+          deltav2i       = dot_product(deltavi,deltavi)
           rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
-          prdusttogasi   = deltav2i*rhogrhodonrhoi
-          pri = max(pr(i) + prdusttogasi - pext,0.)
-       else
-          pri = max(pr(i) - pext,0.)
        endif
+       pri = max(pr(i) - pext,0.)
 !       print *, 'PRI ', pr(i), pext, itype(i)
        prneti = pri - pequil(iexternal_force,xi(:),rhoi)
        pmassi = pmass(i)
@@ -649,7 +646,7 @@ subroutine get_rates
 !
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
-!
+!    
     if (iener.eq.3) then
        ! could do this in principle but does not work with
        ! faniso modified by subtraction of Bconst
@@ -661,7 +658,7 @@ subroutine get_rates
     elseif (iener.eq.4) then
        dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
        if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. idust.ne.1) then
        if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
@@ -743,13 +740,31 @@ subroutine get_rates
        !
        dtdrag = min(dtdrag,rhoi/Kdrag)
     elseif (idust.eq.1) then
+       !------------------
+       !  one fluid dust
+       !------------------
        !
-       !--one fluid dust, sort out derivs of dusttogas and deltav
+       !--d/dt(rhod/rhog): multiply by terms out the front of the SPH sum
        !
-       rhog2i = (1. + dusttogas(i))**2*rho1i*rho1i   ! 1/rhog^2
-       !print*,i,' rhog2i = ',rhog2i,1./dens(i)**2
-       !read*
+       rhog2i = (1. + dusttogas(i))**2  ! rhog/rho
        ddusttogasdt(i) = rhog2i*ddusttogasdt(i)
+       
+       !
+       !--d/dt(deltav)  : multiply by 1/rho and add terms that
+       !  do not involve sums over particles
+       !
+       rhogasi  = rhoi/(1. + dusttogas(i))
+       rhodusti = rhogasi*dusttogas(i)
+       dtstop   = Kdrag*rhoi/(rhogasi*rhodusti)
+       ddeltavdt(:,i) = rho1i*ddeltavdt(:,i) - deltav(:,i)*dtstop
+       
+       !
+       !--du/dt: add thermal energy dissipation from drag
+       !
+       if (iener.gt.0) then
+          deltav2i = dot_product(deltav(:,i),deltav(:,i))
+          dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
+       endif
     endif
  enddo
  
@@ -1063,11 +1078,8 @@ contains
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
        rhogrhodonrhoj = rhoj*rhodusttogasj/(1. + rhodusttogasj)**2
-       prdusttogasj   = deltav2j*rhogrhodonrhoj
-       prj = max(pr(j) + prdusttogasj - pext,0.)
-    else
-       prj = max(pr(j) - pext,0.)
     endif
+    prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
     Prho2j = prj*rho21j
     spsoundj = spsound(j)
@@ -1446,6 +1458,7 @@ contains
     real :: vissv,vissB,vissu
     real :: term,dpmomdotr
     real :: termnonlin,termu
+    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
     !
     !--definitions
     !      
@@ -1461,6 +1474,18 @@ contains
     endif
     !--used for viscosity
     term = vsig*rhoav1*grkern
+    
+    if (idust.eq.1) then
+    !
+    !--for one fluid dust, viscosity term must be multiplied by
+    !  rhog/rho, but done in a symmetric way to conserve momentum
+    !  rhog/rho = 1/(1 + dusttogas)
+    !
+       rhogonrhoi = 1./(1. + rhodusttogasi)
+       rhogonrhoj = 1./(1. + rhodusttogasj)
+       rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
+       term = term*rhogonrhoav
+    endif
 
     !--used for thermal conductivity
     termu = vsigu*rhoav1*grkern
@@ -2067,25 +2092,55 @@ contains
   subroutine dust_derivs
     implicit none
     real, dimension(ndimV) :: ddeltav
-    real :: projddeltav
+    real :: projdeltavi,projdeltavj
+    real :: rhogasj,rhodustj,termi,termj,term,dterm,du
+    real, dimension(ndimV) :: prdustterm
 
     !
     !--time derivative of dust to gas ratio
+    !  (symmetric derivative to conserve dust/gas mass)
     !
     ddeltav(:)  = rhogrhodonrhoi*deltavi(:) - rhogrhodonrhoj*deltavj(:)
-    projddeltav = dot_product(ddeltav,dr)
+    projdeltavi = dot_product(deltavi,dr)
+    projdeltavj = dot_product(deltavj,dr)
+    termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
+    termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
+    term  = termi + termj
     
-    ddusttogasdt(i) = ddusttogasdt(i) + pmassj*projddeltav*grkerni
-    ddusttogasdt(j) = ddusttogasdt(j) + pmassi*projddeltav*grkernj
+    ddusttogasdt(i) = ddusttogasdt(i) - pmassj*term
+    ddusttogasdt(j) = ddusttogasdt(j) + pmassi*term
     
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
     !
-    !rhogasi = 
-    !rhogasj = 
-    !ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*
-    !ddeltavdt(:,j) = ddeltavdt(:,j) + pmassi*
+    !--high mach number term
+    rhogasi = rhoi/(1. + rhodusttogasi)
+    rhogasj = rhoj/(1. + rhodusttogasj)
+    rhodusti = rhogasi*rhodusttogasi
+    rhodustj = rhogasj*rhodusttogasj
+    termi = (rhodusti - rhogasi)*rho1i*deltav2i
+    termj = (rhodustj - rhogasj)*rho1j*deltav2j
+    dterm = 0.5*(termi - termj)
+    
+    ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni
+    ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj
+
+    !
+    !--anisotropic pressure term
+    !
+    prdustterm(:) = rhogrhodonrhoi*deltavi(:)*projdeltavi*rho21i*grkerni &
+                  + rhogrhodonrhoj*deltavj(:)*projdeltavj*rho21j*grkernj
+    
+    forcei(:) = forcei(:) - pmassj*(prdustterm(:))
+    forcej(:) = forcej(:) + pmassi*(prdustterm(:))
+    
+    !
+    !--thermal energy equation: add deltav.grad(u) term
+    !
+    du = uu(i) - uu(j)
+    dudt(i) = dudt(i) + pmassj*rhodusti*rho21i*du*projdeltavi*grkerni
+    dudt(j) = dudt(j) + pmassi*rhodustj*rho21j*du*projdeltavj*grkernj
     
   end subroutine dust_derivs
  
