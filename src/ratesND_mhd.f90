@@ -97,6 +97,14 @@ subroutine get_rates
  real, dimension(:), allocatable :: phi
  real :: phii,phii1,phii_on_phij,phij_on_phii,uui,uuj
 !
+!  (one fluid dust)
+!
+ real, dimension(ndimV) :: deltavi,deltavj
+ real :: rhodusttogasi,rhodusttogasj
+ real :: rhogrhodonrhoi, rhogrhodonrhoj
+ real :: prdusttogasi,prdusttogasj
+ real :: deltav2i,deltav2j
+!
 !  (kernel related quantities)
 !
  real :: q2i,q2j
@@ -177,6 +185,10 @@ subroutine get_rates
      gradh(i) = 1.
      gradhn(i) = 0.
      dhdt(i) = 0.
+  endif
+  if (idust.eq.1) then
+     ddusttogasdt(i) = 0.
+     ddeltavdt(:,i) = 0.
   endif
  enddo
 
@@ -281,7 +293,16 @@ subroutine get_rates
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
        dens1i = 1./dens(i)
-       pri = max(pr(i) - pext,0.)
+       if (idust.eq.1) then
+          rhodusttogasi = dusttogas(i)
+          deltavi(:)   = deltav(:,i)
+          deltav2i     = dot_product(deltavi,deltavi)
+          rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
+          prdusttogasi   = deltav2i*rhogrhodonrhoi
+          pri = max(pr(i) + prdusttogasi - pext,0.)
+       else
+          pri = max(pr(i) - pext,0.)
+       endif
 !       print *, 'PRI ', pr(i), pext, itype(i)
        prneti = pri - pequil(iexternal_force,xi(:),rhoi)
        pmassi = pmass(i)
@@ -1026,7 +1047,16 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    prj = max(pr(j) - pext,0.)
+    if (idust.eq.1) then
+       rhodusttogasj  = dusttogas(j)
+       deltavj(:)     = deltav(:,j)
+       deltav2j       = dot_product(deltavj,deltavj)
+       rhogrhodonrhoj = rhoj*rhodusttogasj/(1. + rhodusttogasj)**2
+       prdusttogasj   = deltav2j*rhogrhodonrhoj
+       prj = max(pr(j) + prdusttogasj - pext,0.)
+    else
+       prj = max(pr(j) - pext,0.)
+    endif
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
     Prho2j = prj*rho21j
     spsoundj = spsound(j)

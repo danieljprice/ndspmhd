@@ -66,7 +66,7 @@ subroutine conservative2primitive
         enddo
      enddo
   endif
-  
+
 !
 !--calculate magnetic flux density B from the conserved variable
 !
@@ -265,11 +265,6 @@ subroutine conservative2primitive
 !
 !--call equation of state calculation
 !
-! if (imhd.eq.0) then
-! call equation_of_state(pr(1:npart),spsound(1:npart),psi(1:npart),  &
-!                        rho(1:npart))
-! else
- 
 !
 !--compute unity (stored as psi) for later use in equation of motion
 !  (use pressure temporarily here)
@@ -284,14 +279,22 @@ subroutine conservative2primitive
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
     spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
+    if (idust.eq.1) stop 'iprterm=10 not implemented with idust=1'
  elseif (iprterm.eq.11) then
     call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart),psi(1:npart)) 
+                        rho(1:npart),psi(1:npart))
+    if (idust.eq.1) stop 'iprterm=11 not implemented with idust=1'
  else
-    call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart)) 
+    if (idust.eq.1) then
+       !
+       !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
+       !
+       dens(1:npart) = rho(1:npart)/(1. + dusttogas(1:npart))
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))    
+    else
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),rho(1:npart))
+    endif
  endif
-! endif
 !
 !--make fixed particles exact replicas of their closest particle
 !
