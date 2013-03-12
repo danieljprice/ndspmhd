@@ -51,7 +51,7 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  endif
 
  if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
-    where (rho > 0. .AND. itype.EQ.itypegas)
+    where (rho > 0. .AND. itype(1:isize).EQ.itypegas)
        pr = polyk*rho**gamma
        vsound = sqrt(gamma*pr/rho)
     elsewhere
