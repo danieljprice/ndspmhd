@@ -103,7 +103,7 @@ subroutine get_rates
  real :: rhodusttogasi,rhodusttogasj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
  real :: prdusttogasi,prdusttogasj
- real :: deltav2i,deltav2j
+ real :: deltav2i,deltav2j,rhog2i
 !
 !  (kernel related quantities)
 !
@@ -735,10 +735,21 @@ subroutine get_rates
           dpsidt(i) = 0.
     end select
 !
-!--calculate drag timestep
+!--Dust
 !
     if (idust.eq.2 .and. idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
+       !
+       !--two fluid dust: calculate drag timestep
+       !
        dtdrag = min(dtdrag,rhoi/Kdrag)
+    elseif (idust.eq.1) then
+       !
+       !--one fluid dust, sort out derivs of dusttogas and deltav
+       !
+       rhog2i = (1. + dusttogas(i))**2*rho1i*rho1i   ! 1/rhog^2
+       !print*,i,' rhog2i = ',rhog2i,1./dens(i)**2
+       !read*
+       ddusttogasdt(i) = rhog2i*ddusttogasdt(i)
     endif
  enddo
  
@@ -1323,6 +1334,12 @@ contains
 !------------------------------------------------------------------------
 
     if (imhd.ne.0) call mhd_terms
+
+!------------------------------------------------------------------------
+!  Time derivative of dust to gas ratio and deltav for one fluid dust
+!------------------------------------------------------------------------
+
+    if (idust.eq.1) call dust_derivs
 !
 !   Add contributions to j from mhd terms and dissipation here
 !   to avoid repeated memory access
@@ -2042,6 +2059,35 @@ contains
 
     return
   end subroutine mhd_terms
+ 
+!----------------------------------------------------------------
+!  Derivatives of dust to gas ratio and deltav 
+!  for one fluid dust
+!----------------------------------------------------------------
+  subroutine dust_derivs
+    implicit none
+    real, dimension(ndimV) :: ddeltav
+    real :: projddeltav
+
+    !
+    !--time derivative of dust to gas ratio
+    !
+    ddeltav(:)  = rhogrhodonrhoi*deltavi(:) - rhogrhodonrhoj*deltavj(:)
+    projddeltav = dot_product(ddeltav,dr)
+    
+    ddusttogasdt(i) = ddusttogasdt(i) + pmassj*projddeltav*grkerni
+    ddusttogasdt(j) = ddusttogasdt(j) + pmassi*projddeltav*grkernj
+    
+    !
+    !--time derivative of deltav
+    !  (here only bits that involve sums over particles, i.e. not decay term)
+    !
+    !rhogasi = 
+    !rhogasj = 
+    !ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*
+    !ddeltavdt(:,j) = ddeltavdt(:,j) + pmassi*
+    
+  end subroutine dust_derivs
  
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle
