@@ -386,26 +386,26 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
     endif
-    dxdx(:,1:idumsize) = dumdxdx(:,1:idumsize)
-    x0(:,1:idumsize) = dumx0(:,1:idumsize)
-    rho0(1:idumsize) = dumrho0(1:idumsize)
+    dxdx(:,1:idumsize) = dumdxdx(:,iorder(1:idumsize))
+    x0(:,1:idumsize) = dumx0(:,iorder(1:idumsize))
+    rho0(1:idumsize) = dumrho0(iorder(1:idumsize))
 !
 !--dust
 !
     if (idust.eq.1) then
-       dusttogas(1:idumsize)    = dumdusttogas(1:idumsize)
-       ddusttogasdt(1:idumsize) = dumddusttogasdt(1:idumsize)
-       deltav(:,1:idumsize)     = dumdeltav(:,1:idumsize)
-       ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,1:idumsize)
-       dusttogasin(1:idumsize)  = dumdusttogasin(1:idumsize)
-       deltavin(:,1:idumsize)   = dumdeltavin(:,1:idumsize)
+       dusttogas(1:idumsize)    = dumdusttogas(iorder(1:idumsize))
+       ddusttogasdt(1:idumsize) = dumddusttogasdt(iorder(1:idumsize))
+       deltav(:,1:idumsize)     = dumdeltav(:,iorder(1:idumsize))
+       ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,iorder(1:idumsize))
+       dusttogasin(1:idumsize)  = dumdusttogasin(iorder(1:idumsize))
+       deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
     endif
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
     dxdx(:,:) = 1.
  endif
-       
+ 
 !
 !--debugging information
 !
