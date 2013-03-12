@@ -35,12 +35,12 @@ subroutine setup
  real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
- real :: tstopl,tstopr,psepreql,psepreqr
+ real :: tstopl,tstopr,psepreql,psepreqr,dusttogas_ratio
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
  
  ntypes = 1
- if (idrag_nature.gt.0) ntypes = 2
+ if (idust.eq.2 .and. idrag_nature.gt.0) ntypes = 2
 !
 !--allow for tracing flow
 !
@@ -261,18 +261,18 @@ subroutine setup
     enddo
  endif
 !
-!--now set particle properties
+!--setup dust-to-gas ratio
 !
- gam1 = gamma - 1.
- if (ABS(gam1).GT.1.e-3) then
-    uuleft = prleft/(gam1*densleft)
-    uuright = prright/(gam1*densright)
- else
-    uuleft = 3.*prleft/(2.*densleft)
-    uuright = 3.*prright/(2.*densright)
+ if (idust.eq.1) then
+    dusttogas_ratio = 1.
+    do i=1,npart
+       dusttogas(i) = dusttogas_ratio
+       deltav(:,i)  = 0.
+    enddo
+    !prleft  = prleft/sqrt(1. + dusttogas_ratio)
+    !prright = prright/sqrt(1. + dusttogas_ratio)
  endif
- 
- if (idrag_nature.gt.0) then
+ if (idust.eq.2 .and. idrag_nature.gt.0) then
     cs_L  = sqrt(gamma*prleft/densleft)
     cs_R  = sqrt(gamma*prright/densright)
     tstopl = densleft*densleft/(Kdrag*(densleft + densleft))
@@ -284,6 +284,18 @@ subroutine setup
     read*
  endif
 
+!
+!--now set particle properties
+!
+ gam1 = gamma - 1.
+ if (ABS(gam1).GT.1.e-3) then
+    uuleft = prleft/(gam1*densleft)
+    uuright = prright/(gam1*densright)
+ else
+    uuleft = 3.*prleft/(2.*densleft)
+    uuright = 3.*prright/(2.*densright)
+ endif
+ 
  do i=1,npart
     delta = (x(1,i) - xshock)/psep
     if (delta.GT.dsmooth) then
@@ -368,7 +380,7 @@ subroutine setup
 !  smooth pressure jump (no spikes)
 !
 ! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
- if (.true. .and. ndim.le.1) then
+ if (.true. .and. ndim.le.1 .and. iener.gt.0) then
     if (any(ibound.eq.1)) call set_fixedbound()
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
