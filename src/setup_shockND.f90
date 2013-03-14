@@ -341,7 +341,9 @@ subroutine setup
     !
     !--override settings for dust particles
     !
-    if (itype(i).eq.itypedust) then
+    if (idust.eq.1) then
+       pmass(i) = pmass(i)*(1. + dusttogas(i))
+    elseif (itype(i).eq.itypedust) then
        uu(i) = 0.
        Bfield(:,i) = 0.
     endif
