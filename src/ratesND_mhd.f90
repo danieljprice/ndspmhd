@@ -102,8 +102,11 @@ subroutine get_rates
  real, dimension(ndimV) :: deltavi,deltavj
  real :: rhodusttogasi,rhodusttogasj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
- real :: deltav2i,deltav2j,rhog2i,rhogasi,rhodusti
- real :: dtstop
+ real :: deltav2i,deltav2j,rhog2i
+ real :: dtstop,projdeltavi,projdeltavj
+ real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
+ real, dimension(ndimV) :: vgasi,vgasj,dvgas
+
 !
 !  (kernel related quantities)
 !
@@ -293,12 +296,6 @@ subroutine get_rates
        rho1i = 1./rhoi
        rho21i = rho1i*rho1i
        dens1i = 1./dens(i)
-       if (idust.eq.1) then
-          rhodusttogasi  = dusttogas(i)
-          deltavi(:)     = deltav(:,i)
-          deltav2i       = dot_product(deltavi,deltavi)
-          rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
-       endif
        pri = max(pr(i) - pext,0.)
 !       print *, 'PRI ', pr(i), pext, itype(i)
        prneti = pri - pequil(iexternal_force,xi(:),rhoi)
@@ -313,6 +310,16 @@ subroutine get_rates
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
+       ! one fluid dust definitions
+       if (idust.eq.1) then
+          rhodusttogasi  = dusttogas(i)
+          rhogasi        = rhoi/(1. + rhodusttogasi)
+          rhodusti       = rhogasi*rhodusttogasi
+          deltavi(:)     = deltav(:,i)
+          deltav2i       = dot_product(deltavi,deltavi)
+          rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
+          vgasi(:)       = veli(:) - rhodusti*rho1i*deltavi(:)
+       endif
        ! mhd definitions
        if (imhd.ne.0) then
           Bi(:) = Bfield(:,i)
@@ -1076,9 +1083,14 @@ contains
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
        rhodusttogasj  = dusttogas(j)
+       rhogasj        = rhoj/(1. + rhodusttogasj)
+       rhodustj       = rhogasj*rhodusttogasj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
        rhogrhodonrhoj = rhoj*rhodusttogasj/(1. + rhodusttogasj)**2
+       vgasj(:)       = velj(:) - rhodustj*rho1j*deltavj(:)
+       dvgas(:)       = vgasi(:) - vgasj(:)
+       projdvgas      = dot_product(dvgas,dr)
     endif
     prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
@@ -1470,6 +1482,8 @@ contains
     !!rhoav1 = 2./(rhoi + rhoj)
     if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
+    elseif (idust.eq.1) then    
+       dpmomdotr = -dot_product(vgasi(:) - vgasj(:),dr(:))
     else
        dpmomdotr = -dvdotr
     endif
@@ -1486,6 +1500,8 @@ contains
        rhogonrhoj = 1./(1. + rhodusttogasj)
        rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
        term = term*rhogonrhoav
+       if (iav.ge.3) stop 'av terms not implemented for iav>=3 and one-fluid dust'
+       if (iener.eq.3) stop 'av terms not implemented for iener=3 and one-fluid dust'
     endif
 
     !--used for thermal conductivity
@@ -1600,7 +1616,11 @@ contains
        !  kinetic energy terms
        !
        if (dvdotr.lt.0 .and. iav.le.2) then
-          vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+          if (idust.eq.1) then
+             vissv = -alphaav*0.5*(dot_product(vgasi,dr) - dot_product(vgasj,dr))**2          
+          else
+             vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+          endif
        elseif (iav.ge.3) then
           vissv = -alphaav*0.5*dot_product(dvel,dvel)       
        else
@@ -1639,7 +1659,7 @@ contains
 
           !--entropy dissipation
           if (iener.eq.1) then
-             if (alphau.gt.0.) stop 'entropy dissipation is wrong'
+             if (alphau.gt.0.) stop 'thermal conduction in entropy equation is wrong'
              vissu = alphau*(en(i)-en(j))
              dendt(i) = dendt(i) + pmassj*(termu*(vissu))
              dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
@@ -1655,6 +1675,30 @@ contains
     
     return
   end subroutine artificial_dissipation
+  
+  
+!--------------------------------------------------------------------------------------
+! These are the artificial viscosity, thermal conduction and resistivity terms
+! Change this to change the artificial viscosity algorithm
+! Inherits the values of local variables from rates
+!
+! This version corresponds to the one fluid dust algorithm
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_dust
+    implicit none
+    real, dimension(ndimB) :: Bvisc,dBdtvisc
+    real :: vissv
+    real :: alphaav,alphau,alphaB
+    !
+    !--definitions
+    !      
+    alphaav = 0.5*(alphai + alpha(1,j))
+    alphau = 0.5*(alphaui + alpha(2,j))
+    alphaB = 0.5*(alphaBi + alpha(3,j))
+
+    vissv = -alphaav*0.5*(dot_product(vgasi,dr) - dot_product(vgasj,dr))**2          
+
+  end subroutine artificial_dissipation_dust
 
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction terms
@@ -2093,9 +2137,8 @@ contains
   subroutine dust_derivs
     implicit none
     real, dimension(ndimV) :: ddeltav
-    real :: projdeltavi,projdeltavj
-    real :: rhogasj,rhodustj,termi,termj,term,dterm,du,projdvgas
-    real, dimension(ndimV) :: prdustterm,vgasi,vgasj,dvgas
+    real :: termi,termj,term,dterm,du
+    real, dimension(ndimV) :: prdustterm
 
     !
     !--time derivative of dust to gas ratio
@@ -2144,10 +2187,6 @@ contains
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !
     du = uu(i) - uu(j)
-    vgasi(:) = vel(:,i) - rhodusti*rho1i*deltavi(:)
-    vgasj(:) = vel(:,j) - rhodustj*rho1j*deltavj(:)
-    dvgas(:) = vgasi(:) - vgasj(:)
-    projdvgas = dot_product(dvgas,dr)
     
     dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
     dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
