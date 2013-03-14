@@ -64,6 +64,8 @@ subroutine step
     dpsidtin(i) = dpsidt(i)
     
     if (idust.eq.1) then
+       dusttogasin(i)    = dusttogas(i)
+       deltavin(:,i)     = deltav(:,i)
        ddusttogasdtin(i) = ddusttogasdt(i)
        ddeltavdtin(:,i)  = ddeltavdt(:,i)
     endif
