@@ -103,11 +103,14 @@ subroutine evwrite(t,etot,momtot)
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
     if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
+
     if (idust.eq.1) then
-       ekin = ekin + 0.5*pmassi*dusttogas(i)/(1. + dusttogas(i)) &
+       ekin = ekin + 0.5*pmassi*dusttogas(i)/(1. + dusttogas(i))**2 &
                         *dot_product(deltav(:,i),deltav(:,i))
+       etherm = etherm + pmassi*uu(i)/(1. + dusttogas(i))
+    else    
+       etherm = etherm + pmassi*uu(i)
     endif
-    etherm = etherm + pmassi*uu(i)
 !
 !--potential energy from external forces
 !    
