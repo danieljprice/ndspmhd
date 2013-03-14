@@ -491,8 +491,13 @@ subroutine get_rates
        !
        rhogasi  = rhoi/(1. + dusttogas(i))
        rhodusti = rhogasi*dusttogas(i)
-       dtstop   = Kdrag*rhoi/(rhogasi*rhodusti)
-       ddeltavdt(:,i) = rho1i*ddeltavdt(:,i) - deltav(:,i)*dtstop
+       if (rhodusti.gt.0.) then
+          dtstop   = Kdrag*rhoi/(rhogasi*rhodusti)
+          ddeltavdt(:,i) = rho1i*ddeltavdt(:,i) - deltav(:,i)*dtstop
+       else
+          dtstop = 0.
+          ddeltavdt(:,i) = 0.
+       endif
        
        !
        !--du/dt: add thermal energy dissipation from drag
@@ -1470,7 +1475,7 @@ contains
     real :: qdiff
     real :: vissv,vissB,vissu
     real :: term,dpmomdotr
-    real :: termnonlin,termu
+    real :: termnonlin,termu,termv
     real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
     !
     !--definitions
@@ -1483,12 +1488,13 @@ contains
     if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
     elseif (idust.eq.1) then    
-       dpmomdotr = -dot_product(vgasi(:) - vgasj(:),dr(:))
+       dpmomdotr = -projdvgas
     else
        dpmomdotr = -dvdotr
     endif
     !--used for viscosity
     term = vsig*rhoav1*grkern
+    termv = term
     
     if (idust.eq.1) then
     !
@@ -1499,7 +1505,7 @@ contains
        rhogonrhoi = 1./(1. + rhodusttogasi)
        rhogonrhoj = 1./(1. + rhodusttogasj)
        rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
-       term = term*rhogonrhoav
+       termv = termv*rhogonrhoav
        if (iav.ge.3) stop 'av terms not implemented for iav>=3 and one-fluid dust'
        if (iener.eq.3) stop 'av terms not implemented for iener=3 and one-fluid dust'
     endif
@@ -1524,11 +1530,11 @@ contains
     !----------------------------------------------------------------
     
     if (dvdotr.lt.0 .and. iav.le.2) then            
-       visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
+       visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
     elseif (iav.ge.3) then ! using total energy, for approaching and receding
-       visc = alphaav*term
+       visc = alphaav*termv
        forcei(:) = forcei(:) + pmassj*visc*dvel(:)
        forcej(:) = forcej(:) - pmassi*visc*dvel(:)
     endif
@@ -1617,7 +1623,7 @@ contains
        !
        if (dvdotr.lt.0 .and. iav.le.2) then
           if (idust.eq.1) then
-             vissv = -alphaav*0.5*(dot_product(vgasi,dr) - dot_product(vgasj,dr))**2          
+             vissv = -alphaav*0.5*projdvgas**2          
           else
              vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
           endif
@@ -2171,8 +2177,8 @@ contains
     !  i.e. before we add the anisotropic pressure term to the forces.
     !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
     !
-    ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni + rhoi/rhogasi*forcei(:)
-    ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj + rhoj/rhogasj*forcej(:)
+    !ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni + rhoi/rhogasi*forcei(:)
+    !ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj + rhoj/rhogasj*forcej(:)
 
     !
     !--anisotropic pressure term
