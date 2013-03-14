@@ -47,7 +47,11 @@ subroutine conservative2primitive
 
   nerr = 0
   sqrtg = 1.
-  dens = rho
+  if (idust.eq.1) then
+     dens = rho/(1. + dusttogas) ! rho = rho_gas + rho_dust, dens is rho_gas
+  else
+     dens = rho
+  endif
 ! 
 !--set x0 correctly on ghost particles
 !  (needed for remapped B or remapped euler potentials evolution)
@@ -289,7 +293,6 @@ subroutine conservative2primitive
        !
        !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
        !
-       dens(1:npart) = rho(1:npart)/(1. + dusttogas(1:npart))
        call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))    
     else
        call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),rho(1:npart))
@@ -373,7 +376,11 @@ subroutine primitive2conservative
 !
   isetpolyk = .false.
   do i=1,npart
-     rho(i) = dens(i)
+     if (idust.eq.1) then
+        rho(i) = dens(i)*(1. + dusttogas(i)) ! rho is total mass density, dens is gas density only  
+     else
+        rho(i) = dens(i)
+     endif
      hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
 !
 !--also work out what polyk should be if using iener = 0
