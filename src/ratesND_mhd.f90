@@ -851,7 +851,7 @@ contains
     real    :: s2_over_m,spsoundgas
     real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
     real    :: dt1,dt12
-    real    :: gkeri,gkerj
+    !real    :: gkeri,gkerj
     real, dimension(ndimV) :: drdrag
     real, parameter :: pow_drag_exp = 0.4
     real, parameter :: a2_set       = 0.5
@@ -1096,6 +1096,8 @@ contains
        vgasj(:)       = velj(:) - rhodustj*rho1j*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
+    else
+       projdvgas      = dvdotr
     endif
     prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
@@ -1688,12 +1690,11 @@ contains
 ! Change this to change the artificial viscosity algorithm
 ! Inherits the values of local variables from rates
 !
-! This version corresponds to the one fluid dust algorithm
+! This version corresponds to av terms as implemented in phantom
 !--------------------------------------------------------------------------------------
-  subroutine artificial_dissipation_dust
+  subroutine artificial_dissipation_phantom
     implicit none
-    real, dimension(ndimB) :: Bvisc,dBdtvisc
-    real :: vissv
+    real :: vissv,term,visc
     real :: alphaav,alphau,alphaB
     !
     !--definitions
@@ -1702,9 +1703,16 @@ contains
     alphau = 0.5*(alphaui + alpha(2,j))
     alphaB = 0.5*(alphaBi + alpha(3,j))
 
-    vissv = -alphaav*0.5*(dot_product(vgasi,dr) - dot_product(vgasj,dr))**2          
+    vissv = -alphaav*0.5*(projdvgas)**2
+    term = vsig*rhoav1*grkern
 
-  end subroutine artificial_dissipation_dust
+    if (dvdotr.lt.0 .and. iav.le.2) then            
+       visc = alphaav*term*abs(projdvgas)
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+    endif
+
+  end subroutine artificial_dissipation_phantom
 
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction terms
@@ -2156,10 +2164,10 @@ contains
     termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
-    
+
     ddusttogasdt(i) = ddusttogasdt(i) - pmassj*term
     ddusttogasdt(j) = ddusttogasdt(j) + pmassi*term
-    
+
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
@@ -2185,20 +2193,20 @@ contains
     !
     prdustterm(:) = rhogrhodonrhoi*deltavi(:)*projdeltavi*rho21i*grkerni &
                   + rhogrhodonrhoj*deltavj(:)*projdeltavj*rho21j*grkernj
-    
+
     forcei(:) = forcei(:) - pmassj*(prdustterm(:))
     forcej(:) = forcej(:) + pmassi*(prdustterm(:))
-    
+
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !
     du = uu(i) - uu(j)
-    
+
     dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
     dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
-    
+
   end subroutine dust_derivs
- 
+
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle
 !
