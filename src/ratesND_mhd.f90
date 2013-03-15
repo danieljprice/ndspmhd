@@ -102,10 +102,10 @@ subroutine get_rates
  real, dimension(ndimV) :: deltavi,deltavj
  real :: rhodusttogasi,rhodusttogasj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
- real :: deltav2i,deltav2j,rhog2i
+ real :: deltav2i,deltav2j,rhoonrhog2i
  real :: dtstop,projdeltavi,projdeltavj
  real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
- real, dimension(ndimV) :: vgasi,vgasj,dvgas
+ real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
 
 !
 !  (kernel related quantities)
@@ -319,6 +319,8 @@ subroutine get_rates
           deltav2i       = dot_product(deltavi,deltavi)
           rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
           vgasi(:)       = veli(:) - rhodusti*rho1i*deltavi(:)
+       else
+          rhogasi = rhoi
        endif
        ! mhd definitions
        if (imhd.ne.0) then
@@ -353,6 +355,7 @@ subroutine get_rates
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
        forcei(:) = 0.
+       fextrai(:) = 0.
        dBevoldti(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
@@ -404,9 +407,12 @@ subroutine get_rates
         enddo loop_over_neighbours
        !
        !--add contributions to particle i from summation over j
+       !  (forcei is forces on gas only, fextra is terms that apply to total fluid)
        !
-       force(:,i) = force(:,i) + forcei(:)
+       force(:,i) = force(:,i) + forcei(:) + fextrai(:)
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
+       if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) + rhoi/rhogasi*forcei(:)
+
 
        iprev = i
        if (iprev.ne.-1) i = ll(i) ! possibly should be only IF (iprev.NE.-1)
@@ -476,14 +482,15 @@ subroutine get_rates
        !
        dtdrag = min(dtdrag,rhoi/Kdrag)
     elseif (idust.eq.1) then
+       !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
        !------------------
        !  one fluid dust
        !------------------
        !
        !--d/dt(rhod/rhog): multiply by terms out the front of the SPH sum
        !
-       rhog2i = (1. + dusttogas(i))**2  ! rhog/rho
-       ddusttogasdt(i) = rhog2i*ddusttogasdt(i)
+       rhoonrhog2i = (1. + dusttogas(i))**2  ! (rho/rhog)**2
+       ddusttogasdt(i) = rhoonrhog2i*ddusttogasdt(i)
        
        !
        !--d/dt(deltav)  : multiply by 1/rho and add terms that
@@ -1139,6 +1146,7 @@ contains
        endif
     endif
     forcej(:) = 0.
+    fextraj(:) = 0.
         
     !--maximum velocity for timestep control
     !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
@@ -1375,8 +1383,9 @@ contains
 !
 !   Add contributions to j from mhd terms and dissipation here
 !   to avoid repeated memory access
-!    
-    force(:,j) = force(:,j) + forcej(:)
+!
+!   here forcej is the gas-only forces, fextraj are forces that act on the total fluid
+    force(:,j) = force(:,j) + forcej(:) + fextraj(:)
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -2185,8 +2194,8 @@ contains
     !  i.e. before we add the anisotropic pressure term to the forces.
     !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
     !
-    !ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni + rhoi/rhogasi*forcei(:)
-    !ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj + rhoj/rhogasj*forcej(:)
+    ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni ! add forcei term once finished
+    ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj + rhoj/rhogasj*forcej(:)
 
     !
     !--anisotropic pressure term
@@ -2194,16 +2203,17 @@ contains
     prdustterm(:) = rhogrhodonrhoi*deltavi(:)*projdeltavi*rho21i*grkerni &
                   + rhogrhodonrhoj*deltavj(:)*projdeltavj*rho21j*grkernj
 
-    forcei(:) = forcei(:) - pmassj*(prdustterm(:))
-    forcej(:) = forcej(:) + pmassi*(prdustterm(:))
+    fextrai(:) = fextrai(:) - pmassj*(prdustterm(:))
+    fextraj(:) = fextraj(:) + pmassi*(prdustterm(:))
 
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !
-    du = uu(i) - uu(j)
-
-    dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
-    dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
+    if (iener.gt.0) then
+       du = uu(i) - uu(j)
+       dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
+       dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
+    endif
 
   end subroutine dust_derivs
 
