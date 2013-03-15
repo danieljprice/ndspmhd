@@ -22,7 +22,7 @@ subroutine setup
 !            
  implicit none
  integer :: i
- integer, parameter :: ntypes = 2
+ integer :: ntypes
  integer :: ngas,ndust,jtype
  real, dimension(ndimV) :: Bzero
  real :: massp,masspdust
@@ -35,6 +35,11 @@ subroutine setup
  Bzero    = 0.
  denszero = 1.0
  uuzero   = 1.0
+ if (idust.eq.1) then
+    ntypes = 1
+ else
+    ntypes = 2
+ endif
 !
 !--set boundaries
 !
@@ -64,8 +69,13 @@ subroutine setup
 
  massp = 1.0/FLOAT(ngas)        ! average particle mass
  
- masspdust = 0.
  dust_to_gas_ratio = 1.
+ if (idust.eq.1) then ! one fluid dust
+    massp = massp*(1. + dust_to_gas_ratio)
+ endif
+
+ ! two fluid dust (if ndust > 0)
+ masspdust = 0.
  if (ndust.gt.0) masspdust = dust_to_gas_ratio*1.0/FLOAT(ndust) ! average particle mass
  denszerodust = dust_to_gas_ratio*denszero
  if (ntypes.gt.1) print*,' ngas = ',ngas,' ndust = ',ndust
@@ -83,7 +93,13 @@ subroutine setup
        pmass(i) = masspdust
        uu(i)    = 0. 
     else
-       vel(1,i) = 1.    
+       if (idust.eq.1) then
+          dusttogas(i) = dust_to_gas_ratio
+          deltav(1,i)  = -1. ! deltav = vdust - vgas
+          vel(1,i) = 0.5     ! v = vg + rhod/rho*deltav
+       else
+          vel(1,i) = 1. !--gas velocity       
+       endif
        dens(i)  = denszero
        pmass(i) = massp
        uu(i)    = uuzero
