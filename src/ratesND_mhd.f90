@@ -100,7 +100,7 @@ subroutine get_rates
 !  (one fluid dust)
 !
  real, dimension(ndimV) :: deltavi,deltavj
- real :: rhodusttogasi,rhodusttogasj
+ real :: dusttogasi,dusttogasj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
  real :: deltav2i,deltav2j,rhoonrhog2i
  real :: dtstop,projdeltavi,projdeltavj
@@ -312,15 +312,17 @@ subroutine get_rates
        sqrtgi = sqrtg(i)
        ! one fluid dust definitions
        if (idust.eq.1) then
-          rhodusttogasi  = dusttogas(i)
-          rhogasi        = rhoi/(1. + rhodusttogasi)
-          rhodusti       = rhogasi*rhodusttogasi
+          dusttogasi  = dusttogas(i)
+          rhogasi        = rhoi/(1. + dusttogasi)
+          rhodusti       = rhogasi*dusttogasi
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
-          rhogrhodonrhoi = rhoi*rhodusttogasi/(1. + rhodusttogasi)**2
-          vgasi(:)       = veli(:) - rhodusti*rho1i*deltavi(:)
+          rhogrhodonrhoi = rhoi*dusttogasi/(1. + dusttogasi)**2
+          vgasi(:)       = veli(:) - dusttogasi/(1. + dusttogasi)*deltavi(:)
        else
-          rhogasi = rhoi
+          rhogasi  = rhoi
+          rhodusti = 0.
+          deltav2i = 0.
        endif
        ! mhd definitions
        if (imhd.ne.0) then
@@ -411,7 +413,7 @@ subroutine get_rates
        !
        force(:,i) = force(:,i) + forcei(:) + fextrai(:)
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
-       if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) + rhoi/rhogasi*forcei(:)
+       if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) - rhoi/rhogasi*forcei(:)
 
 
        iprev = i
@@ -483,6 +485,7 @@ subroutine get_rates
        dtdrag = min(dtdrag,rhoi/Kdrag)
     elseif (idust.eq.1) then
        !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
+       !dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
        !------------------
        !  one fluid dust
        !------------------
@@ -493,14 +496,11 @@ subroutine get_rates
        ddusttogasdt(i) = rhoonrhog2i*ddusttogasdt(i)
        
        !
-       !--d/dt(deltav)  : multiply by 1/rho and add terms that
-       !  do not involve sums over particles
+       !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
-       rhogasi  = rhoi/(1. + dusttogas(i))
-       rhodusti = rhogasi*dusttogas(i)
-       if (rhodusti.gt.0.) then
-          dtstop   = Kdrag*rhoi/(rhogasi*rhodusti)
-          ddeltavdt(:,i) = rho1i*ddeltavdt(:,i) - deltav(:,i)*dtstop
+       if (dusttogas(i).gt.0.) then
+          dtstop   = Kdrag*(1. + dusttogas(i))**2/(rhoi*dusttogas(i))  ! 1/tstop = K*rho/(rhod*rhog)
+          !ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
           ddeltavdt(:,i) = 0.
@@ -1094,17 +1094,18 @@ contains
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
-       rhodusttogasj  = dusttogas(j)
-       rhogasj        = rhoj/(1. + rhodusttogasj)
-       rhodustj       = rhogasj*rhodusttogasj
+       dusttogasj  = dusttogas(j)
+       rhogasj        = rhoj/(1. + dusttogasj)
+       rhodustj       = rhogasj*dusttogasj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       rhogrhodonrhoj = rhoj*rhodusttogasj/(1. + rhodusttogasj)**2
-       vgasj(:)       = velj(:) - rhodustj*rho1j*deltavj(:)
+       rhogrhodonrhoj = rhoj*dusttogasj/(1. + dusttogasj)**2
+       vgasj(:)       = velj(:) - dusttogasj/(1. + dusttogasj)*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
     else
        projdvgas      = dvdotr
+       deltav2j       = 0.
     endif
     prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
@@ -1273,6 +1274,9 @@ contains
 
        ! vsigdtc is the signal velocity used in the timestep control
        vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
+       if (idust.eq.1) then
+          vsigdtc = vsigdtc + sqrt(deltav2i + deltav2j)
+       endif
     
     endif
 
@@ -1513,8 +1517,8 @@ contains
     !  rhog/rho, but done in a symmetric way to conserve momentum
     !  rhog/rho = 1/(1 + dusttogas)
     !
-       rhogonrhoi = 1./(1. + rhodusttogasi)
-       rhogonrhoj = 1./(1. + rhodusttogasj)
+       rhogonrhoi = 1./(1. + dusttogasi)
+       rhogonrhoj = 1./(1. + dusttogasj)
        rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
        termv = termv*rhogonrhoav
        if (iav.ge.3) stop 'av terms not implemented for iav>=3 and one-fluid dust'
@@ -2159,7 +2163,6 @@ contains
 !----------------------------------------------------------------
   subroutine dust_derivs
     implicit none
-    real, dimension(ndimV) :: ddeltav
     real :: termi,termj,term,dterm,du
     real, dimension(ndimV) :: prdustterm
 
@@ -2167,7 +2170,6 @@ contains
     !--time derivative of dust to gas ratio
     !  (symmetric derivative to conserve dust/gas mass)
     !
-    ddeltav(:)  = rhogrhodonrhoi*deltavi(:) - rhogrhodonrhoj*deltavj(:)
     projdeltavi = dot_product(deltavi,dr)
     projdeltavj = dot_product(deltavj,dr)
     termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
@@ -2182,20 +2184,18 @@ contains
     !  (here only bits that involve sums over particles, i.e. not decay term)
     !
     !--high mach number term
-    rhogasi = rhoi/(1. + rhodusttogasi)
-    rhogasj = rhoj/(1. + rhodusttogasj)
-    rhodusti = rhogasi*rhodusttogasi
-    rhodustj = rhogasj*rhodusttogasj
-    termi = (rhodusti - rhogasi)*rho1i*deltav2i
-    termj = (rhodustj - rhogasj)*rho1j*deltav2j
-    dterm = 0.5*(termi - termj)
+    rhogasj  = rhoj/(1. + dusttogasj)
+    rhodustj = rhogasj*dusttogasj
+    termi    = (1. - dusttogasi)/(1. + dusttogasi)*deltav2i
+    termj    = (1. - dusttogasj)/(1. + dusttogasj)*deltav2j
+    dterm    = 0.5*(termi - termj)
     !
     !--note: need to add term to d/dt(deltav) using the gas-only force 
     !  i.e. before we add the anisotropic pressure term to the forces.
     !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
     !
-    ddeltavdt(:,i) = ddeltavdt(:,i) - pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni ! add forcei term once finished
-    ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj + rhoj/rhogasj*forcej(:)
+    ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi - dterm*dr(:))*grkerni ! add forcei term once finished
+    ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj - dterm*dr(:))*grkernj - rhoj/rhogasj*forcej(:)
 
     !
     !--anisotropic pressure term
