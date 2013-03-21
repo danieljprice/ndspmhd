@@ -185,7 +185,7 @@ subroutine step
        
        if (idust.eq.1) then
           dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
-          deltav(:,i) = deltavin(:,i) + dt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+          deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
           if (dusttogas(i).gt.0.) then
              dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
