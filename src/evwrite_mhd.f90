@@ -42,6 +42,11 @@ subroutine evwrite(t,etot,momtot)
  real :: fmagabs,rhomax,rhomean,rhomin
  real :: angtot,ekiny,emagp
 !
+!--one fluid dust
+!
+ real :: totmassgas,totmassdust,dtgi,dterm
+
+!
 !--allow for tracing flow
 !      
  if (trace) write(iprint,*) ' Entering subroutine evwrite'
@@ -60,6 +65,8 @@ subroutine evwrite(t,etot,momtot)
  momtot = 0.0
  ang(:) = 0.
  ekiny = 0.
+ totmassdust = 0.
+ totmassgas  = 0.
 ! alphatstarav = 0.
 ! betatstarav = 0.
 !
@@ -105,9 +112,13 @@ subroutine evwrite(t,etot,momtot)
     if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
 
     if (idust.eq.1) then
-       ekin = ekin + 0.5*pmassi*dusttogas(i)/(1. + dusttogas(i))**2 &
+       dtgi  = dusttogas(i)
+       dterm = 1./(1. + dtgi)
+       ekin = ekin + 0.5*pmassi*dtgi*dterm**2 &
                         *dot_product(deltav(:,i),deltav(:,i))
-       etherm = etherm + pmassi*uu(i)/(1. + dusttogas(i))
+       etherm = etherm + pmassi*uu(i)*dterm
+       totmassgas  = totmassgas  + pmassi*dterm
+       totmassdust = totmassdust + pmassi*dtgi*dterm
     else    
        etherm = etherm + pmassi*uu(i)
     endif
@@ -241,7 +252,12 @@ subroutine evwrite(t,etot,momtot)
     !betatstarav = betatstarav/float(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
+    if (idust.eq.1) then
+       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,&
+                         totmassgas,totmassdust    
+    else
+       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
+    endif
 40  format(24(1pe18.10,1x))        
 
  endif
