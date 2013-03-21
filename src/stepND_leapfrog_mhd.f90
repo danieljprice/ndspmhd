@@ -32,7 +32,7 @@ subroutine step
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin,ddusttogasdtin
  real, dimension(3,npart) :: daldtin
- real :: hdt
+ real :: hdt,dtstop
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
 !
@@ -130,6 +130,10 @@ subroutine step
        if (idust.eq.1) then
           dusttogas(i) = dusttogasin(i) + dt*ddusttogasdtin(i)
           deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
+          if (dusttogas(i).gt.0.) then
+             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+             deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+          endif
        endif
     endif
  enddo
@@ -181,7 +185,11 @@ subroutine step
        
        if (idust.eq.1) then
           dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
-          deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+          deltav(:,i) = deltavin(:,i) + dt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+          if (dusttogas(i).gt.0.) then
+             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+             deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+          endif
        endif
     endif
 
