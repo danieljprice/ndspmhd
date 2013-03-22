@@ -106,6 +106,7 @@ subroutine get_rates
  real :: dtstop,projdeltavi,projdeltavj
  real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
+ real :: sum
 
 !
 !  (kernel related quantities)
@@ -471,6 +472,7 @@ subroutine get_rates
  
  fmean(:) = 0.
  dtdrag = huge(dtdrag)
+ sum = 0.
  do i=1,npart
  
     rhoi  = rho(i)
@@ -508,11 +510,24 @@ subroutine get_rates
        
        !
        !--du/dt: add thermal energy dissipation from drag
+       !  (maybe should do this in the step routine along with the implicit drag in ddeltav/dt?)
        !
        if (iener.gt.0) then
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
+       !
+       !--DEBUGGING: CHECK ENERGY CONSERVATION
+       !  BY ADDING TERMS (SHOULD GIVE ZERO)
+       !
+       dusttogasi = dusttogas(i)
+       rhogasi = rhoi/(1. + dusttogasi)
+       rhodusti = rhogasi*dusttogasi
+       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+                 + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
+                 + rhogasi**2*rho1i**2*((1. - dusttogasi)/(1. + dusttogasi)* &
+                   0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddusttogasdt(i) &
+                 + rhogasi*rho1i*dudt(i))
     endif
 
 !
@@ -787,6 +802,7 @@ subroutine get_rates
           dpsidt(i) = 0.
     end select
  enddo
+ if (idust.eq.1) print*,' SUM (should be zero if conserving energy) = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
@@ -2194,8 +2210,8 @@ contains
     !  i.e. before we add the anisotropic pressure term to the forces.
     !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
     !
-    ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi - dterm*dr(:))*grkerni ! add forcei term once finished
-    ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj - dterm*dr(:))*grkernj - rhoj/rhogasj*forcej(:)
+    ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni ! add forcei term once finished
+    ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj - rhoj/rhogasj*forcej(:)
 
     !
     !--anisotropic pressure term
