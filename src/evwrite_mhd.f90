@@ -44,7 +44,7 @@ subroutine evwrite(t,etot,momtot)
 !
 !--one fluid dust
 !
- real :: totmassgas,totmassdust,dtgi,dterm
+ real :: totmassgas,totmassdust,dtgi,dterm,ekindeltav
 
 !
 !--allow for tracing flow
@@ -109,17 +109,18 @@ subroutine evwrite(t,etot,momtot)
        ang(3) = ang(3) + pmassi*(x(1,i)*veli(2) - x(2,i)*veli(1))
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
-    if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
 
     if (idust.eq.1) then
        dtgi  = dusttogas(i)
        dterm = 1./(1. + dtgi)
-       ekin = ekin + 0.5*pmassi*dtgi*dterm**2 &
-                        *dot_product(deltav(:,i),deltav(:,i))
+       ekindeltav = 0.5*pmassi*dtgi*dterm**2*dot_product(deltav(:,i),deltav(:,i))
+       ekin = ekin + ekindeltav
+       ekiny = ekiny + ekindeltav
        etherm = etherm + pmassi*uu(i)*dterm
        totmassgas  = totmassgas  + pmassi*dterm
        totmassdust = totmassdust + pmassi*dtgi*dterm
-    else    
+    else
+       if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
        etherm = etherm + pmassi*uu(i)
     endif
 !
