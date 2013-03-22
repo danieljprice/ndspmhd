@@ -48,6 +48,13 @@ subroutine conservative2primitive
   nerr = 0
   sqrtg = 1.
   if (idust.eq.1) then
+     !--error checking on dust-to-gas ratio
+     do i=1,npart
+        if (dusttogas(i) < 0) then
+           print*,'ERROR: dust to gas = ',dusttogas(i),' on particle ',i
+           call quit
+        endif
+     enddo
      dens = rho/(1. + dusttogas) ! rho = rho_gas + rho_dust, dens is rho_gas
   else
      dens = rho
