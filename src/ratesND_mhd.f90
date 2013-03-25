@@ -496,6 +496,10 @@ subroutine get_rates
        !
        rhoonrhog2i = (1. + dusttogas(i))**2  ! (rho/rhog)**2
        ddusttogasdt(i) = rhoonrhog2i*ddusttogasdt(i)
+
+       dusttogasi = dusttogas(i)
+       rhogasi = rhoi/(1. + dusttogasi)
+       rhodusti = rhogasi*dusttogasi
        
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
@@ -520,9 +524,6 @@ subroutine get_rates
        !--DEBUGGING: CHECK ENERGY CONSERVATION
        !  BY ADDING TERMS (SHOULD GIVE ZERO)
        !
-       dusttogasi = dusttogas(i)
-       rhogasi = rhoi/(1. + dusttogasi)
-       rhodusti = rhogasi*dusttogasi
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
                  + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
                  + rhogasi**2*rho1i**2*((1. - dusttogasi)/(1. + dusttogasi)* &
@@ -802,7 +803,7 @@ subroutine get_rates
           dpsidt(i) = 0.
     end select
  enddo
- if (idust.eq.1) print*,' SUM (should be zero if conserving energy) = ',sum
+ if (idust.eq.1 .and. abs(sum).gt.1.e-9) print*,' SUM (should be zero if conserving energy) = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
