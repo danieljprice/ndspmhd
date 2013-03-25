@@ -30,7 +30,7 @@ subroutine step
  implicit none
  integer :: i,j,nsplit
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,uuin,dpsidtin,ddusttogasdtin
+ real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddusttogasdtin
  real, dimension(3,npart) :: daldtin
  real :: hdt,dtstop
  real, dimension(ndim)  :: xcyl,velcyl
@@ -51,7 +51,6 @@ subroutine step
     rhoin(i) = rho(i)
     hhin(i) = hh(i)
     enin(i) = en(i)
-    uuin(i) = uu(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
     
@@ -79,8 +78,7 @@ subroutine step
 
 !
 !--Leapfrog Predictor step
-!      
-      
+!
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
        if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
