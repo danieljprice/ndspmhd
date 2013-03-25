@@ -52,7 +52,8 @@ subroutine conservative2primitive
      do i=1,npart
         if (dusttogas(i) < 0) then
            print*,'ERROR: dust to gas = ',dusttogas(i),' on particle ',i
-           call quit
+           dusttogas(i) = 0.
+           !call quit
         endif
      enddo
      dens = rho/(1. + dusttogas) ! rho = rho_gas + rho_dust, dens is rho_gas
