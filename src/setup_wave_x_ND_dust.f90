@@ -23,7 +23,7 @@ subroutine setup
  implicit none
  integer :: i
  integer, parameter :: itsmax = 100
- integer, parameter :: ntypes = 2
+ integer :: ntypes
 ! real, parameter :: pi = 3.1415926536
  real, parameter :: tol = 1.e-8
  integer :: its,iwave,ngas,ndust,jtype
@@ -91,6 +91,12 @@ subroutine setup
 !--initially set up a uniform density grid (also determines npart)
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
+ if (idust.eq.1) then
+    ntypes = 1
+ else
+    ntypes = 2
+ endif
+
  ngas = 0
  ndust = 0
  do jtype=1,ntypes
@@ -135,7 +141,12 @@ subroutine setup
        Bfield(:,i) = Bzero
     else
        Bfield(:,i) = 0.
-    endif 
+    endif
+    if (idust.eq.1) then
+       dusttogas(i) = dust_to_gas_ratio
+       deltav(:,i) = 0.
+       pmass(i) = pmass(i)*(1. + dusttogas(i))
+    endif
  ENDDO
 
  ntotal = npart
