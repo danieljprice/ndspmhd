@@ -437,9 +437,17 @@ subroutine primitive2conservative
         hh(1:npart) = hav
      endif
      !--set density same as rho
-     dens = rho
+     if (idust.eq.1) then
+        dens = rho/(1. + dusttogas)
+     else
+        dens = rho
+     endif
   else
-     dens = rho
+     if (idust.eq.1) then
+        dens = rho/(1. + dusttogas)
+     else
+        dens = rho
+     endif
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
@@ -581,9 +589,9 @@ subroutine primitive2conservative
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
   case(1)   ! en = entropy
-     en = (gamma-1.)*uu/rho**(gamma-1.)
+     en = (gamma-1.)*uu/dens**(gamma-1.)
   case(4)   ! en = rho*u (volume thermal energy)
-     en = uu*rho
+     en = uu*dens
   case default        ! en = thermal energy
      en = uu
   end select
