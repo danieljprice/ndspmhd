@@ -35,7 +35,8 @@ subroutine setup
  real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
- real :: tstopl,tstopr,psepreql,psepreqr,dusttogas_ratio
+ real :: tstopl,tstopr,psepreql,psepreqr
+ real :: dusttogas_ratio,densdustleft,densdustright,densdust
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
  
@@ -183,8 +184,18 @@ subroutine setup
 !
  xmaxleft(1) = xshock
  xminright(1) = xshock
- psepleft = psep
- psepright = psep*(densleft/densright)**(1./ndim)
+ 
+ if (idust.eq.1) then
+    densdustleft = densright
+    densdustright = densright
+    psepleft = psep
+    psepright = psep*(densleft/densright)**(1./ndim)
+ else
+    densdustleft = 0.
+    densdustright = 0.
+    psepleft = psep
+    psepright = psep*(densleft/densright)**(1./ndim)
+ endif
  npartprev = npart
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
@@ -213,16 +224,13 @@ subroutine setup
        !--this sets up a square lattice    
        print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
        print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
-   !!    massp = (psep**ndim)*densright
-   !    if (jtype.eq.1) then
-          call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
-            ! set left half
-          volume = PRODUCT(xmaxleft-xminleft)
-          total_mass = volume*densleft
-          massp = total_mass/(npart - npartprev)
-          masspleft = massp
-          masspright = massp  
-   !    endif
+       call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
+         ! set left half
+       volume = PRODUCT(xmaxleft-xminleft)
+       total_mass = volume*densleft
+       massp = total_mass/(npart - npartprev)
+       masspleft = massp
+       masspright = massp  
        xmin = xminleft
 
        call set_uniform_cartesian(2,psepright,xminright,xmaxright,fill=.true.) ! set right half
@@ -260,18 +268,7 @@ subroutine setup
        endif
     enddo
  endif
-!
-!--setup dust-to-gas ratio
-!
- if (idust.eq.1) then
-    dusttogas_ratio = 1.
-    do i=1,npart
-       dusttogas(i) = dusttogas_ratio
-       deltav(:,i)  = 0.
-    enddo
-    !prleft  = prleft/sqrt(1. + dusttogas_ratio)
-    !prright = prright/sqrt(1. + dusttogas_ratio)
- endif
+
  if (idust.eq.2 .and. idrag_nature.gt.0) then
     cs_L  = sqrt(gamma*prleft/densleft)
     cs_R  = sqrt(gamma*prright/densright)
@@ -307,6 +304,7 @@ subroutine setup
        if (ndimV.ge.3) vel(3,i) = vzright
        if (ndimV.ge.2) Bfield(2,i) = Byright
        if (ndimV.ge.3) Bfield(3,i) = Bzright
+       densdust = densdustright
     elseif (delta.LT.-dsmooth) then
        dens(i) = densleft
        pmass(i) = masspleft
@@ -316,8 +314,9 @@ subroutine setup
        if (ndimV.ge.3) vel(3,i) = vzleft
        if (ndimV.ge.2) Bfield(2,i) = Byleft
        if (ndimV.ge.3) Bfield(3,i) = Bzleft
+       densdust = densdustleft
     else
-       exx = exp(delta)       
+       exx = exp(delta)
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
        pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
@@ -335,17 +334,24 @@ subroutine setup
           if (ndimV.ge.3) vel(3,i) = vzleft       
        endif
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
-       if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
+       if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
+       densdust = (densdustleft + densdustright*exx)/(1.0 +exx)
     endif           
     Bfield(1,i) = Bxinit
     !
     !--override settings for dust particles
     !
-    if (idust.eq.1) then
-       pmass(i) = pmass(i)*(1. + dusttogas(i))
-    elseif (itype(i).eq.itypedust) then
+    if (itype(i).eq.itypedust) then
        uu(i) = 0.
        Bfield(:,i) = 0.
+    endif
+!
+!--setup dust-to-gas ratio
+!
+    if (idust.eq.1) then
+       dusttogas(i) = densdust/dens(i)
+       deltav(:,i)  = 0.
+       pmass(i) = pmass(i)*(1. + dusttogas(i))
     endif
  enddo
 !
@@ -389,14 +395,17 @@ subroutine setup
     do i=1,npart
        if (x(1,i).le.xshock) then
           uu(i) = prleft/(gam1*dens(i))
+          !print*,'uuleft = ',uuleft,uu(i)
        else
           uu(i) = prright/(gam1*dens(i))
+          !print*,'uuright = ',uuright,uu(i)
        endif
        if (itype(i).eq.itypedust) then
           uu(i) = 0.
        endif
     enddo
  endif 
+ 
  
  return
 end subroutine setup
