@@ -36,7 +36,7 @@ subroutine setup
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
  real :: tstopl,tstopr,psepreql,psepreqr
- real :: dusttogas_ratio,densdustleft,densdustright,densdust
+ real :: dusttogas_ratio,densdustleft,densdustright,densdust,masspdustleft,masspdustright
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
  
@@ -51,7 +51,7 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 0.
+ dsmooth = 100.
  equalmass = .true.   ! use equal mass particles??
  stretchx = .false.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
@@ -185,16 +185,24 @@ subroutine setup
  xmaxleft(1) = xshock
  xminright(1) = xshock
  
- if (idust.eq.1) then
+ if (idust.gt.0) then
     densdustleft = densright
     densdustright = densright
+ else
+    densdustleft = 0.
+    densdustright = 0. 
+ endif
+ if (idust.eq.1) then
     psepleft = psep
     psepright = psep*(densleft/densright)**(1./ndim)
  else
-    densdustleft = 0.
-    densdustright = 0.
-    psepleft = psep
-    psepright = psep*(densleft/densright)**(1./ndim)
+    if (jtype.eq.2) then
+       psepleft = psep*(densdustleft/densleft)**(1./ndim)
+       psepright = psep*(densdustright/densleft)**(1./ndim)    
+    else
+       psepleft = psep
+       psepright = psep*(densleft/densright)**(1./ndim)
+    endif
  endif
  npartprev = npart
 
@@ -227,10 +235,17 @@ subroutine setup
        call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
          ! set left half
        volume = PRODUCT(xmaxleft-xminleft)
-       total_mass = volume*densleft
-       massp = total_mass/(npart - npartprev)
-       masspleft = massp
-       masspright = massp  
+       if (jtype.eq.2) then
+          total_mass = volume*densdustleft
+          massp = total_mass/(npart - npartprev)       
+          masspdustleft  = massp
+          masspdustright = massp  
+       else
+          total_mass = volume*densleft
+          massp = total_mass/(npart - npartprev)
+          masspleft = massp
+          masspright = massp  
+       endif
        xmin = xminleft
 
        call set_uniform_cartesian(2,psepright,xminright,xmaxright,fill=.true.) ! set right half
@@ -294,12 +309,17 @@ subroutine setup
  endif
  
  do i=1,npart
+    jtype = itype(i)
     delta = (x(1,i) - xshock)/psep
     if (delta.GT.dsmooth) then
        dens(i) = densright
        uu(i) = uuright
        vel(1,i) = vxright
-       pmass(i) = masspright
+       if (jtype.eq.itypedust) then
+          pmass(i) = masspdustright
+       else
+          pmass(i) = masspright
+       endif
        if (ndimV.ge.2) vel(2,i) = vyright
        if (ndimV.ge.3) vel(3,i) = vzright
        if (ndimV.ge.2) Bfield(2,i) = Byright
@@ -307,7 +327,11 @@ subroutine setup
        densdust = densdustright
     elseif (delta.LT.-dsmooth) then
        dens(i) = densleft
-       pmass(i) = masspleft
+       if (jtype.eq.itypedust) then
+          pmass(i) = masspdustleft
+       else
+          pmass(i) = masspleft
+       endif
        uu(i) = uuleft
        vel(1,i) = vxleft
        if (ndimV.ge.2) vel(2,i) = vyleft
@@ -318,7 +342,12 @@ subroutine setup
     else
        exx = exp(delta)
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
-       pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
+       if (jtype.eq.itypedust) then
+          pmass(i) = (masspdustleft + masspdustright*exx)/(1.0 + exx)
+       else
+          pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
+       endif
+
 !       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
 !       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
@@ -341,7 +370,7 @@ subroutine setup
     !
     !--override settings for dust particles
     !
-    if (itype(i).eq.itypedust) then
+    if (jtype.eq.itypedust) then
        uu(i) = 0.
        Bfield(:,i) = 0.
     endif
@@ -388,7 +417,7 @@ subroutine setup
 !  smooth pressure jump (no spikes)
 !
 ! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
- if (.true. .and. ndim.le.1 .and. iener.gt.0) then
+ if (.false. .and. ndim.le.1 .and. iener.gt.0) then
     if (any(ibound.eq.1)) call set_fixedbound()
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
