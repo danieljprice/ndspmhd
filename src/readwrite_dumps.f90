@@ -86,7 +86,11 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) vel(i,1:nprint)
   enddo
   write(idatfile) hh(1:nprint)
-  write(idatfile) dens(1:nprint)
+  if (idust.eq.1) then
+     write(idatfile) rho(1:nprint)  
+  else
+     write(idatfile) dens(1:nprint)
+  endif
   write(idatfile) uu(1:nprint)
   write(idatfile) pmass(1:nprint)
   
