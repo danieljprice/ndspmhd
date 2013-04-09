@@ -479,6 +479,9 @@ subroutine get_rates
  
     rhoi  = rho(i)
     rho1i = 1./rhoi
+    if (ivisc.gt.0) then
+       sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
+    endif
 !
 !--Dust
 !
@@ -806,6 +809,7 @@ subroutine get_rates
     end select
  enddo
  if (idust.eq.1 .and. abs(sum).gt.1.e-9) print*,' SUM (should be zero if conserving energy) = ',sum
+ if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
@@ -1513,10 +1517,10 @@ contains
     real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
-    real :: vissv,vissB,vissu
+    real :: vissv,vissB,vissu,vissdust
     real :: term,dpmomdotr
-    real :: termnonlin,termu,termv
-    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
+    real :: termnonlin,termu,termv,termi,termj
+    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav,rhoav1g
     !
     !--definitions
     !      
@@ -1702,8 +1706,13 @@ contains
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
-          dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
+          if (idust.eq.1) then
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu + termnonlin*(vissB))
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu + termnonlin*(vissB))          
+          else
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
+          endif
 
           !--entropy dissipation
           if (iener.eq.1) then
@@ -1713,6 +1722,24 @@ contains
              dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
           endif
        endif
+
+       !
+       !--dissipation term in dust-to-gas ratio
+       !
+       if (idust.eq.1) then
+!    termu = vsigu*rhoav1*grkern
+          rhoav1g = 1./(0.5*(rhogasi + rhogasj))
+          vissdust = vsig*rhoav1*grkern*alphaB*(rhodusti - rhodustj)*rhoav1g
+          ddusttogasdt(i) = ddusttogasdt(i) + pmassj*(vissdust)
+          ddusttogasdt(j) = ddusttogasdt(j) - pmassi*(vissdust)
+          dudt(i) = dudt(i) + uu(i)*rhoi/rhogasi*pmassj*(vissdust)
+          dudt(j) = dudt(j) - uu(j)*rhoj/rhogasj*pmassi*(vissdust)
+          termi = 0.5*rhoi*rhoi/(rhogasi*rhodusti)*(1. - dusttogasi)/(1. + dusttogasi)
+          termj = 0.5*rhoj*rhoj/(rhogasj*rhodustj)*(1. - dusttogasj)/(1. + dusttogasj)
+          ddeltavdt(:,i) = ddeltavdt(:,i) - deltavi(:)*termi*pmassj*(vissdust)
+          ddeltavdt(:,j) = ddeltavdt(:,j) + deltavj(:)*termj*pmassi*(vissdust)
+       endif
+
        
        !if (icty.eq.1) then
        !   vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
@@ -1881,10 +1908,10 @@ contains
     dtvisc = min(dtvisc,min(hi**2,hj**2)/shearvisc)
    
     if (allocated(del2v)) then
-       del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)
-       del2v(j) = del2v(j) + 0.5*pmassi*rhoav1*dx(1)*dr(1)*(-2.*grkern)
-!       del2v(i) = del2v(i) - pmassj*rhoav1*dvel(1)*grgrw
-!       del2v(j) = del2v(j) + pmassi*rhoav1*dvel(1)*grgrw
+!       del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+!       del2v(j) = del2v(j) + 0.5*pmassi*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+       del2v(i) = del2v(i) - pmassj*rhoav1*dvel(1)*grgrw
+       del2v(j) = del2v(j) + pmassi*rhoav1*dvel(1)*grgrw
     endif
    
   end subroutine physical_viscosity
@@ -2228,7 +2255,7 @@ contains
     termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
-
+    
     ddusttogasdt(i) = ddusttogasdt(i) - pmassj*term
     ddusttogasdt(j) = ddusttogasdt(j) + pmassi*term
 
