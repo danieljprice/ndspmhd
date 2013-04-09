@@ -67,7 +67,7 @@ subroutine setup
     gam1 = gamma - 1.
     uuzero = przero/(gam1*denszero)
  else
-    uuzero = przero
+    uuzero = 1.5*przero/denszero
  endif
 
  write(iprint,*) 'Two dimensional Taylor-Green vortex problem '
