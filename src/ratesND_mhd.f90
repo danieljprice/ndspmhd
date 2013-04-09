@@ -180,6 +180,7 @@ subroutine get_rates
      dveldx(:,:,i) = 0.
      dxdx(:,i) = 0.
   endif
+  if (allocated(del2v)) del2v(i) = 0.
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -840,7 +841,7 @@ subroutine get_rates
        gradpsi(:,i) = 0.0
     endif
  enddo
-
+ 
  if (allocated(listneigh)) deallocate(listneigh)
  if (allocated(phi)) deallocate(phi,del2u,graddivv)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
@@ -1317,6 +1318,12 @@ contains
     endif
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
 
+!------------------------------------------------------------------------
+!  Physical viscosity terms
+!------------------------------------------------------------------------
+    if (ivisc.gt.0) call physical_viscosity
+    !if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
+
 !----------------------------------------------------------------------------
 !  pressure term (generalised form)
 !----------------------------------------------------------------------------
@@ -1567,6 +1574,8 @@ contains
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
     elseif (iav.ge.3) then ! using total energy, for approaching and receding
        visc = alphaav*termv
+       !print*,'visc = ',i,j,vsig*alphaav*hh(i)
+       visc = visc*0.5*(hh(i) + hh(j))/rij  ! use this line to multiply viscosity by h/r
        forcei(:) = forcei(:) + pmassj*visc*dvel(:)
        forcej(:) = forcej(:) - pmassi*visc*dvel(:)
     endif
@@ -1852,6 +1861,31 @@ contains
     
     return
   end subroutine artificial_dissipation_sr
+
+  
+!--------------------------------------------------------------------------------------
+! Physical viscosity terms, done using direct 2nd derivatives
+! as in Espanol & Revenga (2003)
+!
+! SHEAR VISCOSITY ONLY
+!--------------------------------------------------------------------------------------
+  subroutine physical_viscosity
+    implicit none
+    real :: visc,grgrw
+
+    grgrw = -2.*grkern/rij
+    visc  = rhoav1*shearvisc*grgrw
+    forcei(:) = forcei(:) - pmassj*visc*dvel(:)
+    forcej(:) = forcej(:) + pmassi*visc*dvel(:)
+   
+    if (allocated(del2v)) then
+       del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+       del2v(j) = del2v(j) + 0.5*pmassi*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+!       del2v(i) = del2v(i) - pmassj*rhoav1*dvel(1)*grgrw
+!       del2v(j) = del2v(j) + pmassi*rhoav1*dvel(1)*grgrw
+    endif
+   
+  end subroutine physical_viscosity
 
 !----------------------------------------------------------------
 ! Magnetic field terms - ie force and magnetic field evolution

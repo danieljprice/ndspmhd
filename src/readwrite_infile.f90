@@ -53,6 +53,7 @@ subroutine write_infile(infile)
   write(iread,220) isplitpart,rhocrit
   write(iread,230) iuse_exact_derivs, nsteps_remap
   write(iread,240) idust,idrag_nature,idrag_structure,Kdrag,ismooth
+  write(iread,250) ivisc,shearvisc,bulkvisc
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -70,7 +71,7 @@ subroutine write_infile(infile)
 130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
 140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:explicit 2:implicit), eta')
 150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
-160 format(i2,1x,1pe9.3,24x,'! self-gravity, fixed softening length')
+160 format(i2,1x,es9.3,24x,'! self-gravity, fixed softening length')
 170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
 180 format(i3,33x,'! kernel type (0: cubic spline, 3:quintic)')
 190 format(i2,34x,'! external force (1: toy star, 2:1/r^2 )')
@@ -79,6 +80,7 @@ subroutine write_infile(infile)
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
 230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
 240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
+250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -110,7 +112,8 @@ subroutine read_infile(infile)
 !      
  implicit none
  character(len=*), intent(in) :: infile 
- character(len=len(infile)+3) :: infilenew   
+ character(len=len(infile)+3) :: infilebak
+ character(len=2*len(infile)+12) :: command
  character(len=1) :: ians  
 !
 !--allow for tracing flow
@@ -148,15 +151,17 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) isplitpart,rhocrit
   read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
   read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
+  read(iread,*,err=50,end=50) ivisc,shearvisc,bulkvisc
  close(unit=iread)
 
  goto 55
 50 continue
    close(unit=iread)
-   infilenew = trim(infile)//'_new'
-   write(iprint,*) 'error reading '//trim(infile)//': writing '//trim(infilenew)//' with current options'
-   write(iprint,*) 'mv '//trim(infilenew)//' '//trim(infile)
-   call write_infile(infilenew)
+   infilebak = trim(infile)//'.old'
+   command = 'mv '//trim(infile)//' '//trim(infilebak)
+   call system(command)
+   write(iprint,*) 'error reading '//trim(infile)//': rewriting (saving previous version to '//trim(infilebak)//')'
+   call write_infile(infile)
    stop
 55 continue
 !
@@ -201,6 +206,14 @@ subroutine read_infile(infile)
  endif
  if (etamhd.lt.0.) then
     write(iprint,100) 'eta < 0 in resistivity'
+    stop
+ endif
+ if (shearvisc < 0.) then
+    write(iprint,100) 'invalid choice of shear viscosity parameter'
+    stop
+ endif
+ if (bulkvisc < 0.) then
+    write(iprint,100) 'invalid choice of bulk viscosity parameter'
     stop
  endif
  if (isplitpart.lt.0) stop 'invalid choice for isplitpart'

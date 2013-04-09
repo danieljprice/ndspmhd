@@ -149,6 +149,13 @@ subroutine write_header(icall,infile,evfile,logfile)
          6x,' decay constant = ',f6.2,', av source term x',f10.6, /)
     endif
 !
+!--physical viscosity
+!
+    select case(ivisc)
+    case(1:)
+       write(iprint,"(2(a,es10.3))") ' Physical viscosity ON (explicit), shear = ',shearvisc,' bulk = ',bulkvisc
+    end select
+!
 !--general constants
 !     
     write (iprint, 90) gamma

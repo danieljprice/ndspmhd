@@ -119,10 +119,12 @@ module options
  integer :: iexternal_force,ixsph,isplitpart
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
+ integer :: ivisc
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
  real :: Kdrag
+ real :: shearvisc,bulkvisc
  character(len=12) :: geom
  logical :: usenumdens
 end module
@@ -149,6 +151,7 @@ module part
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
  real, dimension(:), allocatable    :: dusttogas
+ real, dimension(:), allocatable    :: del2v
 end module part 
 
 !-------------------------------------------------------------------

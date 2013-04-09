@@ -245,7 +245,10 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(ddeltavdt))    deallocate(ddeltavdt)
     if (allocated(dusttogasin)) deallocate(dusttogasin)
     if (allocated(deltavin))    deallocate(deltavin)
-
+!
+!--physical viscosity
+!
+    if (allocated(del2v)) deallocate(del2v)
     endif
 
  endif
@@ -326,6 +329,10 @@ subroutine alloc(newsizein,sortlist)
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
       allocate(ddeltavdt(ndimV,newsize))
    endif
+!
+!--physical viscosity
+!
+   if (ivisc.gt.0) allocate(del2v(newsize))   
  endif
  
  if (reallocate .or. isortparts) then
@@ -400,6 +407,7 @@ subroutine alloc(newsizein,sortlist)
        dusttogasin(1:idumsize)  = dumdusttogasin(iorder(1:idumsize))
        deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
     endif
+    ! no need to copy physical viscosity stuff
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
