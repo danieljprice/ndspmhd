@@ -307,7 +307,7 @@ SUBROUTINE step
 !
 !--set new timestep from courant/forces condition
 !
- dt = min(C_force*dtforce,C_cour*dtcourant)
+ dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
 !
 !--this is just so that alpha looks right in the output
 !  (overwritten in predictor step, but shows where alpha is 1 in rates)

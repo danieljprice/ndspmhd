@@ -158,6 +158,7 @@ subroutine get_rates
 !      
  dtcourant  = 1.e6  
  dtav       = huge(dtav)
+ dtvisc     = huge(dtvisc)
  zero       = 1.e-10
  vsigmax    = 0.
  dr(:)      = 0.
@@ -1877,6 +1878,7 @@ contains
     visc  = rhoav1*shearvisc*grgrw
     forcei(:) = forcei(:) - pmassj*visc*dvel(:)
     forcej(:) = forcej(:) + pmassi*visc*dvel(:)
+    dtvisc = min(dtvisc,min(hi**2,hj**2)/shearvisc)
    
     if (allocated(del2v)) then
        del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)

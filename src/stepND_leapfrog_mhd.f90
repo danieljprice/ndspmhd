@@ -205,7 +205,7 @@ subroutine step
 !
 !--set new timestep from courant/forces condition
 !
- if (.not.dtfixed) dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag)
+ if (.not.dtfixed) dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
  !if (C_cour*dtav.lt.dt) then
  !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
  !   dt = C_cour*dtav

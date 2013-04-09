@@ -100,13 +100,16 @@ subroutine evolve
           write(iprint,15) time,C_cour*dtcourant
        elseif (abs(dt-C_force*dtdrag).lt.epsilon(0.)) then
           write(iprint,16) time,C_force*dtdrag
+       elseif (abs(dt-C_force*dtvisc).lt.epsilon(0.)) then
+          write(iprint,17) time,C_force*dtvisc
        else
-          write(iprint,17) time,dt
+          write(iprint,18) time,dt
        endif
-10     format(' t = ',f12.4,' dtforce = ',1pe10.3)
-15     format(' t = ',f12.4,' dtcourant = ',1pe10.3)
-16     format(' t = ',f12.4,' dtdrag = ',1pe10.3)
-17     format(' t = ',f12.4,' dt(unknown) = ',1pe10.3)
+10     format(' t = ',f12.4,' dtforce = ',es10.3)
+15     format(' t = ',f12.4,' dtcourant = ',es10.3)
+16     format(' t = ',f12.4,' dtdrag = ',es10.3)
+17     format(' t = ',f12.4,' dtvisc = ',es10.3)
+18     format(' t = ',f12.4,' dt(unknown) = ',es10.3)
     endif
     
 !    if (abs(dt).lt.1e-8) then
