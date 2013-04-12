@@ -29,6 +29,7 @@ subroutine alloc(newsizein,sortlist)
  use rates
  use xsph
  use matrixcorr
+ use rkf
 !
 !--define local variables
 !
@@ -56,6 +57,8 @@ subroutine alloc(newsizein,sortlist)
 !--dust
  real, dimension(newsizein)       :: dumdusttogas,dumdusttogasin,dumddusttogasdt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
+!--integrator type check
+ character (len=20) :: integratorcheck
 
  logical :: reallocate, isortparts
 !
@@ -188,6 +191,27 @@ subroutine alloc(newsizein,sortlist)
     deallocate (pmass,xin,rhoin,hhin,enin,alphain,psiin)
     deallocate (velin)
     if (allocated(Bevolin)) deallocate (Bevolin)
+!
+!--Runge-Kutta-Fehlberg arrays
+!
+    if (allocated(v1)) deallocate(v1)
+    if (allocated(v2)) deallocate(v2)
+    if (allocated(v3)) deallocate(v3)
+    if (allocated(v4)) deallocate(v4)
+    if (allocated(v5)) deallocate(v5)
+    if (allocated(v6)) deallocate(v6)
+    if (allocated(f1)) deallocate(f1)
+    if (allocated(f2)) deallocate(f2)
+    if (allocated(f3)) deallocate(f3)
+    if (allocated(f4)) deallocate(f4)
+    if (allocated(f5)) deallocate(f5)
+    if (allocated(f6)) deallocate(f6)
+    if (allocated(dh1)) deallocate(dh1)
+    if (allocated(dh2)) deallocate(dh2)
+    if (allocated(dh3)) deallocate(dh3)
+    if (allocated(dh4)) deallocate(dh4)
+    if (allocated(dh5)) deallocate(dh5)
+    if (allocated(dh6)) deallocate(dh6)
 !
 !--particle properties and derivatives
 !
@@ -333,6 +357,31 @@ subroutine alloc(newsizein,sortlist)
 !--physical viscosity
 !
    if (ivisc.gt.0) allocate(del2v(newsize))   
+!
+!--rkf extra storage
+!
+   integratorcheck = 'query'
+   call step (integratorcheck)
+   if (trim(integratorcheck).eq.'rkf') then
+       allocate (v1(ndimv,newsize))
+       allocate (v2(ndimv,newsize))
+       allocate (v3(ndimv,newsize))
+       allocate (v4(ndimv,newsize))
+       allocate (v5(ndimv,newsize))
+       allocate (v6(ndimv,newsize))
+       allocate (f1(ndimv,newsize))
+       allocate (f2(ndimv,newsize))
+       allocate (f3(ndimv,newsize))
+       allocate (f4(ndimv,newsize))
+       allocate (f5(ndimv,newsize))
+       allocate (f6(ndimv,newsize))
+       allocate (dh1(newsize))
+       allocate (dh2(newsize))
+       allocate (dh3(newsize))
+       allocate (dh4(newsize))
+       allocate (dh5(newsize))
+       allocate (dh6(newsize))
+    endif
  endif
  
  if (reallocate .or. isortparts) then
