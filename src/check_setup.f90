@@ -86,10 +86,10 @@ subroutine check_setup
      endif
   enddo
   
-  if (all((pmass(1:ntotal)-pmass(1)).lt.tiny(0.))) then
+  if (all((abs(pmass(1:ntotal)-pmass(1)).lt.epsilon(0.)))) then
      write(iprint,"(a)") ' -> equal mass particles'
   else
-     write(iprint,"(a)") ' WARNING: Unequal mass particles used'  
+     write(iprint,"(a)") ' WARNING: Unequal mass particles used' 
   endif
 !
 !--check that no particles are on top of each other
