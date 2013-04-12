@@ -30,17 +30,8 @@ subroutine evolve
 !   as can be non-zero from reading a dumpfile)
 !
  dt = 0.
-!
-!--get total potential
-!
- Omega0 = 0.
- do i=1,npart
-    call external_potentials(iexternal_force,x(:,i),epoti,ndim)
-    Omega0 = Omega0 + pmass(i)*(uu(i) + epoti)
- enddo
  dt0 = min(C_cour*dtcourant,C_force*dtforce)
  if (dtfixed) dt = dt0
- w0 = 1./Omega0
  dtscale = 1.0
  dtrho = huge(dtrho)
  tprint = 0.

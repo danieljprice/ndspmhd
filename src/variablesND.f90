@@ -227,7 +227,7 @@ module timestep
 !
 ! (max time, time before output, dt)
 !
- real :: tmax,tout,dt,dt0,time,vsig2max,dtscale,w0,Omega0
+ real :: tmax,tout,dt,dt0,time,vsig2max,dtscale
 !
 ! (time step criterion from forces, courant condition)
 !
