@@ -348,8 +348,11 @@ subroutine setup
           pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
        endif
 
-!       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
-       uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
+       if (abs(gam1).lt.1.e-3) then
+          uu(i) = (uuleft + uuright*exx)/(1.0 + exx)    
+       else
+          uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
+       endif
 !       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
 !       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
 !       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
