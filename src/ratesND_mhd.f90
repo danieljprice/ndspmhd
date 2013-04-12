@@ -1129,6 +1129,7 @@ contains
     else
        projdvgas      = dvdotr
        deltav2j       = 0.
+       rhogasj        = rhoj
     endif
     prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
@@ -1318,7 +1319,8 @@ contains
        if (specialrelativity) then
           call artificial_dissipation_sr
        else
-          call artificial_dissipation    
+          call artificial_dissipation
+!          call artificial_dissipation_phantom
        endif
     endif
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
@@ -1521,6 +1523,7 @@ contains
     real :: term,dpmomdotr
     real :: termnonlin,termu,termv,termi,termj
     real :: rhogonrhoi,rhogonrhoj,rhogonrhoav,rhoav1g
+    real :: rhodonrhoi,rhodonrhoj,rhodonrhoav
     !
     !--definitions
     !      
@@ -1722,30 +1725,39 @@ contains
              dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
           endif
        endif
-
-       !
-       !--dissipation term in dust-to-gas ratio
-       !
-       if (idust.eq.1) then
-!    termu = vsigu*rhoav1*grkern
-          rhoav1g = 1./(0.5*(rhogasi + rhogasj))
-          vissdust = vsig*rhoav1*grkern*alphaB*(rhodusti - rhodustj)*rhoav1g
-          ddusttogasdt(i) = ddusttogasdt(i) + pmassj*(vissdust)
-          ddusttogasdt(j) = ddusttogasdt(j) - pmassi*(vissdust)
-          dudt(i) = dudt(i) + uu(i)*rhoi/rhogasi*pmassj*(vissdust)
-          dudt(j) = dudt(j) - uu(j)*rhoj/rhogasj*pmassi*(vissdust)
-          termi = 0.5*rhoi*rhoi/(rhogasi*rhodusti)*(1. - dusttogasi)/(1. + dusttogasi)
-          termj = 0.5*rhoj*rhoj/(rhogasj*rhodustj)*(1. - dusttogasj)/(1. + dusttogasj)
-          ddeltavdt(:,i) = ddeltavdt(:,i) - deltavi(:)*termi*pmassj*(vissdust)
-          ddeltavdt(:,j) = ddeltavdt(:,j) + deltavj(:)*termj*pmassi*(vissdust)
-       endif
-
        
        !if (icty.eq.1) then
        !   vissrho = alphaB*vsig*grkern*(rhoi - rhoj)*rhoav1 !!/sqrt(rhoi*rhoj)
        !   drhodt(i) = drhodt(i) + pmassj*(vissrho)
        !   drhodt(j) = drhodt(j) + pmassi*(-vissrho)
        !endif
+    endif
+
+
+    !
+    !--dissipation term in dust-to-gas ratio
+    !
+    if (idust.eq.1) then
+       !rhoav1g = 1./(0.5*(rhogasi + rhogasj))
+       !vissdust = vsig*rhoav1*grkern*alphaB*(rhodusti - rhodustj)*rhoav1g
+       !ddusttogasdt(i) = ddusttogasdt(i) + pmassj*(vissdust)
+       !ddusttogasdt(j) = ddusttogasdt(j) - pmassi*(vissdust)
+       !if (iener.gt.0) then
+       !   dudt(i) = dudt(i) + uu(i)*rhoi/rhogasi*pmassj*(vissdust)
+       !   dudt(j) = dudt(j) - uu(j)*rhoj/rhogasj*pmassi*(vissdust)
+       !endif
+       !termi = 0.5*rhoi*rhoi/(rhogasi*rhodusti)*(1. - dusttogasi)/(1. + dusttogasi)
+       !termj = 0.5*rhoj*rhoj/(rhogasj*rhodustj)*(1. - dusttogasj)/(1. + dusttogasj)
+       !ddeltavdt(:,i) = ddeltavdt(:,i) - deltavi(:)*termi*pmassj*(vissdust)
+       !ddeltavdt(:,j) = ddeltavdt(:,j) + deltavj(:)*termj*pmassi*(vissdust)
+
+       vissdust = alphaB*vsig*rhoav1*grkern
+       rhodonrhoi = rhodusti*rho1i
+       rhodonrhoj = rhodustj*rho1j
+       rhodonrhoav = 0.5*(rhodonrhoi + rhodonrhoj)
+       vissdust = vissdust*rhodonrhoav
+       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
+       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
     endif
     
     return
@@ -1761,20 +1773,15 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_phantom
     implicit none
-    real :: vissv,term,visc
-    real :: alphaav,alphau,alphaB
+    real :: termi,termj,visc
     !
     !--definitions
-    !      
-    alphaav = 0.5*(alphai + alpha(1,j))
-    alphau = 0.5*(alphaui + alpha(2,j))
-    alphaB = 0.5*(alphaBi + alpha(3,j))
+    !
+    termi = alphai*vsig*rhogasi*grkerni*abs(projdvgas)
+    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(projdvgas)
 
-    vissv = -alphaav*0.5*(projdvgas)**2
-    term = vsig*rhoav1*grkern
-
-    if (dvdotr.lt.0 .and. iav.le.2) then            
-       visc = alphaav*term*abs(projdvgas)
+    if (projdvgas.lt.0 .and. iav.le.2) then
+       visc = 0.5*(termi*rho21i + termj*rho21j)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
     endif
@@ -2255,7 +2262,8 @@ contains
     termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
-    
+
+    !!term = -rho21i*(rhogrhodonrhoi*projdeltavi - rhogrhodonrhoj*projdeltavj)*grkerni
     ddusttogasdt(i) = ddusttogasdt(i) - pmassj*term
     ddusttogasdt(j) = ddusttogasdt(j) + pmassi*term
 
