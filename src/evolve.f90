@@ -80,7 +80,7 @@ subroutine evolve
 !       call sort_particles()
 !    endif
     
-    call step           !  evolve data for one timestep
+    call step ('')      !  evolve data for one timestep
 !
 !--write log every step in 2D/3D
 !
