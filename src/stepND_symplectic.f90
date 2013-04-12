@@ -13,7 +13,7 @@
 !! but much better than the naive predictor-corrector
 !!--------------------------------------------------------------------------------
          
-SUBROUTINE step
+SUBROUTINE step (integratorcheck)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -34,6 +34,12 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i
  REAL :: hdt, dt1, dthalf
+ character (len=20), intent (inout) :: integratorcheck
+
+ if (trim(integratorcheck).eq.'query') then
+    integratorcheck = 'symplectic'
+    return
+ endif
 !
 !--allow for tracing flow
 !      

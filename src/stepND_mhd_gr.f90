@@ -3,7 +3,7 @@
 !! Change this subroutine to change the timestepping algorithm
 !!--------------------------------------------------------------------
          
-subroutine step
+subroutine step (integratorcheck)
  use dimen_mhd
  use debug
  use loguns
@@ -26,6 +26,13 @@ subroutine step
  implicit none
  integer :: i
  real :: hdt
+ character (len=20), intent (inout) :: integratorcheck
+
+ if (trim(integratorcheck).eq.'query') then
+    integratorcheck = 'mhd_gr'
+    return
+ endif
+
 !
 !--allow for tracing flow
 !      

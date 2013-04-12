@@ -35,7 +35,7 @@
 !!
 !!---------------------------------------------------------------------------
          
-SUBROUTINE step
+SUBROUTINE step (integratorcheck)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -63,6 +63,12 @@ SUBROUTINE step
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
  real, dimension(ndimV) :: vcrossB
+ character (len=20), intent (inout) :: integratorcheck
+
+ if (trim(integratorcheck).eq.'query') then
+    integratorcheck = 'mhd'
+    return
+ endif
 !
 !--allow for tracing flow
 !      

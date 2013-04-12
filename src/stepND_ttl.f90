@@ -10,7 +10,7 @@
 !!
 !!--------------------------------------------------------------------------------
          
-SUBROUTINE step
+SUBROUTINE step (integratorcheck)
  USE dimen_mhd
  USE debug
  USE loguns
@@ -31,6 +31,12 @@ SUBROUTINE step
  IMPLICIT NONE
  INTEGER :: i
  REAL :: hdt,w1,whalf,dwdt,Omega,epoti,ds0 ! w0 is saved
+ character (len=20), intent (inout) :: integratorcheck
+
+ if (trim(integratorcheck).eq.'query') then
+    integratorcheck = 'ttl'
+    return
+ endif
 !
 !--allow for tracing flow
 !      
