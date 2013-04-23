@@ -740,6 +740,7 @@ subroutine get_rates
     else
        dendt(i) = dudt(i)
     endif
+    if (itype(i).eq.itypedust) dendt(i) = 0.
 !
 !--calculate time derivative of alpha (artificial dissipation coefficients)
 !  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
@@ -1304,13 +1305,17 @@ contains
     
     endif
 
-    dvsigdtc = 1./vsigdtc
-    vsigmax = max(vsigmax,vsigdtc)
+    if (itype(i).eq.itypedust) then
+       vsig  = 0.
+       vsigu = 0.
+    else
+       dvsigdtc = 1./vsigdtc
+       vsigmax = max(vsigmax,vsigdtc)
     !
     !--time step control (courant and viscous)
     !
-    if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi*dvsigdtc,hj*dvsigdtc))
-    
+       if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi*dvsigdtc,hj*dvsigdtc))
+    endif 
 !----------------------------------------------------------------------------
 !  artificial dissipation terms
 !----------------------------------------------------------------------------
