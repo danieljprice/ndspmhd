@@ -51,7 +51,7 @@ subroutine setup
 !
 !--set default values
 !
- dsmooth = 100.
+ dsmooth = 0.
  equalmass = .true.   ! use equal mass particles??
  stretchx = .false.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
