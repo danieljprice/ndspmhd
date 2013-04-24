@@ -30,7 +30,7 @@ subroutine step (integratorcheck)
  implicit none
  integer :: i,j,nsplit
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddusttogasdtin
+ real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart) :: daldtin
  real :: hdt,dtstop
  real, dimension(ndim)  :: xcyl,velcyl
@@ -69,9 +69,9 @@ subroutine step (integratorcheck)
     dpsidtin(i) = dpsidt(i)
     
     if (idust.eq.1) then
-       dusttogasin(i)    = dusttogas(i)
+       dustfracin(i)    = dustfrac(i)
        deltavin(:,i)     = deltav(:,i)
-       ddusttogasdtin(i) = ddusttogasdt(i)
+       ddustfracdtin(i) = ddustfracdt(i)
        ddeltavdtin(:,i)  = ddeltavdt(:,i)
     endif
  enddo
@@ -113,7 +113,7 @@ subroutine step (integratorcheck)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i)
+          dustfrac(i) = dustfracin(i)
           deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -132,10 +132,10 @@ subroutine step (integratorcheck)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i) + dt*ddusttogasdtin(i)
+          dustfrac(i) = dustfracin(i) + dt*ddustfracdtin(i)
           deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
-          if (dusttogas(i).gt.0.) then
-             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+          if (dustfrac(i).gt.0.) then
+             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif
@@ -163,7 +163,7 @@ subroutine step (integratorcheck)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i)
+          dustfrac(i) = dustfracin(i)
           deltav(:,i)  = deltavin(:,i)
        endif
     else
@@ -188,10 +188,10 @@ subroutine step (integratorcheck)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i) + hdt*(ddusttogasdt(i) + ddusttogasdtin(i))
+          dustfrac(i) = dustfracin(i) + hdt*(ddustfracdt(i) + ddustfracdtin(i))
           deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
-          if (dusttogas(i).gt.0.) then
-             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+          if (dustfrac(i).gt.0.) then
+             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif

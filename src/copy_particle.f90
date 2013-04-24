@@ -58,8 +58,8 @@ subroutine copy_particle(i,j)
 !  dust
 !
   if (idust.eq.1) then
-     dusttogas(i)    = dusttogas(j)
-     ddusttogasdt(i) = ddusttogasdt(j)
+     dustfrac(i)    = dustfrac(j)
+     ddustfracdt(i) = ddustfracdt(j)
      deltav(:,i)     = deltav(:,j)
      ddeltavdt(:,i)  = ddeltavdt(:,j)
   endif

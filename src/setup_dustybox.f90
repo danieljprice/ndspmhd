@@ -94,7 +94,7 @@ subroutine setup
        uu(i)    = 0. 
     else
        if (idust.eq.1) then
-          dusttogas(i) = dust_to_gas_ratio
+          dustfrac(i) = dust_to_gas_ratio
           deltav(1,i)  = -1. ! deltav = vdust - vgas
           vel(1,i) = 0.5     ! v = vg + rhod/rho*deltav
        else

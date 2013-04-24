@@ -36,7 +36,7 @@ subroutine setup
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
  real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
  real :: tstopl,tstopr,psepreql,psepreqr
- real :: dusttogas_ratio,densdustleft,densdustright,densdust,masspdustleft,masspdustright
+ real :: dustfrac_ratio,densdustleft,densdustright,densdust,masspdustleft,masspdustright
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
  
@@ -381,9 +381,9 @@ subroutine setup
 !--setup dust-to-gas ratio
 !
     if (idust.eq.1) then
-       dusttogas(i) = densdust/dens(i)
+       dustfrac(i) = densdust/dens(i)
        deltav(:,i)  = 0.
-       pmass(i) = pmass(i)*(1. + dusttogas(i))
+       pmass(i) = pmass(i)*(1. + dustfrac(i))
     endif
  enddo
 !

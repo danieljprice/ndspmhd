@@ -142,7 +142,7 @@ subroutine write_dump(t,dumpfile)
      enddo
   endif
   if (idust.eq.1) then
-     write(idatfile) dusttogas(1:nprint)
+     write(idatfile) dustfrac(1:nprint)
      do i=1,ndimV
         write(idatfile) deltav(i,1:nprint)
      enddo
@@ -261,7 +261,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     write(iprint,*) 'ERROR: cannot re-start with vector potential from this file'
     stop
  elseif (idust.eq.1 .and. (iformat.ne.5)) then
-    write(iprint,*) 'ERROR: idust=1 but dump file does not contain dusttogas or deltav arrays'
+    write(iprint,*) 'ERROR: idust=1 but dump file does not contain dustfrac or deltav arrays'
     stop
  endif
 !
@@ -367,7 +367,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     nread = nread + 2
  endif
  if (idust.eq.1 .and. iformat.eq.5) then
-    read(ireadf,iostat=ierr) dusttogas(1:npart)
+    read(ireadf,iostat=ierr) dustfrac(1:npart)
     do i=1,ndimV
        read(ireadf,iostat=ierr) deltav(i,1:npart)
     enddo

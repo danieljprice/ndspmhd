@@ -100,7 +100,7 @@ subroutine get_rates
 !  (one fluid dust)
 !
  real, dimension(ndimV) :: deltavi,deltavj
- real :: dusttogasi,dusttogasj
+ real :: dustfraci,dustfracj
  real :: rhogrhodonrhoi, rhogrhodonrhoj
  real :: deltav2i,deltav2j,rhoonrhog2i
  real :: dtstop,projdeltavi,projdeltavj
@@ -193,7 +193,7 @@ subroutine get_rates
      dhdt(i) = 0.
   endif
   if (idust.eq.1) then
-     ddusttogasdt(i) = 0.
+     ddustfracdt(i) = 0.
      ddeltavdt(:,i) = 0.
   endif
  enddo
@@ -315,13 +315,13 @@ subroutine get_rates
        sqrtgi = sqrtg(i)
        ! one fluid dust definitions
        if (idust.eq.1) then
-          dusttogasi  = dusttogas(i)
-          rhogasi        = rhoi/(1. + dusttogasi)
-          rhodusti       = rhogasi*dusttogasi
+          dustfraci  = dustfrac(i)
+          rhogasi        = rhoi/(1. + dustfraci)
+          rhodusti       = rhogasi*dustfraci
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
-          rhogrhodonrhoi = rhoi*dusttogasi/(1. + dusttogasi)**2
-          vgasi(:)       = veli(:) - dusttogasi/(1. + dusttogasi)*deltavi(:)
+          rhogrhodonrhoi = rhoi*dustfraci/(1. + dustfraci)**2
+          vgasi(:)       = veli(:) - dustfraci/(1. + dustfraci)*deltavi(:)
        else
           rhogasi  = rhoi
           rhodusti = 0.
@@ -499,18 +499,18 @@ subroutine get_rates
        !
        !--d/dt(rhod/rhog): multiply by terms out the front of the SPH sum
        !
-       rhoonrhog2i = (1. + dusttogas(i))**2  ! (rho/rhog)**2
-       ddusttogasdt(i) = rhoonrhog2i*ddusttogasdt(i)
+       rhoonrhog2i = (1. + dustfrac(i))**2  ! (rho/rhog)**2
+       ddustfracdt(i) = rhoonrhog2i*ddustfracdt(i)
 
-       dusttogasi = dusttogas(i)
-       rhogasi = rhoi/(1. + dusttogasi)
-       rhodusti = rhogasi*dusttogasi
+       dustfraci = dustfrac(i)
+       rhogasi = rhoi/(1. + dustfraci)
+       rhodusti = rhogasi*dustfraci
        
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
-       if (dusttogas(i).gt.0.) then
-          dtstop   = Kdrag*(1. + dusttogas(i))**2/(rhoi*dusttogas(i))  ! 1/tstop = K*rho/(rhod*rhog)
+       if (dustfrac(i).gt.0.) then
+          dtstop   = Kdrag*(1. + dustfrac(i))**2/(rhoi*dustfrac(i))  ! 1/tstop = K*rho/(rhod*rhog)
           !ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
@@ -531,8 +531,8 @@ subroutine get_rates
        !
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
                  + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-                 + rhogasi**2*rho1i**2*((1. - dusttogasi)/(1. + dusttogasi)* &
-                   0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddusttogasdt(i) &
+                 + rhogasi**2*rho1i**2*((1. - dustfraci)/(1. + dustfraci)* &
+                   0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
                  + rhogasi*rho1i*dudt(i))
     endif
 
@@ -1118,13 +1118,13 @@ contains
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
-       dusttogasj  = dusttogas(j)
-       rhogasj        = rhoj/(1. + dusttogasj)
-       rhodustj       = rhogasj*dusttogasj
+       dustfracj  = dustfrac(j)
+       rhogasj        = rhoj/(1. + dustfracj)
+       rhodustj       = rhogasj*dustfracj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       rhogrhodonrhoj = rhoj*dusttogasj/(1. + dusttogasj)**2
-       vgasj(:)       = velj(:) - dusttogasj/(1. + dusttogasj)*deltavj(:)
+       rhogrhodonrhoj = rhoj*dustfracj/(1. + dustfracj)**2
+       vgasj(:)       = velj(:) - dustfracj/(1. + dustfracj)*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
     else
@@ -1552,10 +1552,10 @@ contains
     !
     !--for one fluid dust, viscosity term must be multiplied by
     !  rhog/rho, but done in a symmetric way to conserve momentum
-    !  rhog/rho = 1/(1 + dusttogas)
+    !  rhog/rho = 1/(1 + dustfrac)
     !
-       rhogonrhoi = 1./(1. + dusttogasi)
-       rhogonrhoj = 1./(1. + dusttogasj)
+       rhogonrhoi = 1./(1. + dustfraci)
+       rhogonrhoj = 1./(1. + dustfracj)
        rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
        termv = termv*rhogonrhoav
        if (iav.ge.3) stop 'av terms not implemented for iav>=3 and one-fluid dust'
@@ -1745,14 +1745,14 @@ contains
     if (idust.eq.1) then
        !rhoav1g = 1./(0.5*(rhogasi + rhogasj))
        !vissdust = vsig*rhoav1*grkern*alphaB*(rhodusti - rhodustj)*rhoav1g
-       !ddusttogasdt(i) = ddusttogasdt(i) + pmassj*(vissdust)
-       !ddusttogasdt(j) = ddusttogasdt(j) - pmassi*(vissdust)
+       !ddustfracdt(i) = ddustfracdt(i) + pmassj*(vissdust)
+       !ddustfracdt(j) = ddustfracdt(j) - pmassi*(vissdust)
        !if (iener.gt.0) then
        !   dudt(i) = dudt(i) + uu(i)*rhoi/rhogasi*pmassj*(vissdust)
        !   dudt(j) = dudt(j) - uu(j)*rhoj/rhogasj*pmassi*(vissdust)
        !endif
-       !termi = 0.5*rhoi*rhoi/(rhogasi*rhodusti)*(1. - dusttogasi)/(1. + dusttogasi)
-       !termj = 0.5*rhoj*rhoj/(rhogasj*rhodustj)*(1. - dusttogasj)/(1. + dusttogasj)
+       !termi = 0.5*rhoi*rhoi/(rhogasi*rhodusti)*(1. - dustfraci)/(1. + dustfraci)
+       !termj = 0.5*rhoj*rhoj/(rhogasj*rhodustj)*(1. - dustfracj)/(1. + dustfracj)
        !ddeltavdt(:,i) = ddeltavdt(:,i) - deltavi(:)*termi*pmassj*(vissdust)
        !ddeltavdt(:,j) = ddeltavdt(:,j) + deltavj(:)*termj*pmassi*(vissdust)
 
@@ -2269,18 +2269,18 @@ contains
     term  = termi + termj
 
     !!term = -rho21i*(rhogrhodonrhoi*projdeltavi - rhogrhodonrhoj*projdeltavj)*grkerni
-    ddusttogasdt(i) = ddusttogasdt(i) - pmassj*term
-    ddusttogasdt(j) = ddusttogasdt(j) + pmassi*term
+    ddustfracdt(i) = ddustfracdt(i) - pmassj*term
+    ddustfracdt(j) = ddustfracdt(j) + pmassi*term
 
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
     !
     !--high mach number term
-    rhogasj  = rhoj/(1. + dusttogasj)
-    rhodustj = rhogasj*dusttogasj
-    termi    = (1. - dusttogasi)/(1. + dusttogasi)*deltav2i
-    termj    = (1. - dusttogasj)/(1. + dusttogasj)*deltav2j
+    rhogasj  = rhoj/(1. + dustfracj)
+    rhodustj = rhogasj*dustfracj
+    termi    = (1. - dustfraci)/(1. + dustfraci)*deltav2i
+    termj    = (1. - dustfracj)/(1. + dustfracj)*deltav2j
     dterm    = 0.5*(termi - termj)
     !
     !--note: need to add term to d/dt(deltav) using the gas-only force 

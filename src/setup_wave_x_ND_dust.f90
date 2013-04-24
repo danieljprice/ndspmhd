@@ -143,9 +143,9 @@ subroutine setup
        Bfield(:,i) = 0.
     endif
     if (idust.eq.1) then
-       dusttogas(i) = dust_to_gas_ratio
+       dustfrac(i) = dust_to_gas_ratio
        deltav(:,i) = 0.
-       pmass(i) = pmass(i)*(1. + dusttogas(i))
+       pmass(i) = pmass(i)*(1. + dustfrac(i))
     endif
  ENDDO
 

@@ -48,7 +48,7 @@ subroutine step
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
     if (idust.eq.1) then
-       dusttogasin(i)    = dusttogas(i)
+       dustfracin(i)    = dustfrac(i)
        deltavin(:,i)     = deltav(:,i)
     endif
  enddo
@@ -71,7 +71,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i)
+          dustfrac(i) = dustfracin(i)
           deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -89,10 +89,10 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + hdt*dpsidt(i) 
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i) + hdt*ddusttogasdt(i)
+          dustfrac(i) = dustfracin(i) + hdt*ddustfracdt(i)
           deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
-          if (dusttogas(i).gt.0.) then
-             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+          if (dustfrac(i).gt.0.) then
+             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
              deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
           endif
        endif
@@ -117,7 +117,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i)
+          dustfrac(i) = dustfracin(i)
           deltav(:,i)  = deltavin(:,i)
        endif
     else
@@ -136,10 +136,10 @@ subroutine step
        if (idivbzero.ge.2)   psi(i)     = psiin(i) + dt*dpsidt(i)
        
        if (idust.eq.1) then
-          dusttogas(i) = dusttogasin(i)  + dt*ddusttogasdt(i)
+          dustfrac(i) = dustfracin(i)  + dt*ddustfracdt(i)
           deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
-          if (dusttogas(i).gt.0.) then
-             dtstop = Kdrag*(1. + dusttogas(i))**2/(rho(i)*dusttogas(i))
+          if (dustfrac(i).gt.0.) then
+             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif

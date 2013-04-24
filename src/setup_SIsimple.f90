@@ -359,7 +359,7 @@ subroutine setup
     sikx0   = sin(kx*xi)
     cokz0   = cos(kz*zi)
     sikz0   = sin(kz*zi)
-    if (idust.eq.1) dusttogas(i) = dust_to_gas_ratio
+    if (idust.eq.1) dustfrac(i) = dust_to_gas_ratio
 !-------------------------------------------------------------
 ! start with the gas particles
 !-------------------------------------------------------------
@@ -461,7 +461,7 @@ subroutine setup
              gdens = denszero + (Rrhog*cokx - Irhog*sikx)
              ddens = denszerodust + (Rrhod*cokx - Irhod*sikx)
              
-             dusttogas(i) = ddens/gdens
+             dustfrac(i) = ddens/gdens
           endif
 
 !----for adding a pert in kz only--------------------------- 
@@ -505,7 +505,7 @@ subroutine setup
           deltav(2,i) = vdy - vgy
           deltav(3,i) = vdz - vgz
           
-          rhodonrho = dusttogas(i)/(1.+dusttogas(i))
+          rhodonrho = dustfrac(i)/(1.+dustfrac(i))
           
           vel(1,i) = vgx + rhodonrho*deltav(1,i) ! v = vg + rhod/rho*deltav
           vel(2,i) = vgy + rhodonrho*deltav(2,i)
@@ -598,7 +598,7 @@ subroutine setup
                 deltav(2,i) = vdy - vgy
                 deltav(3,i) = vdz - vgz
                 
-                rhodonrho = dusttogas(i)/(1.+dusttogas(i))
+                rhodonrho = dustfrac(i)/(1.+dustfrac(i))
 
                 vel(1,i) = vgx + rhodonrho*deltav(1,i) ! v = vg + rhod/rho*deltav
                 vel(2,i) = vgy + rhodonrho*deltav(2,i)

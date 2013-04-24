@@ -55,7 +55,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndxdx,newsizein) :: dumdxdx
  real, dimension(ndim,newsizein) :: dumx0
 !--dust
- real, dimension(newsizein)       :: dumdusttogas,dumdusttogasin,dumddusttogasdt
+ real, dimension(newsizein)       :: dumdustfrac,dumdustfracin,dumddustfracdt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
 !--integrator type check
  character (len=20) :: integratorcheck
@@ -169,11 +169,11 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
-    if (allocated(dusttogas))    dumdusttogas(1:idumsize)    = dusttogas(1:idumsize)
-    if (allocated(ddusttogasdt)) dumddusttogasdt(1:idumsize) = ddusttogasdt(1:idumsize)
+    if (allocated(dustfrac))    dumdustfrac(1:idumsize)    = dustfrac(1:idumsize)
+    if (allocated(ddustfracdt)) dumddustfracdt(1:idumsize) = ddustfracdt(1:idumsize)
     if (allocated(deltav))       dumdeltav(:,1:idumsize)     = deltav(:,1:idumsize)
     if (allocated(ddeltavdt))    dumddeltavdt(:,1:idumsize)  = ddeltavdt(:,1:idumsize)
-    if (allocated(dusttogasin))    dumdusttogasin(1:idumsize) = dusttogasin(1:idumsize)
+    if (allocated(dustfracin))    dumdustfracin(1:idumsize) = dustfracin(1:idumsize)
     if (allocated(deltavin))       dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
     
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
@@ -263,11 +263,11 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-    if (allocated(dusttogas))    deallocate(dusttogas)
+    if (allocated(dustfrac))    deallocate(dustfrac)
     if (allocated(deltav))       deallocate(deltav)
-    if (allocated(ddusttogasdt)) deallocate(ddusttogasdt)
+    if (allocated(ddustfracdt)) deallocate(ddustfracdt)
     if (allocated(ddeltavdt))    deallocate(ddeltavdt)
-    if (allocated(dusttogasin)) deallocate(dusttogasin)
+    if (allocated(dustfracin)) deallocate(dustfracin)
     if (allocated(deltavin))    deallocate(deltavin)
 !
 !--physical viscosity
@@ -348,8 +348,8 @@ subroutine alloc(newsizein,sortlist)
 !--dust
 !
    if (idust.eq.1) then
-      allocate(dusttogas(newsize),dusttogasin(newsize))
-      allocate(ddusttogasdt(newsize))
+      allocate(dustfrac(newsize),dustfracin(newsize))
+      allocate(ddustfracdt(newsize))
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
       allocate(ddeltavdt(ndimV,newsize))
    endif
@@ -449,11 +449,11 @@ subroutine alloc(newsizein,sortlist)
 !--dust
 !
     if (idust.eq.1) then
-       dusttogas(1:idumsize)    = dumdusttogas(iorder(1:idumsize))
-       ddusttogasdt(1:idumsize) = dumddusttogasdt(iorder(1:idumsize))
+       dustfrac(1:idumsize)    = dumdustfrac(iorder(1:idumsize))
+       ddustfracdt(1:idumsize) = dumddustfracdt(iorder(1:idumsize))
        deltav(:,1:idumsize)     = dumdeltav(:,iorder(1:idumsize))
        ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,iorder(1:idumsize))
-       dusttogasin(1:idumsize)  = dumdusttogasin(iorder(1:idumsize))
+       dustfracin(1:idumsize)  = dumdustfracin(iorder(1:idumsize))
        deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
     endif
     ! no need to copy physical viscosity stuff

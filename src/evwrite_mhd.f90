@@ -111,7 +111,7 @@ subroutine evwrite(t,etot,momtot)
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
 
     if (idust.eq.1) then
-       dtgi  = dusttogas(i)
+       dtgi  = dustfrac(i)
        dterm = 1./(1. + dtgi)
        ekindeltav = 0.5*pmassi*dtgi*dterm**2*dot_product(deltav(:,i),deltav(:,i))
        ekin = ekin + ekindeltav
