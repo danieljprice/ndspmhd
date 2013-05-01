@@ -147,7 +147,7 @@ subroutine setup
        dens(i)  = denszero
        pmass(i) = massp        
        if (idust.eq.1) then
-          dustfrac(i) = dust_to_gas_ratio
+          dustfrac(i) = dust_to_gas_ratio/(1 + dust_to_gas_ratio)
           deltav(1,i)  = 0.
           if (idust_toponly.eq.1) then
              if (x(2,i).lt.0.) then

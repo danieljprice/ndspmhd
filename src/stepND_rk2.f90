@@ -92,7 +92,7 @@ subroutine step
           dustfrac(i) = dustfracin(i) + hdt*ddustfracdt(i)
           deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
           if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
+             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
              deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
           endif
        endif
@@ -139,7 +139,7 @@ subroutine step
           dustfrac(i) = dustfracin(i)  + dt*ddustfracdt(i)
           deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
           if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
+             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif

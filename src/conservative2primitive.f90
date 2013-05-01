@@ -51,7 +51,7 @@ subroutine conservative2primitive
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (dustfrac(i) < 0) then
-           print*,'ERROR: dust to gas = ',dustfrac(i),' on particle ',i
+           print*,'ERROR: dust fraction = ',dustfrac(i),' on particle ',i
            dustfrac(i) = 0.
            !call quit
         endif
@@ -239,6 +239,7 @@ subroutine conservative2primitive
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
+
   select case(iener)
   case(3)     ! total energy is evolved
      do i=1,npart

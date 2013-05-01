@@ -135,7 +135,7 @@ subroutine step (integratorcheck)
           dustfrac(i) = dustfracin(i) + dt*ddustfracdtin(i)
           deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
           if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
+             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif
@@ -191,7 +191,7 @@ subroutine step (integratorcheck)
           dustfrac(i) = dustfracin(i) + hdt*(ddustfracdt(i) + ddustfracdtin(i))
           deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
           if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag*(1. + dustfrac(i))**2/(rho(i)*dustfrac(i))
+             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
              deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
           endif
        endif
