@@ -381,7 +381,8 @@ subroutine setup
 !--setup dust-to-gas ratio
 !
     if (idust.eq.1) then
-       dustfrac(i) = densdust
+       dustfrac(i) = densdust/(dens(i) + densdust)
+      ! print*,i,densdust,dens(i),dustfrac(i)
        deltav(:,i)  = 0.
        pmass(i) = pmass(i)/(1. - dustfrac(i))
     endif
