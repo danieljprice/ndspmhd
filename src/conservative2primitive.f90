@@ -56,7 +56,7 @@ subroutine conservative2primitive
            !call quit
         endif
      enddo
-     dens = rho/(1. + dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
+     dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
   else
      dens = rho
   endif
@@ -386,7 +386,7 @@ subroutine primitive2conservative
   isetpolyk = .false.
   do i=1,npart
      if (idust.eq.1) then
-        rho(i) = dens(i)*(1. + dustfrac(i)) ! rho is total mass density, dens is gas density only  
+        rho(i) = dens(i)/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
      else
         rho(i) = dens(i)
      endif
@@ -439,13 +439,13 @@ subroutine primitive2conservative
      endif
      !--set density same as rho
      if (idust.eq.1) then
-        dens = rho/(1. + dustfrac)
+        dens = rho*(1. - dustfrac)
      else
         dens = rho
      endif
   else
      if (idust.eq.1) then
-        dens = rho/(1. + dustfrac)
+        dens = rho*(1. - dustfrac)
      else
         dens = rho
      endif

@@ -531,7 +531,7 @@ subroutine get_rates
        !
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((rhodusti - rhogasi)/(rhodusti + rhogasi)* & 
+             + ((rhogasi - rhodusti)/(rhodusti + rhogasi)* & 
                0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
              + rhogasi*rho1i*dudt(i))
     endif
@@ -2266,8 +2266,8 @@ contains
     !--high mach number term
     rhodustj = dustfracj*rhoj  
     rhogasj  = rhoj - rhodustj
-    termi    = (rhodusti - rhogasi)/rhoi*deltav2i
-    termj    = (rhodustj - rhogasj)/rhoj*deltav2j
+    termi    = (rhogasi - rhodusti)*rho1i*deltav2i
+    termj    = (rhogasi - rhodusti)*rho1j*deltav2j
     dterm    = 0.5*(termi - termj)
     !
     !--note: need to add term to d/dt(deltav) using the gas-only force 
