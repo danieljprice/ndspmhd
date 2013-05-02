@@ -497,11 +497,8 @@ subroutine get_rates
        !  one fluid dust
        !------------------
        !
-       !--d/dt(rhod/rhog): multiply by terms out the front of the SPH sum
+       !--d/dt(rhod/rho): multiply by terms out the front of the SPH sum
        !
-!       rhoonrhog2i = (1. + dustfrac(i))**2  ! (rho/rhog)**2
-!       ddustfracdt(i) = rhoonrhog2i*ddustfracdt(i)
-
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci       
        rhogasi  = rhoi - rhodusti
@@ -509,7 +506,7 @@ subroutine get_rates
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
-       if (dustfrac(i).gt.0.) then
+       if (dustfraci.gt.0.) then
           dtstop   = Kdrag*rhoi/(rhodusti*rhogasi)  ! 1/tstop = K*rho/(rhod*rhog)
           !ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
@@ -1123,7 +1120,7 @@ contains
        rhogasj        = rhoj - rhodustj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       rhogrhodonrhoj = rhogasj*rhodustj/rhoj
+       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
        vgasj(:)       = velj(:) - dustfracj*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
@@ -2255,17 +2252,13 @@ contains
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
 
-    !!term = -rho21i*(rhogrhodonrhoi*projdeltavi - rhogrhodonrhoj*projdeltavj)*grkerni
     ddustfracdt(i) = ddustfracdt(i) - pmassj*term
     ddustfracdt(j) = ddustfracdt(j) + pmassi*term
-
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
     !
     !--high mach number term
-    rhodustj = dustfracj*rhoj  
-    rhogasj  = rhoj - rhodustj
     termi    = (rhogasi - rhodusti)*rho1i*deltav2i
     termj    = (rhogasi - rhodusti)*rho1j*deltav2j
     dterm    = 0.5*(termi - termj)
