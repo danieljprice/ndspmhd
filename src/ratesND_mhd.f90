@@ -2260,7 +2260,7 @@ contains
     !
     !--high mach number term
     termi    = (rhogasi - rhodusti)*rho1i*deltav2i
-    termj    = (rhogasi - rhodusti)*rho1j*deltav2j
+    termj    = (rhogasj - rhodustj)*rho1j*deltav2j
     dterm    = 0.5*(termi - termj)
     !
     !--note: need to add term to d/dt(deltav) using the gas-only force 
