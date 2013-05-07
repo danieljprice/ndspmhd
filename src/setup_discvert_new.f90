@@ -70,7 +70,7 @@ subroutine setup
  iwhichpot = 1
  select case(iwhichpot)
  case(1)
-    iexternal_force = 12    
+    iexternal_force = 12
  case(2)
     iexternal_force = 13
  case(3)
@@ -85,7 +85,7 @@ subroutine setup
 !
 
  ibound(1) = 2 ! periodic in x
- ibound(2) = 2 !periodic in y (fixed sucks ; use the symmetry of the pb instead)
+ ibound(2) = 2 ! periodic in y (fixed sucks ; use the symmetry of the pb instead)
  nbpts  = 0
  x_min   = -Lx
  x_max   =  Lx
@@ -147,7 +147,7 @@ subroutine setup
        dens(i)  = denszero
        pmass(i) = massp        
        if (idust.eq.1) then
-          dustfrac(i) = dust_to_gas_ratio/(1 + dust_to_gas_ratio)
+          dustfrac(i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
           deltav(1,i)  = 0.
           if (idust_toponly.eq.1) then
              if (x(2,i).lt.0.) then
