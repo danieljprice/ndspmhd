@@ -414,7 +414,7 @@ subroutine get_rates
        !--add contributions to particle i from summation over j
        !  (forcei is forces on gas only, fextra is terms that apply to total fluid)
        !
-       force(:,i) = force(:,i) + forcei(:) + fextrai(:)
+       force(:,i) = force(:,i) + fextrai(:) + forcei(:)
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
        if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) - rhoi/rhogasi*forcei(:)
 
@@ -479,7 +479,7 @@ subroutine get_rates
  
     rhoi  = rho(i)
     rho1i = 1./rhoi
-    if (ivisc.gt.0) then
+    if (ivisc.gt.0 .and. idust.ne.1) then
        sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
     endif
 !
@@ -511,7 +511,7 @@ subroutine get_rates
           !ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
-          ddeltavdt(:,i) = 0.
+          !ddeltavdt(:,i) = 0.
        endif
        
        !
@@ -522,15 +522,6 @@ subroutine get_rates
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
-       !
-       !--DEBUGGING: CHECK ENERGY CONSERVATION
-       !  BY ADDING TERMS (SHOULD GIVE ZERO)
-       !
-       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
-             + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((rhogasi - rhodusti)/(rhodusti + rhogasi)* & 
-               0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
-             + rhogasi*rho1i*dudt(i))
     endif
 
 !
@@ -561,7 +552,6 @@ subroutine get_rates
                             rhoi)
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
-    
 !
 !--add source terms (derivatives of metric) to momentum equation
 !
@@ -805,8 +795,25 @@ subroutine get_rates
        case DEFAULT
           dpsidt(i) = 0.
     end select
+    
+    if (idust.eq.1) then
+       !
+       !--DEBUGGING: CHECK ENERGY CONSERVATION
+       !  BY ADDING TERMS (SHOULD GIVE ZERO)
+       !
+       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+             - dot_product(vel(:,i),fexternal(:)) &
+             + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
+             + ((rhogasi - rhodusti)/(rhodusti + rhogasi)* & 
+               0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
+             + rhogasi*rho1i*dudt(i))
+    endif
+
  enddo
- if (idust.eq.1 .and. abs(sum).gt.1.e-9) print*,' SUM (should be zero if conserving energy) = ',sum
+ if (idust.eq.1 .and. abs(sum).gt.1.e-9) then
+    print*,' SUM (should be zero if conserving energy) = ',sum
+    read*
+ endif
  if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
@@ -1422,7 +1429,7 @@ contains
 !   to avoid repeated memory access
 !
 !   here forcej is the gas-only forces, fextraj are forces that act on the total fluid
-    force(:,j) = force(:,j) + forcej(:) + fextraj(:)
+    force(:,j) = force(:,j) + fextraj(:) + forcej(:)
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -1740,13 +1747,13 @@ contains
     !--dissipation term in dust-to-gas ratio
     !
     if (idust.eq.1) then
-       vissdust = alphaB*vsig*rhoav1*grkern
-       rhodonrhoi = rhodusti*rho1i
-       rhodonrhoj = rhodustj*rho1j
-       rhodonrhoav = 0.5*(rhodonrhoi + rhodonrhoj)
-       vissdust = vissdust*rhodonrhoav
-       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
-       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
+       !vissdust = alphaB*vsig*rhoav1*grkern
+       !rhodonrhoi = rhodusti*rho1i
+       !rhodonrhoj = rhodustj*rho1j
+       !rhodonrhoav = 0.5*(rhodonrhoi + rhodonrhoj)
+       !vissdust = vissdust*rhodonrhoav
+       !ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
+       !ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
     endif
     
     return
