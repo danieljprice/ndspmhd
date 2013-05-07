@@ -84,8 +84,8 @@ subroutine setup
 !--set boundaries
 !
 
- ibound(1) = 2 ! periodic in x
- ibound(2) = 2 ! periodic in y (fixed sucks ; use the symmetry of the pb instead)
+ ibound(1) = 3 ! periodic in x
+ ibound(2) = 3 ! periodic in y (fixed sucks ; use the symmetry of the pb instead)
  nbpts  = 0
  x_min   = -Lx
  x_max   =  Lx
