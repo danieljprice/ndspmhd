@@ -437,11 +437,10 @@ subroutine primitive2conservative
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
      endif
-     !--set density same as rho
      if (idust.eq.1) then
         dens = rho*(1. - dustfrac)
      else
-        dens = rho
+        dens = rho     !--set density same as rho
      endif
   else
      if (idust.eq.1) then
