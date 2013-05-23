@@ -119,7 +119,7 @@ module options
  integer :: iexternal_force,ixsph,isplitpart
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
- integer :: ivisc
+ integer :: ivisc,ibiascorrection
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
@@ -144,7 +144,7 @@ module part
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg
  real, dimension(:,:), allocatable  :: x   
- real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound
+ real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound,rhoalt
  real, dimension(:,:), allocatable  :: vel,pmom,sourceterms,alpha
  real, dimension(:,:), allocatable  :: Bfield, Bevol, x0
  real, dimension(:), allocatable    :: rho0

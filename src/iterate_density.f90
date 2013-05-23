@@ -27,7 +27,7 @@ subroutine iterate_density
   use hterms
   use linklist, only:numneigh
   use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens
-  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,itypebnd
+  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,rhoalt,itypebnd
   use setup_params
   use density_summations
   use rates, only:dhdt,drhodt
@@ -41,7 +41,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
-  real, dimension(size(rho)) :: hhin,densn,dndt
+  real, dimension(size(rho)) :: hhin,dndt
   logical :: converged,redolink
   
 !!  integer :: itest
@@ -105,10 +105,10 @@ subroutine iterate_density
 !  only on a partial list
 !     
      if (ncalc.eq.npart) then
-        call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
+        call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
 !!        call output(0.0,1)
      else
-        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
+        call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
      
      ncalctotal = ncalctotal + ncalc
@@ -137,7 +137,7 @@ subroutine iterate_density
               if (usenumdens) then
                  densnumi = (hfact/hh(i))**ndim                ! this is the number density compatible with the old h
 !                 dhdni = -hh(i)/(ndim*(densnumi + rhomin))          ! deriv of this
-                 dhdni = -hh(i)/(ndim*(densn(i) + rhomin))          ! deriv of this
+                 dhdni = -hh(i)/(ndim*(rhoalt(i) + rhomin))          ! deriv of this
                  omegai =  1. - dhdni*gradhn(i)           
                  if (omegai.lt.1.e-5) then
                     !print*,'warning: omega < 1.e-5 ',i,omegai
@@ -145,7 +145,7 @@ subroutine iterate_density
                  endif
                  gradhn(i) = 1./omegai
                  gradh(i) = gradh(i)*dhdni
-                 func = densnumi - densn(i)
+                 func = densnumi - rhoalt(i)
                  dfdh = omegai/dhdni
                  gradsoft(i) = gradsoft(i)*dhdni
               else
@@ -181,7 +181,7 @@ subroutine iterate_density
               if (usenumdens .and. (hnew.le.0 .or. gradhn(i).le.0)) then
                  nwarn = nwarn + 1
 !                 !print*,' warning: h or omega < 0 in iterations',i,hnew,gradhn(i)
-                 hnew = hfact*(1./densn(i))**dndim   ! ie h proportional to 1/n^dimen
+                 hnew = hfact*(1./rhoalt(i))**dndim   ! ie h proportional to 1/n^dimen
               elseif (.not. usenumdens .and. (hnew.le.0 .or. gradh(i).le.tiny(gradh))) then
 !                 nwarn = nwarn + 1
                  hnew = hfact*(pmass(i)/(rho(i)+rhomin))**dndim   ! ie h proportional to 1/rho^dimen
@@ -198,7 +198,7 @@ subroutine iterate_density
 !
 !--if this particle is not converged, add to list of particles to recalculate
 !              
-              !!converged = abs(func)/densn(i) < tolh .and. omegai > 0.
+              !!converged = abs(func)/rhoalt(i) < tolh .and. omegai > 0.
               converged = (abs((hnew-hh(i))/hhin(i)) < tolh .and. omegai > 0.) &
                           .or. itsdensitymax.eq.0
               
@@ -274,6 +274,7 @@ subroutine iterate_density
               j = ireal(i)
               if (j.ne.0) then
                  rho(i) = rho(j)
+                 rhoalt(i) = rhoalt(j)
                  drhodt(i) = drhodt(j)
                  dhdt(i) = dhdt(j)
                  hh(i) = hh(j)
@@ -291,6 +292,7 @@ subroutine iterate_density
         do i=npart+1,ntotal
            j = ireal(i)
            rho(i) = rho(j)
+           rhoalt(i) = rhoalt(j)
            drhodt(i) = drhodt(j)
            dhdt(i) = dhdt(j)
            hh(i) = hh(j)

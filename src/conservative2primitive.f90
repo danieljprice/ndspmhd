@@ -25,8 +25,9 @@ subroutine conservative2primitive
   use bound
   use eos
   use part
-  use getcurl, only:get_curl
+  use getcurl,       only:get_curl
   use getBeulerpots, only:get_B_eulerpots
+  use getlambda,     only:get_lambda
   use smooth, only:smooth_variable
   use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
@@ -274,7 +275,14 @@ subroutine conservative2primitive
         uu = en
      endif
   end select
- 
+!
+!--get lambda for linear combination of kernels
+!
+ if (ibiascorrection.gt.0) then
+    call get_lambda(psi,ntotal)
+    print*,' DONE'
+    read*
+ endif
 !
 !--call equation of state calculation
 !

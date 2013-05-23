@@ -2917,7 +2917,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
   
     radkern = 2.0      ! interaction radius of kernel
     radkern2 = radkern*radkern
-    dq2table = radkern*radkern/real(ikern)    
+    dq2table = radkern*radkern/real(ikern)
+    !print*,' DEBUG: setting up M_4 with radkern=',radkern  
     select case(ndim)
       case(1)
         cnormk = 0.66666666666
@@ -3161,6 +3162,50 @@ subroutine interpolate_kernels(q2,w,gradw,gradwalt,gradgradwalt)
  gradgradwalt = gradgradwalt + dgrgrwaltdx*dxx
  
 end subroutine interpolate_kernels
+
+!!----------------------------------------------------------------------
+!! same but for kernel *and* modified kernel in anticlumping term
+!!----------------------------------------------------------------------
+subroutine interpolate_kernels2(q2,w,walt,gradw,gradwalt)
+ implicit none
+ integer :: index,index1
+ real, intent(in) :: q2
+ real, intent(out) :: w,walt,gradw,gradwalt
+ real :: dxx,dwdx,dwaltdx,dgrwdx,dgrwaltdx
+!
+!--find nearest index in kernel table
+! 
+ index = int(q2*ddq2table)
+ index1 = index + 1
+ if (index.gt.ikern .or. index.lt.0) index = ikern
+ if (index1.gt.ikern .or. index1.lt.0) index1 = ikern
+!
+!--find increment from index point to actual value of q2
+!
+ dxx = q2 - index*dq2table
+!
+!--calculate slope for w, gradw, waniso, gradwaniso
+!  and interpolate for each
+!
+ w = wij(index)
+ dwdx =  (wij(index1)-w)*ddq2table
+ w = w + dwdx*dxx
+
+ gradw = grwij(index)
+ dgrwdx =  (grwij(index1)-gradw)*ddq2table
+ gradw = gradw + dgrwdx*dxx
+!
+!--interpolate for alternative kernel and derivative
+!
+ walt = wijalt(index)
+ dwaltdx =  (wijalt(index1)-walt)*ddq2table
+ walt = walt + dwaltdx*dxx
+
+ gradwalt = grwijalt(index)
+ dgrwaltdx =  (grwijalt(index1)-gradwalt)*ddq2table
+ gradwalt = gradwalt + dgrwaltdx*dxx
+
+end subroutine interpolate_kernels2
 
 !!----------------------------------------------------------------------
 !! function to interpolate linearly from kernel tables

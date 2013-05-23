@@ -154,7 +154,12 @@ subroutine initialise
 !
 !--setup kernel tables
 !
- ikernelalt = ikernel
+ if (ibiascorrection.gt.0) then
+    ikernel = 2
+    ikernelalt = 0
+ else
+    ikernelalt = ikernel
+ endif
  call setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
  radkernold = radkern

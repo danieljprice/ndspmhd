@@ -249,7 +249,7 @@ SOURCES= sphND_mhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
          get_neighbour_lists.f90 penrose.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
-         get_curl.f90 get_B_eulerpots.f90 \
+         get_curl.f90 get_B_eulerpots.f90 get_lambda.f90 \
          smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
          resistivity_implicit.f90 \

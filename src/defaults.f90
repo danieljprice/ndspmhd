@@ -82,5 +82,6 @@ subroutine set_default_options
    idrag_structure = 0
    Kdrag = 0.
    ismooth = 0
+   ibiascorrection = 0
    
  end subroutine set_default_options

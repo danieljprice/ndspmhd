@@ -54,6 +54,7 @@ subroutine write_infile(infile)
   write(iread,230) iuse_exact_derivs, nsteps_remap
   write(iread,240) idust,idrag_nature,idrag_structure,Kdrag,ismooth
   write(iread,250) ivisc,shearvisc,bulkvisc
+  write(iread,260) ibiascorrection
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -81,6 +82,7 @@ subroutine write_infile(infile)
 230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
 240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
 250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
+260 format(i2,34x,'! bias correction by combining kernels')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -152,6 +154,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
   read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
   read(iread,*,err=50,end=50) ivisc,shearvisc,bulkvisc
+  read(iread,*,err=50,end=50) ibiascorrection
  close(unit=iread)
 
  goto 55
