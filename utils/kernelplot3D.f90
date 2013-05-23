@@ -101,18 +101,19 @@ program kernelplot3D
     volfrac = dymax*dzmax
     if (ipart.ne.0) then
        maxiterations = 10
-       xi(1:ndim) = xyzpart(1:ndim,ipart)
-       !print*,' using particle ',ipart,' x,y,z = ',xi,yi,zi
+       xi(:) = xyzpart(:,ipart)
+       !print*,' using particle ',ipart,' x,y,z = ',xi(1:ndim)
     else
        maxiterations = 1
        xi(:) = (nx/2 - 1)*psep + 0.25*psep
-       print*,' xi = ',xi
+       !print*,' xi = ',xi
        !xi = 0.5
     endif
     !print*,' np  = ',np,' vol = ',volfrac
     mi   = 1./real(np)*volfrac
     errmin = huge(errmin)
     imin = 0
+    rhoi = 1.
 
     do i=1,npts
        hi = hmin + (i-1)*dh
@@ -166,6 +167,11 @@ program kernelplot3D
           !
           !--Newton-Raphson stuff for density
           !
+          if (i.eq.ipt) then
+              print*,iteration,hi/psep,xi(:),radkern2
+              print*,'rho = ',wsum,rhoi
+          endif
+          rhoi     = wsum
           rhohi    = mi/(hi/hfact)**ndim
           dhdrhoi  = - hi/(ndim*wsum)
           omegai   = 1. - dhdrhoi*gradhsum
@@ -175,7 +181,7 @@ program kernelplot3D
           
           erri = abs(wsum - 1.)
           
-          hi = hi - func/dfdh
+          if (maxiterations.gt.1) hi = hi - func/dfdh
           sums(1:3) = ndim*sums(1:3)
 
           wnorm(i,isetup) = wsum
@@ -404,17 +410,21 @@ subroutine setpart(ilattice,nx,n,ndim,xyzpart,ipart,ymax,zmax)
     dz = sqrt(6.)/3.*psep
 
     npartx = int(0.999/dx) + 1
-    ny = int(0.999/dy) + 1
-    !--adjust to exact multiples
-    ny = 2*int(ny/2)
-    if (ndim.eq.3) then
+    if (ndim.ge.2) then
+       ny = int(0.999/dy) + 1
+       !--adjust to exact multiples
+       ny = 2*int(ny/2)
+       ymax = ny*dy
+    else
+       ny = 1
+    endif
+    if (ndim.ge.3) then
        nz = int(0.999/dz) + 1
        nz = 3*int(nz/3)
        zmax = nz*dz
     else
        nz = 1
     endif
-    ymax = ny*dy
     
     do k=1,nz
        do j=1,ny
@@ -433,31 +443,36 @@ subroutine setpart(ilattice,nx,n,ndim,xyzpart,ipart,ymax,zmax)
           do i = 1,npartx
              n = n + 1
              xyzpart(1,n) = (i-1)*dx + xstart
-             xyzpart(2,n) = (j-1)*dy + ystart
+             if (ndim.ge.2) xyzpart(2,n) = (j-1)*dy + ystart
              if (ndim.eq.3) xyzpart(3,n) = (k-1)*dz + zstart
              !print*,n,' xyz = ',xyzpart(:,n)
           enddo
        enddo
     enddo
-   ! print*,' closepacked, setup ',n,' particles ',npartx,ny,nz,npartx*ny*nz
+    !print*,' closepacked, setup ',n,' particles ',npartx,ny,nz,npartx*ny*nz
 
  else
  !--cubic lattice
-    if (ndim.eq.3) then
+    if (ndim.ge.3) then
        nz = nx
     else
        nz = 1
     endif
+    if (ndim.ge.2) then
+       ny = nx
+    else
+       ny = 1
+    endif
     do k=1,nz
        zi = (k-1)*psep
-       do j=1,nx
+       do j=1,ny
           yi = (j-1)*psep
           do i=1,nx
              xi = (i-1)*psep
        !print*,'x, y, z = ',xi,yi,zi
              n = n + 1
              xyzpart(1,n) = xi
-             xyzpart(2,n) = yi
+             if (ndim.ge.2) xyzpart(2,n) = yi
              if (ndim.eq.3) xyzpart(3,n) = zi
           enddo
        enddo
@@ -466,9 +481,11 @@ subroutine setpart(ilattice,nx,n,ndim,xyzpart,ipart,ymax,zmax)
  
  rmin = huge(rmin)
  zi   = 0.
+ yi   = 0.
+ imin = 0
  do i=1,n
     xi = xyzpart(1,i) - 0.5
-    yi = xyzpart(2,i) - 0.5
+    if (ndim.ge.2) yi = xyzpart(2,i) - 0.5
     if (ndim.eq.3) zi = xyzpart(3,i) - 0.5
     r2 = xi*xi + yi*yi + zi*zi
     if (r2 .lt. rmin) then
