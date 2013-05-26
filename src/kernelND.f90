@@ -41,6 +41,8 @@ subroutine setkern(ikernel,ndim,ierr)
  implicit none
  integer, intent(in)  :: ikernel, ndim
  integer, intent(out) :: ierr
+ 
+ radkern = 2. ! default value for kernel radius
 !
 !--setup kernel tables for primary kernel
 !
@@ -57,7 +59,7 @@ subroutine setkerndrag(ikerneldrag,ndim,ierr)
  integer, intent(in)  :: ikerneldrag, ndim
  integer, intent(out) :: ierr
 !
-!--setup kernel tables for primary kernel
+!--setup kernel tables for drag kernel
 !
  call setkerntable(ikerneldrag,ndim,wijdrag,grwijdrag,grgrwijdrag,kernelnamedrag,ierr)
 end subroutine setkerndrag
@@ -71,6 +73,8 @@ subroutine setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
  implicit none
  integer, intent(in)  :: ikernel,ikernelalt, ndim
  integer, intent(out) :: ierr1,ierr2
+
+ radkern = 2. ! default value for kernel radius
 !
 !--setup kernel tables for primary kernel
 !
@@ -122,9 +126,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'M_5 quartic' 
 
-    radkern = 2.5
+    radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
+    print*,' setting up quartic with radkern = ',radkern
     select case(ndim)
       case(1)
          cnormk = 1./24.
@@ -178,7 +183,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
 !
     kernellabel = 'M_6 quintic'  
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -219,7 +224,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'M_7 hexic'    
 
-    radkern = 3.5
+    radkern = max(radkern,  3.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -272,7 +277,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'M_8 heptic'    
 
-    radkern = 4.0
+    radkern = max(radkern,  4.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -329,7 +334,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--this is the do-it-yourself quintic kernel (general class of quintic splines)
 !
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
 
@@ -421,7 +426,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     npower = 6
     write(kernellabel,"(a,i1)") '(1-r^2)^',npower     
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -472,7 +477,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Better cubic' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -519,7 +524,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !  
     kernellabel = 'Gaussian'    
 
-    radkern = 10.0
+    radkern = max(radkern,  10.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -550,7 +555,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   prevent particles from clumping (see thomas & couchman '92)
 !      
     kernellabel = 'Thomas & Couchman anti-clumping'
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)     ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
     select case(ndim)
@@ -592,7 +597,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'BK squashed quintic spline'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -628,7 +633,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     npower = 4
     write(kernellabel,"(a,i1)") '(2-r)^',npower     
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -660,7 +665,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Peaked cubic spline'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -695,7 +700,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Peaked cubic spline 2'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -738,7 +743,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     write(kernellabel,"(a,f6.2)") 'peaked cubic spline alpha = ',alpha
 !!    kernellabel = 'peaked cubic spline 3'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -777,7 +782,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'cosine**n'
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     n = 5
@@ -829,7 +834,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Dirichlet [sin(q)/q]'
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -875,7 +880,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = '[sin(q)/q]**2' 
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -919,7 +924,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = '[sin(q)/q]**4'
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -961,7 +966,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Jackson kernel'
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1008,7 +1013,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !  
     kernellabel = 'Q-Gaussian'    
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1038,7 +1043,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--this is the m_6 quintic spline (S. Rosswog)
 !
     kernellabel = 'Linear Core M_6 quintic'  
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     w0 = 80.7721808180
@@ -1088,7 +1093,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--this is the m_6 quintic spline (S. Rosswog)
 !
     kernellabel = 'Quartic Core M_6 quintic'  
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     qs = 0.7592984881
@@ -1138,7 +1143,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !  
     kernellabel = 'Linear-Quartic'
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     qs = 0.3
@@ -1191,7 +1196,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'A peaked cubic'
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1238,7 +1243,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Ferrers n=3 sphere'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1273,7 +1278,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Ferrers n=6 sphere'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1309,7 +1314,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Ferrers n=7 sphere'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1345,7 +1350,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Ferrers n=8 sphere'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1381,7 +1386,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Cauchy'    
    
-    radkern = 20.0
+    radkern = max(radkern,  20.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1412,7 +1417,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Bump kernel'    
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1445,7 +1450,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'expo-rational B-spline kernel'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1471,7 +1476,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'integrated erbs kernel'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1497,7 +1502,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'particle splitting'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1536,7 +1541,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'double cubic spline'
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1574,7 +1579,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--double hump version of the m_6 quintic spline
 !
     kernellabel = 'double hump M_6 quintic'  
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1614,7 +1619,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'double hump Lucy/Wendland 4'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1652,7 +1657,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'double Gaussian'    
   
-    radkern = 10.0      ! interaction radius of kernel
+    radkern = max(radkern,  10.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     cnormk = 2./real(ndim)*pi**(-ndim/2.)
@@ -1680,7 +1685,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'cubic spline gradient-as-kernel'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1719,7 +1724,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Higher order cubic spline'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1758,7 +1763,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Higher order quartic spline'    
    
-    radkern = 2.5
+    radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1810,7 +1815,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'High order peaked cubic spline 2'    
    
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1854,7 +1859,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = '1D Super Gaussian'
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1889,7 +1894,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'Y'''' (M_4 cubic)'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -1931,7 +1936,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--this is the m_6 quintic spline (see e.g. morris 1996, phd thesis)
 !
     kernellabel = 'Y'''' (M_6 quintic)'  
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -1976,7 +1981,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 2/3D C^2' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2016,7 +2021,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 2/3D C^4' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2061,7 +2066,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 2/3D C^6' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2106,7 +2111,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 1D C^2 [Lucy kernel]' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2145,7 +2150,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 1D C^4' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2186,7 +2191,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Wendland 1D C^6' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2233,7 +2238,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'Bessel function kernel'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2272,7 +2277,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'second derivative kernel (cubic)'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2315,7 +2320,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'hacked M_4 cubic'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2374,7 +2379,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        return
     endif
     
-    radkern = 0.5* real(ncspline)      ! interaction radius of kernel
+    radkern = max(radkern,  0.5* real(ncspline))      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2450,7 +2455,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        ierr = 2
        return           
     end select
-    radkern = 0.5* real(ncspline1 + secondz*ncspline2)      ! interaction radius of kernel
+    radkern = max(radkern,  0.5* real(ncspline1 + secondz*ncspline2))      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
@@ -2510,7 +2515,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Integrated M_4' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2556,7 +2561,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--integrated M5 (auto-generated by kernels.py)
 !
     kernellabel = 'Integrated M_5'
-    radkern = 2.5
+    radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2618,7 +2623,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Integrated M_6' 
 
-    radkern = 3.0
+    radkern = max(radkern,  3.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2679,7 +2684,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Twice integrated M_4' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2728,7 +2733,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Twice integrated M_5' 
 
-    radkern = 2.5
+    radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2801,7 +2806,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'Triple-integrated M_4' 
 
-    radkern = 2.0
+    radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2856,7 +2861,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
     kernellabel = 'OM_5 = optimal kernel of order 5'    
 
-    radkern = 2.5
+    radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
     select case(ndim)
@@ -2915,10 +2920,10 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'M_4 cubic spline'    
   
-    radkern = 2.0      ! interaction radius of kernel
+    radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
-    !print*,' DEBUG: setting up M_4 with radkern=',radkern  
+    print*,' DEBUG: setting up M_4 with radkern=',radkern  
     select case(ndim)
       case(1)
         cnormk = 0.66666666666
