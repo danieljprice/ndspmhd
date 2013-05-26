@@ -26,7 +26,7 @@ subroutine iterate_density
   use bound
   use hterms
   use linklist, only:numneigh
-  use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens
+  use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens,ibiascorrection
   use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,rhoalt,itypebnd
   use setup_params
   use density_summations
@@ -109,6 +109,17 @@ subroutine iterate_density
 !!        call output(0.0,1)
      else
         call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
+     endif
+!
+!--rhoalt is the number density times the particle mass
+!  (also computed with ikernelalt instead of ikernel)
+!
+     if (ibiascorrection.gt.0) then
+        do i=1,ncalc
+           j = redolist(i)
+           rhoalt(j) = pmass(j)*rhoalt(j)
+        enddo
+        if (usenumdens) stop 'error: bias correction and number density stuff incompatible'
      endif
      
      ncalctotal = ncalctotal + ncalc
@@ -264,7 +275,6 @@ subroutine iterate_density
            gradgradh(i) = 0.
         enddo   
      endif
-
 !
 !--write over boundary particles
 !     

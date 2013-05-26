@@ -19,6 +19,7 @@ subroutine get_lambda(lambda,ntot)
  use options, only:ikernav
  use part
  use setup_params
+ use timestep, only:time
 !
 !--define local variables
 !
@@ -46,7 +47,7 @@ subroutine get_lambda(lambda,ntot)
  real :: wabi,wabj
  real :: wabalti,wabaltj
  real :: grkerni,grkernj,grkernalti,grkernaltj
- real :: term,termalt
+ real :: term,termalt,rhochecki,rhocheckalti
  real, dimension(ndimV) :: gradunityi,gradunityalti
 !
 !--allow for tracing flow
@@ -58,7 +59,6 @@ subroutine get_lambda(lambda,ntot)
  !!!print*,'ntot = ',ntot, 'size= ',size(divBonrho)
  do i=1,ntot
     lambda(i) = 0.
-    rhoalt(i) = pmass(i)*rhoalt(i)
  enddo
  listneigh = 0
 !
@@ -89,6 +89,9 @@ subroutine get_lambda(lambda,ntot)
        rho21i = rho1i*rho1i
        rhoalt1i  = 1./rhoalt(i)
        rhoalt21i = rhoalt1i*rhoalt1i 
+       
+       rhochecki = 0.
+       rhocheckalti = 0.
        gradunityi(:) = 0.
        gradunityalti(:) = 0.
        if (i.gt.npart) then
@@ -152,22 +155,34 @@ subroutine get_lambda(lambda,ntot)
 !
 !--calculate term
 !
-             !term    = pmass(j)*wabi*rho1j
-             !termalt = pmass(j)*wabalti*rhoalt1j
-             term    = pmass(j)*(rho21i*grkerni + rho21j*grkernj)
-             termalt = pmass(j)*(rhoalt21i*grkernalti + rhoalt21j*grkernaltj)
+             rhochecki = rhochecki + pmass(j)*wabi
+             rhocheckalti = rhocheckalti + pmass(j)*wabalti
 
-             gradunityi(:)    = gradunityi(:)    + term*dr(:)
-             gradunityalti(:) = gradunityalti(:) + termalt*dr(:) 
+             !term    = pmass(j)*(rho21i*grkerni + rho21j*grkernj)
+             !termalt = pmass(j)*(rhoalt21i*grkernalti + rhoalt21j*grkernaltj)
+
+             term = -pmass(j)*rho1i*dx(1)*dr(1)*grkerni
+             termalt = -pmass(j)*rhoalt1i*dx(1)*dr(1)*grkernalti
+
+             gradunityi(:)    = gradunityi(:)    + term !*dr(:)
+             gradunityalti(:) = gradunityalti(:) + termalt !*dr(:) 
           endif
        enddo loop_over_neighbours
 !
 !--compute lambda for this particle
 !
-       lambda(i) = gradunityi(1)
+       lambda(i) = 0.8 ! max(min((1. - gradunityalti(1))/(gradunityi(1) - gradunityalti(1)),1.),0.)
        if (i.eq.50) then
-          print*,i,'h = ',hh(i)
-          print*,i,'lambda = ',rho(i)*gradunityi(1),rhoalt(i)*gradunityalti(1),rho(i),rhoalt(i),gradh(i)
+          print*,i,'h = ',hh(i),' lambda = ',lambda(i)
+          print*,i,'terms = ',gradunityi(1),gradunityalti(1),' rho = ',rho(i),rhoalt(i)
+          print*,i,'corrected term = ',lambda(i)*gradunityi(1) + (1. - lambda(i))*gradunityalti(1)
+          !print*,i,'corrected rho = ',lambda(i)*rho(i) + (1. - lambda(i))*rhoalt(i)
+          if (abs(rhoalt(i)-rhocheckalti).gt.1.e-10) then
+             print*,' error, rhoalt = ',rhoalt(i),' should be ',rhocheckalti
+             stop
+          endif
+          !print*,' rhoalt is ',rhoalt(i),' should be ',rhocheckalti
+          write(50,*) time,lambda(i)*rho(i) + (1. - lambda(i))*rhoalt(i),rho(i),rhoalt(i)
        endif
        iprev = i
        if (iprev.NE.-1) i = ll(i)          ! possibly should be only if (iprev.NE.-1)

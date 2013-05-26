@@ -1372,7 +1372,10 @@ contains
        else
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
-          !!prterm = (pri - prj)/rhoij*grkern
+          if (ibiascorrection.ne.0) then
+             prterm = prterm + ((1. - sqrtgi)*pri/rhoalt(i)**2*grkernalti &
+                              + (1. - sqrtgj)*prj/rhoalt(j)**2*grkernaltj)
+          endif
 
 !          print *, 'pr ', phii_on_phij,Prho2i,sqrtgi,grkerni, &
 !                 phij_on_phii, Prho2j, sqrtgj,grkernj

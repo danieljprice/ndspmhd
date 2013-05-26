@@ -279,9 +279,7 @@ subroutine conservative2primitive
 !--get lambda for linear combination of kernels
 !
  if (ibiascorrection.gt.0) then
-    call get_lambda(psi,ntotal)
-    print*,' DONE'
-    read*
+    call get_lambda(sqrtg,ntotal)
  endif
 !
 !--call equation of state calculation

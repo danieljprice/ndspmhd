@@ -155,8 +155,8 @@ subroutine initialise
 !--setup kernel tables
 !
  if (ibiascorrection.gt.0) then
-    ikernel = 2
-    ikernelalt = 0
+    ikernel = 3
+    ikernelalt = 2
  else
     ikernelalt = ikernel
  endif
