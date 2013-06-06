@@ -58,13 +58,16 @@ subroutine set_fixedbound
         if (itype(i).eq.itypebnd) then
            rmin = 1.e10
            do j=1,npart
-              if (j.ne.i .and. itype(j).eq.0) then   ! find closest real particle
-                 dx = x(:,i) - x(:,j)
-                 rr = DOT_PRODUCT(dx,dx)
-                 if (rr.lt.rmin) then
-                    rmin = rr
-                    ireal(i) = j
-                 endif
+              if (j.ne.i) then   ! find closest real particle
+                 select case(itype(j))
+                 case(itypegas,itypegas1,itypegas2)
+                    dx = x(:,i) - x(:,j)
+                    rr = DOT_PRODUCT(dx,dx)
+                    if (rr.lt.rmin) then
+                       rmin = rr
+                       ireal(i) = j
+                    endif
+                 end select
               endif
            enddo
            !ireal(i) = 0

@@ -140,6 +140,8 @@ module part
  integer, parameter :: itypegas = 0
  integer, parameter :: itypebnd = 1
  integer, parameter :: itypedust = 2
+ integer, parameter :: itypegas1 = 3
+ integer, parameter :: itypegas2 = 4
  integer, parameter :: itypebnd2 = 11
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg

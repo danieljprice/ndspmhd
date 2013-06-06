@@ -18,7 +18,7 @@ contains
 subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
- use part, only:itype,itypegas
+ use part, only:itype,itypegas,itypegas1,itypegas2
 !
 !--define local variables
 !
@@ -54,6 +54,10 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
     where (rho > 0. .AND. itype(1:isize).EQ.itypegas)
        pr = polyk*rho**gamma
        vsound = sqrt(gamma*pr/rho)
+    elsewhere (itype(1:isize).eq.itypegas1)
+       pr = polyk*(rho - 1.)
+    elsewhere (itype(1:isize).eq.itypegas2)
+       pr =  polyk*(rho - 1.) !4.*polyk*((rho/0.5) - 1.)
     elsewhere
       pr = 0.
     end where
