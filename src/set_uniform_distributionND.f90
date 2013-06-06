@@ -761,6 +761,19 @@ subroutine applymask(imask,xpart,ipart)
           ipart = ipart - 1
        endif
     endif
+ case(6,-6)
+!
+!   Zisis test: density jumps
+!
+    if (imask.gt.0) then
+       if (xpart(1).lt.0.9 .or. xpart(1).gt.1.1) then
+          ipart = ipart - 1
+       endif    
+    else
+       if (xpart(1).gt.0.9 .and. xpart(1).lt.1.1) then
+          ipart = ipart - 1
+       endif    
+    endif
 
  end select
  
