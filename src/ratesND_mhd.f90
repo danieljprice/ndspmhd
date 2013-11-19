@@ -812,7 +812,7 @@ subroutine get_rates
  enddo
  if (idust.eq.1 .and. abs(sum).gt.1.e-9) then
     print*,' SUM (should be zero if conserving energy) = ',sum
-    read*
+    !read*
  endif
  if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
