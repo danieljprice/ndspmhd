@@ -40,7 +40,7 @@ subroutine step (integratorcheck)
  real :: dtmin, dtmax
  real :: rkferr, rkferrratio, dtfactor
  logical :: loop
- character (len=20), intent (inout) :: integratorcheck
+ character (len=*), intent (inout) :: integratorcheck
 
  if (trim(integratorcheck).eq.'query') then
     integratorcheck = 'rkf'

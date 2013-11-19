@@ -26,7 +26,7 @@ subroutine step (integratorcheck)
  implicit none
  integer :: i
  real :: hdt
- character (len=20), intent (inout) :: integratorcheck
+ character (len=*), intent (inout) :: integratorcheck
 
  if (trim(integratorcheck).eq.'query') then
     integratorcheck = 'mhd_gr'

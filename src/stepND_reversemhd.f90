@@ -32,7 +32,7 @@ SUBROUTINE step (integratorcheck)
  IMPLICIT NONE
  INTEGER :: i
  REAL :: hdt, dt1, dthalf
- character (len=20), intent (inout) :: integratorcheck
+ character (len=*), intent (inout) :: integratorcheck
 
  if (trim(integratorcheck).eq.'query') then
     integratorcheck = 'reversemhd'

@@ -63,7 +63,7 @@ SUBROUTINE step (integratorcheck)
  REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
  REAL, DIMENSION(SIZE(divB)) :: divBprev
  real, dimension(ndimV) :: vcrossB
- character (len=20), intent (inout) :: integratorcheck
+ character (len=*), intent (inout) :: integratorcheck
 
  if (trim(integratorcheck).eq.'query') then
     integratorcheck = 'mhd'
