@@ -35,7 +35,7 @@ subroutine step (integratorcheck)
  real :: hdt,dtstop
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
- character (len=20), intent (inout) :: integratorcheck
+ character(len=*), intent (inout) :: integratorcheck
 
  if (trim(integratorcheck).eq.'query') then
     integratorcheck = 'leapfrog'
