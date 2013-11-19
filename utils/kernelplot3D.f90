@@ -7,7 +7,7 @@ program kernelplot3D
  integer :: nkernels,nacross,ndown,nneigh
  integer :: ipart,maxiterations,iteration,isetup
  integer, dimension(10)   :: iplotorder
- real    :: q2,xi(3),rij2,mi,rhoi
+ real    :: q2,xi(3),rij2,mi,rhoi,rhoj
  real    :: hi,hi1,hi21,dh,hmin,hmax
  real    :: psep,dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
@@ -25,7 +25,7 @@ program kernelplot3D
  real, parameter :: pi = 3.1415926536
  real, dimension(10) :: sums
 
- data iplotorder /0, 2, 3, 91, 92, 93, 94, 62, 63, 13/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 3, 61, 62, 63, 94, 62, 63, 13/   ! order in which kernels are plotted
  !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
@@ -40,12 +40,12 @@ program kernelplot3D
  if (plotall) then
     nkernels = 70
  else
-    nkernels = 9
+    nkernels = 6
  endif
  samepage = .false.
  nacross = 3
- ndown = 3
- ndim = 2
+ ndown = 2
+ ndim = 1
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
@@ -104,7 +104,7 @@ program kernelplot3D
        xi(:) = xyzpart(:,ipart)
        !print*,' using particle ',ipart,' x,y,z = ',xi(1:ndim)
     else
-       maxiterations = 1
+       maxiterations = 10
        xi(:) = (nx/2 - 1)*psep + 0.25*psep
        !print*,' xi = ',xi
        !xi = 0.5
@@ -118,10 +118,11 @@ program kernelplot3D
     do i=1,npts
        hi = hmin + (i-1)*dh
        xplot(i) = hi/psep
-       if (abs(xplot(i)-1.2).lt.0.01*dh) ipt = i
        hfact = hi/psep
-       
+       if (abs(hfact-1.2).lt.0.01*dh) ipt = i
        its: do iteration=1,maxiterations
+          !if (ipt.eq.i) hi = 1.2001545*psep
+
           hi1  = 1./hi
           hi21 = hi1*hi1
           !
@@ -160,16 +161,17 @@ program kernelplot3D
                    sums(4) = sums(4) - mi/rhoi*gradwi*dx(1)*dx(1)*rij1
                    sums(5) = sums(5) - mi/rhoi*gradwi*dx(1)*dx(2)*rij1
                    sums(6) = sums(6) - mi/rhoi*gradwi*dx(1)*dx(3)*rij1
-                   sums(7) = sums(7) + mi/rhoi*gradwi*dx(1)*rij1
+                   rhoj = rhoi
+                   sums(7) = sums(7) + rhoi*mi*(gradwi/rhoi**2 + gradwi/rhoj**2)*dx(1)*rij1
                 endif
              endif
           enddo
           !
           !--Newton-Raphson stuff for density
           !
-          if (i.eq.ipt) then
+          if (i.eq.ipt .and. iteration.eq.maxiterations) then
               print*,iteration,hi/psep,xi(:),radkern2
-              print*,'rho = ',wsum,rhoi
+              print*,'rho = ',wsum,' grad1 = ',sums(7)
           endif
           rhoi     = wsum
           rhohi    = mi/(hi/hfact)**ndim
@@ -297,8 +299,8 @@ subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
 
  xmin = minval(xplot)
  xmax = maxval(xplot)
- ymin = 0.99
- ymax = 1.01
+ ymin = 0.95
+ ymax = 1.05
  ylabel = 'W_{norm}'
 
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/\gDx',trim(ylabel), &
@@ -306,7 +308,7 @@ subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
                0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
 
  call pgmtxt('t',-2.0_4,0.96_4,1.0_4,trim(kernelname))
- do i=1,size(wnorm(1,:))
+ do i=1,size(wnormi(1,:))
     call pgsci(i+1)
 
    !--normalisation of W (solid line)
