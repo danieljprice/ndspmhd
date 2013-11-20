@@ -109,7 +109,7 @@ subroutine setup
     else
        Bfield(:,i) = 0.
     endif 
- ENDDO
+ enddo
 
  ntotal = npart
 !
