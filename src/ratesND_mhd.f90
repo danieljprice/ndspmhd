@@ -320,7 +320,7 @@ subroutine get_rates
           rhogasi        = rhoi - rhodusti
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
-          rhogrhodonrhoi = rhogasi*rhodusti/rhoi
+          rhogrhodonrhoi = rhogasi*rhodusti*rho1i
           vgasi(:)       = veli(:) - dustfraci*deltavi(:)
        else
           rhogasi  = rhoi
@@ -482,6 +482,7 @@ subroutine get_rates
     if (ivisc.gt.0 .and. idust.ne.1) then
        sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
     endif
+    fexternal(:) = 0.
 !
 !--Dust
 !
@@ -492,7 +493,7 @@ subroutine get_rates
        dtdrag = min(dtdrag,rhoi/Kdrag)
     elseif (idust.eq.1) then
        !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
-       !dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
+       dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
        !------------------
        !  one fluid dust
        !------------------
@@ -508,10 +509,10 @@ subroutine get_rates
        !
        if (dustfraci.gt.0.) then
           dtstop   = Kdrag*rhoi/(rhodusti*rhogasi)  ! 1/tstop = K*rho/(rhod*rhog)
-          !ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
+          ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
-          !ddeltavdt(:,i) = 0.
+          ddeltavdt(:,i) = 0.
        endif
        
        !
@@ -804,8 +805,7 @@ subroutine get_rates
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
              + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((rhogasi - rhodusti)/(rhodusti + rhogasi)* & 
-               0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
+             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
              + rhogasi*rho1i*dudt(i))
     endif
 
@@ -1123,7 +1123,7 @@ contains
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
        dustfracj  = dustfrac(j)
-       rhodustj       = rhoj*dustfracj       
+       rhodustj       = rhoj*dustfracj
        rhogasj        = rhoj - rhodustj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
