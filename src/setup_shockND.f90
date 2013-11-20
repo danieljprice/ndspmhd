@@ -186,7 +186,8 @@ subroutine setup
  xminright(1) = xshock
  
  if (idust.gt.0) then
-    densdustleft = densright
+    densdustleft = densleft
+    !densdustleft = densright
     densdustright = densright
  else
     densdustleft = 0.
@@ -197,8 +198,8 @@ subroutine setup
     psepright = psep*(densleft/densright)**(1./ndim)
  else
     if (jtype.eq.2) then
-       psepleft = psep*(densdustleft/densleft)**(1./ndim)
-       psepright = psep*(densdustright/densleft)**(1./ndim)    
+       psepleft = psep   !*(densdustleft/densleft)**(1./ndim)
+       psepright = psep*(densleft/densright)**(1./ndim) !(densdustright/densleft)**(1./ndim)    
     else
        psepleft = psep
        psepright = psep*(densleft/densright)**(1./ndim)
@@ -238,8 +239,8 @@ subroutine setup
        if (jtype.eq.2) then
           total_mass = volume*densdustleft
           massp = total_mass/(npart - npartprev)       
-          masspdustleft  = massp
-          masspdustright = massp  
+          masspdustleft  = massp*densdustleft/densleft
+          masspdustright = massp*densdustright/densright
        else
           total_mass = volume*densleft
           massp = total_mass/(npart - npartprev)
