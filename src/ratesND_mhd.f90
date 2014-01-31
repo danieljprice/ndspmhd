@@ -81,7 +81,7 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj,vsigav
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin,vsigu
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsigB,vsigu
 !! real :: vsigii,vsigjj
  real :: prneti,prnetj,pequil
 !
@@ -104,7 +104,7 @@ subroutine get_rates
  real :: rhogrhodonrhoi, rhogrhodonrhoj
  real :: deltav2i,deltav2j
  real :: dtstop,projdeltavi,projdeltavj
- real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
+ real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas,dustfracav
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
  real :: sum
 
@@ -321,7 +321,6 @@ subroutine get_rates
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
           rhogrhodonrhoi = rhogasi*rhodusti*rho1i
-          vgasi(:)       = veli(:) - dustfraci*deltavi(:)
        else
           rhogasi  = rhoi
           rhodusti = 0.
@@ -1123,14 +1122,18 @@ contains
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
        dustfracj  = dustfrac(j)
+       dustfracav     = 0.5*(dustfraci + dustfracj)
        rhodustj       = rhoj*dustfracj
        rhogasj        = rhoj - rhodustj
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
        rhogrhodonrhoj = rhogasj*rhodustj*rho1j
+       vgasi(:)       = veli(:) - dustfraci*deltavi(:)
        vgasj(:)       = velj(:) - dustfracj*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
+       projdeltavi    = dot_product(deltavi,dr)
+       projdeltavj    = dot_product(deltavj,dr)
     else
        projdvgas      = dvdotr
        deltav2j       = 0.
@@ -1283,26 +1286,26 @@ contains
           endif
           vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
           vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
-          vsignonlin = 0.5*(vsigi + vsigj) + abs(dvdotr)
-          !vsignonlin = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
-          !vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+          vsigB = 0.5*(vsigi + vsigj) + abs(dvdotr)
+          !vsigB = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
+          !vsigB = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
        else
           vsigi = spsoundi
           vsigj = spsoundj
-          vsignonlin = 0.
+          vsigB = 0.
        endif
 
        vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
        !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
-       !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
-       !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+       !vsigB = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+       !vsigB = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
 
        vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
        !vsigu = sqrt(0.5*(psi(i) + psi(j)))
        !vsigu = abs(dvdotr)
 
        ! vsigdtc is the signal velocity used in the timestep control
-       vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
+       vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
        if (idust.eq.1) then
           vsigdtc = vsigdtc + sqrt(deltav2i + deltav2j)
        endif
@@ -1531,9 +1534,9 @@ contains
     real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
-    real :: vissv,vissB,vissu,vissdust
-    real :: term,dpmomdotr
-    real :: termnonlin,termu,termv
+    real :: vissv,vissB,vissu,vissdust,vissdv
+    real :: term,dpmomdotr,faci,facj
+    real :: termB,termu,termv,termdv
     real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
     real :: rhodonrhoi,rhodonrhoj,rhodonrhoav
     !
@@ -1546,7 +1549,7 @@ contains
     !!rhoav1 = 2./(rhoi + rhoj)
     if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
-    elseif (idust.eq.1) then    
+    elseif (idust.eq.1 .and. iav.eq.2) then    
        dpmomdotr = -projdvgas
     else
        dpmomdotr = -dvdotr
@@ -1555,7 +1558,7 @@ contains
     term = vsig*rhoav1*grkern
     termv = term
     
-    if (idust.eq.1) then
+    if (idust.eq.1 .and. iav.eq.2) then
     !
     !--for one fluid dust, viscosity term must be multiplied by
     !  rhog/rho, but done in a symmetric way to conserve momentum
@@ -1571,16 +1574,18 @@ contains
 
     !--used for thermal conductivity
     termu = vsigu*rhoav1*grkern
+    !
+    if (idust.eq.1) termu = termu*(1. - dustfracav)
     !termu = vsig*rho1i*rho1j*grkern
     !termu = vsig*rhoav1*grkern
 
     !--used for resistivity
-    termnonlin = vsignonlin*rhoav1*grkern
-!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)/ &
+    termB = vsigB*rhoav1*grkern
+!    termB = vsigi*alphaBi*vsigj*alpha(3,j)/ &
 !                (vsigi*alphaBi + vsigj*alpha(3,j))*rhoav1*grkern
-!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
+!    termB = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
 !                (rhoi*vsigi*alphaBi*grkerni + rhoj*vsigj*alpha(3,j)*grkernj)
-    !termnonlin = vsignonlin*rhoav1*grkern
+    !termB = vsigB*rhoav1*grkern
 
     
     !----------------------------------------------------------------
@@ -1590,8 +1595,14 @@ contains
     
     if (dvdotr.lt.0 .and. iav.le.2) then            
        visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
-       forcei(:) = forcei(:) - pmassj*visc*dr(:)
-       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       if (idust.eq.1 .and. iav.eq.1) then
+          ! here viscosity applies to the whole fluid, not just gas component
+          fextrai(:) = fextrai(:) - pmassj*visc*dr(:)
+          fextraj(:) = fextraj(:) + pmassi*visc*dr(:) 
+       else
+          forcei(:) = forcei(:) - pmassj*visc*dr(:)
+          forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       endif
     elseif (iav.ge.3) then ! using total energy, for approaching and receding
        visc = alphaav*termv
        !print*,'visc = ',i,j,vsig*alphaav*hh(i)
@@ -1611,7 +1622,7 @@ contains
           else
              Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
           endif
-          dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
+          dBdtvisc(:) = alphaB*termB*Bvisc(:)
 
           !
           !--add to d(B/rho)/dt (converted to dB/dt later if required)
@@ -1620,7 +1631,7 @@ contains
           dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
 
        elseif (iav.eq.1) then !--wrong vector potential resistivity
-          dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
+          dBdtvisc(:) = alphaB*termB*dBevol(:)
           !
           !--add to dA/dt (note: do not multiply by rho here)
           !
@@ -1669,6 +1680,7 @@ contains
        elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
+       if (idust.eq.1) stop 'dissipation not implemented with total energy equation for one-fluid dust'
        !
        !  add to total energy equation
        !
@@ -1683,7 +1695,7 @@ contains
        !  kinetic energy terms
        !
        if (dvdotr.lt.0 .and. iav.le.2) then
-          if (idust.eq.1) then
+          if (idust.eq.1 .and. iav.eq.2) then
              vissv = -alphaav*0.5*projdvgas**2          
           else
              vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
@@ -1718,15 +1730,38 @@ contains
           vissB = 0.
        endif
        !
+       !--dissipation term in deltav
+       !
+       if (idust.eq.1 .and. iav.eq.1) then
+          termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
+   !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
+   !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
+          faci = 1./(dustfraci*(1. - dustfraci))
+          facj = 1./(dustfracj*(1. - dustfracj))
+          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
+          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+          vissdv = -0.5*(projdeltavi - projdeltavj)**2
+       else
+          termdv = 0.
+          vissdv = 0.
+       endif
+       !
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          if (idust.eq.1) then
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu + termnonlin*(vissB))
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu + termnonlin*(vissB))          
+          if (idust.eq.1 .and. iav.eq.2) then
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu + termB*(vissB))
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu + termB*(vissB))
           else
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
+             if (idust.eq.1) then
+                faci = rhoi/rhogasi
+                facj = rhoj/rhogasj
+             else
+                faci = 1.
+                facj = 1.
+             endif
+             dudt(i) = dudt(i) + faci*pmassj*(term*(vissv) + termu*vissu + termB*(vissB) + termdv*vissdv)
+             dudt(j) = dudt(j) + facj*pmassi*(term*(vissv) - termu*vissu + termB*(vissB) + termdv*vissdv)
           endif
 
           !--entropy dissipation
@@ -1743,20 +1778,6 @@ contains
        !   drhodt(i) = drhodt(i) + pmassj*(vissrho)
        !   drhodt(j) = drhodt(j) + pmassi*(-vissrho)
        !endif
-    endif
-
-
-    !
-    !--dissipation term in dust-to-gas ratio
-    !
-    if (idust.eq.1) then
-       !vissdust = alphaB*vsig*rhoav1*grkern
-       !rhodonrhoi = rhodusti*rho1i
-       !rhodonrhoj = rhodustj*rho1j
-       !rhodonrhoav = 0.5*(rhodonrhoi + rhodonrhoj)
-       !vissdust = vissdust*rhodonrhoav
-       !ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
-       !ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
     endif
     
     return
@@ -1800,7 +1821,7 @@ contains
     !real :: v2i,v2j
     real :: qdiffi,qdiffj,qdiff
     real :: term,dpmomdotr,dens1j
-    real :: termnonlin,lorentzfactorstari,lorentzfactorstarj,estari,estarj
+    real :: lorentzfactorstari,lorentzfactorstarj,estari,estarj
     real :: lorentzi,lorentzj
     real,dimension(ndimV) :: pmomstari,pmomstarj
     !
@@ -1816,7 +1837,6 @@ contains
 !       dpmomdotr = -dvdotr
 !    endif
     term = vsig*rhoav1*grkern
-    termnonlin = vsignonlin*rhoav1*grkern
 
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
@@ -2256,8 +2276,6 @@ contains
     !--time derivative of dust to gas ratio
     !  (symmetric derivative to conserve dust/gas mass)
     !
-    projdeltavi = dot_product(deltavi,dr)
-    projdeltavj = dot_product(deltavj,dr)
     termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
