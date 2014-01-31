@@ -80,7 +80,14 @@ subroutine setup
     Byright = 4./const
     Bzleft = 2./const
     Bzright = 2./const
- endif 
+ endif
+ if (idust.ne.0) then
+    densdustleft = densleft
+    densdustright = densright
+ else
+    densdustleft = 0.
+    densdustright = 0.
+ endif
 !
 !--read shock parameters from the .shk file
 !
@@ -96,6 +103,13 @@ subroutine setup
       read(ireadf,*,ERR=667,END=667) Bxinit
       read(ireadf,*,ERR=667,END=667) Byleft,Byright
       read(ireadf,*,ERR=667,END=667) Bzleft,Bzright
+   else
+      read(ireadf,*,ERR=667,END=667)
+      read(ireadf,*,ERR=667,END=667)
+      read(ireadf,*,ERR=667,END=667)
+   endif
+   if (idust.ne.0) then
+      read(ireadf,*,ERR=667,END=667) densdustleft,densdustright
    endif
  close(UNIT=ireadf)
  goto 668
@@ -109,12 +123,17 @@ subroutine setup
        write(ireadf,*) vzleft,vzright
        write(ireadf,*) Bxinit
        write(ireadf,*) Byleft,Byright
-       write(ireadf,*) Bzleft,Bzright       
+       write(ireadf,*) Bzleft,Bzright  
+       write(ireadf,*) densdustleft,densdustright     
     close(UNIT=ireadf)
     
 
     goto 668
-667 write(iprint,*) 'error in shock parameters file, using some defaults...'  
+667 write(iprint,*) 'error in shock parameters file, using some defaults...'
+    if (idust.ne.0) then
+       densdustleft = densleft
+       densdustright = densright
+    endif
     close(UNIT=ireadf)
 668 continue
 !
@@ -123,6 +142,7 @@ subroutine setup
  write(iprint,10) ndim,densleft,densright,prleft,prright,vxleft,vxright,   &
                   vyleft,vyright,vzleft,vzright
  if (imhd.ne.0) write(iprint,20) Bxinit,Byleft,Byright,Bzleft,Bzright
+ if (idust.ne.0) write(iprint,30) densdustleft,densdustright
 
 10 FORMAT(/,1x,i1,'D shock: dens L: ',f8.3,' R: ',f8.3,/,   &
            '           pr  L: ',f8.3,' R: ',f8.3,/,   &
@@ -132,6 +152,7 @@ subroutine setup
 20 FORMAT( '           Bx   : ',f8.3,/,   &                                 
            '           By  L: ',f8.3,' R: ',f8.3,/,   &
            '           Bz  L: ',f8.3,' R: ',f8.3,/)
+30 FORMAT( '     dust dens L: ',f8.3,' R: ',f8.3,/)
 !
 !--set boundaries
 !                        
@@ -185,14 +206,6 @@ subroutine setup
  xmaxleft(1) = xshock
  xminright(1) = xshock
  
- if (idust.gt.0) then
-    densdustleft = densleft
-    !densdustleft = densright
-    densdustright = densright
- else
-    densdustleft = 0.
-    densdustright = 0. 
- endif
  if (idust.eq.1) then
     psepleft = psep
     psepright = psep*(densleft/densright)**(1./ndim)
