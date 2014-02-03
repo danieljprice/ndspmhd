@@ -1842,7 +1842,7 @@ contains
           if (iav.eq.2) then
              vissv = -alphaav*0.5*projdvgas**2
           else
-             vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+             vissv = -alphaav*0.5*dvdotr**2
           endif
        else
           vissv = 0.
@@ -1864,7 +1864,7 @@ contains
              termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
           else
              vissdv = 0.
-             termdv = alphaB*vsig*rhoav1*dustfracav
+             termdv = alphaB*vsig*rhoav1*dustfracav*grkern
           endif
    !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
    !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
