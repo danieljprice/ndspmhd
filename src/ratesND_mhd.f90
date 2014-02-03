@@ -1783,11 +1783,11 @@ contains
     projdvgasav = dot_product(vgasavi - vgasavj,dr)
 
     if (iav.eq.3) then
-       dpmomdotr = -projdvgasav
+       dpmomdotr = projdvgasav
     elseif (iav.eq.2) then
-       dpmomdotr = -projdvgas
+       dpmomdotr = projdvgas
     else
-       dpmomdotr = -dvdotr
+       dpmomdotr = dvdotr
     endif
     !--used for viscosity
     term = vsig*rhoav1*grkern
@@ -1818,11 +1818,11 @@ contains
        visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        if (iav.eq.1 .or. iav.eq.3) then
           ! here viscosity applies to the whole fluid, not just gas component
-          fextrai(:) = fextrai(:) - pmassj*visc*dr(:)
-          fextraj(:) = fextraj(:) + pmassi*visc*dr(:)
+          fextrai(:) = fextrai(:) + pmassj*visc*dr(:)
+          fextraj(:) = fextraj(:) - pmassi*visc*dr(:)
        else
-          forcei(:) = forcei(:) - pmassj*visc*dr(:)
-          forcej(:) = forcej(:) + pmassi*visc*dr(:)
+          forcei(:) = forcei(:) + pmassj*visc*dr(:)
+          forcej(:) = forcej(:) - pmassi*visc*dr(:)
        endif
     endif
 
@@ -1839,9 +1839,7 @@ contains
        !  kinetic energy terms
        !
        if (dvdotr.lt.0) then
-          if (iav.eq.3) then
-             vissv = -alphaav*0.5*projdvgasav**2          
-          elseif (iav.eq.2) then
+          if (iav.eq.2) then
              vissv = -alphaav*0.5*projdvgas**2
           else
              vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
