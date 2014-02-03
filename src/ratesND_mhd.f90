@@ -1750,11 +1750,7 @@ contains
   end subroutine artificial_dissipation_phantom
 
 !--------------------------------------------------------------------------------------
-! These are the artificial viscosity, thermal conduction and resistivity terms
-! Change this to change the artificial viscosity algorithm
-! Inherits the values of local variables from rates
-!
-! This version corresponds to one-fluid dust dissipation terms
+! Artificial dissipation for one-fluid dust:
 !  iav = 1 => gas-only dissipation, as in submitted LP14 paper
 !  iav = 2 => M97-inspired dissipation, with heating from deltav term
 !  iav = 3 => dissipation in du/dt is 0.5*(vab.rab)^2
@@ -1766,7 +1762,7 @@ contains
     real :: vissv,vissu,vissdv
     real :: term,dpmomdotr,faci,facj
     real :: termu,termv,termdv
-    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
+    
     real :: dustfracav,projdvgasav
     real, dimension(ndimV) :: vgasavi,vgasavj
     !
@@ -1799,15 +1795,12 @@ contains
     !  rhog/rho, but done in a symmetric way to conserve momentum
     !  rhog/rho = (1 - dustfrac)
     !
-       rhogonrhoi = (1. - dustfraci)
-       rhogonrhoj = (1. - dustfracj)
-       rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
-       termv = termv*rhogonrhoav
+       termv = termv*(1. - dustfracav)
        if (iav.gt.4) stop 'av terms not implemented for iav>4 and one-fluid dust'
     endif
 
     !--used for thermal conductivity
-    termu = vsigu*rhoav1*grkern*(1. - dustfracav)  ! multiply by (1-dustfac)
+    termu = vsigu*rhoav1*grkern*(1. - dustfracav)  ! multiply by (1-dustfrac)
 
     !----------------------------------------------------------------
     !  artificial viscosity in force equation
@@ -1839,7 +1832,9 @@ contains
        !  kinetic energy terms
        !
        if (dvdotr.lt.0) then
-          if (iav.eq.2) then
+          if (iav.eq.3) then
+             vissv = -alphaav*0.5*projdvgasav**2
+          elseif (iav.eq.2) then
              vissv = -alphaav*0.5*projdvgas**2
           else
              vissv = -alphaav*0.5*dvdotr**2
@@ -1863,15 +1858,20 @@ contains
              vissdv = -0.5*(projdeltavi - projdeltavj)**2
              termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
           else
-             vissdv = 0.
-             termdv = alphaB*vsig*rhoav1*dustfracav*grkern
+             vissdv = 0. ! deltav does not dissipate into thermal energy
+             termdv = alphaav*vsig*rhoav1*dustfracav*grkern
           endif
    !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
    !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
           faci = 1./(dustfraci*(1. - dustfraci))
           facj = 1./(dustfracj*(1. - dustfracj))
-          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
-          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+          if (iav.eq.3) then
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(-projdvgasav)*dr(:)
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(-projdvgasav)*dr(:)
+          else
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+          endif
        else
           termdv = 0.
           vissdv = 0.
@@ -1880,12 +1880,12 @@ contains
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
+          faci = rhoi/rhogasi
+          facj = rhoj/rhogasj
           if (iav.eq.2) then
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu)
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu)
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*faci*vissu)
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*facj*vissu)
           else
-             faci = rhoi/rhogasi
-             facj = rhoj/rhogasj
              dudt(i) = dudt(i) + faci*pmassj*(term*(vissv) + termu*vissu + termdv*vissdv)
              dudt(j) = dudt(j) + facj*pmassi*(term*(vissv) - termu*vissu + termdv*vissdv)
           endif
