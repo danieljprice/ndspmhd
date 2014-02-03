@@ -104,7 +104,7 @@ subroutine get_rates
  real :: rhogrhodonrhoi, rhogrhodonrhoj
  real :: deltav2i,deltav2j
  real :: dtstop,projdeltavi,projdeltavj
- real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas,dustfracav
+ real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
  real :: sum
 
@@ -1122,7 +1122,6 @@ contains
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
     if (idust.eq.1) then
        dustfracj  = dustfrac(j)
-       dustfracav     = 0.5*(dustfraci + dustfracj)
        rhodustj       = rhoj*dustfracj
        rhogasj        = rhoj - rhodustj
        deltavj(:)     = deltav(:,j)
@@ -1330,6 +1329,8 @@ contains
     if (iav.gt.0) then
        if (specialrelativity) then
           call artificial_dissipation_sr
+       elseif (idust.eq.1) then
+          call artificial_dissipation_dust
        else
           call artificial_dissipation
 !          call artificial_dissipation_phantom
@@ -1534,11 +1535,9 @@ contains
     real :: visc,alphaav,alphaB,alphau
     real :: v2i,v2j,B2i,B2j
     real :: qdiff
-    real :: vissv,vissB,vissu,vissdust,vissdv
-    real :: term,dpmomdotr,faci,facj
-    real :: termB,termu,termv,termdv
-    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
-    real :: rhodonrhoi,rhodonrhoj,rhodonrhoav
+    real :: vissv,vissB,vissu
+    real :: term,dpmomdotr
+    real :: termB,termu,termv
     !
     !--definitions
     !      
@@ -1549,33 +1548,15 @@ contains
     !!rhoav1 = 2./(rhoi + rhoj)
     if (geom(1:4).ne.'cart') then
        dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
-    elseif (idust.eq.1 .and. iav.eq.2) then    
-       dpmomdotr = -projdvgas
     else
        dpmomdotr = -dvdotr
     endif
     !--used for viscosity
     term = vsig*rhoav1*grkern
     termv = term
-    
-    if (idust.eq.1 .and. iav.eq.2) then
-    !
-    !--for one fluid dust, viscosity term must be multiplied by
-    !  rhog/rho, but done in a symmetric way to conserve momentum
-    !  rhog/rho = (1 - dustfrac)
-    !
-       rhogonrhoi = (1. - dustfraci)
-       rhogonrhoj = (1. - dustfracj)
-       rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
-       termv = termv*rhogonrhoav
-       if (iav.ge.3) stop 'av terms not implemented for iav>=3 and one-fluid dust'
-       if (iener.eq.3) stop 'av terms not implemented for iener=3 and one-fluid dust'
-    endif
 
     !--used for thermal conductivity
     termu = vsigu*rhoav1*grkern
-    !
-    if (idust.eq.1) termu = termu*(1. - dustfracav)
     !termu = vsig*rho1i*rho1j*grkern
     !termu = vsig*rhoav1*grkern
 
@@ -1593,20 +1574,14 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0 .and. iav.le.2) then            
+    if (dvdotr.lt.0 .and. iav.le.3) then
        visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
-       if (idust.eq.1 .and. iav.eq.1) then
-          ! here viscosity applies to the whole fluid, not just gas component
-          fextrai(:) = fextrai(:) - pmassj*visc*dr(:)
-          fextraj(:) = fextraj(:) + pmassi*visc*dr(:) 
-       else
-          forcei(:) = forcei(:) - pmassj*visc*dr(:)
-          forcej(:) = forcej(:) + pmassi*visc*dr(:)
-       endif
-    elseif (iav.ge.3) then ! using total energy, for approaching and receding
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+    elseif (iav.eq.4) then ! using total energy, for approaching and receding
        visc = alphaav*termv
        !print*,'visc = ',i,j,vsig*alphaav*hh(i)
-       visc = visc*0.5*(hh(i) + hh(j))/rij  ! use this line to multiply viscosity by h/r
+       !visc = visc*0.5*(hh(i) + hh(j))/rij  ! use this line to multiply viscosity by h/r
        forcei(:) = forcei(:) + pmassj*visc*dvel(:)
        forcej(:) = forcej(:) - pmassi*visc*dvel(:)
     endif
@@ -1652,11 +1627,11 @@ contains
        !
        !  kinetic energy terms - applied only when particles approaching
        !
-       if (dvdotr.lt.0 .and. iav.le.2) then
+       if (dvdotr.lt.0 .and. iav.le.3) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
           qdiff = qdiff + alphaav*0.5*(v2i-v2j)
-       elseif (iav.ge.3) then
+       elseif (iav.eq.4) then
           v2i = dot_product(veli,veli)      ! total energy
           v2j = dot_product(velj,velj)
           qdiff = qdiff + alphaav*0.5*(v2i-v2j)
@@ -1671,7 +1646,7 @@ contains
        if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              B2i = dot_product(Bi,Bi) ! total magnetic energy 
-             B2j = dot_product(Bj,Bj) 
+             B2j = dot_product(Bj,Bj)
           else
              B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
@@ -1680,7 +1655,6 @@ contains
        elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
-       if (idust.eq.1) stop 'dissipation not implemented with total energy equation for one-fluid dust'
        !
        !  add to total energy equation
        !
@@ -1694,13 +1668,9 @@ contains
        !
        !  kinetic energy terms
        !
-       if (dvdotr.lt.0 .and. iav.le.2) then
-          if (idust.eq.1 .and. iav.eq.2) then
-             vissv = -alphaav*0.5*projdvgas**2          
-          else
-             vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
-          endif
-       elseif (iav.ge.3) then
+       if (dvdotr.lt.0 .and. iav.le.3) then
+          vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+       elseif (iav.ge.4) then
           vissv = -alphaav*0.5*dot_product(dvel,dvel)       
        else
           vissv = 0.
@@ -1730,39 +1700,11 @@ contains
           vissB = 0.
        endif
        !
-       !--dissipation term in deltav
-       !
-       if (idust.eq.1 .and. iav.eq.1) then
-          termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
-   !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
-   !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
-          faci = 1./(dustfraci*(1. - dustfraci))
-          facj = 1./(dustfracj*(1. - dustfracj))
-          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
-          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
-          vissdv = -0.5*(projdeltavi - projdeltavj)**2
-       else
-          termdv = 0.
-          vissdv = 0.
-       endif
-       !
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          if (idust.eq.1 .and. iav.eq.2) then
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu + termB*(vissB))
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu + termB*(vissB))
-          else
-             if (idust.eq.1) then
-                faci = rhoi/rhogasi
-                facj = rhoj/rhogasj
-             else
-                faci = 1.
-                facj = 1.
-             endif
-             dudt(i) = dudt(i) + faci*pmassj*(term*(vissv) + termu*vissu + termB*(vissB) + termdv*vissdv)
-             dudt(j) = dudt(j) + facj*pmassi*(term*(vissv) - termu*vissu + termB*(vissB) + termdv*vissdv)
-          endif
+          dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termB*(vissB))
+          dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termB*(vissB))
 
           !--entropy dissipation
           if (iener.eq.1) then
@@ -1782,8 +1724,7 @@ contains
     
     return
   end subroutine artificial_dissipation
-  
-  
+
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction and resistivity terms
 ! Change this to change the artificial viscosity algorithm
@@ -1797,16 +1738,163 @@ contains
     !
     !--definitions
     !
-    termi = alphai*vsig*rhogasi*grkerni*abs(projdvgas)
-    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(projdvgas)
+    termi = alphai*vsig*rhogasi*grkerni*abs(dvdotr)
+    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
 
-    if (projdvgas.lt.0 .and. iav.le.2) then
+    if (dvdotr.lt.0 .and. iav.le.2) then
        visc = 0.5*(termi*rho21i + termj*rho21j)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
     endif
 
   end subroutine artificial_dissipation_phantom
+
+!--------------------------------------------------------------------------------------
+! These are the artificial viscosity, thermal conduction and resistivity terms
+! Change this to change the artificial viscosity algorithm
+! Inherits the values of local variables from rates
+!
+! This version corresponds to one-fluid dust dissipation terms
+!  iav = 1 => gas-only dissipation, as in submitted LP14 paper
+!  iav = 2 => M97-inspired dissipation, with heating from deltav term
+!  iav = 3 => dissipation in du/dt is 0.5*(vab.rab)^2
+!
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_dust
+    implicit none
+    real :: visc,alphaav,alphaB,alphau
+    real :: vissv,vissu,vissdv
+    real :: term,dpmomdotr,faci,facj
+    real :: termu,termv,termdv
+    real :: rhogonrhoi,rhogonrhoj,rhogonrhoav
+    real :: dustfracav,projdvgasav
+    real, dimension(ndimV) :: vgasavi,vgasavj
+    !
+    !--definitions
+    !
+    alphaav = 0.5*(alphai + alpha(1,j))
+    alphau = 0.5*(alphaui + alpha(2,j))
+    alphaB = 0.5*(alphaBi + alpha(3,j))
+    vsigav = max(alphaav,alphau,alphaB)*vsig
+
+    dustfracav = 0.5*(dustfraci + dustfracj)
+    vgasavi(:) = veli(:) - dustfracav*deltavi(:)
+    vgasavj(:) = velj(:) - dustfracav*deltavj(:)
+    projdvgasav = dot_product(vgasavi - vgasavj,dr)
+
+    if (iav.eq.3) then
+       dpmomdotr = -projdvgasav
+    elseif (iav.eq.2) then
+       dpmomdotr = -projdvgas
+    else
+       dpmomdotr = -dvdotr
+    endif
+    !--used for viscosity
+    term = vsig*rhoav1*grkern
+    termv = term
+    
+    if (iav.eq.2) then
+    !
+    !--for one fluid dust, viscosity term must be multiplied by
+    !  rhog/rho, but done in a symmetric way to conserve momentum
+    !  rhog/rho = (1 - dustfrac)
+    !
+       rhogonrhoi = (1. - dustfraci)
+       rhogonrhoj = (1. - dustfracj)
+       rhogonrhoav = 0.5*(rhogonrhoi + rhogonrhoj)
+       termv = termv*rhogonrhoav
+       if (iav.gt.4) stop 'av terms not implemented for iav>4 and one-fluid dust'
+    endif
+
+    !--used for thermal conductivity
+    termu = vsigu*rhoav1*grkern*(1. - dustfracav)  ! multiply by (1-dustfac)
+
+    !----------------------------------------------------------------
+    !  artificial viscosity in force equation
+    ! (applied only for approaching particles)
+    !----------------------------------------------------------------
+    
+    if (dvdotr.lt.0) then            
+       visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
+       if (iav.eq.1 .or. iav.eq.3) then
+          ! here viscosity applies to the whole fluid, not just gas component
+          fextrai(:) = fextrai(:) - pmassj*visc*dr(:)
+          fextraj(:) = fextraj(:) + pmassi*visc*dr(:)
+       else
+          forcei(:) = forcei(:) - pmassj*visc*dr(:)
+          forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       endif
+    endif
+
+    !--------------------------------------------------
+    !  dissipation terms in energy equation
+    !--------------------------------------------------
+    if (iener.eq.3) then
+       stop 'onefluid dust dissipation not implemented in total energy equation'
+    !--------------------------------------------------
+    !   thermal energy equation
+    !--------------------------------------------------       
+    elseif (iener.gt.0) then
+       !
+       !  kinetic energy terms
+       !
+       if (dvdotr.lt.0) then
+          if (iav.eq.3) then
+             vissv = -alphaav*0.5*projdvgasav**2          
+          elseif (iav.eq.2) then
+             vissv = -alphaav*0.5*projdvgas**2
+          else
+             vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
+          endif
+       else
+          vissv = 0.
+       endif
+       !
+       !  thermal energy terms
+       !
+       if (iener.eq.1) then
+          vissu = 0.
+       else
+          vissu = alphau*(uu(i) - uu(j))        
+       endif
+       !
+       !--dissipation term in deltav
+       !
+       if (iav.eq.1 .or. iav.eq.3) then
+          if (iav.eq.1) then
+             vissdv = -0.5*(projdeltavi - projdeltavj)**2
+             termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
+          else
+             vissdv = 0.
+             termdv = alphaB*vsig*rhoav1*dustfracav
+          endif
+   !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
+   !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
+          faci = 1./(dustfraci*(1. - dustfraci))
+          facj = 1./(dustfracj*(1. - dustfracj))
+          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
+          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+       else
+          termdv = 0.
+          vissdv = 0.
+       endif
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          if (iav.eq.2) then
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*rhoi/rhogasi*vissu)
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*rhoj/rhogasj*vissu)
+          else
+             faci = rhoi/rhogasi
+             facj = rhoj/rhogasj
+             dudt(i) = dudt(i) + faci*pmassj*(term*(vissv) + termu*vissu + termdv*vissdv)
+             dudt(j) = dudt(j) + facj*pmassi*(term*(vissv) - termu*vissu + termdv*vissdv)
+          endif
+       endif
+       
+    endif
+  end subroutine artificial_dissipation_dust
 
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction terms
