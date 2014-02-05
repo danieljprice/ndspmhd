@@ -1754,6 +1754,7 @@ contains
 !  iav = 1 => gas-only dissipation, as in submitted LP14 paper
 !  iav = 2 => M97-inspired dissipation, with heating from deltav term
 !  iav = 3 => dissipation in du/dt is 0.5*(vab.rab)^2
+!  iav = 4 => gas-only dissipation but without projecting velocities along line of sight
 !
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust
@@ -1763,20 +1764,21 @@ contains
     real :: term,dpmomdotr,faci,facj
     real :: termu,termv,termdv
     
-    real :: dustfracav,projdvgasav
-    real, dimension(ndimV) :: vgasavi,vgasavj
+    real :: dustfracav,projdvgasav,projddeltav
+    real, dimension(ndimV) :: ddeltav
+    logical :: allpairs
     !
     !--definitions
     !
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
-    alphaB = 0.5*(alphaBi + alpha(3,j))
+    alphaB = alphaav !0.5*(alphaBi + alpha(3,j))
     vsigav = max(alphaav,alphau,alphaB)*vsig
 
     dustfracav = 0.5*(dustfraci + dustfracj)
-    vgasavi(:) = veli(:) - dustfracav*deltavi(:)
-    vgasavj(:) = velj(:) - dustfracav*deltavj(:)
-    projdvgasav = dot_product(vgasavi - vgasavj,dr)
+    projdvgasav = dvdotr - dustfracav*(projdeltavi - projdeltavj)
+    ddeltav     = deltavi(:) - deltavj(:)
+    projddeltav = dot_product(ddeltav,dr)
 
     if (iav.eq.3) then
        dpmomdotr = projdvgasav
@@ -1789,13 +1791,14 @@ contains
     term = vsig*rhoav1*grkern
     termv = term
     
-    if (iav.eq.2) then
-    !
-    !--for one fluid dust, viscosity term must be multiplied by
-    !  rhog/rho, but done in a symmetric way to conserve momentum
-    !  rhog/rho = (1 - dustfrac)
-    !
+    !allpairs = .false.
+    allpairs = .true.
+!    if (iav.eq.3 .or. iav.eq.2) allpairs = .true.
+    
+    if (iav.eq.2 .or. iav.eq.3) then
        termv = termv*(1. - dustfracav)
+    elseif (iav.eq.4) then
+       termv = termv !*dustfracav*(1. - dustfracav)
        if (iav.gt.4) stop 'av terms not implemented for iav>4 and one-fluid dust'
     endif
 
@@ -1807,9 +1810,13 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0) then            
+    if (dvdotr.lt.0 .or. allpairs) then            
        visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
-       if (iav.eq.1 .or. iav.eq.3) then
+       if (iav.eq.4) then
+          ! just to gas
+          fextrai(:) = fextrai(:) + pmassj*alphaav*termv*projdvgas*dr(:)
+          fextraj(:) = fextraj(:) - pmassi*alphaav*termv*projdvgas*dr(:)
+       elseif (iav.eq.1 .or. iav.eq.3) then
           ! here viscosity applies to the whole fluid, not just gas component
           fextrai(:) = fextrai(:) + pmassj*visc*dr(:)
           fextraj(:) = fextraj(:) - pmassi*visc*dr(:)
@@ -1831,11 +1838,11 @@ contains
        !
        !  kinetic energy terms
        !
-       if (dvdotr.lt.0) then
-          if (iav.eq.3) then
-             vissv = -alphaav*0.5*projdvgasav**2
-          elseif (iav.eq.2) then
+       if (dvdotr.lt.0 .or. allpairs) then
+          if (iav.eq.4 .or. iav.eq.2) then
              vissv = -alphaav*0.5*projdvgas**2
+          elseif (iav.eq.3) then
+             vissv = -alphaav*0.5*projdvgasav**2
           else
              vissv = -alphaav*0.5*dvdotr**2
           endif
@@ -1853,25 +1860,49 @@ contains
        !
        !--dissipation term in deltav
        !
+       faci = 1./(dustfraci*(1. - dustfraci))
+       facj = 1./(dustfracj*(1. - dustfracj))
        if (iav.eq.1 .or. iav.eq.3) then
           if (iav.eq.1) then
-             vissdv = -0.5*(projdeltavi - projdeltavj)**2
-             termdv = alphaB*vsig*rhoav1*dustfracav*(1. - dustfracav)*grkern
+             !vissdv = -0.5*(projdeltavi - projdeltavj)**2
+             vissdv = -0.5*dot_product(ddeltav,ddeltav)
+             termdv = alphaB*vsig*rhoav1*dustfracav*grkern !*(1. - dustfracav)
           else
              vissdv = 0. ! deltav does not dissipate into thermal energy
-             termdv = alphaav*vsig*rhoav1*dustfracav*grkern
+             termdv = alphaav*vsig*rhoav1*dustfracav*grkern*(1. - dustfracav)
           endif
-   !       ddeltavdt(:,i) = ddeltavdt(:,i) + pmassj*(deltavi - deltavj)*(vissdust)
-   !       ddeltavdt(:,j) = ddeltavdt(:,j) - pmassi*(deltavi - deltavj)*(vissdust)
-          faci = 1./(dustfraci*(1. - dustfraci))
-          facj = 1./(dustfracj*(1. - dustfracj))
           if (iav.eq.3) then
              ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(-projdvgasav)*dr(:)
              ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(-projdvgasav)*dr(:)
           else
-             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
-             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+!             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
+!             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(ddeltav(:))
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(ddeltav(:))
           endif
+       elseif (iav.eq.4) then
+          !
+          ! this is:
+          ! -rhoi/rhogasi*forcei(:)
+          !
+          faci = rhoi/rhogasi
+          facj = rhoj/rhogasj
+!          termdv = alphaav*termv
+          termdv = alphaav*vsig*rhoav1*grkern
+          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
+          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
+          !vissdv = -0.5*(projdeltavi - projdeltavj)**2
+          termdv = 0.
+       elseif (iav.eq.2) then
+          termdv = 0. ! for iav=2 the heating term comes into vissv instead of vissdv
+          vissdv = 0.
+          !
+          !--extra dissipation term in deltav
+          !
+          termdv = alphaav*vsig*rhoav1*grkern*dustfracav*(1. - dustfracav)
+          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
+          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
+          vissdv = -0.5*projddeltav**2
        else
           termdv = 0.
           vissdv = 0.
@@ -1883,11 +1914,11 @@ contains
           faci = rhoi/rhogasi
           facj = rhoj/rhogasj
           if (iav.eq.2) then
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*faci*vissu)
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*facj*vissu)
+             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*faci*vissu + termdv*faci*vissdv)
+             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*facj*vissu + termdv*facj*vissdv)
           else
-             dudt(i) = dudt(i) + faci*pmassj*(term*(vissv) + termu*vissu + termdv*vissdv)
-             dudt(j) = dudt(j) + facj*pmassi*(term*(vissv) - termu*vissu + termdv*vissdv)
+             dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
+             dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
           endif
        endif
        
