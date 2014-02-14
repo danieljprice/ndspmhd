@@ -1759,12 +1759,12 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust
     implicit none
-    real :: visc,alphaav,alphaB,alphau
-    real :: vissv,vissu,vissdv
+    real :: visc,alphaav,alphau
+    real :: vissv,vissu,vissdv,vsigdv
     real :: term,dpmomdotr,faci,facj
     real :: termu,termv,termdv
     
-    real :: dustfracav,projdvgasav,projddeltav
+    real :: dustfracav,projdvgasav,projddeltav,projepsdeltav
     real, dimension(ndimV) :: ddeltav
     logical :: allpairs
     !
@@ -1772,13 +1772,13 @@ contains
     !
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
-    alphaB = alphaav !0.5*(alphaBi + alpha(3,j))
-    vsigav = max(alphaav,alphau,alphaB)*vsig
+    vsigav = max(alphaav,alphau)*vsig
 
     dustfracav = 0.5*(dustfraci + dustfracj)
     projdvgasav = dvdotr - dustfracav*(projdeltavi - projdeltavj)
     ddeltav     = deltavi(:) - deltavj(:)
     projddeltav = dot_product(ddeltav,dr)
+    projepsdeltav = dustfraci*projdeltavi - dustfracj*projdeltavj
 
     if (iav.eq.3) then
        dpmomdotr = projdvgasav
@@ -1791,9 +1791,9 @@ contains
     term = vsig*rhoav1*grkern
     termv = term
     
-    !allpairs = .false.
-    allpairs = .true.
-!    if (iav.eq.3 .or. iav.eq.2) allpairs = .true.
+    allpairs = .false.
+    !allpairs = .true.
+    if (iav.eq.4 .or. iav.eq.1) allpairs = .true.
     
     if (iav.eq.2 .or. iav.eq.3) then
        termv = termv*(1. - dustfracav)
@@ -1809,13 +1809,15 @@ contains
     !  artificial viscosity in force equation
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
+    vsigdv = vsig !0.5*sqrt(projdeltavi**2 + projdeltavj**2)
     
-    if (dvdotr.lt.0 .or. allpairs) then            
+    if (projdvgas.lt.0 .or. allpairs) then            
        visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        if (iav.eq.4) then
           ! just to gas
-          fextrai(:) = fextrai(:) + pmassj*alphaav*termv*projdvgas*dr(:)
-          fextraj(:) = fextraj(:) - pmassi*alphaav*termv*projdvgas*dr(:)
+          termdv = vsigdv*rhoav1*grkern
+          fextrai(:) = fextrai(:) + pmassj*alphaav*(termv*dvdotr - termdv*projepsdeltav)*dr(:)
+          fextraj(:) = fextraj(:) - pmassi*alphaav*(termv*dvdotr - termdv*projepsdeltav)*dr(:)
        elseif (iav.eq.1 .or. iav.eq.3) then
           ! here viscosity applies to the whole fluid, not just gas component
           fextrai(:) = fextrai(:) + pmassj*visc*dr(:)
@@ -1838,11 +1840,14 @@ contains
        !
        !  kinetic energy terms
        !
-       if (dvdotr.lt.0 .or. allpairs) then
-          if (iav.eq.4 .or. iav.eq.2) then
-             vissv = -alphaav*0.5*projdvgas**2
+       if (projdvgas.lt.0 .or. allpairs) then
+          if (iav.eq.4) then
+             vissv = -alphaav*0.5*projdvgas**2 
+!             vissv = -alphaav*0.5*(dvdotr**2 - projepsdeltav*dvdotr + projepsdeltav*projddeltav) !-alphaav*0.5*projdvgas**2
           elseif (iav.eq.3) then
              vissv = -alphaav*0.5*projdvgasav**2
+          elseif (iav.eq.2) then
+             vissv = -alphaav*0.5*projdvgas**2
           else
              vissv = -alphaav*0.5*dvdotr**2
           endif
@@ -1866,7 +1871,7 @@ contains
           if (iav.eq.1) then
              !vissdv = -0.5*(projdeltavi - projdeltavj)**2
              vissdv = -0.5*dot_product(ddeltav,ddeltav)
-             termdv = alphaB*vsig*rhoav1*dustfracav*grkern !*(1. - dustfracav)
+             termdv = alphaav*vsig*rhoav1*dustfracav*grkern !*(1. - dustfracav)
           else
              vissdv = 0. ! deltav does not dissipate into thermal energy
              termdv = alphaav*vsig*rhoav1*dustfracav*grkern*(1. - dustfracav)
@@ -1888,7 +1893,8 @@ contains
           faci = rhoi/rhogasi
           facj = rhoj/rhogasj
 !          termdv = alphaav*termv
-          termdv = alphaav*vsig*rhoav1*grkern
+          !vsigdv = vsig !0.5*sqrt(projdeltavi**2 + projdeltavj**2)
+          termdv = alphaav*vsigdv*rhoav1*grkern
           ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
           ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
           !vissdv = -0.5*(projdeltavi - projdeltavj)**2
@@ -1899,10 +1905,14 @@ contains
           !
           !--extra dissipation term in deltav
           !
-          termdv = alphaav*vsig*rhoav1*grkern*dustfracav*(1. - dustfracav)
-          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
-          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
-          vissdv = -0.5*projddeltav**2
+          if (projddeltav < 0.) then
+             !vsigdv = 0.5*sqrt(projdeltavi**2 + projdeltavj**2)
+             vsigdv = 0.5*(spsoundi + spsoundj)
+             termdv = alphaav*vsigdv*rhoav1*grkern*dustfracav*(1. - dustfracav)
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
+             vissdv = -0.5*projddeltav**2
+          endif
        else
           termdv = 0.
           vissdv = 0.
@@ -1913,13 +1923,8 @@ contains
        if (damp.lt.tiny(0.)) then
           faci = rhoi/rhogasi
           facj = rhoj/rhogasj
-          if (iav.eq.2) then
-             dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*faci*vissu + termdv*faci*vissdv)
-             dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*facj*vissu + termdv*facj*vissdv)
-          else
-             dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
-             dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
-          endif
+          dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
+          dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
        endif
        
     endif
