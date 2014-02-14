@@ -15,11 +15,10 @@ subroutine Bdiffusion(npart,x,pmass,rho,hh,Bfield,dBevoldt,dt)
  use loguns,       only:iprint
  
  use kernels,      only:interpolate_kernels,radkern2
- use linklist,     only:ll,ifirstincell,ncellsloop,numneigh
+ use linklist,     only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list_partial
  use hterms,       only:gradh
- use setup_params, only:hfact
- use part,         only:itype,ntotal,rho0
+ use part,         only:ntotal
  use bound,        only:ireal
  use options,      only:ibound,etamhd
 !

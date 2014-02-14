@@ -11,12 +11,9 @@ contains
 subroutine get_lambda(lambda,ntot)
  use dimen_mhd, only:ndim,ndimV
  use debug, only:trace
- use loguns, only:iprint
- 
- use hterms, only:gradh
+ use loguns, only:iprint 
  use kernels, only:interpolate_kernels2,radkern2
  use linklist
- use options, only:ikernav
  use part
  use setup_params
  use timestep, only:time

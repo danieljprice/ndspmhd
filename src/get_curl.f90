@@ -17,8 +17,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  use get_neighbour_lists, only:get_neighbour_list
  use hterms,              only:gradh
  use setup_params,        only:hfact
- use part,                only:itype,ntotal
- use bound,               only:ireal
+ use part,                only:ntotal
  use utils,               only:cross_product3D
 !
 !--define local variables

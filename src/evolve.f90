@@ -8,17 +8,16 @@ subroutine evolve
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint,ifile
- use options, only:idumpghost,ibound,iexternal_force
+ use options, only:idumpghost,ibound
  use timestep
- use part, only:x,uu,pmass,npart
 !
 !--define local variables
 !
  implicit none
  real :: tprint
- integer :: i,noutput,nevwrite,nsort
+ integer :: noutput,nevwrite,nsort
  real :: t_start,t_end,t_used,tzero
- real :: etot, momtot, etotin, momtotin, detot, dmomtot, epoti
+ real :: etot, momtot, etotin, momtotin, detot, dmomtot
  character(len=10) :: finishdate, finishtime
 !
 !--allow for tracing flow

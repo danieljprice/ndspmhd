@@ -29,7 +29,6 @@ subroutine get_B_eulerpots(iderivtype,npart,x,pmass,rho,hh,alphapot,x0,Bfield,re
  use bound,        only:ireal
  use options,      only:iuse_exact_derivs,ibound
  use utils,        only:cross_product3D, curl3D_epsijk, matrixinvert3D, det
- use timestep, only:time
 !
 !--define local variables
 !

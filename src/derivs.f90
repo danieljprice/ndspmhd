@@ -4,13 +4,13 @@
 !
 subroutine derivs
  use loguns, only:iprint
- use options, only:ibound,icty,ihvar,imhd,isplitpart
+ use options, only:ibound,icty,ihvar,imhd
  use part, only:hh,x,npart,rho,Bevol,pmass
  use rates, only:dBevoldt
  use setup_params, only:hfact
  use cons2prim, only:conservative2primitive
  use resistivity, only:Bdiffusion
- use timestep, only:dt,C_Cour,C_force,dtcourant,dtforce
+ use timestep, only:dt
  use options, only:iresist,etamhd
  implicit none
  logical, parameter :: itiming = .false.
