@@ -1,20 +1,16 @@
-To compile the code, change the compiler options in the file COMPILER
-to the compiler installed on your system. By default these are:
+-------------------------------------------------------------------------------
+ NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
+ fluid dynamics simulations in 1, 2 and 3 spatial dimensions.
 
-F90C = f90     (name of compiler)
-F90FLAGS = -O  (optimisation flags)
-LDFLAGS = -lpgplot -lX11  (links to PGPLOT libraries, used by plotting programs)
+ (c) 2002-2010 Daniel Price
+-------------------------------------------------------------------------------
 
-then use the makemake.pl script to change these flags in all of the makefiles,
-ie. type:
+To compile the code, type "make", specifying the number of dimensions
+and a SYSTEM variable corresponding to one listed in src/Makefile.
 
-makemake.pl
+e.g. make 1D SYSTEM=gfortran
 
-then simply type
-
-make install
-
-which compiles the code in 1D and makes copies of useful scripts in the main
-working directory. To compile all of the code and utilities, type
-
-make all
+ - or -
+ 
+export SYSTEM=gfortran
+make 1D
