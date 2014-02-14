@@ -553,6 +553,10 @@ subroutine get_rates
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
+!--add source terms (derivatives of metric) to momentum equation
+!
+    if (allocated(sourceterms)) force(:,i) = force(:,i) + sourceterms(:,i)
+!
 !--make dhdt if density is not being done by summation
 !  (otherwise this is done in iterate_density)
 !
