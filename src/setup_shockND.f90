@@ -211,8 +211,8 @@ subroutine setup
     psepright = psep*(densleft/densright)**(1./ndim)
  else
     if (jtype.eq.2) then
-       psepleft = psep   !*(densdustleft/densleft)**(1./ndim)
-       psepright = psep*(densleft/densright)**(1./ndim) !(densdustright/densleft)**(1./ndim)    
+       psepleft = psep*(densleft/densdustleft)**(1./ndim)
+       psepright = psepleft*(densdustleft/densdustright)**(1./ndim)
     else
        psepleft = psep
        psepright = psep*(densleft/densright)**(1./ndim)
@@ -252,8 +252,8 @@ subroutine setup
        if (jtype.eq.2) then
           total_mass = volume*densdustleft
           massp = total_mass/(npart - npartprev)       
-          masspdustleft  = massp*densdustleft/densleft
-          masspdustright = massp*densdustright/densright
+          masspdustleft  = massp  !*densdustleft/densleft
+          masspdustright = masspdustleft*densdustright/densright
        else
           total_mass = volume*densleft
           massp = total_mass/(npart - npartprev)
