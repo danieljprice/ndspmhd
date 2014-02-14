@@ -7,11 +7,18 @@
 
 -------------------------------------------------------------------------------
 
-  THIS CODE IS DISTRIBUTED UNDER THE TERMS OF THE GNU GENERAL PUBLIC LICENCE 
-  (v2, given below)
+  In addition to the terms of the Gnu General Public Licence (given below),
+  I ask that you:
+
+    * Cite the Price (2011) J. Comp. Phys. paper if you publish anything
+      either using or based on this code
+    * Kindly send me a copy of any such manuscript prior to acceptance
+      (i.e., upon submission to a journal/proceedings)
   
   Please note that I am also unable to provide any kind of long-term
-  support for this code.
+  support for this code (but please send any bug reports).
+  
+  Happy simulating!
   
   daniel.price@monash.edu, October 2010
 
