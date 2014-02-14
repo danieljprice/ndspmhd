@@ -8,79 +8,34 @@
 .KEEP_STATE:
 
 # specify editor to use for file editing
-EDITOR = nedit
 KNOWN_SYSTEM=no
-SHELL = /bin/sh
+SHELL = /bin/bash
 ifndef SPLASH_DIR
    SPLASH_DIR=${HOME}/splash/src
 endif
-
 DOUBLEPRECISION= yes
-
-ifeq ($(SYSTEM), ukaff1a)
-    F90C= xlf_r -qnosave
-    F90FLAGS= -O3 -q64 -qextname -qsmp=noauto
-    DBLFLAG= -qrealsize=8
-#    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-    DEBUGFLAG= -C
-    KNOWN_SYSTEM=yes
-endif
-
-ifeq ($(SYSTEM), sunf95)
-    F90C= sunf95
-    F90FLAGS= -fast
-    DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
-    DEBUGFLAG= -g -C -ftrap=common
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
-    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
-endif
-
-ifeq ($(SYSTEM), g95)
-    F90C= g95
-    F90FLAGS= -O3 -Wall -Wno=112,140 -ffast-math -funroll-loops -finline-functions -falign-loops=16
-    DBLFLAG= -r8
-    DEBUGFLAG= -g #-ftrace=full -fbounds-check
-    KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -fendian='BIG'
-    ENDIANFLAGLITTLE= -fendian='LITTLE'
-# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
-endif
-
-ifeq ($(SYSTEM), mymac)
-#  gfortran compiler (part of gcc 4.x.x)
-   F90C= gfortran-mp-4.7
-   F90FLAGS= -Ofast -Wall -g -fwhole-program -flto -ftree-vectorize -mtune=native
-   DBLFLAG= -fdefault-real-8
-   SYSTEMFILE= system_f2003.f90
-   DEBUGFLAG= -g -fcheck=all
-   OMPFLAG= -fopenmp
-   ENDIANFLAGBIG= -fconvert=big-endian
-   ENDIANFLAGLITTLE= -fconvert=little-endian
-   KNOWN_SYSTEM=yes
-endif
 
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    F90C= gfortran
-   F90FLAGS= -O3 -Wall -funroll-loops -g -ftree-vectorize #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -fcheck=all
-   OMPFLAG= -fopenmp
    ENDIANFLAGBIG= -fconvert=big-endian
    ENDIANFLAGLITTLE= -fconvert=little-endian
    KNOWN_SYSTEM=yes
 endif
 
-ifeq ($(SYSTEM), myg95)
-    F90C= myg95
+ifeq ($(SYSTEM), g95)
+    F90C= g95
     F90FLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
     DBLFLAG= -r8
-    DEBUGFLAG= -ftrace=full -fbounds-check
+    DEBUGFLAG= -g -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -fendian='BIG'
     ENDIANFLAGLITTLE= -fendian='LITTLE'
+# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
 endif
 
 ifeq ($(SYSTEM), ifort)
@@ -105,6 +60,36 @@ ifeq ($(SYSTEM), msg)
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
 endif
 
+ifeq ($(SYSTEM), sunf95)
+    F90C= sunf95
+    F90FLAGS= -fast
+    DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
+    DEBUGFLAG= -g -C -ftrap=common
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
+    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
+endif
+
+ifeq ($(SYSTEM), pgf90)
+#  this is for the Portland Group Fortran 90 compiler (tested with version 7.2-5)
+   F90C= pgf90
+   F90FLAGS= -fast -mcmodel=medium -Mbackslash -Ktrap=none
+   DEBUGFLAG= -C -g -gopt -Mbounds -Mchkfpstk -Mchkptr -Mchkstk -Mcoff \
+              -Mdwarf1 -Mdwarf2 -Melf -Mpgicoff -traceback
+   ENDIANFLAGBIG= -Mbyteswapio  # only works on a little-endian machine
+   ENDIANFLAGLITTLE=
+   KNOWN_SYSTEM=yes
+endif
+
+ifeq ($(SYSTEM), pathf95)
+#  this is for the Pathscale f95 compiler
+   F90C= pathf95
+   F90FLAGS= -Ofast -mcmodel=medium
+   DEBUGFLAG= -C -g
+   ENDIANFLAGBIG= -convert big_endian
+   ENDIANFLAGLITTLE= -convert little_endian
+   KNOWN_SYSTEM=yes
+endif
 
 # Set other optional flags depending on settings
 
@@ -371,8 +356,22 @@ checksystem:
 	@echo "=>set the environment variable SYSTEM to one listed "
 	@echo "  in the Makefile and try again"
 	@echo ""
-	quit
+	@${MAKE} compilers
+	@${MAKE} err;
    endif
+
+compilers:
+	@echo "I suggest one of the following, based on detected Fortran compilers..."; echo;
+	@if type -p ifort > /dev/null; then echo "make SYSTEM=ifort"; fi;
+	@if type -p pathf95 > /dev/null; then echo "make SYSTEM=pathf95"; fi;
+	@if type -p pgf90 > /dev/null; then echo "make SYSTEM=pgf90"; fi;
+	@if type -p xlf90_r > /dev/null; then echo "make SYSTEM=ukaff1a [uses xlf90_r]"; fi;
+	@if type -p gfortran > /dev/null; then echo "make SYSTEM=gfortran"; fi;
+	@if type -p g95 > /dev/null; then echo "make SYSTEM=g95"; fi;
+	@echo "(end of possible selections)"; echo;
+
+err:
+	$(error aborting);
 
 ## other crap
 
@@ -383,11 +382,20 @@ targz:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
 	gzip NDSPMHD.tar
 
-edit1D:
+edit1D: checkeditor
 	$(EDITOR) $(SETUP1D) &
-edit2D:
+edit2D: checkeditor
 	$(EDITOR) $(SETUP2D) &
-edit3D:
+edit3D: checkeditor
 	$(EDITOR) $(SETUP3D) &
+
+checkeditor:
+   ifndef EDITOR
+	@echo
+	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'
+	@echo
+	@$(MAKE) err;
+   endif
+
 clean:
 	rm *.o *.mod
