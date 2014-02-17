@@ -1,3 +1,11 @@
 *.mod
 *.o
-*NDSPMHD
+*DSPMHD
+*.png
+*.eps
+*.pdf
+*.ps
+*.in
+utils/kernelplot
+utils/kernelplot3D
+multi/multirun
