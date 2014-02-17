@@ -382,6 +382,9 @@ targz:
 	tar cf NDSPMHD.tar Makefile dimen*.f90 $(SOURCES) setup*.f90
 	gzip NDSPMHD.tar
 
+cleanall: clean
+	rm ?DSPMHD
+
 edit1D: checkeditor
 	$(EDITOR) $(SETUP1D) &
 edit2D: checkeditor
