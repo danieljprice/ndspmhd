@@ -35,7 +35,7 @@ subroutine copy_particle(i,j)
   use part
   use rates
   use xsph
-  use options, only:imhd
+  use options, only:imhd,idust
   !use matrixcorr
   implicit none
   integer :: i,j
@@ -60,6 +60,7 @@ subroutine copy_particle(i,j)
   spsound(i) = spsound(j)
   pr(i) = pr(j)
   dens(i) = dens(j)
+  itype(i) = itype(j)
   if (allocated(pmom)) pmom(:,i) = pmom(:,j)
 
   force(:,i) = force(:,j)
@@ -75,7 +76,14 @@ subroutine copy_particle(i,j)
   fmag(:,i) = fmag(:,j)
   divB(i) = divB(j)
   curlB(:,i) = curlB(:,j)
-  
-  !gradmatrix(:,:,i) = gradmatrix(:,:,j)
- 
+!
+!  dust
+!
+  if (idust.eq.1) then
+     dustfrac(i)    = dustfrac(j)
+     ddustfracdt(i) = ddustfracdt(j)
+     deltav(:,i)     = deltav(:,j)
+     ddeltavdt(:,i)  = ddeltavdt(:,j)
+  endif
+
 end subroutine copy_particle

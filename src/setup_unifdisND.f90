@@ -35,8 +35,7 @@ subroutine setup
  use options
  use part
  use setup_params
- use eos, only:gamma
- use cons2prim 
+ 
  use uniform_distributions
 !
 !--define local variables
@@ -44,7 +43,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero,rmin,rmax,spsound2
+ real :: denszero
 !
 !--allow for tracing flow
 !
@@ -59,36 +58,28 @@ subroutine setup
 !
 !--set up the uniform density grid
 ! 
- rmin = 0.
- rmax = 0.5
-
  call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)
+
  npart = ntotal
  print*,'npart =',npart
 !
 !--determine particle mass
 !
- denszero = 5.0
+ denszero = 1.0
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
- spsound2 = 1.0
 !
 !--now assign particle properties
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
+    !vel(1,i) = 0.01*sin(2.*pi*(x(1,i)-xmin(1)))
     dens(i) = denszero
     pmass(i) = massp
-    if (gamma.lt.1.0001) then
-       uu(i) = 1.0    ! isothermal
-    else
-       uu(i) = spsound2/(gamma*(gamma-1.))
-    endif
+    uu(i) = 1.0 ! isothermal
     Bfield(:,i) = 0.
- enddo
- 
- print*,'sound speed = ',sqrt(spsound2), ' sound crossing time = ',(xmax(1)-xmin(1))/sqrt(spsound2)
+ enddo 
 !
 !--allow for tracing flow
 !

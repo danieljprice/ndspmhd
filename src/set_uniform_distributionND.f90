@@ -40,11 +40,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 !
 !--include relevant global variables
 !
- use dimen_mhd, only:ndim,ndimV
- use debug, only:trace
- use loguns, only:iprint
- use linklist, only:iamincell
- use bound, only:hhmax
+ use dimen_mhd,      only:ndim,ndimV
+ use debug,          only:trace
+ use loguns,         only:iprint
+ use linklist,       only:iamincell
+ use bound,          only:hhmax
  use get_neighbour_lists, only:get_neighbour_list_partial
  use mem_allocation, only:alloc
 

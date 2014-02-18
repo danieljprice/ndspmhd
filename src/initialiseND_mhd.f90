@@ -37,7 +37,8 @@ subroutine initialise
  use derivb
  use eos
  use fmagarray
- use kernels, only:setkernels,kernelname,kernelnamealt
+ use kernels,only:setkern,setkernels,kernelname,kernelnamealt,radkern,&
+                  setkerndrag,kernelnamedrag
  use hterms
  use rates
  use timestep
@@ -48,7 +49,6 @@ subroutine initialise
  
  use infiles, only:read_infile
  use dumpfiles, only:read_dump
- !use convert, only:convert_setup
  use cons2prim, only:primitive2conservative
 !
 !--define local variables
@@ -58,6 +58,7 @@ subroutine initialise
  character(len=len(rootname)+6) :: logfile   ! rootname is global in loguns
  integer :: i,j,idash,idot,ierr,idotin,ierr1,ierr2
  logical :: iexist
+ real :: radkernold
 !
 !--if filename is of the form crap_xxxxx.dat restart from a given dump
 !
@@ -176,8 +177,32 @@ subroutine initialise
  ikernelalt = ikernel
  call setkernels(ikernel,ikernelalt,ndim,ierr1,ierr2)
  write(iprint,"(/,' Smoothing kernel = ',a)") trim(kernelname)
+ radkernold = radkern
+!
+!--setup drag kernel ONLY if idrag_nature > 0
+!  also radkern MUST match between kernels
+!
+ ierr = 0
+ if (idrag_nature.gt.0) then
+    if (ikernel.eq.0) then
+       call setkerndrag(42,ndim,ierr)
+    elseif (ikernel.eq.3) then
+       call setkerndrag(43,ndim,ierr)
+    elseif (ikernel.eq.99) then
+        call setkerndrag(99,ndim,ierr)
+      print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'    
+    elseif (ikernel.eq.100) then
+       call setkerndrag(100,ndim,ierr)
+       print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'
+    else
+       call setkerndrag(42,ndim,ierr)
+       if (idrag_nature.gt.0) stop 'cannot get matching drag kernel'
+    endif
+    if (radkern.ne.radkernold) stop 'drag kernel has different support radius'
+    write(iprint,"(' Drag kernel = ',a)") trim(kernelnamedrag)
+ endif
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
- if (ierr1.ne.0 .or. ierr2.ne.0) stop 'error with kernel setup' 
+ if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup' 
  npart = 0
 
  if (ifile.lt.0) then
@@ -192,7 +217,7 @@ subroutine initialise
 !
  !if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
- if (geomsetup.ne.geom) stop 'unknown geometry' !call convert_setup(geomsetup,geom)
+ if (geomsetup.ne.geom) stop 'unknown geometry'
  
  call check_setup       ! check for errors in the particle setup
 !

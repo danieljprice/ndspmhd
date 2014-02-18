@@ -49,12 +49,11 @@ subroutine setup
  real, dimension(3) :: rvec
  real, dimension(ndim) :: runit
  real :: massp,totmass,denszero,gam1,uuzero,przero
- real :: anglexy,ampl,wk,xlambda,rmax
+ real :: ampl,wk,xlambda,rmax
  real :: valfven
- real :: vampl_par,vampl_perp,vamplz,vamply,vamplx
  real :: vparallel,vperp,vz,vperp0,vz0
  real :: bparallel,bperp,bz,bperp0,bz0
- real :: perturb_sin, perturb_cos
+ real :: perturb_sin, perturb_cos, Aperp, Az
 !
 !--allow for tracing flow
 !
@@ -62,28 +61,20 @@ subroutine setup
 !
 !--set direction of wave propagation (runit is unit vector in this direction)
 !
-! anglexy = 30.	! angle in degrees x,y plane
-! anglez = 45.	! angle in degrees z plane
-! anglexy = anglexy*pi/180.	! convert to radians
- rvec(1) = 1.0	        !0.5*sqrt(3.) !cos(anglexy)
+ rvec(1) = 1.0
  rvec(2) = 0.
  rvec(3) = 0.
- if (ndim.eq.1) then ! in 1d must be in x direction
-    rvec(1) = 1.0
-    rvec(2) = 0.	!0.5	!sin(anglexy)
- endif   
-
  runit(1:ndim) = rvec(1:ndim) 
 
  write(iprint,*) ' runit = ',runit
 !
 !--set boundaries
-! 	    
- ibound = 3	! periodic boundaries
- nbpts = 0	! no fixed particles
- xmin(:) = 0.0	! set position of boundaries
+!             
+ ibound = 3     ! periodic boundaries
+ nbpts = 0      ! no fixed particles
+ xmin(:) = 0.0        ! set position of boundaries
  xmax(:) = 1.0
- !!if (ndim.ge.2) xmax(2:ndim) = 0.5		!/runit(:)
+ if (ndim.ge.2) xmax(2:ndim) = 8.*psep                !/runit(:)
  print*,'xmin,xmax = ',xmin,xmax
 !
 !--read/set wave parameters
@@ -93,12 +84,11 @@ subroutine setup
 ! write (*,*) 'enter amplitude of disturbance'
 ! read (*,*) ampl
  
- xlambda = 1.0	!/cos(anglexy)	!*rmax
+ xlambda = 1.0        !/cos(anglexy)        !*rmax
 ! write (*,*) 'enter wavelength lambda'
 ! read (*,*) xlambda
     
- wk = 2.0*pi/xlambda	! 	wave number
-
+ wk = 2.0*pi/xlambda        !         wave number
 
 !
 !--setup parameters
@@ -116,7 +106,7 @@ subroutine setup
 !
  gam1 = gamma - 1.
  uuzero = przero/(gam1*denszero)
- polyk = przero/(denszero**gamma)	! override setting in input
+ polyk = przero/(denszero**gamma)        ! override setting in input
 !
 !--initially set up a uniform density grid (also determines npart)
 !
@@ -148,12 +138,19 @@ subroutine setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-    uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)	! if not polytropic
+    uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)        ! if not polytropic
 
-    if (imhd.ge.1) then 
-       bfield(1,i) = bparallel*rvec(1) - bperp*rvec(2)
-       bfield(2,i) = bparallel*rvec(2) + bperp*rvec(1)
-       bfield(3,i) = bz
+    if (imhd.ne.0) then 
+       Bfield(1,i) = bparallel*rvec(1) - bperp*rvec(2)
+       Bfield(2,i) = bparallel*rvec(2) + bperp*rvec(1)
+       Bfield(3,i) = bz
+       if (imhd.lt.0) then
+          Aperp = bz0*perturb_sin/(2.*pi)
+          Az = bperp0*perturb_cos/(2.*pi)
+          Bevol(1,i) = -Aperp*runit(2)
+          Bevol(2,i) = Aperp*runit(1)
+          Bevol(3,i) = Az
+       endif
     endif 
  enddo
 

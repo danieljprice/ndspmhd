@@ -4,7 +4,7 @@
 # @(#) directory
 #
 if [ $# -lt 1 ]; then
-   echo Usage: $0 nD
+   echo "Usage: $0 nD [setup_blah.f90]";
 else
    echo '#'
    echo '#--Makefile to remake the executable and copy to this directory'

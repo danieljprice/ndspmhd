@@ -50,7 +50,6 @@ subroutine setup
  real :: massp,totmass,denszero,gam1,uuzero,przero
  real :: anglexy,ampl,wk,xlambda,rmax
  real :: valfven
- real :: vampl_par,vampl_perp,vamplz,vamply,vamplx
  real :: vparallel,vperp,vz,vperp0,vz0
  real :: bparallel,bperp,bz,bperp0,bz0
  real :: perturb_sin, perturb_cos
@@ -62,19 +61,19 @@ subroutine setup
 !
 !--set direction of wave propagation (runit is unit vector in this direction)
 !
- anglexy = 30.	! angle in degrees x,y plane
-! anglez = 45.	! angle in degrees z plane
- anglexy = anglexy*pi/180.	! convert to radians
+ anglexy = 30.        ! angle in degrees x,y plane
+! anglez = 45.        ! angle in degrees z plane
+ anglexy = anglexy*pi/180.        ! convert to radians
  runit(1) = cos(anglexy)
  runit(2) = sin(anglexy)
 ! runit(3) = 0.
  write(iprint,*) ' runit = ',runit
 !
 !--set boundaries
-! 	    
- ibound = 3	! periodic boundaries
- nbpts = 0	! no fixed particles
- xmin(:) = 0.0	! set position of boundaries
+!             
+ ibound = 3        ! periodic boundaries
+ nbpts = 0        ! no fixed particles
+ xmin(:) = 0.0        ! set position of boundaries
  xmax(:) = 1.0/runit(:)
  print*,'xmin,xmax = ',xmin,xmax,(xmax(1)-xmin(1))/8
 !
@@ -91,7 +90,7 @@ subroutine setup
 ! write (*,*) 'enter wavelength lambda'
 ! read (*,*) xlambda
     
- wk = 2.0*pi/xlambda	! 	wave number
+ wk = 2.0*pi/xlambda        !         wave number
 
 
 !
@@ -115,7 +114,7 @@ subroutine setup
 !--initially set up a uniform density grid (also determines npart)
 !
  print*,' setting up uniform density grid'
- call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)	! 2 = close packed
+ call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)        ! 2 = close packed
 !
 !--determine particle mass
 !
@@ -142,7 +141,7 @@ subroutine setup
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
 !
-    uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)	! if not polytropic
+    uu(i) = uuzero !+ pri/dens(i)*ampl*sin(wk*ri)        ! if not polytropic
 
     if (imhd.ne.0) then
        Bfield(1,i) = Bparallel*runit(1) - Bperp*runit(2)

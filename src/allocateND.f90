@@ -50,7 +50,6 @@ subroutine alloc(newsizein,sortlist)
  use part_in
  use rates
  use xsph
- !use matrixcorr
 !
 !--define local variables
 !
@@ -73,7 +72,11 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
- !real, dimension(ndim,ndim,newsizein) :: dumgradmatrix
+!--dust
+ real, dimension(newsizein)       :: dumdustfrac,dumdustfracin,dumddustfracdt
+ real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
+!--integrator type check
+ character (len=20) :: integratorcheck
 
  logical :: reallocate, isortparts
 !
@@ -184,8 +187,13 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmom)) dumpmom(:,1:idumsize) = pmom(:,1:idumsize)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
-    !dumgradmatrix(:,:,1:idumsize)=gradmatrix(:,:,1:idumsize)
-
+    if (allocated(dustfrac))    dumdustfrac(1:idumsize)    = dustfrac(1:idumsize)
+    if (allocated(ddustfracdt)) dumddustfracdt(1:idumsize) = ddustfracdt(1:idumsize)
+    if (allocated(deltav))       dumdeltav(:,1:idumsize)     = deltav(:,1:idumsize)
+    if (allocated(ddeltavdt))    dumddeltavdt(:,1:idumsize)  = ddeltavdt(:,1:idumsize)
+    if (allocated(dustfracin))    dumdustfracin(1:idumsize) = dustfracin(1:idumsize)
+    if (allocated(deltavin))       dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
+    
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
 !-----------------------------------------------------------------------------
@@ -241,7 +249,19 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmom)) deallocate(pmom)
     if (allocated(pmomin)) deallocate(pmomin)
     if (allocated(dens)) deallocate(dens)
-    
+!
+!--dust
+!
+    if (allocated(dustfrac))    deallocate(dustfrac)
+    if (allocated(deltav))       deallocate(deltav)
+    if (allocated(ddustfracdt)) deallocate(ddustfracdt)
+    if (allocated(ddeltavdt))    deallocate(ddeltavdt)
+    if (allocated(dustfracin)) deallocate(dustfracin)
+    if (allocated(deltavin))    deallocate(deltavin)
+!
+!--physical viscosity
+!
+    if (allocated(del2v)) deallocate(del2v)
     endif
 
  endif
@@ -291,6 +311,7 @@ subroutine alloc(newsizein,sortlist)
 !--particle type
 !
     allocate(itype(newsize),numneigh(newsize))
+    itype(:) = 0 ! give type 0 by default
 !
 !--mhd quantities and derivatives
 !
@@ -309,7 +330,19 @@ subroutine alloc(newsizein,sortlist)
    if (geom(1:4).ne.'cart') then
       allocate(sourceterms(ndimv,newsize))
    endif
-   !allocate(gradmatrix(ndim,ndim,newsize))
+!
+!--dust
+!
+   if (idust.eq.1) then
+      allocate(dustfrac(newsize),dustfracin(newsize))
+      allocate(ddustfracdt(newsize))
+      allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
+      allocate(ddeltavdt(ndimV,newsize))
+   endif
+!
+!--physical viscosity
+!
+   if (ivisc.gt.0) allocate(del2v(newsize))   
  endif
  
  if (reallocate .or. isortparts) then
@@ -370,11 +403,24 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
     endif    
+!
+!--dust
+!
+    if (idust.eq.1) then
+       dustfrac(1:idumsize)    = dumdustfrac(iorder(1:idumsize))
+       ddustfracdt(1:idumsize) = dumddustfracdt(iorder(1:idumsize))
+       deltav(:,1:idumsize)     = dumdeltav(:,iorder(1:idumsize))
+       ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,iorder(1:idumsize))
+       dustfracin(1:idumsize)  = dumdustfracin(iorder(1:idumsize))
+       deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
+    endif
+    ! no need to copy physical viscosity stuff
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
- endif   
-       
+    dxdx(:,:) = 1.
+ endif
+ 
 !
 !--debugging information
 !

@@ -47,15 +47,18 @@ subroutine conservative2primitive
   use bound
   use eos
   use part
-  use getcurl, only:get_curl
+  use getcurl,       only:get_curl
   use smooth, only:smooth_variable
-  use rates, only:gradpsi
+  use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
+  use timestep, only:nsteps
+  use part_in, only:velin
   implicit none
-  integer :: i,j,nerr
-  real :: B2i, v2i, pri, dhdrhoi
+  integer :: i,j,nerr,k
+  real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
   real, dimension(ndimV) :: Binti,Bfieldi
+  real, dimension(ndim) :: dxbound
   logical, parameter :: JincludesBext = .true.
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
@@ -99,7 +102,7 @@ subroutine conservative2primitive
         !--copy Bfield onto ghosts
         if (any(ibound.eq.1)) then
            do i=1,npart
-              if (itype(i).eq.1) then
+              if (itype(i).eq.itypebnd) then
                  j = ireal(i)
                  Bfield(:,i) = Bfield(:,j)
               endif
@@ -123,10 +126,26 @@ subroutine conservative2primitive
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
   endif
+
+  if (idust.eq.1) then
+     !--error checking on dust-to-gas ratio
+     do i=1,npart
+        if (dustfrac(i) < 0) then
+           print*,'ERROR: dust fraction = ',dustfrac(i),' on particle ',i
+           dustfrac(i) = 0.
+           !call quit
+        endif
+     enddo
+     dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
+  else
+     dens = rho
+  endif
+
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
-  if (iener.eq.3) then     ! total energy is evolved
+  select case(iener)
+  case(3)     ! total energy is evolved
      do i=1,npart
         v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
@@ -137,49 +156,50 @@ subroutine conservative2primitive
         endif
      enddo
      if (nerr.gt.0) write(iprint,*) 'Warning: utherm -ve on ',nerr,' particles '
-  elseif (iener.eq.1) then  ! en = entropy variable
+  case(1)  ! en = entropy variable
      uu = en/(gamma-1.)*rho**(gamma-1.)
-  elseif (iener.eq.5) then
+  case(4)  ! en = rho*u (volume thermal energy variable)
+     uu = en/rho
+  case(5)
      call smooth_variable(en,uu,x,pmass,hh,rho)
-  else                 ! en = thermal energy
-     uu = en
-  endif
+  case default    ! en = thermal energy
+     if (damp.gt.0.) then
+        uu = en
+        if (mod(nsteps,10).eq.0) then
+           vel(:,i) = 0.
+           velin(:,i) = 0.
+        endif
+     else
+        uu = en
+     endif
+  end select
 !
 !--call equation of state calculation
 !
-! if (imhd.eq.0) then
-! call equation_of_state(pr(1:npart),spsound(1:npart),psi(1:npart),  &
-!                        rho(1:npart))
-! else
- 
-!
-!--compute unity (stored as psi) for later use in equation of motion
-!  (use pressure temporarily here)
- if (iprterm.eq.12) then
-    pr(:) = 1.0
-    call smooth_variable(pr,psi,x,pmass,hh,rho)
-    do i=1,npart
-       if (psi(i).lt.0.999 .or. psi(i).gt.1.001) print*,'unity = ',i,x(1,i),psi(i)
-    enddo
- endif
-
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
     spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
+    if (idust.eq.1) stop 'iprterm=10 not implemented with idust=1'
  elseif (iprterm.eq.11) then
     call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart),psi(1:npart)) 
+                        rho(1:npart),psi(1:npart))
+    if (idust.eq.1) stop 'iprterm=11 not implemented with idust=1'
  else
-    call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
-                        rho(1:npart)) 
+    if (idust.eq.1) then
+       !
+       !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
+       !
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))    
+    else
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),rho(1:npart))
+    endif
  endif
-! endif
 !
 !--make fixed particles exact replicas of their closest particle
 !
   if (any(ibound.eq.1)) then
      do i=1,npart
-        if (itype(i).eq.1) then
+        if (itype(i).eq.itypebnd) then
            j = ireal(i)
            call copy_particle(i,j)
            !vel(:,i) = vel(:,j)
@@ -237,6 +257,7 @@ subroutine primitive2conservative
   use getcurl
   use rates, only:gradpsi
   use derivB, only:curlB
+!  use utils,  only:minmaxave
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi
@@ -249,13 +270,17 @@ subroutine primitive2conservative
 !
   isetpolyk = .false.
   do i=1,npart
-     rho(i) = dens(i)
+     if (idust.eq.1) then
+        rho(i) = dens(i)/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
+     else
+        rho(i) = dens(i)
+     endif
      hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
 !
 !--also work out what polyk should be if using iener = 0
 !  (only do this once, otherwise give an error)
 !
-     if (iener.eq.0) then
+     if (iener.eq.0 .and. itype(i).eq.itypegas .and. iexternal_force.ne.10) then
         gam1 = gamma - 1.
         if (gamma.le.1.0001) then
            polyki = 2./3.*uu(i)
@@ -297,10 +322,17 @@ subroutine primitive2conservative
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
      endif
-     !--set density same as rho
-     dens = rho
+     if (idust.eq.1) then
+        dens = rho*(1. - dustfrac)
+     else
+        dens = rho     !--set density same as rho
+     endif
   else
-     dens = rho
+     if (idust.eq.1) then
+        dens = rho*(1. - dustfrac)
+     else
+        dens = rho
+     endif
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
@@ -336,7 +368,7 @@ subroutine primitive2conservative
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
         do i=1,npart
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               Bfield(:,i) = Bfield(:,j)
            endif
@@ -354,18 +386,21 @@ subroutine primitive2conservative
 !
 !--calculate conserved energy (or entropy) from the thermal energy
 !
-  if (iener.eq.3) then     ! total energy is evolved
+  select case(iener)
+  case(3)     ! total energy is evolved
      do i=1,npart
         v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
         en(i) = uu(i) + 0.5*v2i + 0.5*B2i
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
-  elseif (iener.eq.1) then ! en = entropy
-     en = (gamma-1.)*uu/rho**(gamma-1.)
-  else                ! en = thermal energy
+  case(1)   ! en = entropy
+     en = (gamma-1.)*uu/dens**(gamma-1.)
+  case(4)   ! en = rho*u (volume thermal energy)
+     en = uu*dens
+  case default        ! en = thermal energy
      en = uu
-  endif
+  end select
 !
 !--call equation of state calculation
 !  (not ghosts, but including fixed particles)
@@ -401,7 +436,7 @@ subroutine primitive2conservative
 !
   if (any(ibound.eq.1) .and. imhd.lt.0) then
      do i=1,npart
-        if (itype(i).eq.1) then
+        if (itype(i).eq.itypebnd) then
            j = ireal(i)
            call copy_particle(i,j)
            vel(:,i) = vel(:,j)
@@ -416,8 +451,8 @@ subroutine primitive2conservative
 !
 !--call rates to get initial timesteps, div B etc
 !
-  call get_rates
-
+  call derivs
+ 
   return  
 end subroutine primitive2conservative
 

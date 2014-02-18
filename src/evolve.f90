@@ -30,17 +30,16 @@ subroutine evolve
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint,ifile
- use options, only:idumpghost,ibound,iexternal_force
+ use options, only:idumpghost,ibound
  use timestep
- use part, only:x,uu,pmass,npart
 !
 !--define local variables
 !
  implicit none
  real :: tprint
- integer :: i,noutput,nevwrite,nsort
+ integer :: noutput,nevwrite,nsort
  real :: t_start,t_end,t_used,tzero
- real :: etot, momtot, etotin, momtotin, detot, dmomtot, epoti
+ real :: etot, momtot, etotin, momtotin, detot, dmomtot
  character(len=10) :: finishdate, finishtime
 !
 !--allow for tracing flow
@@ -52,16 +51,8 @@ subroutine evolve
 !   as can be non-zero from reading a dumpfile)
 !
  dt = 0.
-!
-!--get total potential
-!
- Omega0 = 0.
- do i=1,npart
-    call external_potentials(iexternal_force,x(:,i),epoti,ndim)
-    Omega0 = Omega0 + pmass(i)*(uu(i) + epoti)
- enddo
  dt0 = min(C_cour*dtcourant,C_force*dtforce)
- w0 = 1./Omega0
+ if (dtfixed) dt = dt0
  dtscale = 1.0
  dtrho = huge(dtrho)
  tprint = 0.
@@ -110,18 +101,27 @@ subroutine evolve
 !       call sort_particles()
 !    endif
     
-    call step           !  evolve data for one timestep
+    call step      !  evolve data for one timestep
 !
 !--write log every step in 2D/3D
 !
-    if (ndim.ge.2) then
-       if (C_force*dtforce.lt.C_cour*dtcourant) then
-          write(iprint,10) time,C_force*dtforce     
-       else
+    if (ndim.ge.1) then
+       if (abs(dt-C_force*dtforce).lt.epsilon(0.)) then
+          write(iprint,10) time,C_force*dtforce
+       elseif (abs(dt-C_cour*dtcourant).lt.epsilon(0.)) then
           write(iprint,15) time,C_cour*dtcourant
+       elseif (abs(dt-C_force*dtdrag).lt.epsilon(0.)) then
+          write(iprint,16) time,C_force*dtdrag
+       elseif (abs(dt-C_force*dtvisc).lt.epsilon(0.)) then
+          write(iprint,17) time,C_force*dtvisc
+       else
+          write(iprint,18) time,dt
        endif
-10     format(' t = ',f12.4,' dtforce = ',1pe10.3)
-15     format(' t = ',f12.4,' dtcourant = ',1pe10.3)
+10     format(' t = ',f12.4,' dtforce = ',es10.3)
+15     format(' t = ',f12.4,' dtcourant = ',es10.3)
+16     format(' t = ',f12.4,' dtdrag = ',es10.3)
+17     format(' t = ',f12.4,' dtvisc = ',es10.3)
+18     format(' t = ',f12.4,' dt(unknown) = ',es10.3)
     endif
     
 !    if (abs(dt).lt.1e-8) then
@@ -167,7 +167,7 @@ subroutine evolve
 !
 !--reach tprint exactly. must take this out for integrator to be symplectic
 !
-    if (dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
+    if (.not.dtfixed .and. dt.ge.(tprint-time)) dt = tprint-time   ! reach tprint exactly
         
  enddo timestepping
 

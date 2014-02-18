@@ -24,67 +24,77 @@
 !! Calculate conserved quantities etc and write to .ev file
 !!--------------------------------------------------------------------
   
-SUBROUTINE evwrite(t,etot,momtot)
- USE dimen_mhd, only:ndim,ndimV
- USE debug, only:trace
- USE loguns, only:iprint,ievfile
+subroutine evwrite(t,etot,momtot)
+ use dimen_mhd, only:ndim,ndimV
+ use debug, only:trace
+ use loguns, only:iprint,ievfile
  
- USE derivB
- USE options
- USE part
- USE rates, only:force,potengrav
- USE fmagarray
- USE timestep, only:dt
+ use derivB
+ use options
+ use part
+ use rates, only:force,potengrav
+ use fmagarray
+ use timestep, only:dt
+ use utils,    only:cross_product3D,minmaxave
 !
 !--define local variables
 !
- IMPLICIT NONE
- INTEGER :: i
- REAL, INTENT(IN) :: t
- REAL, INTENT(OUT) :: etot,momtot
- REAL :: ekin,etherm,emag,epot
- REAL :: pmassi,rhoi,epoti
- REAL, DIMENSION(ndimV) :: veli,mom,ang,angi
+ implicit none
+ integer :: i
+ real, intent(in) :: t
+ real, intent(out) :: etot,momtot
+ real :: ekin,etherm,emag,epot
+ real :: pmassi,rhoi,epoti!,rr
+! real, dimension(ndim) :: rhat
+ real, dimension(ndimV) :: veli,mom,ang,angi
+! real :: betai,alphai,alphatstarav,betatstarav
 !
 !--mhd
 !
- REAL, DIMENSION(ndimB) :: Bi,Brhoi,fluxtot
- REAL :: B2i,Bmagi
- REAL :: fluxtotmag,crosshel
- REAL :: betamhdi,betamhdmin,betamhdav
- REAL :: fdotBi,fdotBmax,fdotBav
- REAL :: forcemagi,force_erri,force_err_max,force_err_av
- REAL :: divBi,divBav,divBmax,divBtot
- REAL :: omegamhdi,omegamhdav,omegamhdmax
- REAL :: fracdivBok
- REAL, PARAMETER :: omegtol = 1.E-2
- REAL :: fmagabs,rhomax,rhomean,rhomin
- REAL :: angtot,ekiny,emagp
+ real, dimension(ndimB) :: Bi,Brhoi,fluxtot
+ real :: B2i,Bmagi
+ real :: fluxtotmag,crosshel
+ real :: betamhdi,betamhdmin,betamhdav
+ real :: fdotBi,fdotBmax,fdotBav
+ real :: forcemagi,force_erri,force_err_max,force_err_av
+ real :: divBi,divBav,divBmax,divBtot
+ real :: omegamhdi,omegamhdav,omegamhdmax
+ real :: fracdivBok
+ real, parameter :: omegtol = 1.E-2
+ real :: fmagabs,rhomax,rhomean,rhomin
+ real :: angtot,ekiny,emagp
+!
+!--one fluid dust
+!
+ real :: totmassgas,totmassdust,dtgi,dustfraci,dterm,ekindeltav
+
 !
 !--allow for tracing flow
 !      
- IF (trace) WRITE(iprint,*) ' Entering subroutine evwrite'
+ if (trace) write(iprint,*) ' Entering subroutine evwrite'
        
  ekin = 0.0
  etherm = 0.0
  emag = 0.0
  emagp = 0.
  etot = 0.0
- IF (igravity.NE.0) THEN
+ if (igravity.ne.0) then
     epot = potengrav
- ELSE
+ else
     epot = 0.
- ENDIF
+ endif
  mom(:) = 0.0
  momtot = 0.0
  ang(:) = 0.
  ekiny = 0.
+ totmassdust = 0.
+ totmassgas  = 0.
 ! alphatstarav = 0.
 ! betatstarav = 0.
 !
 !--mhd parameters
 !     
- IF (imhd.NE.0) THEN
+ if (imhd.ne.0) then
     betamhdav = 0.
     betamhdmin = huge(betamhdmin)
     divBmax = 0.
@@ -100,7 +110,7 @@ SUBROUTINE evwrite(t,etot,momtot)
     fluxtot(:) = 0.
     fluxtotmag = 0.
     crosshel = 0.      
- ENDIF 
+ endif 
 
 !
 !--should really recalculate the thermal energy from the total energy here
@@ -108,7 +118,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 ! 
 ! CALL conservative2primitive
       
- DO i=1,npart
+ do i=1,npart
 
     pmassi = pmass(i)
     rhoi = rho(i)
@@ -121,12 +131,25 @@ SUBROUTINE evwrite(t,etot,momtot)
        ang(3) = ang(3) + pmassi*(x(1,i)*veli(2) - x(2,i)*veli(1))
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
-    if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
-    etherm = etherm + pmassi*uu(i)
+
+    if (idust.eq.1) then
+       dustfraci  = dustfrac(i)
+       dtgi  = dustfraci/(1. - dustfraci)
+       dterm = (1. - dustfraci)
+       ekindeltav = 0.5*pmassi*dtgi*dterm**2*dot_product(deltav(:,i),deltav(:,i))
+       ekin = ekin + ekindeltav
+       ekiny = ekiny + ekindeltav
+       etherm = etherm + pmassi*uu(i)*dterm
+       totmassgas  = totmassgas  + pmassi*dterm
+       totmassdust = totmassdust + pmassi*dtgi*dterm
+    else
+       if (ndim.ge.2) ekiny = ekiny + 0.5*pmassi*vel(1,i)*vel(1,i)
+       etherm = etherm + pmassi*uu(i)
+    endif
 !
 !--potential energy from external forces
 !    
-    CALL external_potentials(iexternal_force,x(:,i),epoti,ndim)
+    call external_potentials(iexternal_force,x(:,i),epoti,ndim)
     epot = epot + pmassi*epoti
     
 !    rr = dot_product(x(1:ndim,i),x(1:ndim,i))
@@ -142,7 +165,7 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
 !--mhd parameters
 !
-    IF (imhd.NE.0) THEN
+    if (imhd.ne.0) then
        Bi(:) = Bfield(:,i)
        Brhoi(:) = Bi(:)/rhoi
        B2i = DOT_PRODUCT(Bi,Bi)
@@ -155,17 +178,17 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
 !--Plasma beta minimum/maximum/average
 !  
-       IF (B2i.LT.tiny(B2i)) THEN
+       if (B2i.LT.tiny(B2i)) then
           betamhdi = 0.
-       ELSE 
+       else 
           betamhdi = pr(i)/(0.5*B2i)     
-       ENDIF
+       endif
        betamhdav = betamhdav + betamhdi
-       IF (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
+       if (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
 !
 !--Maximum divergence of B
 !  
-       IF (divBi.GT.divBmax) divBmax = divBi
+       if (divBi.GT.divBmax) divBmax = divBi
        divBav = divBav + divBi
 !
 !--volume integral of div B (int B.dS)
@@ -175,37 +198,37 @@ SUBROUTINE evwrite(t,etot,momtot)
 !--Max component of magnetic force in the direction of B (should be zero)
 !
        fmagabs = SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
-       IF (fmagabs.GT.1.e-8 .and. Bmagi.gt.1.e-8) THEN
+       if (fmagabs.GT.1.e-8 .and. Bmagi.gt.1.e-8) then
           fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)   
-       ELSE
+       else
           FdotBi = 0.
-       ENDIF
+       endif
        fdotBav = fdotBav + fdotBi
-       IF (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
+       if (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
 !
 !--Compute total error in the force due to the B(div B) term
 !  only slight worry with this is that fmag is calculated in rates, whilst
 !  B has been evolved a bit further since then. A possible solution is to
 !  evaluate these quantities just after the call to rates.
 !       
-       IF (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) THEN
+       if (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) then
           force_erri = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(forcemagi*Bmagi)
-       ELSE
+       else
           force_erri = 0.
-       ENDIF
+       endif
        force_err_av = force_err_av + force_erri
-       IF (force_erri.GT.force_err_max) force_err_max = force_erri
+       if (force_erri.GT.force_err_max) force_err_max = force_erri
 !
 !--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
 !  this quantity should be less than ~0.01.
 !
-       IF (Bmagi.lt.1e-8) THEN
+       if (Bmagi.lt.1e-8) then
           omegamhdi = 0.
-       ELSE
+       else
           omegamhdi = divBi*hh(i)/Bmagi     
-       ENDIF    
-       IF (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
-       IF (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
+       endif    
+       if (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
+       if (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
        omegamhdav = omegamhdav + omegamhdi   
 !
 !--Conserved magnetic flux (int B dV)
@@ -217,19 +240,19 @@ SUBROUTINE evwrite(t,etot,momtot)
 !
        crosshel = crosshel + pmassi*DOT_PRODUCT(veli,Brhoi)
 
-    ENDIF
+    endif
 
- ENDDO
+ enddo
  
  etot = ekin + emag + epot
- IF (iprterm.ge.0 .or. iprterm.lt.-1) etot = etot + etherm
- momtot = SQRT(DOT_PRODUCT(mom,mom))
- CALL minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
- angtot = SQRT(DOT_PRODUCT(ang,ang))
+ if (iprterm.ge.0 .or. iprterm.lt.-1) etot = etot + etherm
+ momtot = sqrt(dot_product(mom,mom))
+ call minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
+ angtot = sqrt(dot_product(ang,ang))
 !
 !--write line to .ev file
 !     
- IF (imhd.NE.0) THEN      
+ if (imhd.ne.0) then      
 
     fluxtotmag = SQRT(DOT_PRODUCT(fluxtot,fluxtot))
     betamhdav = betamhdav/FLOAT(npart)
@@ -241,27 +264,32 @@ SUBROUTINE evwrite(t,etot,momtot)
 
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt, &
+    write(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt, &
           emagp,crosshel,betamhdmin,betamhdav,  &
           divBav,divBmax,divBtot,     &
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
-30  FORMAT(24(1pe18.10,1x),1pe8.2)
+30  format(24(1pe18.10,1x),1pe8.2)
       
- ELSE
-    !alphatstarav = alphatstarav/FLOAT(npart)
-    !betatstarav = betatstarav/FLOAT(npart)
+ else
+    !alphatstarav = alphatstarav/float(npart)
+    !betatstarav = betatstarav/float(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    WRITE(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
-40  FORMAT(24(1pe18.10,1x))        
+    if (idust.eq.1) then
+       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,&
+                         totmassgas,totmassdust    
+    else
+       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
+    endif
+40  format(24(1pe18.10,1x))        
 
- ENDIF
+ endif
 
 !
 !--flush the buffer so that the line is written to the file immediately
 !
- CALL flush(ievfile)
+ call flush(ievfile)
  
- RETURN
-END SUBROUTINE evwrite
+ return
+end subroutine evwrite

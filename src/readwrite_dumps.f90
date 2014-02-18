@@ -40,7 +40,7 @@ subroutine write_dump(t,dumpfile)
  use setup_params
  use derivb
  use rates
- use hterms, only:gradh !,gradsoft
+ use hterms, only:gradh,gradsoft
 !
 !--define local variables
 !
@@ -75,10 +75,15 @@ subroutine write_dump(t,dumpfile)
     ncolumns = ncolumns + 5
     iformat = 1
     if (igravity.ne.0) ncolumns = ncolumns + 1
+    if (allocated(del2v)) ncolumns = ncolumns + 1
  endif
  if (geom(1:4).ne.'cart') then
     ncolumns = ncolumns + 2 + ndimV
     iformat = iformat + 2
+ endif
+ if (idust.eq.1) then
+    iformat = 5
+    ncolumns = ncolumns + ndimV + 1
  endif
  
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
@@ -104,7 +109,11 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) vel(i,1:nprint)
   enddo
   write(idatfile) hh(1:nprint)
-  write(idatfile) dens(1:nprint)
+  if (idust.eq.1) then
+     write(idatfile) rho(1:nprint)  
+  else
+     write(idatfile) dens(1:nprint)
+  endif
   write(idatfile) uu(1:nprint)
   write(idatfile) pmass(1:nprint)
   
@@ -145,6 +154,7 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) force(i,1:nprint)
      enddo
      if (igravity.ne.0) write(idatfile) poten(1:nprint)
+     if (allocated(del2v)) write(idatfile) del2v(1:nprint)
   endif
   if (geom(1:4).ne.'cart') then
      write(idatfile) rho(1:nprint)
@@ -153,6 +163,13 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) pmom(i,1:nprint)
      enddo
   endif
+  if (idust.eq.1) then
+     write(idatfile) dustfrac(1:nprint)
+     do i=1,ndimV
+        write(idatfile) deltav(i,1:nprint)
+     enddo
+  endif
+  write(idatfile) itype(1:nprint)
 
  close(unit=idatfile)
 
@@ -189,7 +206,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  real, intent(out) :: tfile
  logical, optional, intent(in) :: copysetup
  integer :: i,ndimfile,ndimvfile,npartfile,nprintfile,ncolumns
- integer :: ierr, iformat,lengeom
+ integer :: ierr, iformat,lengeom,nread
  character(len=len(geom)) :: geomfile
  real :: gammafile,hfactfile
  logical :: iexist
@@ -227,6 +244,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  endif
  write(iprint,*) 'time = ',tfile,' in dump file '
  write(iprint,*) 'xmin = ',xmin(1:ndimfile),' xmax = ',xmax(1:ndimfile)
+ write(iprint,*) 'ibound = ',ibound(1:ndimfile),' npart in file = ',npartfile
 !
 !--copy setup options from header if desired
 !
@@ -262,6 +280,9 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     write(iprint,*) 'WARNING: non-mhd infile but MHD is on (Bfield set to 0)'
  elseif (imhd.lt.0 .and. (ncolumns.lt.(ndim + 5*ndimV + 12) .or. iformat.ne.2)) then
     write(iprint,*) 'ERROR: cannot re-start with vector potential from this file'
+    stop
+ elseif (idust.eq.1 .and. (iformat.ne.5)) then
+    write(iprint,*) 'ERROR: idust=1 but dump file does not contain dustfrac or deltav arrays'
     stop
  endif
 !
@@ -320,6 +341,8 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  if (ierr /= 0) stop 'error reading dumpfile'
  read(ireadf,iostat=ierr) pmass(1:npart)
  if (ierr /= 0) stop 'error reading dumpfile'
+ nread = ndim + ndimV + 4
+ 
  if (iformat.eq.2 .or. iformat.eq.4 .and. imhd.ne.0) then
     do i=1,3
        read(ireadf,iostat=ierr) alpha(i,1:npart)
@@ -331,6 +354,8 @@ subroutine read_dump(dumpfile,tfile,copysetup)
        read(ireadf,iostat=ierr) Bfield(i,1:npart)
     enddo
     read(ireadf,iostat=ierr) psi(1:npart)
+    nread = nread + 4 + ndimV
+    
     !--read vector/euler potentials if required
     if (imhd.lt.0) then
        !--skip other quantities
@@ -348,16 +373,34 @@ subroutine read_dump(dumpfile,tfile,copysetup)
           write(iprint,*) 'please enter values for Bconst:'
           read*,Bconst(1:ndimV)
        endif
+       nread = nread + 5 + 3*ndimV
     endif
  elseif (iformat.eq.2) then
     !--read alpha in MHD format
     do i=1,3
        read(ireadf,iostat=ierr) alpha(i,1:npart)    
     enddo
+    nread = nread + 3
  else
     do i=1,2
        read(ireadf,iostat=ierr) alpha(i,1:npart)
     enddo
+    nread = nread + 2
+ endif
+ if (idust.eq.1 .and. iformat.eq.5) then
+    read(ireadf,iostat=ierr) dustfrac(1:npart)
+    do i=1,ndimV
+       read(ireadf,iostat=ierr) deltav(i,1:npart)
+    enddo
+ endif
+ !--skip extra quantities that come after alpha but before itype
+ do i=1,ncolumns-nread
+    read(ireadf,iostat=ierr)
+ enddo
+
+ read(ireadf,iostat=ierr) itype(1:npart)
+ if (ierr /= 0) then
+    write(iprint,*) 'WARNING: itype array not present in file'
  endif
 !
 !--close the file

@@ -28,9 +28,9 @@
 
 subroutine get_rates
 ! USE dimen_mhd
- use debug, only:trace
+ use debug,  only:trace
  use loguns, only:iprint
- use bound, only:pext
+ use bound,  only:pext
  use artvi
  use eos
  use hterms
@@ -49,7 +49,7 @@ subroutine get_rates
 !--define local variables
 !
  implicit none
- integer :: i,j,n
+ integer :: i,j,n,k
  integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
  integer :: idone,nclumped
@@ -65,6 +65,7 @@ subroutine get_rates
  real, dimension(ndim) :: xi, dx
  real, dimension(ndimV) :: fexternal  !!,dri,drj
  real, dimension(ntotal) :: h1
+ integer :: itypei
 !
 !--gr terms
 !
@@ -93,14 +94,14 @@ subroutine get_rates
  real :: vsig,vsigi,vsigj,vsigav
  real :: spsoundi,spsoundj,alphai,alphaui,alphaBi
 !! real :: rhoi5,rhoj5
- real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsignonlin,vsigu
+ real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsigB,vsigu
 !! real :: vsigii,vsigjj
  real :: prneti,prnetj,pequil
 !
 !  (av switch)
 !
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
- real :: graduterm, graddivvmag,etai,curr2
+ real :: graduterm, graddivvmag,curr2
  real, dimension(:), allocatable :: del2u
  real, dimension(:,:), allocatable :: graddivv
 !
@@ -108,6 +109,18 @@ subroutine get_rates
 !
  real, dimension(:), allocatable :: phi
  real :: phii,phii1,phii_on_phij,phij_on_phii,uui,uuj
+!
+!  (one fluid dust)
+!
+ real, dimension(ndimV) :: deltavi,deltavj
+ real :: dustfraci,dustfracj
+ real :: rhogrhodonrhoi, rhogrhodonrhoj
+ real :: deltav2i,deltav2j
+ real :: dtstop,projdeltavi,projdeltavj
+ real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
+ real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
+ real :: sum
+
 !
 !  (kernel related quantities)
 !
@@ -125,7 +138,7 @@ subroutine get_rates
 !--div B correction
 ! 
  real :: gradpsiterm,vsig2,vsigmax !!,dtcourant2
- real :: stressterm, stressmax
+ real :: stressmax,stressterm
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
 !
@@ -150,12 +163,13 @@ subroutine get_rates
 !
 !--initialise quantities
 !      
- dtcourant = 1.e6  
- dtav = huge(dtav)
- zero = 1.e-10
- vsigmax = 0.
- dr(:) = 0.
- nclumped = 0
+ dtcourant  = 1.e6  
+ dtav       = huge(dtav)
+ dtvisc     = huge(dtvisc)
+ zero       = 1.e-10
+ vsigmax    = 0.
+ dr(:)      = 0.
+ nclumped   = 0
  
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
   force(:,i) = 0.0
@@ -169,6 +183,7 @@ subroutine get_rates
   divB(i) = 0.0
   if (imhd.gt.0) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
+  if (allocated(del2v)) del2v(i) = 0.
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -178,6 +193,10 @@ subroutine get_rates
      gradh(i) = 1.
      gradhn(i) = 0.
      dhdt(i) = 0.
+  endif
+  if (idust.eq.1) then
+     ddustfracdt(i) = 0.
+     ddeltavdt(:,i) = 0.
   endif
  enddo
 
@@ -220,7 +239,7 @@ subroutine get_rates
 !
 !--skip the whole neighbour thing if it is doing nothing
 !
- if (iprterm.eq.-1 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.lt.3) then
+ if (iprterm.lt.0 .and. iav.eq.0 .and. imhd.eq.0 .and. iener.lt.3 .and. iprterm.ne.-2) then
     write(iprint,*) 'skipping rates'
     goto 666
  endif
@@ -274,6 +293,7 @@ subroutine get_rates
        !!print*,'Doing particle ',i,'of',npart,x(:,i),rho(i),hh(i)
        idone = idone + 1
        xi(:) = x(:,i)
+       itypei = itype(i)
        rhoi = rho(i)
        rho2i = rhoi*rhoi
 !!       rhoi5 = sqrt(rhoi)
@@ -294,6 +314,20 @@ subroutine get_rates
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
        gdiagi(:) = 1.
+
+       ! one fluid dust definitions
+       if (idust.eq.1) then
+          dustfraci  = dustfrac(i)
+          rhodusti       = dustfraci*rhoi          
+          rhogasi        = rhoi - rhodusti
+          deltavi(:)     = deltav(:,i)
+          deltav2i       = dot_product(deltavi,deltavi)
+          rhogrhodonrhoi = rhogasi*rhodusti*rho1i
+       else
+          rhogasi  = rhoi
+          rhodusti = 0.
+          deltav2i = 0.
+       endif
        ! mhd definitions
        if (imhd.ne.0) then
           Bi(:) = Bfield(:,i)
@@ -317,6 +351,7 @@ subroutine get_rates
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
        forcei(:) = 0.
+       fextrai(:) = 0.
        dBevoldti(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
@@ -324,7 +359,7 @@ subroutine get_rates
        loop_over_neighbours: do n = idone+1,nneigh
        
            j = listneigh(n)
-           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then            ! don't count particle with itself
+           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then ! don't count particle with itself
            dx(:) = xi(:) - x(:,j)
            !print*,' ... neighbour, h=',j,hh(j),rho(j),x(:,j)
            hj = hh(j)
@@ -340,7 +375,7 @@ subroutine get_rates
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
               rij = sqrt(rij2)
-              if (rij.le.1.e-8) then
+              if (rij.le.1.e-8 .and. itype(j).eq.itypei) then
                  nclumped = nclumped + 1
                  if (rij.lt.tiny(rij)) then
                     write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
@@ -348,7 +383,13 @@ subroutine get_rates
                  endif
               endif
               dr(1:ndim) = dx(1:ndim)/rij      ! unit vector           
-              call rates_core
+              if (itype(j).eq.itypei &
+                  .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
+                  .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
+                 call rates_core
+              elseif (idust.eq.2 .and. idrag_nature.gt.0) then !-- drag step if required
+                 call drag_forces
+              endif
            else      ! if outside 2h
 !              PRINT*,'outside 2h, not calculated, r/h=',sqrt(q2i),sqrt(q2j)
            endif      ! r < 2h or not
@@ -358,12 +399,15 @@ subroutine get_rates
         enddo loop_over_neighbours
        !
        !--add contributions to particle i from summation over j
+       !  (forcei is forces on gas only, fextra is terms that apply to total fluid)
        !
-       force(:,i) = force(:,i) + forcei(:)
+       force(:,i) = force(:,i) + fextrai(:) + forcei(:)
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
+       if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) - rhoi/rhogasi*forcei(:)
+
 
        iprev = i
-       if (iprev.ne.-1) i = ll(i)            ! possibly should be only IF (iprev.NE.-1)
+       if (iprev.ne.-1) i = ll(i) ! possibly should be only IF (iprev.NE.-1)
        
     enddo loop_over_cell_particles
             
@@ -373,7 +417,7 @@ subroutine get_rates
 666 continue
 
  if (itiming) call cpu_time(t3)
-
+ 
 !----------------------------------------------------------------------------
 !  calculate gravitational force on all the particles
 !----------------------------------------------------------------------------
@@ -416,10 +460,58 @@ subroutine get_rates
  endif
  
  fmean(:) = 0.
+ dtdrag = huge(dtdrag)
+ sum = 0.
  do i=1,npart
  
     rhoi  = rho(i)
     rho1i = 1./rhoi
+    if (ivisc.gt.0 .and. idust.ne.1) then
+       sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
+    endif
+    fexternal(:) = 0.
+!
+!--Dust
+!
+    if (idust.eq.2 .and. idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
+       !
+       !--two fluid dust: calculate drag timestep
+       !
+       dtdrag = min(dtdrag,rhoi/Kdrag)
+    elseif (idust.eq.1) then
+       !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
+       dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
+       !------------------
+       !  one fluid dust
+       !------------------
+       !
+       !--d/dt(rhod/rho): multiply by terms out the front of the SPH sum
+       !
+       dustfraci = dustfrac(i)
+       rhodusti = rhoi*dustfraci       
+       rhogasi  = rhoi - rhodusti
+       
+       !
+       !--d/dt(deltav)  : add terms that do not involve sums over particles
+       !
+       if (dustfraci.gt.0.) then
+          dtstop   = Kdrag*rhoi/(rhodusti*rhogasi)  ! 1/tstop = K*rho/(rhod*rhog)
+          ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
+       else
+          dtstop = 0.
+          ddeltavdt(:,i) = 0.
+       endif
+       
+       !
+       !--du/dt: add thermal energy dissipation from drag
+       !  (maybe should do this in the step routine along with the implicit drag in ddeltav/dt?)
+       !
+       if (iener.gt.0) then
+          deltav2i = dot_product(deltav(:,i),deltav(:,i))
+          dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
+       endif
+    endif
+
 !
 !--compute JxB force from the Euler potentials (if using second derivs)
 !  also divide by rho for J and div B calculated the "normal" way
@@ -439,7 +531,8 @@ subroutine get_rates
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
-                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i))
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i), &
+                            rhoi)
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
@@ -521,7 +614,7 @@ subroutine get_rates
           !etai = alpha(3,i)*sqrt(dot_product(graddivv(:,i),graddivv(:,i)))*hh(i)**2
           !etai = alpha(3,i)*(sqrt(valfven2i)*hh(i) + 2.*sqrt(curr2/rho(i))*hh(i)**2)
           !divB(i) = etai
-          
+
           dBevoldt(:,i) = dBevoldt(:,i) - etai*curlBi(:)
           !if (curlBi(1).ne.0.) print*,i,curlB(1,i),curlBi(1)
           !print*,i,'diss = ',-etai,curlB(:,i)
@@ -538,6 +631,7 @@ subroutine get_rates
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
 !
+
     if (iener.eq.3) then
        ! could do this in principle but does not work with
        ! faniso modified by subtraction of Bconst
@@ -545,13 +639,17 @@ subroutine get_rates
        !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
        !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
-       dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)      
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11) then
-       dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
+       if (damp.lt.tiny(0.)) dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)
+    elseif (iener.eq.4) then
+       dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
+       if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. idust.ne.1) then
+       if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
        dendt(i) = dudt(i)
     endif
+    if (itype(i).eq.itypedust) dendt(i) = 0.
 !
 !--calculate time derivative of alpha (artificial dissipation coefficients)
 !  see Morris and Monaghan (1997) and Price and Monaghan (2004c)
@@ -565,10 +663,11 @@ subroutine get_rates
        select case(iavlim(1))
        case(1,2)
           source = max(drhodt(i)*rho1i,0.0)
-          if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))      
+          if (iavlim(1).eq.2) source = source*(2.0-alpha(1,i))
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        case(3)
           graddivvmag = sqrt(dot_product(graddivv(:,i),graddivv(:,i)))
+          !!print*,'graddivvmag = ',graddivvmag,max(drhodt(i)*rho1i,0.0)
           source = hh(i)*graddivvmag*(2.0-alpha(1,i))
           daldt(1,i) = (alphamin - alpha(1,i))*tdecay1 + avfact*source
        end select
@@ -613,11 +712,30 @@ subroutine get_rates
 !      
     select case(idivBzero)
        case(2:7)
-          dpsidt(i) = dpsidt(i) - vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)         
+          dpsidt(i) = -vsig2max*divB(i) - psidecayfact*psi(i)*vsigmax/hh(i)
+          !if (abs(psi(i)).gt.0.) print*,' idivBzero',i,vsig2max,divB(i),psi(i)       
        case DEFAULT
           dpsidt(i) = 0.
     end select
+    
+    if (idust.eq.1) then
+       !
+       !--DEBUGGING: CHECK ENERGY CONSERVATION
+       !  BY ADDING TERMS (SHOULD GIVE ZERO)
+       !
+       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+             - dot_product(vel(:,i),fexternal(:)) &
+             + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
+             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
+             + rhogasi*rho1i*dudt(i))
+    endif
+
  enddo
+ if (idust.eq.1 .and. abs(sum).gt.1.e-9) then
+    print*,' SUM (should be zero if conserving energy) = ',sum
+    !read*
+ endif
+ if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
@@ -638,7 +756,7 @@ subroutine get_rates
 !--set rates to zero on ghosts/fixed particles
 !
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
-    if (itype(i).eq.1 .or. i.gt.npart) then
+    if (itype(i).eq.itypebnd .or. i.gt.npart) then
        force(:,i) = 0.0
        drhodt(i) = 0.0
        dhdt(i) = 0.0
@@ -677,6 +795,167 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
+  subroutine drag_forces
+!--DIRTY declarations for the hack  
+    use kernels, only:interpolate_kerneldrag,interpolate_kernel  
+    use options, only:idrag_nature,idrag_structure,Kdrag   
+    implicit none
+    integer :: itypej
+    logical :: iskip_drag
+    real    :: coeff_gei_1,coeff_dq_1,coeff_dq_4
+    real    :: dv2,vij,V0,f,dragcoeff,dragterm,dragterm_en,dragcheck
+    real    :: s2_over_m,spsoundgas
+    real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
+    real    :: dt1,dt12
+    !real    :: gkeri,gkerj
+    real, dimension(ndimV) :: drdrag
+    real, parameter :: pow_drag_exp = 0.4
+    real, parameter :: a2_set       = 0.5
+    real, parameter :: a3_set       = 0.5
+    real, parameter :: pi  = 3.141592653589
+!
+!--setup the parameters
+!
+    iskip_drag  = .false.
+    coeff_gei_1 = 4./3.*sqrt(8.*pi/gamma)
+    coeff_dq_1  = sqrt(0.5*gamma)
+    coeff_dq_4  = 9.*pi*gamma/128.
+    s2_over_m   = 1./coeff_gei_1
+    f           = 0.
+    V0          = 0.
+    dragcoeff   = 0.
+    dragcheck   = 0.
+!    dt1         = 1./tout
+          dt1         = 1./(1.8716d-2)
+    dt12        = dt1*dt1
+!
+!--get informations on the differential velocities
+!
+    velj(:) = vel(:,j)
+    dvel(:) = veli(:) - velj(:)
+    dv2     = dot_product(dvel,dvel)
+    
+    if (rij.le.epsilon(rij)) then !two particles at the same position
+       if (dv2.le.epsilon(dv2)) then !no differential velocity => no drag
+           drdrag(1:ndim) = 0.
+           iskip_drag      = .true.
+       else ! Change dr so that the drag is colinear to the differential velocity
+           vij            = sqrt(dv2)
+           drdrag(:) = dvel(:)/vij
+       endif
+    else ! dr = drdrag
+      drdrag(:)       = dr(:)
+    endif
+
+!---start the drag calculation    
+    !if (.not.iskip_drag) then
+!
+!--get the j particle extra properties
+!
+!--Hack special SI    
+    itypej     = itype(j)
+    pmassj     = pmass(j)
+    rhoj       = rho(j)
+    rhoij      = rhoi*rhoj
+    rhoiplusj  = rhoi+rhoj
+    rhoiplusj2 = rhoiplusj*rhoiplusj
+
+    if (itypei.eq.itypegas) then
+       spsoundgas = spsound(i)
+    else
+       spsoundgas = spsound(j)
+    endif
+!
+!--calculate the kernel(s)
+!
+    hfacwabj = (1./hh(j)**ndim)
+!-- HACK
+!    call interpolate_kernel(q2i,wabi,gkeri)
+!--OK
+    call interpolate_kerneldrag(q2i,wabi)
+    wabi     = wabi*hfacwabi
+!--DIRTY HACK
+!   call interpolate_kernel(q2j,wabj,gkerj) 
+!-OK
+   call interpolate_kerneldrag(q2j,wabj)
+    wabj     = wabj*hfacwabj
+    !wab = 0.5*(wabi + wabj)
+    if (itypei.eq.itypegas) then
+       wab = wabi
+    else
+       wab = wabj
+    endif   
+!
+!--calculate the quantities needed for the drag force
+!
+    V0 = dot_product(dvel,drdrag)
+    
+    select case(idrag_nature)
+        case(1) !--constant drag
+           dragcoeff = Kdrag/rhoij
+        case(2) !--Epstein regime
+           select case(idrag_structure)
+              case(1,4,5) !--linear, third order, PM expression
+                 dragcoeff = coeff_gei_1*s2_over_m*spsoundgas
+              case(3)
+                 dragcoeff = pi*s2_over_m
+              case default
+                 print*,'ERROR drag calculation: wrong idrag_structure'
+           end select
+    end select
+    
+    select case(idrag_structure)
+       case(1) !--linear regime
+          f = 1.
+       case(2) !--power law
+          f = dv2**(0.5*pow_drag_exp)
+       case(3) !--quadratic
+          f = sqrt(dv2)
+       case(4) !--cubic expansion
+          select case(idrag_nature)
+             case(1) !--forced drag
+                f = 1. + a3_set*dv2
+             case(2) !--Epstein
+                f = 1. + 0.2*coeff_dq_1*coeff_dq_1*dv2/(spsoundgas*spsoundgas)
+             case default
+                print*,'ERROR drag calculation cubic: wrong drag nature' 
+          end select
+       case(5) !--PM expression
+          select case(idrag_nature)
+             case(1) !--forced drag
+                f = sqrt(1. + a2_set*dv2)
+             case(2) !--Epstein
+                f = sqrt(1. + coeff_dq_4*dv2/(spsoundgas*spsoundgas))
+             case default
+                print*,'ERROR drag calculation PM: wrong drag nature'          
+          end select
+       case default
+          print*,'this value for idrag_structure does not exist'         
+    end select
+!
+!--update the force and the energy
+!
+ 
+!--DIRTY HACK
+!    dragterm    = wab*dragcoeff*f
+!--OK
+    dragterm    = ndim*wab*dragcoeff*f*V0        
+    dragterm_en = dragterm*V0
+!--DIRTY HACK    
+!    forcei(:)   = forcei(:)  - dragterm*pmassj*dvel(:)
+!    force(:,j)  = force(:,j) + dragterm*pmassi*dvel(:)    
+!-OK
+    forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
+!-OK
+    force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
+    if (itypei.eq.itypegas) then
+       dudt(i)   = dudt(i) + pmassj*dragterm_en
+    endif
+    if (itypej.eq.itypegas) then
+       dudt(j)   = dudt(j) + pmassi*dragterm_en
+    endif
+  end subroutine drag_forces
+
 !--------------------------------------------------------------------------------------
 ! This is the interaction between the particle pairs
 ! Note that local variables are used from get_rates
@@ -690,8 +969,8 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
-    real :: vidotdS,vjdotdS,altrhoi,altrhoj
-    real :: term
+    real :: altrhoi,altrhoj,gammastar,vperp2
+    real :: enthalpi,enthalpj,term,denom,term1
 
    pmassj = pmass(j)
 !
@@ -750,7 +1029,7 @@ contains
 !
 !--define local copies of quantities
 !
-    velj(:) = vel(:,j)            
+    velj(:) = vel(:,j)
     v2j = dot_product(velj(:),velj(:))
     dvel(:) = veli(:) - velj(:)
     dvdotr = dot_product(dvel,dr)
@@ -763,6 +1042,24 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
+    if (idust.eq.1) then
+       dustfracj  = dustfrac(j)
+       rhodustj       = rhoj*dustfracj
+       rhogasj        = rhoj - rhodustj
+       deltavj(:)     = deltav(:,j)
+       deltav2j       = dot_product(deltavj,deltavj)
+       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
+       vgasi(:)       = veli(:) - dustfraci*deltavi(:)
+       vgasj(:)       = velj(:) - dustfracj*deltavj(:)
+       dvgas(:)       = vgasi(:) - vgasj(:)
+       projdvgas      = dot_product(dvgas,dr)
+       projdeltavi    = dot_product(deltavi,dr)
+       projdeltavj    = dot_product(deltavj,dr)
+    else
+       projdvgas      = dvdotr
+       deltav2j       = 0.
+       rhogasj        = rhoj
+    endif
     prj = max(pr(j) - pext,0.)
     prnetj = prj - pequil(iexternal_force,x(:,j),rhoj)
     Prho2j = prj*rho21j
@@ -792,7 +1089,12 @@ contains
        endif
     endif
     forcej(:) = 0.
+    fextraj(:) = 0.
         
+    !--maximum velocity for timestep control
+    !            vmag = SQRT(DOT_PRODUCT(dvel,dvel))
+    !            vsigdtc = vmag + spsoundi + spsoundj        &
+    !                         + sqrt(valfven2i) + sqrt(valfven2j)
     vsig = 0.
     vsigav = 0.
 !----------------------------------------------------------------------------
@@ -810,48 +1112,75 @@ contains
     !
     !--max signal velocity (my version)
     !
-    vsig2i = spsoundi**2 + valfven2i
-    vsig2j = spsoundj**2 + valfven2j                                    
-    vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
-    vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
-    if (vsigproji.lt.0.) then
-       write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
-       call quit 
-    elseif (vsigprojj.lt.0.) then
-       write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
-       print*,j,'rho,dens = ',rho(j),dens(j)
-       call quit  
+    if (imhd.ne.0) then
+       vsig2i = spsoundi**2 + valfven2i
+       vsig2j = spsoundj**2 + valfven2j                                    
+       vsigproji = vsig2i**2 - 4.*(spsoundi*(projBi))**2*rho1i
+       vsigprojj = vsig2j**2 - 4.*(spsoundj*(projBj))**2*rho1j
+       if (vsigproji.lt.0.) then
+          write(iprint,*) ' rates: i=',i,' vsig det < 0 ',vsigproji,vsig2i**2,4*(spsoundi*projBi)**2*rho1i
+          call quit 
+       elseif (vsigprojj.lt.0.) then
+          write(iprint,*) ' rates: j=',j,' vsig det < 0 ',vsigprojj,vsig2j**2,4*(spsoundj*projBj)**2*rho1j
+          print*,j,'rho,dens = ',rho(j),dens(j)
+          call quit  
+       endif
+       vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
+       vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
+       vsigB = 0.5*(vsigi + vsigj) + abs(dvdotr)
+       !vsigB = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
+       !vsigB = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+    else
+       vsigi = spsoundi
+       vsigj = spsoundj
+       vsigB = 0.
     endif
-    vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-    vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
 
     vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
-    !vsignonlin = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
-    !vsignonlin = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    !vsigB = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
+    !vsigB = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
 
     vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
     !vsigu = sqrt(0.5*(psi(i) + psi(j)))
     !vsigu = abs(dvdotr)
 
-    vsignonlin = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
-
     ! vsigdtc is the signal velocity used in the timestep control
-    vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsignonlin)
-
-    dvsigdtc = 1./vsigdtc
-    vsigmax = max(vsigmax,vsigdtc)
+    vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
+    if (idust.eq.1) then
+       vsigdtc = vsigdtc + sqrt(deltav2i + deltav2j)
+    endif
+    
+    if (itype(i).eq.itypedust) then
+       vsig  = 0.
+       vsigu = 0.
+    else
+       dvsigdtc = 1./vsigdtc
+       vsigmax = max(vsigmax,vsigdtc)
     !
     !--time step control (courant and viscous)
     !
-    if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi*dvsigdtc,hj*dvsigdtc))
-    
+       if (vsigdtc.gt.zero) dtcourant = min(dtcourant,min(hi*dvsigdtc,hj*dvsigdtc))
+    endif 
 !----------------------------------------------------------------------------
 !  artificial dissipation terms
 !----------------------------------------------------------------------------
 
-    if (iav.gt.0) call artificial_dissipation
+    if (iav.gt.0) then
+       if (idust.eq.1) then
+          call artificial_dissipation_dust
+       else
+          call artificial_dissipation
+!          call artificial_dissipation_phantom
+       endif
+    endif
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
+
+!------------------------------------------------------------------------
+!  Physical viscosity terms
+!------------------------------------------------------------------------
+    if (ivisc.gt.0) call physical_viscosity
+    !if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
 
 !----------------------------------------------------------------------------
 !  pressure term (generalised form)
@@ -881,8 +1210,6 @@ contains
        else
           prterm = phii_on_phij*Prho2i*sqrtgi*grkerni &
                  + phij_on_phii*Prho2j*sqrtgj*grkernj
-          !!prterm = (pri - prj)/rhoij*grkern
-
           if (iprterm.eq.10) then
 !
 !--Ritchie and Thomas force eqn.
@@ -914,11 +1241,18 @@ contains
 !------------------------------------------------------------------------
 
     if (imhd.ne.0) call mhd_terms
+
+!------------------------------------------------------------------------
+!  Time derivative of dust to gas ratio and deltav for one fluid dust
+!------------------------------------------------------------------------
+
+    if (idust.eq.1) call dust_derivs
 !
 !   Add contributions to j from mhd terms and dissipation here
 !   to avoid repeated memory access
-!    
-    force(:,j) = force(:,j) + forcej(:)
+!
+!   here forcej is the gas-only forces, fextraj are forces that act on the total fluid
+    force(:,j) = force(:,j) + fextraj(:) + forcej(:)
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -930,16 +1264,6 @@ contains
     elseif (iener.gt.0 .and. iav.lt.0) then
        dudt(i) = dudt(i) + pmassj*prstari*(rho21i)*dvdotr*grkerni
        dudt(j) = dudt(j) + pmassi*prstarj*(rho21j)*dvdotr*grkernj
-    elseif (iener.eq.4) then
-       !
-       !--add surface term
-       !
-       vidotdS = veli(1) !!dot_product(veli(:),dr(:))
-       vjdotdS = velj(1) !!-dot_product(velj(:),dr(:))
-       dudt(i) = dudt(i) - pri*rho21i*(rhoi*vidotdS*wabi - rhoj*vjdotdS*wabj)
-       dudt(j) = dudt(j) - prj*rho21j*(rhoj*vjdotdS*wabj - rhoi*vidotdS*wabi)
-       !               ( ^ change of sign here is because of the v dot dS defined above)
-
     elseif (iener.eq.10) then  
        !
        !--Ritchie & Thomas energy equation (their eqn. 25)
@@ -1013,7 +1337,7 @@ contains
     real :: qdiff
     real :: vissv,vissB,vissu
     real :: term,dpmomdotr
-    real :: termnonlin,termu
+    real :: termB,termu,termv
     !
     !--definitions
     !      
@@ -1025,6 +1349,7 @@ contains
     dpmomdotr = -dvdotr
     !--used for viscosity
     term = vsig*rhoav1*grkern
+    termv = term
 
     !--used for thermal conductivity
     termu = vsigu*rhoav1*grkern
@@ -1032,12 +1357,12 @@ contains
     !termu = vsig*rhoav1*grkern
 
     !--used for resistivity
-    termnonlin = vsignonlin*rhoav1*grkern
-!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)/ &
+    termB = vsigB*rhoav1*grkern
+!    termB = vsigi*alphaBi*vsigj*alpha(3,j)/ &
 !                (vsigi*alphaBi + vsigj*alpha(3,j))*rhoav1*grkern
-!    termnonlin = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
+!    termB = vsigi*alphaBi*vsigj*alpha(3,j)*grkerni*grkernj/ &
 !                (rhoi*vsigi*alphaBi*grkerni + rhoj*vsigj*alpha(3,j)*grkernj)
-    !termnonlin = vsignonlin*rhoav1*grkern
+    !termB = vsigB*rhoav1*grkern
 
     
     !----------------------------------------------------------------
@@ -1045,12 +1370,14 @@ contains
     ! (applied only for approaching particles)
     !----------------------------------------------------------------
     
-    if (dvdotr.lt.0 .and. iav.le.2) then            
-       visc = alphaav*term*dpmomdotr     ! viss=abs(dvdotr) defined in rates
+    if (dvdotr.lt.0 .and. iav.le.3) then
+       visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
-    elseif (iav.ge.3) then ! using total energy, for approaching and receding
-       visc = alphaav*term
+    elseif (iav.eq.4) then ! using total energy, for approaching and receding
+       visc = alphaav*termv
+       !print*,'visc = ',i,j,vsig*alphaav*hh(i)
+       !visc = visc*0.5*(hh(i) + hh(j))/rij  ! use this line to multiply viscosity by h/r
        forcei(:) = forcei(:) + pmassj*visc*dvel(:)
        forcej(:) = forcej(:) - pmassi*visc*dvel(:)
     endif
@@ -1060,13 +1387,13 @@ contains
     !  (applied everywhere)
     !--------------------------------------------
     if (imhd.ne.0) then
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              Bvisc(:) = dB(:)*rhoav1
           else
              Bvisc(:) = (dB(:) - dr(:)*projdB)*rhoav1 
           endif
-          dBdtvisc(:) = alphaB*termnonlin*Bvisc(:)
+          dBdtvisc(:) = alphaB*termB*Bvisc(:)
 
           !
           !--add to d(B/rho)/dt (converted to dB/dt later if required)
@@ -1074,14 +1401,8 @@ contains
           dBevoldti(:) = dBevoldti(:) + rhoi*pmassj*dBdtvisc(:)               
           dBevoldt(:,j) = dBevoldt(:,j) - rhoj*pmassi*dBdtvisc(:)
 
-          if (idivBzero.ge.2 .and. idivBzero.lt.10) then
-             dpsidt(i) = dpsidt(i) + pmassj*term*(psi(i) - psi(j))
-             dpsidt(j) = dpsidt(j) - pmassi*term*(psi(i) - psi(j))
-             !if (dpsidt(i)/psi(i).gt.1.e-6) print*,dpsidt(i)/psi(i)
-          endif
-
        elseif (iav.eq.1) then !--wrong vector potential resistivity
-          dBdtvisc(:) = alphaB*termnonlin*dBevol(:)
+          dBdtvisc(:) = alphaB*termB*dBevol(:)
           !
           !--add to dA/dt (note: do not multiply by rho here)
           !
@@ -1102,11 +1423,11 @@ contains
        !
        !  kinetic energy terms - applied only when particles approaching
        !
-       if (dvdotr.lt.0 .and. iav.le.2) then
+       if (dvdotr.lt.0 .and. iav.le.3) then
           v2i = dot_product(veli,dr)**2      ! energy along line
           v2j = dot_product(velj,dr)**2      ! of sight
           qdiff = qdiff + term*alphaav*0.5*(v2i-v2j)
-       elseif (iav.ge.3) then
+       elseif (iav.eq.4) then
           v2i = dot_product(veli,veli)      ! total energy
           v2j = dot_product(velj,velj)
           qdiff = qdiff + term*alphaav*0.5*(v2i-v2j)
@@ -1118,10 +1439,10 @@ contains
        !
        !  magnetic energy terms - applied everywhere
        !
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              B2i = dot_product(Bi,Bi) ! total magnetic energy 
-             B2j = dot_product(Bj,Bj) 
+             B2j = dot_product(Bj,Bj)
           else
              B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
@@ -1143,9 +1464,9 @@ contains
        !
        !  kinetic energy terms
        !
-       if (dvdotr.lt.0 .and. iav.le.2) then
+       if (dvdotr.lt.0 .and. iav.le.3) then
           vissv = -alphaav*0.5*(dot_product(veli,dr) - dot_product(velj,dr))**2
-       elseif (iav.ge.3) then
+       elseif (iav.ge.4) then
           vissv = -alphaav*0.5*dot_product(dvel,dvel)       
        else
           vissv = 0.
@@ -1162,13 +1483,13 @@ contains
        !
        !  add magnetic energy term - applied everywhere
        !
-       if (imhd.gt.0) then
+       if (imhd.gt.0 .and. imhd.ne.10) then
           if (iav.ge.2) then
              vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
           else
              vissB = -alphaB*0.5*(dot_product(dB,dB)-projdB**2)*rhoav1
           endif
-       elseif (imhd.lt.0 .and. iav.eq.1) then
+       elseif (imhd.lt.0 .and. iav.eq.1 .and. imhd.ne.-3) then
           !vissB = -alphaB*0.5*(dot_product(curlB(:,i)-curlB(:,j),dBevol(:)))*rhoav1
           vissB = -alphaB*0.5*(dot_product(dB,dB))*rhoav1 
        else
@@ -1177,22 +1498,253 @@ contains
        !
        !  add to thermal energy equation
        !
-       dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termnonlin*(vissB))
-       dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termnonlin*(vissB))
-       
-       !--entropy dissipation
-       if (iener.eq.1) then
-          if (alphau.gt.0.) stop 'thermal conductivity not implemented with entropy evolution'
-          !--THIS IS WRONG
-          vissu = alphau*(en(i)-en(j))
-          dendt(i) = dendt(i) + pmassj*(termu*(vissu))
-          dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
+       if (damp.lt.tiny(0.)) then
+          dudt(i) = dudt(i) + pmassj*(term*(vissv) + termu*vissu + termB*(vissB))
+          dudt(j) = dudt(j) + pmassi*(term*(vissv) - termu*vissu + termB*(vissB))
+
+          !--entropy dissipation
+          if (iener.eq.1) then
+             if (alphau.gt.0.) stop 'thermal conduction in entropy equation is wrong'
+             vissu = alphau*(en(i)-en(j))
+             dendt(i) = dendt(i) + pmassj*(termu*(vissu))
+             dendt(j) = dendt(j) + pmassi*(termu*(-vissu))
+          endif
        endif
        
     endif
     
     return
   end subroutine artificial_dissipation
+
+!--------------------------------------------------------------------------------------
+! These are the artificial viscosity, thermal conduction and resistivity terms
+! Change this to change the artificial viscosity algorithm
+! Inherits the values of local variables from rates
+!
+! This version corresponds to av terms as implemented in phantom
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_phantom
+    implicit none
+    real :: termi,termj,visc
+    !
+    !--definitions
+    !
+    termi = alphai*vsig*rhogasi*grkerni*abs(dvdotr)
+    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
+
+    if (dvdotr.lt.0 .and. iav.le.2) then
+       visc = 0.5*(termi*rho21i + termj*rho21j)
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+    endif
+
+  end subroutine artificial_dissipation_phantom
+
+!--------------------------------------------------------------------------------------
+! Artificial dissipation for one-fluid dust:
+!  iav = 1 => gas-only dissipation, as in submitted LP14 paper
+!  iav = 2 => M97-inspired dissipation, with heating from deltav term
+!  iav = 3 => dissipation in du/dt is 0.5*(vab.rab)^2
+!  iav = 4 => gas-only dissipation but without projecting velocities along line of sight
+!
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_dust
+    implicit none
+    real :: visc,alphaav,alphau
+    real :: vissv,vissu,vissdv,vsigdv
+    real :: term,dpmomdotr,faci,facj
+    real :: termu,termv,termdv
+    
+    real :: dustfracav,projdvgasav,projddeltav,projepsdeltav
+    real, dimension(ndimV) :: ddeltav
+    logical :: allpairs
+    !
+    !--definitions
+    !
+    alphaav = 0.5*(alphai + alpha(1,j))
+    alphau = 0.5*(alphaui + alpha(2,j))
+    vsigav = max(alphaav,alphau)*vsig
+
+    dustfracav = 0.5*(dustfraci + dustfracj)
+    projdvgasav = dvdotr - dustfracav*(projdeltavi - projdeltavj)
+    ddeltav     = deltavi(:) - deltavj(:)
+    projddeltav = dot_product(ddeltav,dr)
+    projepsdeltav = dustfraci*projdeltavi - dustfracj*projdeltavj
+
+    if (iav.eq.3) then
+       dpmomdotr = projdvgasav
+    elseif (iav.eq.2) then
+       dpmomdotr = projdvgas
+    else
+       dpmomdotr = dvdotr
+    endif
+    !--used for viscosity
+    term = vsig*rhoav1*grkern
+    termv = term
+    
+    allpairs = .false.
+    !allpairs = .true.
+    if (iav.eq.4 .or. iav.eq.1) allpairs = .true.
+    
+    if (iav.eq.2 .or. iav.eq.3) then
+       termv = termv*(1. - dustfracav)
+    elseif (iav.eq.4) then
+       termv = termv !*dustfracav*(1. - dustfracav)
+       if (iav.gt.4) stop 'av terms not implemented for iav>4 and one-fluid dust'
+    endif
+
+    !--used for thermal conductivity
+    termu = vsigu*rhoav1*grkern*(1. - dustfracav)  ! multiply by (1-dustfrac)
+
+    !----------------------------------------------------------------
+    !  artificial viscosity in force equation
+    ! (applied only for approaching particles)
+    !----------------------------------------------------------------
+    vsigdv = vsig !0.5*sqrt(projdeltavi**2 + projdeltavj**2)
+    
+    if (projdvgas.lt.0 .or. allpairs) then            
+       visc = alphaav*termv*dpmomdotr     ! viss=abs(dvdotr) defined in rates
+       if (iav.eq.4) then
+          ! just to gas
+          termdv = vsigdv*rhoav1*grkern
+          fextrai(:) = fextrai(:) + pmassj*alphaav*(termv*dvdotr - termdv*projepsdeltav)*dr(:)
+          fextraj(:) = fextraj(:) - pmassi*alphaav*(termv*dvdotr - termdv*projepsdeltav)*dr(:)
+       elseif (iav.eq.1 .or. iav.eq.3) then
+          ! here viscosity applies to the whole fluid, not just gas component
+          fextrai(:) = fextrai(:) + pmassj*visc*dr(:)
+          fextraj(:) = fextraj(:) - pmassi*visc*dr(:)
+       else
+          forcei(:) = forcei(:) + pmassj*visc*dr(:)
+          forcej(:) = forcej(:) - pmassi*visc*dr(:)
+       endif
+    endif
+
+    !--------------------------------------------------
+    !  dissipation terms in energy equation
+    !--------------------------------------------------
+    if (iener.eq.3) then
+       stop 'onefluid dust dissipation not implemented in total energy equation'
+    !--------------------------------------------------
+    !   thermal energy equation
+    !--------------------------------------------------       
+    elseif (iener.gt.0) then
+       !
+       !  kinetic energy terms
+       !
+       if (projdvgas.lt.0 .or. allpairs) then
+          if (iav.eq.4) then
+             vissv = -alphaav*0.5*projdvgas**2 
+!             vissv = -alphaav*0.5*(dvdotr**2 - projepsdeltav*dvdotr + projepsdeltav*projddeltav) !-alphaav*0.5*projdvgas**2
+          elseif (iav.eq.3) then
+             vissv = -alphaav*0.5*projdvgasav**2
+          elseif (iav.eq.2) then
+             vissv = -alphaav*0.5*projdvgas**2
+          else
+             vissv = -alphaav*0.5*dvdotr**2
+          endif
+       else
+          vissv = 0.
+       endif
+       !
+       !  thermal energy terms
+       !
+       if (iener.eq.1) then
+          vissu = 0.
+       else
+          vissu = alphau*(uu(i) - uu(j))        
+       endif
+       !
+       !--dissipation term in deltav
+       !
+       faci = 1./(dustfraci*(1. - dustfraci))
+       facj = 1./(dustfracj*(1. - dustfracj))
+       if (iav.eq.1 .or. iav.eq.3) then
+          if (iav.eq.1) then
+             !vissdv = -0.5*(projdeltavi - projdeltavj)**2
+             vissdv = -0.5*dot_product(ddeltav,ddeltav)
+             termdv = alphaav*vsig*rhoav1*dustfracav*grkern !*(1. - dustfracav)
+          else
+             vissdv = 0. ! deltav does not dissipate into thermal energy
+             termdv = alphaav*vsig*rhoav1*dustfracav*grkern*(1. - dustfracav)
+          endif
+          if (iav.eq.3) then
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(-projdvgasav)*dr(:)
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(-projdvgasav)*dr(:)
+          else
+!             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projdeltavi - projdeltavj)*dr(:)
+!             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projdeltavi - projdeltavj)*dr(:)
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(ddeltav(:))
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(ddeltav(:))
+          endif
+       elseif (iav.eq.4) then
+          !
+          ! this is:
+          ! -rhoi/rhogasi*forcei(:)
+          !
+          faci = rhoi/rhogasi
+          facj = rhoj/rhogasj
+!          termdv = alphaav*termv
+          !vsigdv = vsig !0.5*sqrt(projdeltavi**2 + projdeltavj**2)
+          termdv = alphaav*vsigdv*rhoav1*grkern
+          ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
+          ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
+          !vissdv = -0.5*(projdeltavi - projdeltavj)**2
+          termdv = 0.
+       elseif (iav.eq.2) then
+          termdv = 0. ! for iav=2 the heating term comes into vissv instead of vissdv
+          vissdv = 0.
+          !
+          !--extra dissipation term in deltav
+          !
+          if (projddeltav < 0.) then
+             !vsigdv = 0.5*sqrt(projdeltavi**2 + projdeltavj**2)
+             vsigdv = 0.5*(spsoundi + spsoundj)
+             termdv = alphaav*vsigdv*rhoav1*grkern*dustfracav*(1. - dustfracav)
+             ddeltavdt(:,i) = ddeltavdt(:,i) + faci*pmassj*termdv*(projddeltav)*dr(:)
+             ddeltavdt(:,j) = ddeltavdt(:,j) - facj*pmassi*termdv*(projddeltav)*dr(:)
+             vissdv = -0.5*projddeltav**2
+          endif
+       else
+          termdv = 0.
+          vissdv = 0.
+       endif
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          faci = rhoi/rhogasi
+          facj = rhoj/rhogasj
+          dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
+          dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
+       endif
+       
+    endif
+  end subroutine artificial_dissipation_dust
+
+!--------------------------------------------------------------------------------------
+! Physical viscosity terms, done using direct 2nd derivatives
+! as in Espanol & Revenga (2003)
+!
+! SHEAR VISCOSITY ONLY
+!--------------------------------------------------------------------------------------
+  subroutine physical_viscosity
+    implicit none
+    real :: visc,grgrw
+
+    grgrw = -2.*grkern/rij
+    visc  = rhoav1*shearvisc*grgrw
+    forcei(:) = forcei(:) - pmassj*visc*dvel(:)
+    forcej(:) = forcej(:) + pmassi*visc*dvel(:)
+    dtvisc = min(dtvisc,min(hi**2,hj**2)/shearvisc)
+   
+    if (allocated(del2v)) then
+!       del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+!       del2v(j) = del2v(j) + 0.5*pmassi*rhoav1*dx(1)*dr(1)*(-2.*grkern)
+       del2v(i) = del2v(i) - pmassj*rhoav1*dvel(1)*grgrw
+       del2v(j) = del2v(j) + pmassi*rhoav1*dvel(1)*grgrw
+    endif
+   
+  end subroutine physical_viscosity
 
 !----------------------------------------------------------------
 ! Magnetic field terms - ie force and magnetic field evolution
@@ -1204,7 +1756,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
-    real :: dgradwdhi,dgradwdhj,BdotBextj,term
+    real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm,etaij
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------
@@ -1421,11 +1973,10 @@ contains
 !          fmag(:,j) = fmag(:,j) - pmassi*(fmagi(:))
           forcei(:) = forcei(:) + pmassj*(fmagi(:))
           forcej(:) = forcej(:) - pmassi*(fmagi(:))
-          
           if (imagforce.eq.6) then
           !--subtract B(div B) term from magnetic force
-             forcei(:) = forcei(:) - 0.5*Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
-             forcej(:) = forcej(:) + 0.5*Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
+             forcei(:) = forcei(:) - Bi(:)*pmassj*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)   
+             forcej(:) = forcej(:) + Bj(:)*pmassi*(projBi*rho21i*grkerni + projBj*rho21j*grkernj)
           endif
        end select
     endif
@@ -1440,22 +1991,22 @@ contains
     case(4,14)   ! conservative form (explicitly symmetric)
        dBevoldti(:) = dBevoldti(:)            &
           + pmassj*(veli(:)*projBj + velj(:)*projBi)*rho1j*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - pmassi*(veli(:)*projBj + velj(:)*projBi)*rho1i*grkernj
     case(3,13)   ! goes with imagforce = 3
        dBevoldti(:) = dBevoldti(:)         &
           - pmassj*projBrhoj*dvel(:)*grkerni
-       dBevoldt(:,j) = dBevoldt(:,j)         &
+       dBevoldt(:,j) = dBevoldt(:,j)       &
           - pmassi*projBrhoi*dvel(:)*grkernj
     case(2,12)   ! conservative form (no change for 1D)
        dBevoldti(:) = dBevoldti(:)            &
           - phii_on_phij*pmassj*(dvel(:)*projBrhoi - rho1i*veli(:)*projdB)*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
     case(1,11) ! surface flux-conservative (usual) form
        dBevoldti(:) = dBevoldti(:)            &
-          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni 
-       dBevoldt(:,j) = dBevoldt(:,j)             &
+          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni
+       dBevoldt(:,j) = dBevoldt(:,j)          &
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
     case(-1) ! vector potential evolution - crap gauge
        termi = pmassj*projvi*grkerni
@@ -1496,14 +2047,70 @@ contains
     endif
 
     if (idivBzero.ge.2) then ! add hyperbolic correction term
-       gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
-       gradpsi(:,i) = gradpsi(:,i) + pmassj*gradpsiterm*dr(:)
+       !gradpsiterm = (psi(i)-psi(j))*grkern ! (-ve grad psi)
+       gradpsiterm = (psi(i)*rho21i*grkerni + psi(j)*rho21j*grkernj)
+       gradpsi(:,i) = gradpsi(:,i) - pmassj*gradpsiterm*dr(:)
        gradpsi(:,j) = gradpsi(:,j) + pmassi*gradpsiterm*dr(:)
     endif
 
     return
   end subroutine mhd_terms
  
+!----------------------------------------------------------------
+!  Derivatives of dust to gas ratio and deltav 
+!  for one fluid dust
+!----------------------------------------------------------------
+  subroutine dust_derivs
+    implicit none
+    real :: termi,termj,term,dterm,du
+    real, dimension(ndimV) :: prdustterm
+
+    !
+    !--time derivative of dust to gas ratio
+    !  (symmetric derivative to conserve dust/gas mass)
+    !
+    termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
+    termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
+    term  = termi + termj
+
+    ddustfracdt(i) = ddustfracdt(i) - pmassj*term
+    ddustfracdt(j) = ddustfracdt(j) + pmassi*term
+    !
+    !--time derivative of deltav
+    !  (here only bits that involve sums over particles, i.e. not decay term)
+    !
+    !--high mach number term
+    termi    = (rhogasi - rhodusti)*rho1i*deltav2i
+    termj    = (rhogasj - rhodustj)*rho1j*deltav2j
+    dterm    = 0.5*(termi - termj)
+    !
+    !--note: need to add term to d/dt(deltav) using the gas-only force 
+    !  i.e. before we add the anisotropic pressure term to the forces.
+    !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
+    !
+    ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni ! add forcei term once finished
+    ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj - rhoj/rhogasj*forcej(:)
+
+    !
+    !--anisotropic pressure term
+    !
+    prdustterm(:) = rhogrhodonrhoi*deltavi(:)*projdeltavi*rho21i*grkerni &
+                  + rhogrhodonrhoj*deltavj(:)*projdeltavj*rho21j*grkernj
+
+    fextrai(:) = fextrai(:) - pmassj*(prdustterm(:))
+    fextraj(:) = fextraj(:) + pmassi*(prdustterm(:))
+
+    !
+    !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
+    !
+    if (iener.gt.0) then
+       du = uu(i) - uu(j)
+       dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
+       dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
+    endif
+
+  end subroutine dust_derivs
+
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle
 !

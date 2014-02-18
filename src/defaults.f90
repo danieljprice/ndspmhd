@@ -95,5 +95,10 @@ subroutine set_default_options
    geom = geomsetup
    idim = 0
    usenumdens = .false.
+   idust = 0
+   idrag_nature = 0
+   idrag_structure = 0
+   Kdrag = 0.
+   ismooth = 0
    
  end subroutine set_default_options

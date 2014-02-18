@@ -64,7 +64,7 @@
 !!                                                                     !!
 !!  * ghost particle boundaries (reflective/periodic)                  !!
 !!                                                                     !!
-!! Although this code is original, I learned my SPH from               !!
+!! Although this code is original, I learnt my SPH from                !!
 !! other SPH codes written by Joe Monaghan and Matthew Bate, and so    !!
 !! some parts bear similarities to these codes.                        !!
 !!                                                                     !!
@@ -75,14 +75,16 @@ PROGRAM ndspmhd
  USE loguns
  USE versn
  IMPLICIT NONE
- INTEGER, PARAMETER :: maxruns = 20
+ INTEGER, PARAMETER :: maxruns = 200
  INTEGER :: i,iprev,irun, nruns
  CHARACTER(LEN=120), DIMENSION(maxruns) :: runname
 !
 !--version number
 !
-    version = 'v1.0.1 [21st Dec 2010]'
-!    * minor bug fix with build
+    version = 'v2.0 [21st Feb 2014]'
+!   * major new release containing dust algorithms
+!    version = 'v1.0.1 [21st Dec 2010]'
+!   * minor bug fix with build
 !    version = 'v1.0 [25th Oct 2010]'
 !   * first public version
 !    version = 'NDSPMHD-basic-Torun2010-v1.0'

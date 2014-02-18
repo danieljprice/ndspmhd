@@ -48,7 +48,7 @@ subroutine setup
  use uniform_distributions
  use cons2prim, only:primitive2conservative
  implicit none
- integer :: i,npartold,nparty
+ integer :: i,npartold,nparty,ntypes,ngas,ndust,jtype,npartprev
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
  real :: dsmooth, exx, delta, const, fac
@@ -56,9 +56,14 @@ subroutine setup
  real :: vxleft, vxright, vyleft, vyright, vzleft, vzright
  real, dimension(ndim) :: xminleft,xminright,xmaxleft,xmaxright
  real :: boxlength, xshock, gam1, psepleft, psepright, psepleftx, pseprightx
- real :: total_mass, volume, cs_L,cs2_L,cs2_R,mach_R,mach_L,vjump,gamm1
+ real :: total_mass, volume, cs_L,cs2_L,cs2_R,cs_R, mach_R,mach_L,vjump,gamm1
+ real :: tstopl,tstopr,psepreql,psepreqr
+ real :: densdustleft,densdustright,densdust,masspdustleft,masspdustright
  character(len=20) :: shkfile
  logical :: equalmass, stretchx
+ 
+ ntypes = 1
+ if (idust.eq.2 .and. idrag_nature.gt.0) ntypes = 2
 !
 !--allow for tracing flow
 !
@@ -97,7 +102,14 @@ subroutine setup
     Byright = 4./const
     Bzleft = 2./const
     Bzright = 2./const
- endif 
+ endif
+ if (idust.ne.0) then
+    densdustleft = densleft
+    densdustright = densright
+ else
+    densdustleft = 0.
+    densdustright = 0.
+ endif
 !
 !--read shock parameters from the .shk file
 !
@@ -113,6 +125,13 @@ subroutine setup
       read(ireadf,*,ERR=667,END=667) Bxinit
       read(ireadf,*,ERR=667,END=667) Byleft,Byright
       read(ireadf,*,ERR=667,END=667) Bzleft,Bzright
+   else
+      read(ireadf,*,ERR=667,END=667)
+      read(ireadf,*,ERR=667,END=667)
+      read(ireadf,*,ERR=667,END=667)
+   endif
+   if (idust.ne.0) then
+      read(ireadf,*,ERR=667,END=667) densdustleft,densdustright
    endif
  close(UNIT=ireadf)
  goto 668
@@ -126,12 +145,17 @@ subroutine setup
        write(ireadf,*) vzleft,vzright
        write(ireadf,*) Bxinit
        write(ireadf,*) Byleft,Byright
-       write(ireadf,*) Bzleft,Bzright       
+       write(ireadf,*) Bzleft,Bzright  
+       write(ireadf,*) densdustleft,densdustright     
     close(UNIT=ireadf)
     
 
     goto 668
-667 write(iprint,*) 'error in shock parameters file, using some defaults...'  
+667 write(iprint,*) 'error in shock parameters file, using some defaults...'
+    if (idust.ne.0) then
+       densdustleft = densleft
+       densdustright = densright
+    endif
     close(UNIT=ireadf)
 668 continue
 !
@@ -140,6 +164,7 @@ subroutine setup
  write(iprint,10) ndim,densleft,densright,prleft,prright,vxleft,vxright,   &
                   vyleft,vyright,vzleft,vzright
  if (imhd.ne.0) write(iprint,20) Bxinit,Byleft,Byright,Bzleft,Bzright
+ if (idust.ne.0) write(iprint,30) densdustleft,densdustright
 
 10 FORMAT(/,1x,i1,'D shock: dens L: ',f8.3,' R: ',f8.3,/,   &
            '           pr  L: ',f8.3,' R: ',f8.3,/,   &
@@ -149,13 +174,14 @@ subroutine setup
 20 FORMAT( '           Bx   : ',f8.3,/,   &                                 
            '           By  L: ',f8.3,' R: ',f8.3,/,   &
            '           Bz  L: ',f8.3,' R: ',f8.3,/)
+30 FORMAT( '     dust dens L: ',f8.3,' R: ',f8.3,/)
 !
 !--set boundaries
 !                        
  if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright))) then
     ibound(1) = 1               ! fixed x particles
  else
-    ibound(1) = 1                ! reflecting in x
+    ibound(1) = 2                ! reflecting in x
  endif
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
@@ -185,6 +211,9 @@ subroutine setup
  
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
 
+ ngas = 0
+ ndust = 0
+ over_types: do jtype=1,ntypes
 !
 !--now setup the shock
 ! 
@@ -198,8 +227,20 @@ subroutine setup
 !
  xmaxleft(1) = xshock
  xminright(1) = xshock
- psepleft = psep
- psepright = psep*(densleft/densright)**(1./ndim)
+ 
+ if (idust.eq.1) then
+    psepleft = psep
+    psepright = psep*(densleft/densright)**(1./ndim)
+ else
+    if (jtype.eq.2) then
+       psepleft = psep*(densleft/densdustleft)**(1./ndim)
+       psepright = psepleft*(densdustleft/densdustright)**(1./ndim)
+    else
+       psepleft = psep
+       psepright = psep*(densleft/densright)**(1./ndim)
+    endif
+ endif
+ npartprev = npart
 
  if (abs(densleft-densright).gt.1.e-6 .and. equalmass) then
     if (stretchx .and. ndim.ge.2) then
@@ -214,7 +255,7 @@ subroutine setup
        xmin(1) = xshock - npart/nparty*psep !!! = xminleft
        volume = PRODUCT(xmaxleft-xminleft)
        total_mass = volume*densleft
-       massp = total_mass/npart
+       massp = total_mass/(npart - npartprev)
        print*,'particle mass = ',massp
        masspleft = massp
        masspright = massp
@@ -227,14 +268,21 @@ subroutine setup
        !--this sets up a square lattice    
        print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
        print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
-   !!    massp = (psep**ndim)*densright
-       call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)  ! set left half
-       xmin = xminleft
+       call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
+         ! set left half
        volume = PRODUCT(xmaxleft-xminleft)
-       total_mass = volume*densleft
-       massp = total_mass/npart
-       masspleft = massp
-       masspright = massp
+       if (jtype.eq.2) then
+          total_mass = volume*densdustleft
+          massp = total_mass/(npart - npartprev)       
+          masspdustleft  = massp  !*densdustleft/densleft
+          masspdustright = masspdustleft*densdustright/densright
+       else
+          total_mass = volume*densleft
+          massp = total_mass/(npart - npartprev)
+          masspleft = massp
+          masspright = massp  
+       endif
+       xmin = xminleft
 
        call set_uniform_cartesian(2,psepright,xminright,xmaxright,fill=.true.) ! set right half
        xmax = xmaxright
@@ -243,12 +291,21 @@ subroutine setup
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
     volume = PRODUCT(xmax-xmin)
 !    vol_left = PRODUCT(xmaxleft-xminleft)
-    masspleft = densleft*volume/REAL(npart)
+    masspleft = densleft*volume/REAL(npart - npartprev)
 !    vol_right = PRODUCT(xmaxright-xminright)
-    masspright = densright*volume/REAL(npart)
+    masspright = densright*volume/REAL(npart - npartprev)
  endif
 
- print*,'npart = ',npart
+ if (jtype.eq.1) then
+    ngas = npart
+    itype(1:ngas) = itypegas
+ elseif (jtype.eq.2) then
+    ndust = npart - ngas
+    itype(ngas+1:ngas+ndust) = itypedust
+ endif
+
+ enddo over_types
+ print*,'npart = ',npart,' ngas = ',ngas,' ndust = ',ndust
 !
 !--if using moving boundaries, fix the particles near the boundaries
 !
@@ -257,11 +314,24 @@ subroutine setup
     do i=1,npart
        if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
-          itype(i) = 1
+          if (itype(i).eq.itypegas) itype(i) = itypebnd
           nbpts = nbpts + 1
        endif
     enddo
  endif
+
+ if (idust.eq.2 .and. idrag_nature.gt.0) then
+    cs_L  = sqrt(gamma*prleft/densleft)
+    cs_R  = sqrt(gamma*prright/densright)
+    tstopl = densleft*densleft/(Kdrag*(densleft + densleft))
+    tstopr = densright*densright/(Kdrag*(densright + densright))
+    psepreql = cs_L*tstopl/hfact
+    psepreqr = cs_R*tstopr/hfact
+    print*,'left, need ',(xshock-xmin)/psepreql,' got ',(xshock-xmin)/psepleft
+    print*,'right, need ',(xmax-xmin)/psepreqr,' got ',(xmax-xshock)/psepright
+    read*
+ endif
+
 !
 !--now set particle properties
 !
@@ -273,33 +343,52 @@ subroutine setup
     uuleft = 3.*prleft/(2.*densleft)
     uuright = 3.*prright/(2.*densright)
  endif
-
+ 
  do i=1,npart
+    jtype = itype(i)
     delta = (x(1,i) - xshock)/psep
     if (delta.GT.dsmooth) then
        dens(i) = densright
        uu(i) = uuright
        vel(1,i) = vxright
-       pmass(i) = masspright
+       if (jtype.eq.itypedust) then
+          pmass(i) = masspdustright
+       else
+          pmass(i) = masspright
+       endif
        if (ndimV.ge.2) vel(2,i) = vyright
        if (ndimV.ge.3) vel(3,i) = vzright
        if (ndimV.ge.2) Bfield(2,i) = Byright
        if (ndimV.ge.3) Bfield(3,i) = Bzright
+       densdust = densdustright
     elseif (delta.LT.-dsmooth) then
        dens(i) = densleft
-       pmass(i) = masspleft
+       if (jtype.eq.itypedust) then
+          pmass(i) = masspdustleft
+       else
+          pmass(i) = masspleft
+       endif
        uu(i) = uuleft
        vel(1,i) = vxleft
        if (ndimV.ge.2) vel(2,i) = vyleft
        if (ndimV.ge.3) vel(3,i) = vzleft
        if (ndimV.ge.2) Bfield(2,i) = Byleft
        if (ndimV.ge.3) Bfield(3,i) = Bzleft
+       densdust = densdustleft
     else
-       exx = exp(delta)       
+       exx = exp(delta)
        dens(i) = (densleft + densright*exx)/(1.0 +exx)
-       pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
-!       uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
-       uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
+       if (jtype.eq.itypedust) then
+          pmass(i) = (masspdustleft + masspdustright*exx)/(1.0 + exx)
+       else
+          pmass(i) = (masspleft + masspright*exx)/(1.0 + exx)
+       endif
+
+       if (abs(gam1).lt.1.e-3) then
+          uu(i) = (uuleft + uuright*exx)/(1.0 + exx)    
+       else
+          uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
+       endif
 !       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
 !       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
 !       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
@@ -313,9 +402,26 @@ subroutine setup
           if (ndimV.ge.3) vel(3,i) = vzleft       
        endif
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
-       if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)      
+       if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
+       densdust = (densdustleft + densdustright*exx)/(1.0 +exx)
     endif           
     Bfield(1,i) = Bxinit
+    !
+    !--override settings for dust particles
+    !
+    if (jtype.eq.itypedust) then
+       uu(i) = 0.
+       Bfield(:,i) = 0.
+    endif
+!
+!--setup dust-to-gas ratio
+!
+    if (idust.eq.1) then
+       dustfrac(i) = densdust/(dens(i) + densdust)
+      ! print*,i,densdust,dens(i),dustfrac(i)
+       deltav(:,i)  = 0.
+       pmass(i) = pmass(i)/(1. - dustfrac(i))
+    endif
  enddo
 !
 !--setup const component of mag field which can be subtracted
@@ -351,15 +457,20 @@ subroutine setup
 !  smooth pressure jump (no spikes)
 !
 ! if (abs(dsmooth).lt.tiny(dsmooth) .and. abs(gam1).gt.1.e-3) then
- if (.true. .and. ndim.le.1) then
+ if (.false. .and. ndim.le.1 .and. iener.gt.0) then
     if (any(ibound.eq.1)) call set_fixedbound()
     write(iprint,*) 'calling density to make smooth pressure jump...'
     call primitive2conservative
     do i=1,npart
        if (x(1,i).le.xshock) then
           uu(i) = prleft/(gam1*dens(i))
+          !print*,'uuleft = ',uuleft,uu(i)
        else
           uu(i) = prright/(gam1*dens(i))
+          !print*,'uuright = ',uuright,uu(i)
+       endif
+       if (itype(i).eq.itypedust) then
+          uu(i) = 0.
        endif
     enddo
  endif 

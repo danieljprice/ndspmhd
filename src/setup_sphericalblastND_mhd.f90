@@ -157,7 +157,7 @@ subroutine modify_dump
     przero = 0.1                ! initial pressure
     prblast = 10.0              ! initial pressure within rblast
  endif
- rbuffer = rblast  ! +10.*psep      ! radius of the smoothed front
+ rbuffer = rblast       !+10.*psep      ! radius of the smoothed front
  denszero = 1.0
 !
 !--smoothing length for kernel smoothing

@@ -42,9 +42,9 @@ subroutine set_fixedbound
 !
      if (ndim.EQ.1 .AND. nbpts.GT.0) then
         write(iprint,*) 'fixing first and last ',nbpts,' particles'
-        itype(1:nbpts) = 1
+        itype(1:nbpts) = itypebnd
         nstart = npart - nbpts + 1
-        itype(nstart:ntotal) = 1
+        itype(nstart:ntotal) = itypebnd
         !!--fix the values of rho, h equal to those just outside the fixed zone
         ireal(1:nbpts) = nbpts+1
         rho(1:nbpts) = rho(nbpts+1)
@@ -62,7 +62,7 @@ subroutine set_fixedbound
         call set_ghost_particles  ! setup ghost particles  
         !--now fix the ghost particles that have been set
         npart1 = npart + 1
-        itype(npart1:ntotal) = 1  ! set all these particles to be fixed
+        itype(npart1:ntotal) = itypebnd  ! set all these particles to be fixed
         npart = ntotal              ! no ghosts
      endif
   else
@@ -73,20 +73,23 @@ subroutine set_fixedbound
 !    
      nbpts = 0
      do i=1,npart
-        if (itype(i).eq.1 .or. itype(i).eq.2) nbpts = nbpts + 1
+        if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) nbpts = nbpts + 1
      enddo
      write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
-        if (itype(i).eq.1) then
+        if (itype(i).eq.itypebnd) then
            rmin = 1.e10
            do j=1,npart
-              if (j.ne.i .and. itype(j).eq.0) then   ! find closest real particle
-                 dx = x(:,i) - x(:,j)
-                 rr = DOT_PRODUCT(dx,dx)
-                 if (rr.lt.rmin) then
-                    rmin = rr
-                    ireal(i) = j
-                 endif
+              if (j.ne.i) then   ! find closest real particle
+                 select case(itype(j))
+                 case(itypegas,itypegas1,itypegas2)
+                    dx = x(:,i) - x(:,j)
+                    rr = DOT_PRODUCT(dx,dx)
+                    if (rr.lt.rmin) then
+                       rmin = rr
+                       ireal(i) = j
+                    endif
+                 end select
               endif
            enddo
            !ireal(i) = 0

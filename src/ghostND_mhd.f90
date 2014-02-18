@@ -52,11 +52,11 @@ subroutine set_ghost_particles
   integer :: i
   integer :: imaxmin,imaxminprev,imaxminprevprev
   integer :: idimen,idimenprev,idimenprevprev
-  integer :: jpart !,jtemp
+  integer :: jpart!,jtemp
   real, dimension(ndim) :: dxbound,xpart
   real, dimension(ndim,maxbound) :: xnew
   real, dimension(ndimV) :: vpart
-  real :: dx,dxshift,xbound,xperbound,xtemp
+  real :: dx,dxshift,xbound,xperbound,xtemp,dy,xmodbound,yi
   logical, dimension(ndim,maxbound) :: imakeghost
   real, dimension(maxbound) :: yoffset
   logical :: ireflect
@@ -81,6 +81,80 @@ subroutine set_ghost_particles
 ! PRINT*,' hhmax, hhmin = ',hhmax,MAXLOC(hh(1:npart)),MINVAL(hh(1:npart)),MINLOC(hh(1:npart))
   if (any ((xmax(:)-xmin(:)) < dxbound)) then
      write(iprint,*) 'WARNING: ghost: hhmax too large = ',hhmax,maxloc(hh(1:npart))
+  endif
+!
+!--shearing box ghosts
+!
+  if (ibound(1).eq.5) then
+     if (ndim.gt.2) stop 'ghosts not implemented for 3D shearing box'
+     do i=1,npart
+        xpart(:) = x(:,i)
+        vpart(:) = vel(:,i)
+        !
+        !--xmin boundary
+        !
+        dx = x(1,i) - xmin(1)
+        if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
+           xpart(1) = xmax(1) + dx
+           xpart(2) = x(2,i) !- domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
+           vpart(3) = vel(3,i) - domegadr*Omega0*(xmax(1)-xmin(1))
+           call makeghost(i,xpart,vpart)
+           yi = xpart(2)
+           !--check ymin and ymax
+           dy = yi - xmin(2)
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmax(2) + dy
+              call makeghost(i,xpart,vpart)
+           endif
+           dy = xmax(2) - yi
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmin(2) - dy
+              call makeghost(i,xpart,vpart)
+           endif
+        endif        
+        !
+        !--xmax boundary
+        !        
+        vpart(:) = vel(:,i)
+        dx = xmax(1) - x(1,i)
+        if ((dx.lt.dxbound(1)).and.(dx.gt.0)) then
+           xpart(1) = xmin(1) - dx
+           xpart(2) = x(2,i) !+ domegadr*Omega0*(xmax(1)-xmin(1))*time
+           xpart(2) = xmodbound(xpart(2),xmin(2),xmax(2),0.)
+           vpart(3) = vel(3,i) + domegadr*Omega0*(xmax(1)-xmin(1))
+           call makeghost(i,xpart,vpart)
+           yi = xpart(2)
+           !--check ymin and ymax
+           dy = yi - xmin(2)
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmax(2) + dy
+              call makeghost(i,xpart,vpart)
+           endif
+           dy = xmax(2) - yi
+           if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+              xpart(2) = xmin(2) - dy
+              call makeghost(i,xpart,vpart)
+           endif
+        endif
+        
+        vpart(:) = vel(:,i)
+        !--ymin boundary (just periodic)
+        dy = x(2,i) - xmin(2)
+        if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+           xpart(1) = x(1,i)
+           xpart(2) = xmax(2) + dy
+           call makeghost(i,xpart,vpart)
+        endif        
+        !--ymax boundary (just periodic)
+        dy = xmax(2) - x(2,i)
+        if ((dy.lt.dxbound(2)).and.(dy.gt.0)) then
+           xpart(1) = x(1,i)
+           xpart(2) = xmin(2) - dy
+           call makeghost(i,xpart,vpart)
+        endif
+     enddo
+     return
   endif
 !
 !--loop over all the particles (with link list could supply a list of 
@@ -265,9 +339,8 @@ subroutine set_ghost_particles
    
   enddo over_part
 !
-!--set type of ghost particles to zero
-!
-  itype(npart+1:ntotal) = 0
+!--set type of ghost particles to be same as gas
+  itype(npart+1:ntotal) = itype(ireal(npart+1:ntotal))
 !
 !--set unused elements of the array to zero (can cause errors in eos)
 ! 

@@ -76,7 +76,7 @@ subroutine derivs
 !
 !--calculate primitive variables from conservative variables
 !
- if (itiming) call cpu_time(t3) 
+ if (itiming) call cpu_time(t3)
  call conservative2primitive
 !
 !--calculate forces/rates of change using predicted quantities

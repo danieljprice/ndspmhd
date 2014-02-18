@@ -144,6 +144,11 @@ contains
           if (ipart.gt.ntotal .or. ipart.lt.0) then
              write(iprint,*) 'ERROR in neighbour lists: ipart = ',ipart
           endif
+          if (j.gt.size(listneigh)) then
+             write(iprint,*) 'getneigh: # neighbours > array size:',size(listneigh)
+             write(iprint,*) 'j = ',j
+             call quit          
+          endif
           listneigh(j) = ipart
        endif
 !    IF (j.GT.0) THEN 

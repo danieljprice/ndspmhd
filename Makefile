@@ -14,7 +14,7 @@ install:
 	#cd src; make clean; make 2D
 	#cd src; make clean; make 25D
 	#cd src; make clean; make 3D
-	
+
 1D:
 	cd src; make 1D
 	
@@ -41,7 +41,7 @@ edit3D:
 
 make: checkeditor
 	cd src; $(EDITOR) Makefile &
-
+	
 checkeditor:
    ifndef EDITOR
 	@echo 'ERROR: need EDITOR variable set for "make edit" (e.g. export EDITOR=emacs)'

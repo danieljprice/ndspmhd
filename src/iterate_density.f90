@@ -49,7 +49,7 @@ subroutine iterate_density
   use hterms
   use linklist, only:numneigh
   use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens
-  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho
+  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,itypebnd
   use setup_params
   use density_summations
   use rates, only:dhdt,drhodt
@@ -63,7 +63,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
-  real, dimension(size(rho)) :: hhin,densn,dndt
+  real, dimension(size(rho)) :: hhin,dndt,densn
   logical :: converged,redolink
   
 !!  integer :: itest
@@ -93,13 +93,13 @@ subroutine iterate_density
   gradgradh = 0.
   drhodt = 0.
   dhdt = 0.
-  dhdrhoi = 0.
-  dhdni   = 0.
   hhin(1:npart) = hh(1:npart)
   if (any(hh(1:npart).le.tiny(hh))) then
      write(iprint,*) 'error: h <= 0 in density call'
      call quit
   endif
+  dhdni = 0.
+  dhdrhoi = 0.
 
 !!  itest = 416
   
@@ -145,7 +145,7 @@ subroutine iterate_density
         do j=1,ncalcprev
            i = redolistprev(j)
 
-           if (itype(i).ne.1) then
+           if (itype(i).ne.itypebnd) then
               if (rho(i).le.1.e-6) then
                  if (rho(i).le.0.) then
                     write(iprint,*) 'error: rho(',i,') = ',rho(i),hh(i),pmass(i)
@@ -232,7 +232,7 @@ subroutine iterate_density
 !
 !--update smoothing length only if taking another iteration
 !
-                 if (itsdensity.le.itsdensitymax .and. itype(i).ne.1) then
+                 if (itsdensity.le.itsdensitymax .and. itype(i).ne.itypebnd) then
                     !print*,'hh new, old ',i,' = ',hnew,hh(i),abs((hnew-hh(i))/hh(i))
                     hh(i) = hnew
                  elseif (itsdensity.eq.itsdensitymax .and. .not.converged) then
@@ -286,16 +286,16 @@ subroutine iterate_density
            gradgradh(i) = 0.
         enddo   
      endif
-
 !
 !--write over boundary particles
 !     
      if (any(ibound.eq.1)) then
         do i=1,npart      ! update fixed parts and ghosts
-           if (itype(i).eq.1) then
+           if (itype(i).eq.itypebnd) then
               j = ireal(i)
               if (j.ne.0) then
                  rho(i) = rho(j)
+                 densn(i) = densn(j)
                  drhodt(i) = drhodt(j)
                  dhdt(i) = dhdt(j)
                  hh(i) = hh(j)
@@ -313,6 +313,7 @@ subroutine iterate_density
         do i=npart+1,ntotal
            j = ireal(i)
            rho(i) = rho(j)
+           densn(i) = densn(j)
            drhodt(i) = drhodt(j)
            dhdt(i) = dhdt(j)
            hh(i) = hh(j)
@@ -327,7 +328,8 @@ subroutine iterate_density
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
-  elseif ((itsdensity.gt.1 .and. ndim.ge.2)) then
+     call quit
+  elseif (itsdensity.gt.5) then
      write(iprint,*) ' Finished density, iterations = ', &
                      itsdensity, ncalctotal,' used rhomin = ',rhomin
      write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &

@@ -40,6 +40,7 @@ contains
 subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
+ use part, only:itype,itypegas,itypegas1,itypegas2
 !
 !--define local variables
 !
@@ -72,10 +73,16 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  endif
 
  if (iener.eq.0) then   ! polytropic (isothermal when gamma=1)
-    where (rho > 0.)
-      pr = polyk*rho**gamma
-      vsound = sqrt(gamma*pr/rho)
-    end where 
+    where (rho > 0. .AND. itype(1:isize).EQ.itypegas)
+       pr = polyk*rho**gamma
+       vsound = sqrt(gamma*pr/rho)
+    elsewhere (itype(1:isize).eq.itypegas1)
+       pr = polyk*(rho - 1.)
+    elsewhere (itype(1:isize).eq.itypegas2)
+       pr =  polyk*(rho - 1.) !4.*polyk*((rho/0.5) - 1.)
+    elsewhere
+      pr = 0.
+    end where
     if (abs(gamma1).gt.1.e-3) then       
        where (rho > 0.) 
        uu = pr/(gamma1*rho)
@@ -119,7 +126,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
     write(iprint,*) 'eos1: rho -ve, exiting'
     !call quit
  elseif ((iener.ne.0).and.uu.lt.0.) then
-    write(iprint,*) 'eos1: u_therm -ve, exiting 1'
+    write(iprint,*) 'eos1: u_therm -ve, exiting',1    
     !call quit
  endif
 
@@ -130,7 +137,7 @@ subroutine equation_of_state1(pr,vsound,uu,rho,gammai)
     endif
     if (abs(gamma1).gt.1.e-3) then       
        if (rho > 0.) then
-       uu = pr/(gamma1*rho)
+          uu = pr/(gamma1*rho)
        endif
     endif   
  else      ! adiabatic
