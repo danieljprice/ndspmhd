@@ -120,14 +120,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  character(len=*), intent(out) :: kernellabel
  integer, intent(out) :: ierr
  integer :: i,j,npower,n
- real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso,secondz
+ real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
- character(len=20) :: filename
- logical :: iexist
- integer :: ierrf
  integer, parameter :: lu = 55
 
  cnormk = 0.0

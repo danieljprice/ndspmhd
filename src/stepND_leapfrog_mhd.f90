@@ -43,19 +43,16 @@ subroutine step
  use timestep
  use setup_params
  use xsph
- use particlesplit, only:particle_splitting
- use geometry, only:coord_transform,vector_transform
  use utils,    only:cross_product3D
 !
 !--define local variables
 !
  implicit none
- integer :: i,j,nsplit
+ integer :: i,j
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart) :: daldtin
  real :: hdt
- real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
 
 !
@@ -93,13 +90,6 @@ subroutine step
     endif
  enddo
 !
-!--if doing divergence correction then do correction to magnetic field
-! 
- if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
- if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
- if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
-
-!
 !--Leapfrog Predictor step
 !
  do i=1,npart
@@ -107,12 +97,6 @@ subroutine step
        if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
           j = ireal(i)
           x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
-       elseif (itype(i).eq.itypebnd2) then  ! velocities are vr, vphi
-          call coord_transform(xin(1:ndim,i),ndim,1,xcyl(:),ndim,2)
-          velcyl(1) = 0.
-          velcyl(2) = xcyl(1)*omegafixed
-          call vector_transform(xcyl(1:ndim),velcyl(:),ndim,2,vel(1:ndim,i),ndim,1)
-          x(:,i) = xin(:,i) + dt*vel(:,i)
        else
           write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
           stop
@@ -210,13 +194,7 @@ subroutine step
 !
 !--if doing divergence correction then do correction to magnetic field
 ! 
-! IF (idivBzero.NE.0) CALL divBcorrect
  if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
-
- if (isplitpart.gt.0) then
-    call particle_splitting(nsplit)
-    if (nsplit.gt.0) call derivs
- endif
 !
 !--set new timestep from courant/forces condition
 !

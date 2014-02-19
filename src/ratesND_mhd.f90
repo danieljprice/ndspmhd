@@ -41,6 +41,7 @@ subroutine get_rates
  use rates
  use timestep
  use xsph
+ use utils, only:cross_product3D
   
  use fmagarray
  use derivB
@@ -49,7 +50,7 @@ subroutine get_rates
 !--define local variables
 !
  implicit none
- integer :: i,j,n,k
+ integer :: i,j,n
  integer :: icell,iprev,nneigh,nlistdim
  integer, allocatable, dimension(:) :: listneigh
  integer :: idone,nclumped
@@ -85,7 +86,7 @@ subroutine get_rates
  real, dimension(ndimB) :: curlBi,forcei,forcej,dBevoldti
  real :: fiso,B2i,B2j
  real :: valfven2i,valfven2j
- real :: BidotdB,BjdotdB,Brho2i,Brho2j,BdotBexti
+ real :: BidotdB,BjdotdB,Brho2i,Brho2j,BdotBexti,etai
  real :: projBrhoi,projBrhoj,projBi,projBj,projdB,projBconst
  real, dimension(:,:), allocatable :: curlBsym
 !
@@ -969,8 +970,8 @@ contains
     real :: hav,hav1,h21,q2
     real :: hfacwab,hfacwabj,hfacgrkern,hfacgrkernj
     real :: wabalti,wabaltj,wabalt
-    real :: altrhoi,altrhoj,gammastar,vperp2
-    real :: enthalpi,enthalpj,term,denom,term1
+    real :: altrhoi,altrhoj
+    real :: term
 
    pmassj = pmass(j)
 !
@@ -1447,7 +1448,7 @@ contains
              B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
           endif
-          qdiff = qdiff + alphaB*termnonlin*0.5*(B2i-B2j)*rhoav1
+          qdiff = qdiff + alphaB*termB*0.5*(B2i-B2j)*rhoav1
        elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
@@ -1756,7 +1757,7 @@ contains
     real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
-    real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm,etaij
+    real :: dgradwdhi,dgradwdhj,BdotBextj,term
     !----------------------------------------------------------------------------            
     !  Lorentz force
     !----------------------------------------------------------------------------

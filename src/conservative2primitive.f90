@@ -55,10 +55,9 @@ subroutine conservative2primitive
   use timestep, only:nsteps
   use part_in, only:velin
   implicit none
-  integer :: i,j,nerr,k
-  real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
+  integer :: i,j,nerr
+  real :: B2i, v2i, pri, dhdrhoi
   real, dimension(ndimV) :: Binti,Bfieldi
-  real, dimension(ndim) :: dxbound
   logical, parameter :: JincludesBext = .true.
 
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
@@ -257,7 +256,7 @@ subroutine primitive2conservative
   use getcurl
   use rates, only:gradpsi
   use derivB, only:curlB
-!  use utils,  only:minmaxave
+  use utils,  only:minmaxave
   implicit none
   integer :: i,j,iktemp
   real :: B2i, v2i, hmin, hmax, hav, polyki, gam1, pri, dhdrhoi

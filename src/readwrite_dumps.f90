@@ -40,7 +40,7 @@ subroutine write_dump(t,dumpfile)
  use setup_params
  use derivb
  use rates
- use hterms, only:gradh,gradsoft
+ use hterms, only:gradh
 !
 !--define local variables
 !

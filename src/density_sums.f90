@@ -55,7 +55,7 @@ contains
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
  
-    integer :: i,j,k,n
+    integer :: i,j,n
     integer :: icell,iprev,nneigh
     integer, dimension(npart) :: listneigh
     integer :: idone
@@ -377,7 +377,7 @@ contains
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
-    integer :: i,j,k,n
+    integer :: i,j,n
     integer :: icell,ipart,nneigh !!,minneigh,minpart
     integer, dimension(ntotal) :: listneigh
     integer :: icellprev
@@ -390,6 +390,7 @@ contains
     real, dimension(ndim)  :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(nlist) :: rhoin
+    real, dimension(ndimV) :: dr
     real :: dvdotr,projBi
     integer :: itypei
 !

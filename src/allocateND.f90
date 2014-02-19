@@ -75,8 +75,6 @@ subroutine alloc(newsizein,sortlist)
 !--dust
  real, dimension(newsizein)       :: dumdustfrac,dumdustfracin,dumddustfracdt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
-!--integrator type check
- character (len=20) :: integratorcheck
 
  logical :: reallocate, isortparts
 !
@@ -418,7 +416,6 @@ subroutine alloc(newsizein,sortlist)
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
     numneigh(:) = 0
-    dxdx(:,:) = 1.
  endif
  
 !
