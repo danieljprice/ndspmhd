@@ -329,7 +329,7 @@ subroutine setup
     psepreqr = cs_R*tstopr/hfact
     print*,'left, need ',(xshock-xmin)/psepreql,' got ',(xshock-xmin)/psepleft
     print*,'right, need ',(xmax-xmin)/psepreqr,' got ',(xmax-xshock)/psepright
-    read*
+    !read*
  endif
 
 !
