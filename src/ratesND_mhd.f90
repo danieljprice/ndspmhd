@@ -1663,7 +1663,7 @@ contains
              B2i = (dot_product(Bi,Bi) - dot_product(Bi,dr)**2) ! magnetic energy 
              B2j = (dot_product(Bj,Bj) - dot_product(Bj,dr)**2) ! along line of sight
           endif
-          qdiff = qdiff + alphaB*termnonlin*0.5*(B2i-B2j)*rhoav1
+          qdiff = qdiff + alphaB*termB*0.5*(B2i-B2j)*rhoav1
        elseif (imhd.lt.0) then
           stop 'mhd dissipation not implemented with total energy equation for vector potential'
        endif
