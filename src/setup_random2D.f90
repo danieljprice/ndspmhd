@@ -36,9 +36,7 @@ subroutine setup
  use part
  use setup_params
  use eos, only:gamma
- use cons2prim
- use kernels, only:setkernels,kernelname
- 
+ use cons2prim 
  use uniform_distributions
 !
 !--define local variables
