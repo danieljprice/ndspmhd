@@ -74,15 +74,14 @@ SUBROUTINE step
  USE setup_params
  USE xsph
  USE kernels, only:eps
+ USE utils, only:cross_product3D
 !
 !--define local variables
 !
  IMPLICIT NONE
  INTEGER :: i
- REAL :: hdt, maxdivB
+ REAL :: hdt
  REAL :: dtrhoi
- REAL, DIMENSION(ndimV,SIZE(rho)) :: gradpsiprev
- REAL, DIMENSION(SIZE(divB)) :: divBprev
  real, dimension(ndimV) :: vcrossB
 !
 !--allow for tracing flow
@@ -103,20 +102,6 @@ SUBROUTINE step
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
  ENDDO         
-!
-!--if doing divergence correction then do correction to magnetic field
-! 
- nsubsteps_divB = -1
- IF (idivBzero.GE.10 .and. MOD(nsteps,10).EQ.0) THEN
-    CALL divBcorrect(npart,ntotal)
-    Bevolin(:,1:ntotal) = Bevol(:,1:ntotal)
-    IF (any(ibound.ne.0)) WRITE(iprint,*) 'Warning: boundaries not correct'
- ELSEIF (idivBzero.GE.1) THEN
-    maxdivB = MAXVAL(ABS(divB(1:npart)))
-    print*,'max div B = ',maxdivB
-    
-    nsubsteps_divB = -1
- ENDIF
    
  DO i=1,npart
     IF (itype(i).EQ.itypebnd .OR. itype(i).EQ.itypebnd2) THEN        ! fixed particles
@@ -160,22 +145,12 @@ SUBROUTINE step
     ENDIF
 
  ENDDO
-
-! WHERE (alpha(:,:).GT.0.5)
-!    alpha(:,:) = 1.0
-! END WHERE
  
 !
 !--calculate all derivatives
 !
  call derivs
 
- IF (nsubsteps_divB.GE.0) THEN
-    DO i=1,npart
-       Bevol(:,i) = Bevolin(:,i)
-       psi(i) = psiin(i)
-    ENDDO
- ENDIF
  dtrho = huge(dtrho)
  DO i=1,npart
     dtrhoi = abs(rho(i)/(drhodt(i) + 1.e-8))
@@ -184,14 +159,6 @@ SUBROUTINE step
  if (C_rho*dtrho/dtcourant .lt. C_cour) then
     write(iprint,*) 'dtrho equiv courant number = ',C_rho*dtrho/dtcourant
  endif
-!
-!--do substepping on corrector for div B correction
-!
-! IF (imhd.GT.0 .and. idivBzero.GE.2 .and. nsubsteps_divB.GE.0) THEN
-!    CALL substep_divB(2,dt,nsubsteps_divB,Bevol,psi,divB,gradpsi, &
-!                      x,hh,pmass,itype,npart,ntotal)
-! ENDIF
-
 !
 !--Mid-point Corrector step
 !
@@ -243,24 +210,13 @@ SUBROUTINE step
     ENDIF 
               
  ENDDO
-!
-!--if doing divergence correction then do correction to magnetic field
-! 
-! IF (idivBzero.EQ.1 .and. MOD(nsteps,10.EQ.0) .AND. ALL(ibound.EQ.0)) CALL divBcorrect
-!
+
  IF (ANY(ibound.NE.0)) CALL boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--set new timestep from courant/forces condition
 !
  dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
-!
-!--this is just so that alpha looks right in the output
-!  (overwritten in predictor step, but shows where alpha is 1 in rates)
-!
-! WHERE (alpha(:,:).GT.0.5)
-!    alpha(:,:) = 1.0
-! END WHERE
-  
+
  IF (trace) WRITE (iprint,*) ' Exiting subroutine step'
       
  RETURN
