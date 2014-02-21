@@ -92,7 +92,7 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,ipart
- real :: massp,volume,totmass,ran1
+ real :: massp,volume,totmass !,ran1
  real :: psepmedium
  real :: densmid,vmid,expterm,yi
  real, dimension(ndim) :: xminregion,xmaxregion
@@ -349,14 +349,13 @@ end function Massprofile_orig
 end subroutine setup
 
 subroutine modify_dump
- use loguns, only:iprint
+ use loguns,       only:iprint
  use part
- use options, only:imhd
- use timestep, only:time
+ use timestep,     only:time
  use setup_params, only:pi
- use bound, only:xmin
- use eos,   only:gamma
- use khsetup, only:smoothl,vzero,vmedium,yprofile,wang,przero
+ use bound,        only:xmin
+ use eos,          only:gamma
+ use khsetup,      only:smoothl,vzero,vmedium,yprofile,wang,przero
  implicit none
  integer :: i
  real :: yi
