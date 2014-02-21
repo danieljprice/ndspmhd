@@ -12,6 +12,8 @@
 
     * Cite the Price (2012) J. Comp. Phys. paper if you publish anything
       either using or based on this code
+    * Try to cite the appropriate paper for the specific algorithms being used
+      (e.g. dust, MHD, artificial conductivity)
     * Kindly send me a copy of any such manuscript prior to acceptance
       (i.e., upon submission to a journal/proceedings)
   
