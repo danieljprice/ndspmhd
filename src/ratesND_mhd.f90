@@ -738,7 +738,9 @@ subroutine get_rates
  endif
  if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
- if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
+ if (imhd.ne.0 .and. &
+    (sqrt(dot_product(fmean,fmean)).gt.1.e-8) &
+     .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
 !--calculate timestep constraint from the forces
 !  dtforce is returned together with dtcourant to the main timestepping loop
