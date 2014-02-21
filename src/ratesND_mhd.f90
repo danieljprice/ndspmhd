@@ -27,7 +27,6 @@
 !!--------------------------------------------------------------------
 
 subroutine get_rates
-! USE dimen_mhd
  use debug,  only:trace
  use loguns, only:iprint
  use bound,  only:pext
@@ -799,8 +798,7 @@ subroutine get_rates
 
 contains
   subroutine drag_forces
-!--DIRTY declarations for the hack  
-    use kernels, only:interpolate_kerneldrag,interpolate_kernel  
+    use kernels, only:interpolate_kerneldrag
     use options, only:idrag_nature,idrag_structure,Kdrag   
     implicit none
     integer :: itypej
@@ -810,7 +808,6 @@ contains
     real    :: s2_over_m,spsoundgas
     real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
     real    :: dt1,dt12
-    !real    :: gkeri,gkerj
     real, dimension(ndimV) :: drdrag
     real, parameter :: pow_drag_exp = 0.4
     real, parameter :: a2_set       = 0.5
@@ -855,7 +852,6 @@ contains
 !
 !--get the j particle extra properties
 !
-!--Hack special SI    
     itypej     = itype(j)
     pmassj     = pmass(j)
     rhoj       = rho(j)
@@ -872,15 +868,9 @@ contains
 !--calculate the kernel(s)
 !
     hfacwabj = (1./hh(j)**ndim)
-!-- HACK
-!    call interpolate_kernel(q2i,wabi,gkeri)
-!--OK
     call interpolate_kerneldrag(q2i,wabi)
     wabi     = wabi*hfacwabi
-!--DIRTY HACK
-!   call interpolate_kernel(q2j,wabj,gkerj) 
-!-OK
-   call interpolate_kerneldrag(q2j,wabj)
+    call interpolate_kerneldrag(q2j,wabj)
     wabj     = wabj*hfacwabj
     !wab = 0.5*(wabi + wabj)
     if (itypei.eq.itypegas) then
@@ -904,7 +894,7 @@ contains
                  dragcoeff = pi*s2_over_m
               case default
                  print*,'ERROR drag calculation: wrong idrag_structure'
-           end select
+        end select
     end select
     
     select case(idrag_structure)
@@ -938,18 +928,9 @@ contains
 !
 !--update the force and the energy
 !
- 
-!--DIRTY HACK
-!    dragterm    = wab*dragcoeff*f
-!--OK
     dragterm    = ndim*wab*dragcoeff*f*V0        
     dragterm_en = dragterm*V0
-!--DIRTY HACK    
-!    forcei(:)   = forcei(:)  - dragterm*pmassj*dvel(:)
-!    force(:,j)  = force(:,j) + dragterm*pmassi*dvel(:)    
-!-OK
     forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
-!-OK
     force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
        dudt(i)   = dudt(i) + pmassj*dragterm_en
