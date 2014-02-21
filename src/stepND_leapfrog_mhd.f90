@@ -97,7 +97,7 @@ subroutine step
        if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
           j = ireal(i)
           x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
-       else
+       elseif (itype(i).eq.itypebnd) then
           write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
           stop
        endif
