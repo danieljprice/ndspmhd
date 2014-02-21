@@ -82,7 +82,7 @@ PROGRAM ndspmhd
 !--version number
 !
     version = 'v2.0 [21st Feb 2014]'
-!   * major new release containing dust algorithms
+!   * major update including dust algorithms
 !    version = 'v1.0.1 [21st Dec 2010]'
 !   * minor bug fix with build
 !    version = 'v1.0 [25th Oct 2010]'
