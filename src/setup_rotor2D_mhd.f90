@@ -52,7 +52,7 @@ subroutine setup
 !--define local variables
 !      
  implicit none
- integer :: i,j,ntot,npartx,nparty,ipart
+ integer :: ipart
  real :: denszero,densdisk,przero,vzero,ftaper
  real :: pri,rdisk,rbuffer,radius
  real :: totmass,gam1,massp,const,psepdisk,totvol
