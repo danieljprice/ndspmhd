@@ -47,7 +47,7 @@ subroutine setup
  implicit none
  integer :: ipart
  real :: denszero,przero,vzero,uuzero,Azero
- real :: totmass,gam1,massp,rr,rzero,costheta,sintheta
+ real :: totmass,gam1,massp,rr,rzero
 !
 !--check number of dimensions is right
 !
