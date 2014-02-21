@@ -70,14 +70,14 @@
 !!                                                                     !!
 !!---------------------------------------------------------------------!!
 
-PROGRAM ndspmhd
- USE debug
- USE loguns
- USE versn
- IMPLICIT NONE
- INTEGER, PARAMETER :: maxruns = 200
- INTEGER :: i,iprev,irun, nruns
- CHARACTER(LEN=120), DIMENSION(maxruns) :: runname
+program ndspmhd
+ use debug
+ use loguns
+ use versn
+ implicit none
+ integer, parameter :: maxruns = 200
+ integer :: i,iprev,irun, nruns
+ character(len=120), dimension(maxruns) :: runname
  runname(1) = 'a'
 !
 !--version number
@@ -305,7 +305,7 @@ PROGRAM ndspmhd
   
 ! itemp = 40000                ! debug one particular particle
 
- CALL logun     ! set logical unit numbers to use for input/output
+ call logun     ! set logical unit numbers to use for input/output
 !
 !--get runname(s) off command line
 !  
@@ -329,58 +329,58 @@ PROGRAM ndspmhd
 ! 
 !--If nothing on command exit and print usage
 !
- IF (runname(1)(1:1).EQ.' ') THEN
+ if (runname(1)(1:1).eq.' ') then
     nruns = 1
-10  WRITE(6,*) 'Enter name of run:'
-    READ(*,*,ERR=10) runname(1)
-!    STOP 'Usage: spmhd runname '
- ENDIF
+10  write(6,*) 'Enter name of run:'
+    read(*,*,err=10) runname(1)
+!    stop 'Usage: spmhd runname '
+ endif
 
 !
 !--for each runname, perform a simulation
 !
- DO irun = 1,nruns
+ do irun = 1,nruns
     rootname = runname(irun)
     print*,'run = ',irun,' runname = ',rootname
  
-    CALL initialise  ! read files and parameters and setup particles
+    call initialise  ! read files and parameters and setup particles
     !
     !--now call the main timestepping loop
     !
-    CALL evolve
+    call evolve
     !
     !--close all open files and exit
     !
-    IF (iprint.NE.6) THEN
-       CLOSE(UNIT=iprint)
-    ENDIF
-    CLOSE(UNIT=ievfile)
-    CLOSE(UNIT=idatfile)
- ENDDO
+    if (iprint.ne.6) then
+       close(unit=iprint)
+    endif
+    close(unit=ievfile)
+    close(unit=idatfile)
+ enddo
 
- STOP 
+ stop 
  
-END PROGRAM ndspmhd
+end program ndspmhd
 
 !!---------------------------------------------------------------------
 !! This subroutine performs a graceful exit if the program has crashed
 !!---------------------------------------------------------------------
 
-SUBROUTINE quit
- USE loguns
- USE timestep
- IMPLICIT NONE
+subroutine quit
+ use loguns
+ use timestep
+ implicit none
 
- WRITE(iprint,*) 'performing graceful exit...'
- CALL output(time,-nsteps) ! dump particles before crashing
+ write(iprint,*) 'performing graceful exit...'
+ call output(time,-nsteps) ! dump particles before crashing
 !
-!--Close all open files and exit
+!--close all open files and exit
 !
- IF (iprint.NE.6) THEN
-    CLOSE(UNIT=iprint)
- ENDIF
- CLOSE(UNIT=ievfile)
- CLOSE(UNIT=idatfile)
- STOP
+ if (iprint.ne.6) then
+    close(unit=iprint)
+ endif
+ close(unit=ievfile)
+ close(unit=idatfile)
+ stop
  
-END
+end subroutine quit
