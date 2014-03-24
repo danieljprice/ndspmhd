@@ -76,7 +76,7 @@ subroutine write_infile(infile)
   write(iread,230) iuse_exact_derivs, nsteps_remap
   write(iread,240) idust,idrag_nature,idrag_structure,Kdrag,ismooth
   write(iread,250) ivisc,shearvisc,bulkvisc
-  write(iread,260) ibiascorrection
+  write(iread,260) iambipolar
  close(unit=iread)
 
 10 format(f14.10,22x,'! particle separation')
@@ -104,7 +104,7 @@ subroutine write_infile(infile)
 230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
 240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
 250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
-260 format(i2,34x,'! bias correction by combining kernels')
+260 format(i1,34x,'! ambipolar diffusion')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
@@ -176,7 +176,7 @@ subroutine read_infile(infile)
   read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
   read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
   read(iread,*,err=50,end=50) ivisc,shearvisc,bulkvisc
-  read(iread,*,err=50,end=50) ibiascorrection
+  read(iread,*,err=50,end=50) iambipolar
  close(unit=iread)
 
  goto 55
@@ -241,6 +241,11 @@ subroutine read_infile(infile)
     write(iprint,100) 'invalid choice of bulk viscosity parameter'
     stop
  endif
+ if (iambipolar < 0 .or. iambipolar > 1) then
+    write(iprint,100) 'invalid choice of ambipolar diffusion formulation'
+    stop
+ endif
+
  if (isplitpart.lt.0) stop 'invalid choice for isplitpart'
  if (isplitpart.ge.0 .and. rhocrit.le.0.) then
     write(iprint,100) 'critical density <= 0 in particle splitting'

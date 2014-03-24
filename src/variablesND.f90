@@ -141,7 +141,7 @@ module options
  integer :: iexternal_force,ixsph,isplitpart
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
- integer :: ivisc,ibiascorrection
+ integer :: ivisc,ibiascorrection,iambipolar
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit

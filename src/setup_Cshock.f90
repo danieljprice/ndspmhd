@@ -52,7 +52,7 @@ subroutine setup
 !
 !--set boundaries
 !
- ibound = 3  ! y-z boundaries are periodic 
+ ibound = 3     ! y-z boundaries are periodic 
  ibound(1) = 1  ! x-boundary is fixed
  nbpts = 0      ! use ghosts not fixed
  vamach = 5.

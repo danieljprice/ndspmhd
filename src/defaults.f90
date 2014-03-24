@@ -105,5 +105,6 @@ subroutine set_default_options
    Kdrag = 0.
    ismooth = 0
    ibiascorrection = 0
+   iambipolar = 0
    
  end subroutine set_default_options
