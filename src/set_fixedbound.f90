@@ -78,7 +78,7 @@ subroutine set_fixedbound
      write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
         if (itype(i).eq.itypebnd) then
-           rmin = 1.e10
+           rmin = huge(rmin)
            do j=1,npart
               if (j.ne.i) then   ! find closest real particle
                  select case(itype(j))
