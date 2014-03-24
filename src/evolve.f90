@@ -163,7 +163,6 @@ subroutine evolve
        call evwrite(time,etot,momtot)
        detot = max(detot,abs(etot-etotin))
        dmomtot = max(dmomtot,abs(momtot-momtotin))
-       write(1,*) time,abs(etot-etotin)/etotin 
     endif
 !
 !--reach tprint exactly. must take this out for integrator to be symplectic
