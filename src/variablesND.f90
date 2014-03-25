@@ -147,6 +147,7 @@ module options
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
  real :: Kdrag
  real :: shearvisc,bulkvisc
+ real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
  logical :: usenumdens
 end module

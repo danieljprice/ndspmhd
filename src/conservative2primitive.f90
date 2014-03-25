@@ -258,7 +258,13 @@ subroutine conservative2primitive
   if (remap) then
      Bevolin = Bevol
   endif
-  
+!
+!--get magnetic current, needed for ambipolar diffusion calculation
+!
+  if (iambipolar > 0) then
+     !--get J using standard (differenced) curl operator
+     call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB)
+  endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !

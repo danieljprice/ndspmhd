@@ -106,5 +106,7 @@ subroutine set_default_options
    ismooth = 0
    ibiascorrection = 0
    iambipolar = 0
+   rho_ion = 1.e-5
+   gamma_ambipolar = 1.
    
  end subroutine set_default_options

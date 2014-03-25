@@ -196,7 +196,7 @@ subroutine get_rates
   gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
-  if (imhd.gt.0) curlB(:,i) = 0.0
+  if (imhd.gt.0 .and. iambipolar.eq.0) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
   if (allocated(divBsym)) divBsym(i) = 0.
   if (allocated(dveldx)) then
@@ -551,12 +551,17 @@ subroutine get_rates
 !  also divide by rho for J and div B calculated the "normal" way
 !
     if (imhd.ne.0) then
-       if (imagforce.eq.4) then
-          call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
-          force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
-          fmag(:,i) = fmagi(:)*rho1i
-       elseif (imhd.gt.0) then ! not for vector potential
-          curlB(:,i) = curlB(:,i)*rho1i
+       if (iambipolar > 0) then
+          B2i = dot_product(Bfield(:,i),Bfield(:,i))
+          dtdrag = min(dtdrag,gamma_ambipolar*rho_ion*rhoi*hh(i)**2/B2i)
+       else
+          if (imagforce.eq.4) then
+             call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
+             force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
+             fmag(:,i) = fmagi(:)*rho1i
+          elseif (imhd.gt.0) then ! not for vector potential
+             curlB(:,i) = curlB(:,i)*rho1i
+          endif
        endif
        divB(i) = divB(i)*rho1i
 
@@ -2083,7 +2088,7 @@ contains
   subroutine mhd_terms
     implicit none
     real :: dalphaterm,termi,termj
-    real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
+    real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm,vec,JxBxBi,JxBxBj,dBdtambi
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
     real :: dgradwdhi,dgradwdhj,BdotBextj,term,divBterm,etaij
@@ -2260,7 +2265,8 @@ contains
     !
     !--compute rho * current density J
     !
-    if (imagforce.eq.4) then
+    dBdtambi = 0.
+    if (imagforce.eq.4 .and. iambipolar.eq.0) then
     !
     !--compute J via a direct second derivative for the vector/Euler potentials
     !  (J = -\nabla^2 \alpha)
@@ -2274,20 +2280,36 @@ contains
           stop 'JxB force not yet implemented in 3D'
        endif
     else
+       if (iambipolar > 0) then
+       !
+       !--curl B has already been calculated, here we use it to compute
+       !  the ambipolar diffusion term
+       !
+          call cross_product3D(curlB(:,i),Bi,vec) ! J x B
+          call cross_product3D(vec,Bi,JxBxBi)     ! J x B x B
+          call cross_product3D(curlB(:,j),Bj,vec) ! J x B
+          call cross_product3D(vec,Bj,JxBxBj)     ! J x B x B
+          call cross_product3D(JxBxBi,dr,curlBi)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+          call cross_product3D(JxBxBj,dr,curlBj)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+          termi = 1./(rhoi*rho_ion*gamma_ambipolar)
+          termj = 1./(rhoj*rho_ion*gamma_ambipolar)
+          dBdtambi(:) = termi*curlBi(:)*rho21i*grkerni + termj*curlBj(:)*rho21j*grkernj
+       else
        !
        !--calculate curl B for current (only if field is 3D)
        !  this is used in the switch for the artificial resistivity term
        !
-       if (imhd.gt.0) then ! not for vector potential
-          call cross_product3D(dB,dr,curlBi)
-          curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
-          curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
-       elseif (imhd.lt.0 .and. allocated(curlBsym)) then
-          call cross_product3D(Bi,dr,curlBi)
-          call cross_product3D(Bj(:),dr,curlBj)
-          curlBterm(:) = (curlBi(:)*rho21i*grkerni + curlBj(:)*rho21j*grkernj)
-          curlBsym(:,i) = curlBsym(:,i) - pmassj*curlBterm(:)
-          curlBsym(:,j) = curlBsym(:,j) + pmassi*curlBterm(:)
+          if (imhd.gt.0 .and. iambipolar.eq.0) then ! not for vector potential or ambipolar diffusion
+             call cross_product3D(dB,dr,curlBi)
+             curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
+             curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+          elseif (imhd.lt.0 .and. allocated(curlBsym)) then
+             call cross_product3D(Bi,dr,curlBi)
+             call cross_product3D(Bj(:),dr,curlBj)
+             curlBterm(:) = (curlBi(:)*rho21i*grkerni + curlBj(:)*rho21j*grkernj)
+             curlBsym(:,i) = curlBsym(:,i) - pmassj*curlBterm(:)
+             curlBsym(:,j) = curlBsym(:,j) + pmassi*curlBterm(:)
+          endif
        endif
        !
        !--add Lorentz force to total force
@@ -2342,9 +2364,9 @@ contains
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
     case(1,11) ! surface flux-conservative (usual) form
        dBevoldti(:) = dBevoldti(:)            &
-          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni
+          - phii_on_phij*pmassj*((dvel(:)*projBrhoi)*grkerni + rhoi*dBdtambi(:))
        dBevoldt(:,j) = dBevoldt(:,j)          &
-          - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
+          - phij_on_phii*pmassi*((dvel(:)*projBrhoj)*grkernj - rhoj*dBdtambi(:))
     case(-1) ! vector potential evolution - crap gauge
        termi = pmassj*projvi*grkerni
        dBevoldti(:) = dBevoldti(:) - termi*dBevol(:)

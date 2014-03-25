@@ -104,7 +104,7 @@ subroutine write_infile(infile)
 230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
 240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
 250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
-260 format(i1,34x,'! ambipolar diffusion')
+260 format(i2,34x,'! ambipolar diffusion')
 
  write(iprint,300) infile
 300 format (' input file ',a20,' created successfully')
