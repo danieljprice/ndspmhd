@@ -102,7 +102,7 @@ subroutine write_infile(infile)
 210 format(l1,35x,'! Use number density formulation of gradh')
 220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
 230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
-240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f, 2:two-f), drag type,drag form, Kdrag,ismooth')
+240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f 2:two-f 3:tv-onef), drag type,drag form, Kdrag,ismooth')
 250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
 260 format(i2,34x,'! ambipolar diffusion')
 
@@ -239,6 +239,10 @@ subroutine read_infile(infile)
  endif
  if (bulkvisc < 0.) then
     write(iprint,100) 'invalid choice of bulk viscosity parameter'
+    stop
+ endif
+ if (idust < 0 .or. idust > 4) then
+    write(iprint,100) 'invalid choice of dust formulation'
     stop
  endif
  if (iambipolar < 0 .or. iambipolar > 1) then

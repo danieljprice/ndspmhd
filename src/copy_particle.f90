@@ -80,7 +80,7 @@ subroutine copy_particle(i,j)
 !
 !  dust
 !
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      dustfrac(i)    = dustfrac(j)
      ddustfracdt(i) = ddustfracdt(j)
      deltav(:,i)     = deltav(:,j)

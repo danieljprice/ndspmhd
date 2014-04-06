@@ -47,9 +47,9 @@ subroutine step
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
-    if (idust.eq.1) then
-       dustfracin(i)    = dustfrac(i)
-       deltavin(:,i)     = deltav(:,i)
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       dustfracin(i) = dustfrac(i)
+       if (idust.eq.1) deltavin(:,i) = deltav(:,i)
     endif
  enddo
 !
@@ -70,9 +70,9 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i)
-          deltav(:,i) = deltavin(:,i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
        x(:,i)   = xin(:,i) + hdt*vel(1:ndim,i)
@@ -88,12 +88,14 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + hdt*dendt(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + hdt*dpsidt(i) 
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i) + hdt*ddustfracdt(i)
-          deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
-          if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-             deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
+          if (idust.eq.1) then
+             deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
+             if (dustfrac(i).gt.0.) then
+                dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
+                deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
+             endif
           endif
        endif
     endif
@@ -116,9 +118,9 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i)
-          deltav(:,i)  = deltavin(:,i)
+          if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
        vel(:,i) = velin(:,i) + dt*force(:,i)
@@ -135,12 +137,14 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldt(:,i),1.0)
        if (idivbzero.ge.2)   psi(i)     = psiin(i) + dt*dpsidt(i)
        
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i)  + dt*ddustfracdt(i)
-          deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
-          if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-             deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+          if (idust.eq.1) then
+             deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
+             if (dustfrac(i).gt.0.) then
+                dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
+                deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+             endif
           endif
        endif
     endif

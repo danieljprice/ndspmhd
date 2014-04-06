@@ -228,7 +228,7 @@ subroutine setup
  xmaxleft(1) = xshock
  xminright(1) = xshock
  
- if (idust.eq.1) then
+ if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
     psepleft = psep
     psepright = psep*(densleft/densright)**(1./ndim)
  else
@@ -416,7 +416,7 @@ subroutine setup
 !
 !--setup dust-to-gas ratio
 !
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfrac(i) = densdust/(dens(i) + densdust)
       ! print*,i,densdust,dens(i),dustfrac(i)
        deltav(:,i)  = 0.

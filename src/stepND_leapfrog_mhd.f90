@@ -90,11 +90,13 @@ subroutine step (integratorcheck)
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
     
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfracin(i)    = dustfrac(i)
-       deltavin(:,i)     = deltav(:,i)
        ddustfracdtin(i) = ddustfracdt(i)
-       ddeltavdtin(:,i)  = ddeltavdt(:,i)
+       if (idust.eq.1) then
+          deltavin(:,i)     = deltav(:,i)
+          ddeltavdtin(:,i)  = ddeltavdt(:,i)
+       endif
     endif
  enddo
 !
@@ -134,9 +136,9 @@ subroutine step (integratorcheck)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i)
-          deltav(:,i) = deltavin(:,i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
@@ -153,9 +155,9 @@ subroutine step (integratorcheck)
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i) + dt*ddustfracdtin(i)
-          deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
        endif
     endif
  enddo
@@ -180,9 +182,9 @@ subroutine step (integratorcheck)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i)
-          deltav(:,i)  = deltavin(:,i)
+          if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
        vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
@@ -205,9 +207,9 @@ subroutine step (integratorcheck)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfrac(i) = dustfracin(i) + hdt*(ddustfracdt(i) + ddustfracdtin(i))
-          deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
        endif
     endif
 

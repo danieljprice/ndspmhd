@@ -372,7 +372,7 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-   if (idust.eq.1) then
+   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
       allocate(dustfrac(newsize),dustfracin(newsize))
       allocate(ddustfracdt(newsize))
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
