@@ -43,8 +43,8 @@ subroutine setup
 !            
  implicit none
  integer :: i,nparty
- real :: massp,volume,totmass,shockl,domainl
- real :: denszero,Bzero,vamach,csmach,theta,cs,vs
+ real :: massp,volume,totmass,shockl,domainl,va
+ real :: denszero,Bzero,vamach,csmach,theta,cs,vs,vx0
 !
 !--allow for tracing flow
 !
@@ -62,19 +62,25 @@ subroutine setup
  theta = 0.25*pi
  denszero = 1.0
  rho_ion  = 1.e-5
+ vx0 = 4.45
  Bzero = 1.
  print "(/,1x,a)",'C-shock: '
  gamma = 1.
  gamma_ambipolar = 1.
  shockl = Bzero/(gamma_ambipolar*rho_ion*sqrt(denszero))
+ va = Bzero/sqrt(denszero)
+ 
  print "(a,es10.3)",'      neutral density = ',denszero
  print "(a,es10.3)",'          ion density = ',rho_ion
  print "(a,es10.3)",'                gamma = ',gamma_ambipolar
  print "(a,es10.3)",'                   B0 = ',Bzero
+ print "(a,es10.3)",'                  Bx0 = ',Bzero*cos(theta)
+ print "(a,es10.3)",'                  By0 = ',Bzero*sin(theta)
  print "(a,es10.3)",'         shock length = ',shockl
  print "(a,es10.3)",' Alfvenic mach number = ',vs/(Bzero**2/denszero)
  print "(a,es10.3)",'    sonic mach number = ',csmach
  print "(a,es10.3)",'          sound speed = ',cs
+ print "(a,es10.3)",'         Alfven speed = ',va
  print "(a,es10.3,/)",'               vshock = ',vs
  nparty = 8
  domainl = 500.*shockl
@@ -104,17 +110,17 @@ subroutine setup
     if (x(1,i) < -domainl) then
        itype(i) = itypebnd
        nbpts = nbpts + 1
-       vel(1,i) = vs
+       vel(1,i) = vx0
     elseif (x(1,i) > domainl) then
        nbpts = nbpts + 1
        itype(i) = itypebnd
-       vel(1,i) = -vs
+       vel(1,i) = -vx0
     elseif (x(1,i) < 0.) then
        itype(i) = itypegas
-       vel(1,i) = vs
+       vel(1,i) = vx0
     else
        itype(i) = itypegas
-       vel(1,i) = -vs    
+       vel(1,i) = -vx0    
     endif
     dens(i) = denszero
     pmass(i) = massp
