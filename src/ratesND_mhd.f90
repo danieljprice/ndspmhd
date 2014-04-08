@@ -128,7 +128,7 @@ subroutine get_rates
  real :: dtstop,projdeltavi,projdeltavj
  real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
- real :: sum
+ real :: sum,tstop
 
 !
 !  (kernel related quantities)
@@ -214,7 +214,7 @@ subroutine get_rates
      gradhn(i) = 0.
      dhdt(i) = 0.
   endif
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      ddustfracdt(i) = 0.
      ddeltavdt(:,i) = 0.
   endif
@@ -336,7 +336,7 @@ subroutine get_rates
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
        ! one fluid dust definitions
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfraci  = dustfrac(i)
           rhodusti       = dustfraci*rhoi          
           rhogasi        = rhoi - rhodusti
@@ -500,7 +500,7 @@ subroutine get_rates
  
     rhoi  = rho(i)
     rho1i = 1./rhoi
-    if (ivisc.gt.0 .and. idust.ne.1) then
+    if (ivisc.gt.0 .and. idust.ne.1 .and. idust.ne.4) then
        sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
     endif
     fexternal(:) = 0.
@@ -544,6 +544,13 @@ subroutine get_rates
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
+    elseif (idust.eq.3) then
+       dustfraci = dustfrac(i)
+       rhodusti = rhoi*dustfraci
+       rhogasi  = rhoi - rhodusti
+       tstop = rhodusti*rhogasi/(Kdrag*rhoi)
+       ! CAUTION: Line below must be done BEFORE external forces have been applied
+       deltav(:,i) = 1./(1. - dustfraci)*force(:,i)*tstop
     endif
 
 !
@@ -748,7 +755,8 @@ subroutine get_rates
     elseif (iener.eq.4) then
        dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
        if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. idust.ne.1) then
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. &
+           (idust.ne.1 .and. idust.ne.3 .and. idust.ne.4)) then
        if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
@@ -833,10 +841,14 @@ subroutine get_rates
              + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
              + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
              + rhogasi*rho1i*dudt(i))
+    elseif (idust.eq.4) then
+       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+             - dot_product(vel(:,i),fexternal(:)) &
+             - uu(i)*ddustfracdt(i) &
+             + (1. - dustfrac(i))*dudt(i))
     endif
-
  enddo
- if (idust.eq.1 .and. abs(sum).gt.1.e-9) then
+ if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum)) then
     print*,' SUM (should be zero if conserving energy) = ',sum
     !read*
  endif
@@ -1147,13 +1159,13 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfracj  = dustfrac(j)
        rhodustj       = rhoj*dustfracj
        rhogasj        = rhoj - rhodustj
+       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
        vgasi(:)       = veli(:) - dustfraci*deltavi(:)
        vgasj(:)       = velj(:) - dustfracj*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
@@ -1358,6 +1370,8 @@ contains
           call artificial_dissipation_sr
        elseif (idust.eq.1) then
           call artificial_dissipation_dust
+       elseif (idust.eq.4) then
+          call artificial_dissipation_dust_diffusion
        else
           call artificial_dissipation
 !          call artificial_dissipation_phantom
@@ -1447,7 +1461,11 @@ contains
 !  Time derivative of dust to gas ratio and deltav for one fluid dust
 !------------------------------------------------------------------------
 
-    if (idust.eq.1) call dust_derivs
+    if (idust.eq.1) then
+       call dust_derivs
+    elseif (idust.eq.4) then
+       call dust_derivs_diffusion
+    endif
 !
 !   Add contributions to j from mhd terms and dissipation here
 !   to avoid repeated memory access
@@ -1946,6 +1964,36 @@ contains
        
     endif
   end subroutine artificial_dissipation_dust
+
+!--------------------------------------------------------------------------------------
+! Artificial viscosity term for one-fluid dust in the terminal velocity approximation
+! this is just regular AV term, Phantom-style, multiplied by (1 - epsilon)
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_dust_diffusion
+    implicit none
+    real :: vsi,vsj,qi,qj,visc
+
+    if (dvdotr.lt.0) then
+       vsi = alphai*spsoundi - beta*dvdotr
+       vsj = alpha(1,j)*spsoundj - beta*dvdotr
+       qi = rhogasi*vsi*dvdotr
+       qj = rhogasj*vsj*dvdotr
+
+       visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+    endif
+
+    !
+    !  add to thermal energy equation
+    !
+    if (damp.lt.tiny(0.)) then
+       !dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
+       !dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
+    endif
+
+  end subroutine artificial_dissipation_dust_diffusion
+
 
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction terms
@@ -2473,6 +2521,34 @@ contains
     endif
 
   end subroutine dust_derivs
+
+!----------------------------------------------------------------
+!  Derivative of dust fraction and thermal energy
+!  for one fluid dust in the terminal velocity approximation
+!----------------------------------------------------------------
+  subroutine dust_derivs_diffusion
+    real :: diffterm, Di, Dj, du
+    real :: tstopi, tstopj, pdvtermi, pdvtermj
+
+    tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
+    tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
+    Di = dustfraci*tstopi
+    Dj = dustfracj*tstopj
+    diffterm = 0.5*rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
+    ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
+    ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
+    !
+    !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
+    !
+    if (iener.gt.0) then
+       du = uu(i) - uu(j)
+       pdvtermi = pri*rho1i/rhogasi*pmassj*dvdotr*grkerni
+       pdvtermj = prj*rho1j/rhogasj*pmassi*dvdotr*grkernj
+       dudt(i) = dudt(i) + pdvtermi - 0.5*pmassj*du*diffterm/(1. - dustfraci)
+       dudt(j) = dudt(j) + pdvtermj - 0.5*pmassi*du*diffterm/(1. - dustfracj)
+    endif
+
+  end subroutine dust_derivs_diffusion
 
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle

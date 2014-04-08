@@ -70,7 +70,7 @@ subroutine conservative2primitive
 
   nerr = 0
   sqrtg = 1.
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (dustfrac(i) < 0) then
@@ -326,13 +326,15 @@ subroutine conservative2primitive
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
     spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
-    if (idust.eq.1) stop 'iprterm=10 not implemented with idust=1'
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) &
+       stop 'iprterm=10 not implemented with one-fluid dust'
  elseif (iprterm.eq.11) then
     call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
                         rho(1:npart),psi(1:npart))
-    if (idust.eq.1) stop 'iprterm=11 not implemented with idust=1'
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) &
+       stop 'iprterm=11 not implemented with one-fluid dust'
  else
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        !
        !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
        !
@@ -419,7 +421,7 @@ subroutine primitive2conservative
 !
   isetpolyk = .false.
   do i=1,npart
-     if (idust.eq.1) then
+     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
         rho(i) = dens(i)/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
      else
         rho(i) = dens(i)
@@ -471,17 +473,12 @@ subroutine primitive2conservative
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
      endif
-     if (idust.eq.1) then
-        dens = rho*(1. - dustfrac)
-     else
-        dens = rho     !--set density same as rho
-     endif
+  endif
+
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     dens = rho*(1. - dustfrac)
   else
-     if (idust.eq.1) then
-        dens = rho*(1. - dustfrac)
-     else
-        dens = rho
-     endif
+     dens = rho
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
