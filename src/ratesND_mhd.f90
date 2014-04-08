@@ -1463,7 +1463,7 @@ contains
 
     if (idust.eq.1) then
        call dust_derivs
-    elseif (idust.eq.4) then
+    elseif (idust.eq.3 .or. idust.eq.4) then
        call dust_derivs_diffusion
     endif
 !
@@ -2534,9 +2534,13 @@ contains
     tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
     Di = dustfraci*tstopi
     Dj = dustfracj*tstopj
-    diffterm = 0.5*rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
-    ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
-    ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
+    if (idust.eq.4) then
+       diffterm = 0.5*rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
+       ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
+       ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
+    else
+       diffterm = 0. ! diffusion term done separately for idust=3
+    endif
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !

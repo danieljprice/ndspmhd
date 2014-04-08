@@ -46,7 +46,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
  real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu
- real, dimension(ndimV,ntot), intent(in) :: deltav
+ real, dimension(ndimV,ntot), intent(inout) :: deltav
  real, dimension(ntot),      intent(out) :: ddustfracdt
  real, dimension(ntot),    intent(inout) :: dudt
 !
@@ -83,6 +83,13 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
 !
  ddustfracdt = 0.
  listneigh = 0
+!
+! make sure deltav has been copied to ghosts
+!
+ do i=npart+1,ntot
+    j = ireal(i)
+    deltav(:,i) = deltav(:,j)
+ enddo
 !
 !--loop over all the link-list cells
 !
@@ -159,6 +166,8 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
                 if (iener.gt.0) then
                    if (iener.ne.2) stop 'only thermal energy equation implemented for idust=3'
                    du = uu(i) - uu(j)
+!                   dudt(i) = dudt(i) - pmassj*termi/(1. - dustfraci)*du
+!                   dudt(j) = dudt(j) - pmassi*termj/(1. - dustfracj)*du
                    dudt(i) = dudt(i) - dustfraci/rhoi*pmassj*du*projdeltavi*grkerni
                    dudt(j) = dudt(j) - dustfracj/rhoj*pmassi*du*projdeltavj*grkernj
                 endif

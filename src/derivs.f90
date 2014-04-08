@@ -99,7 +99,7 @@ subroutine derivs
  
  if (idust.eq.3) then
     ddustfracdt = 0.
-    !call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,uu,dendt)
+    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,uu,dendt)
     sum = 0.
     sum1 = 0.
     sum2 = 0.
@@ -110,7 +110,7 @@ subroutine derivs
        sum1 = sum1 - pmass(i)*uu(i)*ddustfracdt(i)
        sum2 = sum2 + pmass(i)*(1. - dustfrac(i))*dendt(i)
     enddo
-    print*,' sum = ',sum,sum1,sum2
+    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2
  endif
 
  if (itiming) then
