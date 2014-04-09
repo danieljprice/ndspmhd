@@ -128,7 +128,7 @@ subroutine get_rates
  real :: dtstop,projdeltavi,projdeltavj
  real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
- real :: sum,tstop
+ real :: sum,tstop,ratio,dvmax
 
 !
 !  (kernel related quantities)
@@ -496,6 +496,7 @@ subroutine get_rates
  fmean(:) = 0.
  dtdrag = huge(dtdrag)
  sum = 0.
+ ratio = 0.
  do i=1,npart
  
     rhoi  = rho(i)
@@ -544,13 +545,19 @@ subroutine get_rates
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
-    elseif (idust.eq.3) then
+    elseif (idust.eq.3 .or. idust.eq.4) then
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci
        rhogasi  = rhoi - rhodusti
        tstop = rhodusti*rhogasi/(Kdrag*rhoi)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
-       deltav(:,i) = 1./(1. - dustfraci)*force(:,i)*tstop
+       deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
+       ratio = max(dustfraci*tstop/dtcourant,ratio)
+       dtdrag = min(dtdrag,0.25*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
+       dvmax = maxval(abs(deltav(:,i)))
+       if (dvmax > 0.) then
+          dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
+       endif
     endif
 
 !
@@ -852,6 +859,8 @@ subroutine get_rates
     print*,' SUM (should be zero if conserving energy) = ',sum
     !read*
  endif
+ if (idust.ne.0 .and. ratio > 1.) print "(a,g8.3,a)",' WARNING: max ts/dt = ',ratio,' approximation not valid'
+
  if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
