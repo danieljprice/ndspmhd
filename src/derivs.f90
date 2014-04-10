@@ -40,7 +40,7 @@ subroutine derivs
  use rates, only:force
  implicit none
  logical, parameter :: itiming = .false.
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3
  integer :: i,inext
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
@@ -103,14 +103,16 @@ subroutine derivs
     sum = 0.
     sum1 = 0.
     sum2 = 0.
+    sum3 = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - uu(i)*ddustfracdt(i) &
              + (1.-dustfrac(i))*dendt(i))
-       sum1 = sum1 - pmass(i)*uu(i)*ddustfracdt(i)
-       sum2 = sum2 + pmass(i)*(1. - dustfrac(i))*dendt(i)
+       sum1 = sum1 + pmass(i)*(dot_product(vel(:,i),force(:,i)))
+       sum2 = sum2 - pmass(i)*uu(i)*ddustfracdt(i)
+       sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
     enddo
-    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2
+    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2,sum3
  endif
 
  if (itiming) then

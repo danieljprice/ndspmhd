@@ -1379,7 +1379,7 @@ contains
           call artificial_dissipation_sr
        elseif (idust.eq.1) then
           call artificial_dissipation_dust
-       elseif (idust.eq.4) then
+       elseif (idust.eq.3 .or. idust.eq.4) then
           call artificial_dissipation_dust_diffusion
        else
           call artificial_dissipation
@@ -1782,8 +1782,8 @@ contains
     !
     !--definitions
     !
-    termi = alphai*vsig*rhogasi*grkerni*abs(dvdotr)
-    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
+    termi = -alphai*vsig*rhogasi*grkerni*abs(dvdotr)
+    termj = -alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
 
     if (dvdotr.lt.0 .and. iav.le.2) then
        visc = 0.5*(termi*rho21i + termj*rho21j)
@@ -1982,27 +1982,25 @@ contains
     implicit none
     real :: vsi,vsj,qi,qj,visc
 
-    if (dvdotr.lt.0) then
+    if (dvdotr < 0.) then
        vsi = alphai*spsoundi - beta*dvdotr
        vsj = alpha(1,j)*spsoundj - beta*dvdotr
-       qi = rhogasi*vsi*dvdotr
-       qj = rhogasj*vsj*dvdotr
+       qi = -rhogasi*vsi*dvdotr
+       qj = -rhogasj*vsj*dvdotr
 
        visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
-    endif
-
-    !
-    !  add to thermal energy equation
-    !
-    if (damp.lt.tiny(0.)) then
-       !dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
-       !dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni
+          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj
+       endif
     endif
 
   end subroutine artificial_dissipation_dust_diffusion
-
 
 !--------------------------------------------------------------------------------------
 ! These are the artificial viscosity, thermal conduction terms
@@ -2478,7 +2476,7 @@ contains
  
 !----------------------------------------------------------------
 !  Derivatives of dust to gas ratio and deltav 
-!  for one fluid dust
+!  for (full) one fluid dust, as in Laibe & Price (2014b)
 !----------------------------------------------------------------
   subroutine dust_derivs
     implicit none
@@ -2544,7 +2542,7 @@ contains
     Di = dustfraci*tstopi
     Dj = dustfracj*tstopj
     if (idust.eq.4) then
-       diffterm = 0.5*rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
+       diffterm = rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
        ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
        ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
     else
