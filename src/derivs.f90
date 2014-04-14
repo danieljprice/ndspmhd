@@ -27,7 +27,7 @@
 subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
- use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav
+ use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr
  use rates,         only:dBevoldt,ddustfracdt,dendt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
@@ -40,7 +40,7 @@ subroutine derivs
  use rates, only:force
  implicit none
  logical, parameter :: itiming = .false.
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4
  integer :: i,inext
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
@@ -99,11 +99,12 @@ subroutine derivs
  
  if (idust.eq.3) then
     ddustfracdt = 0.
-    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,uu,dendt)
+    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,vel,pr,uu,dendt)
     sum = 0.
     sum1 = 0.
     sum2 = 0.
     sum3 = 0.
+    sum4 = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - uu(i)*ddustfracdt(i) &
@@ -111,8 +112,9 @@ subroutine derivs
        sum1 = sum1 + pmass(i)*(dot_product(vel(:,i),force(:,i)))
        sum2 = sum2 - pmass(i)*uu(i)*ddustfracdt(i)
        sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
+       sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustfracdt(i)
     enddo
-    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2,sum3
+    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2,sum3,sum4
  endif
 
  if (itiming) then

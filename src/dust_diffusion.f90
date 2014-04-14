@@ -34,18 +34,19 @@ contains
 !! assumes there has been a previous call to density
 !!------------------------------------------------------------------------
 
-subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,uu,dudt)
+subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,vel,pr,uu,dudt)
  use dimen_mhd, only:ndim, ndimV
  use debug,     only:trace
  use loguns,    only:iprint
  use bound,     only:ireal
  use kernels,   only:interpolate_kernel,radkern2
  use linklist
- use options,   only:iener
+ use options,   only:iener,Kdrag
  use get_neighbour_lists
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
- real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu
+ real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu,pr
+ real, dimension(ndimV,ntot), intent(in) :: vel
  real, dimension(ndimV,ntot), intent(inout) :: deltav
  real, dimension(ntot),      intent(out) :: ddustfracdt
  real, dimension(ntot),    intent(inout) :: dudt
@@ -62,11 +63,12 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
  real :: rij,rij2
  real :: hi,hi1,hj,hj1
  real :: hfacwabi,hfacwabj
- real :: pmassi,pmassj,rhoi,rhoj,gradhi
- real :: dustfraci,dustfracj,projdeltavi,projdeltavj
- real :: termi,termj,term,du
+ real :: pmassi,pmassj,rhoi,rhoj,gradhi,rho1i,rho1j,rhogasi,rhogasj
+ real :: dustfraci,dustfracj,projdeltavi,projdeltavj,dvgasdotr
+ real :: termi,termj,term,du,disstermi,disstermj,deltav2i,deltav2j
+ real :: tstopi,tstopj,pdvtermi,pdvtermj
  real, dimension(ndim) :: dx
- real, dimension(ndimv) :: dr
+ real, dimension(ndimv) :: dr,deltavi,deltavj,dvgas,vgasi,vgasj
 !
 !  (kernel quantities)
 !
@@ -114,8 +116,14 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
        hfacwabi = hi1**ndim
        pmassi    = pmass(i)
        rhoi      = rho(i)
+       rho1i     = 1./rhoi
        gradhi    = gradh(i)
        dustfraci = dustfrac(i)
+       rhogasi   = (1. - dustfraci)*rhoi
+       deltavi   = deltav(:,i)
+       deltav2i  = dot_product(deltavi,deltavi)
+       vgasi     = vel(:,i) - dustfraci*deltavi
+       tstopi    = dustfraci*rhogasi/Kdrag
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -138,7 +146,12 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
                 rij = sqrt(rij2)
                 pmassj    = pmass(j)
                 rhoj      = rho(j)
+                rho1j     = 1./rhoj
                 dustfracj = dustfrac(j)
+                rhogasj   = (1. - dustfracj)*rhoj
+                deltavj   = deltav(:,j)
+                deltav2j  = dot_product(deltavj,deltavj)
+                tstopj    = dustfracj*rhogasj/Kdrag
                 dr = 0.
                 dr(1:ndim) = dx(1:ndim)/(rij + epsilon(rij))  ! unit vector
 !     
@@ -157,19 +170,29 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
 !
                 projdeltavi = dot_product(deltav(:,i),dr)
                 projdeltavj = dot_product(deltav(:,j),dr)
-                termi = dustfraci*(1. - dustfraci)/rhoi*projdeltavi*grkerni
-                termj = dustfracj*(1. - dustfracj)/rhoj*projdeltavj*grkernj
+                termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
+                termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj
                 term = termi + termj
                 ddustfracdt(i) = ddustfracdt(i) - pmassj*term
                 ddustfracdt(j) = ddustfracdt(j) + pmassi*term
 
                 if (iener.gt.0) then
+                   disstermi = 0.!dustfraci*deltav2i/tstopi
+                   disstermj = 0.!dustfracj*deltav2j/tstopj
+                   
+                   vgasj = vel(:,j) - dustfracj*deltavj
+                   dvgas = vgasi - vgasj
+                   dvgasdotr = dot_product(dvgas,dr)
+
+                   pdvtermi = pr(i)*rho1i/rhogasi*pmassj*dvgasdotr*grkerni
+                   pdvtermj = pr(j)*rho1j/rhogasj*pmassi*dvgasdotr*grkernj
+
                    if (iener.ne.2) stop 'only thermal energy equation implemented for idust=3'
                    du = uu(i) - uu(j)
 !                   dudt(i) = dudt(i) - pmassj*termi/(1. - dustfraci)*du
 !                   dudt(j) = dudt(j) - pmassi*termj/(1. - dustfracj)*du
-                   dudt(i) = dudt(i) - dustfraci/rhoi*pmassj*du*projdeltavi*grkerni
-                   dudt(j) = dudt(j) - dustfracj/rhoj*pmassi*du*projdeltavj*grkernj
+                   dudt(i) = dudt(i) - dustfraci*rho1i*pmassj*du*projdeltavi*grkerni + pdvtermi + disstermi
+                   dudt(j) = dudt(j) - dustfracj*rho1j*pmassi*du*projdeltavj*grkernj + pdvtermj + disstermj
                 endif
              endif
 
