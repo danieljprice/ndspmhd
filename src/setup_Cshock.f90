@@ -124,13 +124,16 @@ subroutine setup
     endif
     dens(i) = denszero
     pmass(i) = massp
-    uu(i) = 1.0 ! isothermal
+    if (iener.gt.0) then
+       uu(i) = cs**2/(gamma*(gamma - 1.)) ! isothermal
+    endif
     Bfield(:,i) = 0.
     if (imhd > 0) then
        Bfield(1,i) = Bzero*cos(theta)
        Bfield(2,i) = Bzero*sin(theta)
     endif
  enddo 
+ polyk = cs**2
 !
 !--allow for tracing flow
 !
