@@ -54,7 +54,7 @@ subroutine step (integratorcheck)
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart) :: daldtin
- real :: hdt
+ real :: hdt,dtrhoi
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
  character(len=*), intent (inout) :: integratorcheck
@@ -227,11 +227,22 @@ subroutine step (integratorcheck)
 !
 !--set new timestep from courant/forces condition
 !
- if (.not.dtfixed) dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
- !if (C_cour*dtav.lt.dt) then
- !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
- !   dt = C_cour*dtav
- !endif
+ if (.not.dtfixed) then
+    dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
+    !if (C_cour*dtav.lt.dt) then
+    !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
+    !   dt = C_cour*dtav
+    !endif
+    !dtrho = huge(dtrho)
+    !do i=1,npart
+    !   dtrhoi = abs(rho(i)/(drhodt(i) + epsilon(drhodt)))
+    !   dtrho = min(dtrho,0.01*dtrhoi)
+    !enddo
+    !if (C_rho*dtrho/dtcourant .lt. C_cour) then
+    !   dt = dtrho
+    !   write(iprint,*) 'dtrho equiv courant number = ',C_rho*dtrho/dtcourant
+    !endif
+ endif
 
  if (trace) write (iprint,*) ' Exiting subroutine step'
       
