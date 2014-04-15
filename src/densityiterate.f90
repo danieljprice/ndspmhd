@@ -11,7 +11,7 @@
 !!------------------------------------------------------------------------
 
 subroutine densityiterate
- use dimen_mhd, only:ndim,dndim
+ use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint
  
@@ -23,7 +23,7 @@ subroutine densityiterate
  use rates, only:dhdt,drhodt
  use setup_params, only:hfact,psep
  use get_neighbour_lists, only:get_neighbour_list_partial
- use kernels, only:interpolate_kernel,radkern,radkern2
+ use kernels, only:interpolate_kernel,radkern2
  implicit none
  real, parameter :: pi = 3.1415926536
  integer :: i,j,n,icell,icellprev,nneigh,nneighi,itsdensity
