@@ -36,6 +36,7 @@ subroutine evwrite(t,etot,momtot)
  use fmagarray
  use timestep, only:dt
  use utils,    only:cross_product3D,minmaxave
+ use externf,  only:external_potentials
 !
 !--define local variables
 !

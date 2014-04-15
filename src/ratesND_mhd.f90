@@ -50,6 +50,7 @@ subroutine get_rates
  use matrixcorr,    only:dxdx,idxdx,jdxdx,ndxdx
  use utils,         only:cross_product3D
  use resistivity,   only:etafunc
+ use externf,       only:external_forces,pequil
 !
 !--define local variables
 !
@@ -105,7 +106,7 @@ subroutine get_rates
 !! real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsigB,vsigu
 !! real :: vsigii,vsigjj
- real :: prneti,prnetj,pequil
+ real :: prneti,prnetj
 !
 !  (av switch)
 !
@@ -589,8 +590,7 @@ subroutine get_rates
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
-                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i), &
-                            rhoi)
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i))
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
