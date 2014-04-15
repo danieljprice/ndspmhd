@@ -4,8 +4,51 @@
 !! This version uses a RKF45 integrator
 !! At the moment there is no XSPH and no direct summation replacements
 !!--------------------------------------------------------------------
-         
-subroutine step (integratorcheck)
+
+!-------------------------------------------------------------------
+! Runge-Kutta-Fehlberg Integrator
+!-------------------------------------------------------------------
+module rkf
+  implicit none
+
+!--integrator tolerance
+  real, parameter :: rkftol = 1.0E-06
+
+!--5th order RK coefficients
+  real, parameter :: b15 = 16./135.
+  real, parameter :: b25 = 0
+  real, parameter :: b35 = 6656./12825.
+  real, parameter :: b45 = 28561./56430.
+  real, parameter :: b55 = -9./50.
+  real, parameter :: b65 = 2./55.
+
+!--4th order RK coefficients
+  real, parameter :: b14 = 25./216.
+  real, parameter :: b24 = 0
+  real, parameter :: b34 = 1408./2565.
+  real, parameter :: b44 = 2197./4104.
+  real, parameter :: b54 = -1./5.
+
+  real, parameter :: a21 =  0.25
+  real, parameter :: a31 = 3./32.
+  real, parameter :: a32 = 9./32.
+  real, parameter :: a41 = 1932./2197.
+  real, parameter :: a42 = -7200./2197.
+  real, parameter :: a43 = 7296./2197.
+  real, parameter :: a51 = 439./216.
+  real, parameter :: a52 = -8.
+  real, parameter :: a53 = 3680./513.
+  real, parameter :: a54 = -845./4104.
+  real, parameter :: a61 = -8./27.
+  real, parameter :: a62 = 2.
+  real, parameter :: a63 = -3544./2565.
+  real, parameter :: a64 = 1859./4104.
+  real, parameter :: a65 = -11./40.
+
+end module rkf
+
+
+subroutine step ()
  use dimen_mhd
  use debug
  use loguns
@@ -40,12 +83,9 @@ subroutine step (integratorcheck)
  real :: dtmin, dtmax
  real :: rkferr, rkferrratio, dtfactor
  logical :: loop
- character (len=*), intent (inout) :: integratorcheck
-
- if (trim(integratorcheck).eq.'query') then
-    integratorcheck = 'rkf'
-    return
- endif
+ real, dimension(ndimV,npart) :: v1,v2,v3,v4,v5,v6
+ real, dimension(ndimV,npart) :: f1,f2,f3,f4,f5,f6
+ real, dimension(npart) :: dh1,dh2,dh3,dh4,dh5,dh6
 
  loop = .true.
 

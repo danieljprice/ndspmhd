@@ -28,7 +28,7 @@
 !! Note that we cannot use leapfrog for the GR code as force.ne.dvel/dt
 !!--------------------------------------------------------------------
          
-subroutine step (integratorcheck)
+subroutine step
  use dimen_mhd
  use debug
  use loguns
@@ -57,12 +57,6 @@ subroutine step (integratorcheck)
  real :: hdt,dtrhoi
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
- character(len=*), intent (inout) :: integratorcheck
-
- if (trim(integratorcheck).eq.'query') then
-    integratorcheck = 'leapfrog'
-    return
- endif
 !
 !--allow for tracing flow
 !      

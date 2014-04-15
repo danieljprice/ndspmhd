@@ -1,9 +1,8 @@
 !!--------------------------------------------------------------------
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
-!! This version uses a leapfrog predictor-corrector
+!! This version uses a 2nd order Runge-Kutta algorithm (i.e. midpoint)
 !! At the moment there is no XSPH and no direct summation replacements
-!! Note that we cannot use leapfrog for the GR code as force.ne.dvel/dt
 !!--------------------------------------------------------------------
          
 subroutine step
@@ -66,7 +65,7 @@ subroutine step
        endif
        if (imhd.gt.0) Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
-       hh(i) = hhin(i)            
+       hh(i) = hhin(i)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
@@ -81,7 +80,7 @@ subroutine step
        if (icty.ge.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        if (ihvar.eq.1) then
 !           hh(i) = hfact*(pmass(i)/rho(i))**dndim        ! my version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's           
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's
        elseif (ihvar.eq.2 .or. ihvar.eq.3) then
           hh(i) = hhin(i) + hdt*dhdt(i)
        endif
@@ -101,11 +100,11 @@ subroutine step
     endif
  enddo
 
- !if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--calculate all derivatives at the half step
 !
  call derivs
+ if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--Now do the corrector (full) step
 !
