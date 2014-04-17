@@ -51,7 +51,6 @@ subroutine alloc(newsizein,sortlist)
  use rates
  use xsph
  use matrixcorr
- use rkf
 !
 !--define local variables
 !
