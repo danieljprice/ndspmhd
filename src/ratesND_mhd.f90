@@ -1980,9 +1980,12 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust_diffusion
     implicit none
-    real :: vsi,vsj,qi,qj,visc
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
 
     if (dvdotr < 0.) then
+       !
+       ! artificial viscosity, as in LP14d
+       !
        vsi = alphai*spsoundi - beta*dvdotr
        vsj = alpha(1,j)*spsoundj - beta*dvdotr
        qi = -rhogasi*vsi*dvdotr
@@ -1995,8 +1998,16 @@ contains
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni
-          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj
+          !
+          ! artificial thermal conductivity, as in LP14d
+          !
+          du = uu(i) - uu(j)
+          cfaci = 0.5*alphaui*rhoi*vsigu*du
+          cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
+          diffu = cfaci*grkerni*rho1i**2 + cfacj*grkernj*rho1j**2
+          
+          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni + pmassj*diffu/(1. - dustfraci)
+          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj - pmassi*diffu/(1. - dustfracj)
        endif
     endif
 
