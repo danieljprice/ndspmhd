@@ -80,7 +80,7 @@ subroutine step ()
  real, dimension(ndimV) :: vcrossB
  real, dimension(ndim) :: xtemp
  real, dimension(ndimV) :: vtemp
- real :: dtmin, dtmax
+ real :: dtmin, dtmax, dtnext
  real :: rkferr, rkferrratio, dtfactor
  logical :: loop
  real, dimension(ndimV,npart) :: v1,v2,v3,v4,v5,v6
@@ -103,6 +103,7 @@ subroutine step ()
  hdt = 0.5*dt
 ! print *, 'DT = ', dt
  dtin = dt
+ dtnext = huge(dtnext)
 
  do i=1,npart
     xin(:,i) = x(:,i)
@@ -325,6 +326,7 @@ subroutine step ()
      dtfactor = MAX(dtfactor, 0.1)
      print *, 'New dt (down)', dt, dt*dtfactor, dtfactor
      dt = dt*dtfactor
+     dtnext = min(dt,dtnext)
      IF (dt.lt.dtmin) THEN
         print *, 'WARNING: timestep below allowed minimum'
         print *, 'Carrying on anyway with new dt'
@@ -352,7 +354,7 @@ subroutine step ()
 !
   if (.NOT.loop.and..NOT.dtfixed) then
      dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag)
-     dt = dt*dtfactor
+     dt = min(dt*dtfactor,dtnext)
      print *, 'Courant dt ', dt, dtfactor, loop
   endif
 
