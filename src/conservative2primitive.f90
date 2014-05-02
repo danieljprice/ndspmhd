@@ -422,7 +422,11 @@ subroutine primitive2conservative
   isetpolyk = .false.
   do i=1,npart
      if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-        rho(i) = dens(i)/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
+        ! Note: for most of the one-fluid dust setups, we set dens to mean the
+        ! total density. This is only fixed once conservative2primitive has 
+        ! been called. Hence do NOT divide by (1 - eps) below so that 
+        ! smoothing lengths can be guessed correctly
+        rho(i) = dens(i)  !/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
      else
         rho(i) = dens(i)
      endif
