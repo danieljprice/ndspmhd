@@ -1343,6 +1343,7 @@ contains
        endif
 
        vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
+       !vsig = max(4.*vsigi*vsigj/(vsigi + vsigj) - beta*dvdotr,0.)
        !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
        !vsigB = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
        !vsigB = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
@@ -1352,7 +1353,7 @@ contains
        !vsigu = abs(dvdotr)
 
        ! vsigdtc is the signal velocity used in the timestep control
-       vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
+       vsigdtc = max(vsig,0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
        if (idust.eq.1) then
           vsigdtc = vsigdtc + sqrt(deltav2i + deltav2j)
        endif
@@ -2547,9 +2548,21 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du
     real :: tstopi, tstopj, pdvtermi, pdvtermj
+    real :: const
+    real, parameter :: s_grain = 0.001
+    real, parameter :: rho_grain = 1./s_grain
+    real, parameter :: pi = 3.14159265358979
 
-    tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
-    tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
+    select case(idrag_nature)
+    case(2) !--Epstein regime
+       const = sqrt(pi*gamma/8.)
+       tstopi = s_grain*rho_grain*rho1i/spsoundi !*const
+       tstopj = s_grain*rho_grain*rho1j/spsoundj !*const
+    case default !--constant drag
+       tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
+       tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
+    end select
+
     Di = dustfraci*tstopi
     Dj = dustfracj*tstopj
     diffterm = rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
