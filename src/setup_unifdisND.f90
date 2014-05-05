@@ -43,7 +43,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,volume,totmass
- real :: denszero,rmin,rmax
+ real :: denszero
 !
 !--allow for tracing flow
 !
