@@ -28,7 +28,7 @@ program kernelplot3D
  data iplotorder /0, 2, 3, 61, 62, 63, 94, 62, 63, 13/   ! order in which kernels are plotted
  !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- plotall = .false.
+ plotall = .true.
  centre_on_particle = .true.
 
  !--options for plotit routine
@@ -42,7 +42,7 @@ program kernelplot3D
  samepage = .false.
  nacross = 3
  ndown = 2
- ndim = 1
+ ndim = 3
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
@@ -57,8 +57,9 @@ program kernelplot3D
  print*,' 5) gradw normalisation condition'
  print*,' 6) gradgradw normalisation condition'
  print*,' 7) del^2 rho as a function of r/h'
- print*,'Enter your selection now (-ve to NOT plot kernels as well; 0 = quit) '
+ print*,'Enter your selection now (0 = quit):'
  read*,iplot
+ if (iplot <= 0) stop
 
  if (samepage) then
     call pgbegin(0,'?',1,1) 
@@ -219,10 +220,6 @@ program kernelplot3D
           endif
        enddo its
 
-       if (ikernel.eq.13) then
-           print*,'eta =',(hmin + (i-1)*dh)/psep,'h = ',hi/psep,' GOT sums(8) = ',sums(8)
-       endif
-       
        if (erri.lt.errmin .and. xplot(i).gt.0.8 .and. xplot(i).lt.1.1) then
           imin = i
           errmin = erri
@@ -303,7 +300,7 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
  select case(iplot)
  case(7)
     ymin = -999.0
-    ymax = 2999.
+    ymax = 4999.
     ylabel = 'del^2 \rho'
  case(6)
     ymin = 0.9
