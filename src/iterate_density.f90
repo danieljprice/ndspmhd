@@ -63,7 +63,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
-  real, dimension(size(rho)) :: hhin,dndt
+  real, dimension(size(rho)) :: hhin,dndt,delsqn
   logical :: converged,redolink
   
 !!  integer :: itest
@@ -127,11 +127,15 @@ subroutine iterate_density
 !  only on a partial list
 !     
      if (ncalc.eq.npart) then
-        call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
+        call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
 !!        call output(0.0,1)
      else
-        call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
+        call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
+
+     delsqn = delsqn*pmass
+!    print*,' got delsqrho = ',delsqn(1:10)
+
 !
 !--rhoalt is the number density times the particle mass
 !  (also computed with ikernelalt instead of ikernel)
@@ -335,6 +339,7 @@ subroutine iterate_density
      endif
 
   enddo iterate
+  
 
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then

@@ -35,7 +35,7 @@ contains
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
+  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
                      gradh,gradhn,gradsoft,gradgradh,npart)
     use dimen_mhd,    only:ndim,ndimV
     use debug,        only:trace
@@ -54,7 +54,7 @@ contains
     integer, intent(in) :: npart
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
+    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
  
     integer :: i,j,k,n
     integer :: icell,iprev,nneigh
@@ -107,6 +107,7 @@ contains
        drhodt(i) = 0.
        densn(i) = 0.
        dndt(i) = 0.
+       delsqn(i) = 0.
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
@@ -234,11 +235,13 @@ contains
                    wabi = wabi*hfacwabi
                    wabalti = wabalti*hfacwabi
                    grkerni = grkerni*hfacwabi*hi1
+                   grgrkerni = grgrkerni*hfacwabi*hi1*hi1
                    grkernalti = grkernalti*hfacwabi*hi1
               !  (using hj)
                    wabj = wabj*hfacwabj
                    wabaltj = wabaltj*hfacwabj
                    grkernj = grkernj*hfacwabj*hj1
+                   grgrkernj = grgrkernj*hfacwabj*hj1*hj1
                    grkernaltj = grkernaltj*hfacwabj*hj1
               !  (calculate average)
                    if (ikernav.eq.2) then
@@ -258,9 +261,9 @@ contains
                    dwaltdhj = -rij*grkernaltj*hj1 - ndim*wabaltj*hj1
                    
                    dwdhdhi = ndim*(ndim+1)*wabi*hi1**2 + 2.*(ndim+1)*rij*hi1**2*grkerni &
-                           + rij**2*hi1**4*hfacwabi*grgrkerni
+                           + rij**2*hi1**2*grgrkerni
                    dwdhdhj = ndim*(ndim+1)*wabj*hj1**2 + 2.*(ndim+1)*rij*hj1**2*grkernj &
-                           + rij**2*hj1**4*hfacwabj*grgrkernj
+                           + rij**2*hj1**2*grgrkernj
                 endif
 !
 !--calculate density and number density
@@ -269,6 +272,8 @@ contains
                 rho(j) = rho(j) + pmassi*wabj*weight
                 densn(i) = densn(i) + wabalti*weight
                 densn(j) = densn(j) + wabaltj*weight
+                delsqn(i) = delsqn(i) + grgrkerni*weight
+                delsqn(j) = delsqn(j) + grgrkernj*weight
 !
 !--drhodt, dndt
 !
@@ -381,7 +386,7 @@ contains
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
   
-  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
+  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
                              gradh,gradhn,gradsoft,gradgradh,ntotal,nlist,ipartlist)
     use dimen_mhd,  only:ndim,ndimV
     use debug,      only:trace
@@ -401,7 +406,7 @@ contains
     integer, intent(in) :: ntotal
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho, drhodt, densn, dndt, gradh, gradhn, gradsoft, gradgradh
+    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -447,6 +452,7 @@ contains
        drhodt(i) = 0.
        densn(i) = 0.
        dndt(i) = 0.
+       delsqn(i) = 0.
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
@@ -531,6 +537,7 @@ contains
              wabi = wabi*hfacwabi
              wabalti = wabalti*hfacwabi
              grkerni = grkerni*hfacgrkerni
+             grgrkerni = grgrkerni*hfacwabi*hi1*hi1
              grkernalti = grkernalti*hfacgrkerni
 !
 !--derivative w.r.t. h for grad h correction terms (and dhdrho)
@@ -539,13 +546,14 @@ contains
              dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
 
              dwdhdhi = ndim*(ndim+1)*wabi*hi1**2 + 2.*(ndim+1)*rij*hi1**2*grkerni &
-                     + rij**2*hi1**4*hfacwabi*grgrkerni
+                     + rij**2*hi1**2*grgrkerni
 
 !
 !--calculate density and number density
 !
              rho(i) = rho(i) + pmassj*wabi
              densn(i) = densn(i) + wabalti
+             delsqn(i) = delsqn(i) + grgrkerni
 !
 !--drhodt, dndt
 !
