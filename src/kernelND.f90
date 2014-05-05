@@ -2945,7 +2945,6 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     radkern = max(radkern,  2.0)      ! interaction radius of kernel
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
-    print*,' DEBUG: setting up M_4 with radkern=',radkern  
     select case(ndim)
       case(1)
         cnormk = 0.66666666666

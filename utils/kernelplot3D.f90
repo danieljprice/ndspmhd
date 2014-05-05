@@ -8,11 +8,11 @@ program kernelplot3D
  integer :: ipart,maxiterations,iteration,isetup
  integer, dimension(10)   :: iplotorder
  real    :: q2,xi(3),rij2,mi,rhoi,rhoj
- real    :: hi,hi1,hi21,dh,hmin,hmax
+ real    :: hi,hi1,hi21,dh,hmin,hmax,hnew
  real    :: psep,dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
  real    :: dwdhi,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum
- logical :: samepage,plotall,plot_moments, plot_kernels,plot_gradw, plot_cubic
+ logical :: samepage,plotall,plot_cubic
  logical :: centre_on_particle
 !! character(len=50) :: text
  integer, parameter :: npts = 101 !241 !76 !51
@@ -20,7 +20,7 @@ program kernelplot3D
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
  real(kind=4), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
  integer, parameter :: nx = 32
- integer :: np,ipt,idim
+ integer :: np,ipt,idim,iplot
  real, dimension(3,2*nx**3+1) :: xyzpart
  real, parameter :: pi = 3.1415926536
  real, dimension(10) :: sums
@@ -29,16 +29,13 @@ program kernelplot3D
  !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
- plot_kernels = .true.
- plot_moments = .false. ! either plot kernel moments or density/normalisation conditions
  centre_on_particle = .true.
 
  !--options for plotit routine
- plot_gradw = .false.
  plot_cubic = .true.  ! plot cubic spline as a comparison
 
  if (plotall) then
-    nkernels = 70
+    nkernels = 99
  else
     nkernels = 6
  endif
@@ -49,6 +46,19 @@ program kernelplot3D
 
  print*,'welcome to kernel city, where the grass is green and the kernels are pretty...'
  print*,'plotting kernels normalised in ',ndim,' dimensions'
+ 
+ iplot = 1
+ menu: do while (iplot /= 0)
+ print*,'Select your plot (plots shown for all kernels and two different lattices): '
+ print*,' 1) kernels, derivatives and second derivatives as function of r/h'
+ print*,' 2) kernel normalisation conditions as function of r/h '
+ print*,' 3) kernel moments (R_xy) as function of r/h'
+ print*,' 4) density as function of r/h'
+ print*,' 5) gradw normalisation condition'
+ print*,' 6) gradgradw normalisation condition'
+ print*,' 7) del^2 rho as a function of r/h'
+ print*,'Enter your selection now (-ve to NOT plot kernels as well; 0 = quit) '
+ read*,iplot
 
  if (samepage) then
     call pgbegin(0,'?',1,1) 
@@ -68,18 +78,19 @@ program kernelplot3D
  dh   = (hmax-hmin)/real(npts - 1)
  ipt = 0
  
- if (plot_kernels) then
+ if (iplot==1) then
     do i=1,npts
        hi = hmin + (i-1)*dh
        xplot(i) = hi/psep
     enddo
     do j=1,nkernels
        if (j.gt.0 .and. j.le.size(iplotorder)) ikernel = iplotorder(j)
+       if (plotall) ikernel = j
        call setkern(ikernel,ndim,ierr)
        print*,'plotting ',ikernel,': '//trim(kernelname)//' kernel, r^2 = ',radkern2
        call plot_kernel(j,xplot)
     enddo
- endif
+ else
  
  do j=0,nkernels
     if (plotall) then
@@ -163,6 +174,7 @@ program kernelplot3D
                    sums(6) = sums(6) - mi/rhoi*gradwi*dx(1)*dx(3)*rij1
                    rhoj = rhoi
                    sums(7) = sums(7) + rhoi*mi*(gradwi/rhoi**2 + gradwi/rhoj**2)*dx(1)*rij1
+                   sums(8) = sums(8) + mi*gradgradwi
                 endif
              endif
           enddo
@@ -170,9 +182,10 @@ program kernelplot3D
           !--Newton-Raphson stuff for density
           !
           if (i.eq.ipt .and. iteration.eq.maxiterations) then
-              print*,iteration,hi/psep,xi(:),radkern2
-              print*,'rho = ',wsum,' grad1 = ',sums(7)
+              print*,'iteration ',iteration,' h/psep = ',hi/psep,' R = ',sqrt(radkern2)
+              print*,'rho = ',wsum,' grad1 = ',sums(7),' del2rho = ',sums(8)
           endif
+
           rhoi     = wsum
           rhohi    = mi/(hi/hfact)**ndim
           dhdrhoi  = - hi/(ndim*wsum)
@@ -183,7 +196,16 @@ program kernelplot3D
           
           erri = abs(wsum - 1.)
           
-          if (maxiterations.gt.1) hi = hi - func/dfdh
+          if (maxiterations.gt.1) then
+             hnew = hi - func/dfdh
+             if (hnew < 0.8*hi) then
+                hi = 0.8*hi
+             elseif (hnew > 1.2*hi) then
+                hi = 1.2*hi
+             else
+                hi = hnew
+             endif
+          endif
           sums(1:3) = ndim*sums(1:3)
 
           wnorm(i,isetup) = wsum
@@ -191,20 +213,15 @@ program kernelplot3D
           grad2wnorm(i,isetup) = 0.5*grad2wsum
 
           if (isetup.eq.1) then
-             yplot(i) = wsum 
-             !yplot(i) = log10(erri)
-             if (plot_gradw) yplot(i) = sums(4)
-             if (ikernel.eq.0) cubic1(i) = yplot(i)
-             if (plot_moments) yplot(i) = sums(2)
-          endif
-          if (isetup.eq.2) then
-             yplot2(i) = wsum
-             !yplot2(i) = log10(erri)
-             if (plot_moments) yplot2(i) = sums(2)
-             if (plot_gradw) yplot2(i) = sums(4)
-             if (ikernel.eq.0) cubic2(i) = yplot2(i)
+             call select_plot(iplot,ikernel,sums,wsum,0.5*grad2wsum,yplot(i),cubic1(i))
+          elseif (isetup.eq.2) then
+             call select_plot(iplot,ikernel,sums,wsum,0.5*grad2wsum,yplot2(i),cubic2(i))
           endif
        enddo its
+
+       if (ikernel.eq.13) then
+           print*,'eta =',(hmin + (i-1)*dh)/psep,'h = ',hi/psep,' GOT sums(8) = ',sums(8)
+       endif
        
        if (erri.lt.errmin .and. xplot(i).gt.0.8 .and. xplot(i).lt.1.1) then
           imin = i
@@ -229,19 +246,107 @@ program kernelplot3D
          endif
          print*,' wsum (cubic,closep) = ',5.*yplot(ipt),5.*yplot2(ipt),' for cubic spline = ',5.*cubic1(ipt),5.*cubic2(ipt)
        endif
-       if (plot_kernels) then
+       select case(iplot)
+       case(3)
+          call plot_moments(j,xplot,yplot,yplot2,cubic1,cubic2)
+       case(2)
           call plot_normalisations(nkernels+j,xplot,wnorm,gradwnorm,grad2wnorm)
           !call plotit(nkernels+j,xplot,yplot,yplot2,cubic1,cubic2)
-       else
-          call plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
-       endif
+       case default
+          call plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
+       end select
        !read*
     endif
  enddo
+ 
+ endif
  call pgend
- !read*
+ 
+ enddo menu
 
 contains
+
+subroutine select_plot(iplot,ikernel,sums,wsum,grad2sum,yploti,cubici)
+ integer, intent(in)  :: iplot,ikernel
+ real,    intent(in)  :: sums(:),wsum,grad2sum
+ real,    intent(out) :: yploti,cubici
+
+ select case(iplot)
+ case(7)
+    yploti = sums(8)
+ case(6)
+    yploti = grad2sum
+ case(5)
+    yploti = sums(4)
+ case(4)
+    yploti = wsum
+ case(3)
+    yploti = sums(2)
+ case default
+    yploti = 0.
+ end select
+ if (ikernel.eq.0) cubici = yploti
+ 
+end subroutine select_plot
+ 
+
+subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
+ implicit none
+ integer, intent(in) :: j,iplot
+ real(kind=4), dimension(:), intent(in) :: xplot,yplot,yplot2,cubic1,cubic2
+ real(kind=4) :: xmin,xmax,ymin,ymax
+ character(len=20) :: ylabel
+
+ xmin = minval(xplot)
+ xmax = maxval(xplot)
+ 
+ select case(iplot)
+ case(7)
+    ymin = -999.0
+    ymax = 2999.
+    ylabel = 'del^2 \rho'
+ case(6)
+    ymin = 0.9
+    ymax = 1.1
+    ylabel = '\nabla^2 W_{norm}'
+ case(5)
+    ymin = 0.9
+    ymax = 1.1
+    ylabel = '\nabla W_{norm}'
+ case default
+    ymin = 0.95
+    ymax = 1.08
+    ylabel = 'W(norm)'
+ end select
+
+ call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'\eta',trim(ylabel), &
+               trim(kernelname),0,1,&
+               0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
+ call pgmtxt('t',-2.0_4,0.96_4,1.0_4,trim(kernelname))
+!--cubic spline
+ call pgsci(2)
+ if (plot_cubic) then
+    call pgsls(4)
+    call pgline(size(xplot),xplot,cubic1)
+ endif
+!--current kernel
+ call pgsls(1)
+ call pgline(size(xplot),xplot,yplot)
+
+ call pgsci(3)
+!--cubic spline
+ if (plot_cubic) then
+    call pgsls(4)
+    call pgline(size(xplot),xplot,cubic2)
+ endif
+!--current kernel 
+ call pgsls(2)
+ call pgline(size(xplot),xplot,yplot2)
+
+ call pgsci(1)
+ call pgsls(1)
+ 
+end subroutine plotit
 
 subroutine plot_kernel(j,xplot)
  implicit none
@@ -256,7 +361,7 @@ subroutine plot_kernel(j,xplot)
  xmax = 3. !maxval(xplot)
  ymin = -2.2
  ymax = 1.4
- ylabel = 'W(norm)'
+ ylabel = 'W, grad W, del^2 W'
 !
 !--setup x axis
 !
@@ -330,7 +435,7 @@ subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
  
 end subroutine plot_normalisations
 
-subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
+subroutine plot_moments(j,xplot,yplot,yplot2,cubic1,cubic2)
  implicit none
  integer, intent(in) :: j
  real(kind=4), dimension(:), intent(in) :: xplot,yplot,yplot2,cubic1,cubic2
@@ -341,24 +446,7 @@ subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
  xmax = maxval(xplot)
  ymin = -0.05
  ymax = 0.12
- !ymin = minval(yplot2) - 0.005
- !ymax = maxval(yplot2) + 0.005
- !if (j.eq.1) then
- if (plot_gradw) then
-    ymin = 0.9
-    ymax = 1.1
-    ylabel = '\nabla W_{norm}'
- elseif (plot_moments) then
-    ymin = -0.05
-    ymax = 0.12
-    ylabel = 'R_{xy}' 
- else
-    ymin = 0.95
-    ymax = 1.08
-    ylabel = 'W(norm)'
-    !ylabel = 'R_{xy}'
- endif
- !endif
+ ylabel = 'R_{xy}' 
 
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/\gDx',trim(ylabel), &
                trim(kernelname),0,1,&
@@ -387,7 +475,7 @@ subroutine plotit(j,xplot,yplot,yplot2,cubic1,cubic2)
  call pgsci(1)
  call pgsls(1)
  
-end subroutine plotit
+end subroutine plot_moments
 
 subroutine setpart(ilattice,nx,n,ndim,xyzpart,ipart,ymax,zmax)
  implicit none
