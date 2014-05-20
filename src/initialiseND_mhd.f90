@@ -236,7 +236,6 @@ subroutine initialise
  endif
  alpha(2,:) = alphaumin
  alpha(3,:) = alphaBmin
- gradh = 1.
  divB = 0.
  curlB = 0.
  fmag = 0.
