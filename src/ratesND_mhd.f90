@@ -375,7 +375,7 @@ subroutine get_rates
        hi = hh(i)
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
-        call quit
+          call quit
        endif
        hi1 = h1(i)
        hi21 = hi1*hi1
