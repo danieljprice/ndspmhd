@@ -99,8 +99,11 @@ subroutine setup
  !  use very small htol to get it right
  !
  oldtolh = tolh
- tolh = 1.e-8
+ tolh = 1.e-12
  call primitive2conservative
+ do i=1,ntotal
+    dens(i) = pmass(i)/(hh(i)/hfact)**ndim
+ enddo
  tolh = oldtolh
 
  !
