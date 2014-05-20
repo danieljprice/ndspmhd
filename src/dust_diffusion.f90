@@ -122,7 +122,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
        rhogasi   = (1. - dustfraci)*rhoi
        deltavi   = deltav(:,i)
        deltav2i  = dot_product(deltavi,deltavi)
-       vgasi     = vel(:,i) - dustfraci*deltavi
+       vgasi     = vel(:,i) !- dustfraci*deltavi
        tstopi    = dustfraci*rhogasi/Kdrag
 !
 !--for each particle in the current cell, loop over its neighbours
@@ -180,7 +180,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
                    disstermi = 0.!dustfraci*deltav2i/tstopi
                    disstermj = 0.!dustfracj*deltav2j/tstopj
                    
-                   vgasj = vel(:,j) - dustfracj*deltavj
+                   vgasj = vel(:,j) !- dustfracj*deltavj
                    dvgas = vgasi - vgasj
                    dvgasdotr = dot_product(dvgas,dr)
 
