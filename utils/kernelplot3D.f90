@@ -7,11 +7,11 @@ program kernelplot3D
  integer :: nkernels,nacross,ndown,nneigh
  integer :: ipart,maxiterations,iteration,isetup
  integer, dimension(10)   :: iplotorder
- real    :: q2,xi(3),rij2,mi,rhoi,rhoj
+ real    :: q2,q,xi(3),rij2,mi,rhoi,rhoj
  real    :: hi,hi1,hi21,dh,hmin,hmax,hnew
  real    :: psep,dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact
  real    :: volfrac,dzmax,dymax,erri,errmin
- real    :: dwdhi,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum
+ real    :: dwdhi,d2wdh2i,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum
  logical :: samepage,plotall,plot_cubic
  logical :: centre_on_particle
 !! character(len=50) :: text
@@ -57,6 +57,7 @@ program kernelplot3D
  print*,' 5) gradw normalisation condition'
  print*,' 6) gradgradw normalisation condition'
  print*,' 7) del^2 rho as a function of r/h'
+ print*,' 8) del^2 kernel stuff as a function of r/h'
  print*,'Enter your selection now (0 = quit):'
  read*,iplot
  if (iplot <= 0) stop
@@ -151,6 +152,7 @@ program kernelplot3D
              rij2 = dot_product(dx(1:ndim),dx(1:ndim))
              q2 = rij2*hi21
              if (q2.le.radkern2) then
+                q      = sqrt(q2)
                 rij    = sqrt(rij2)
                 rij1   = 1./rij
                 nneigh = nneigh + 1
@@ -159,6 +161,7 @@ program kernelplot3D
                 gradwi = gradwi*hi1**(ndim+1)
                 gradgradwi = gradgradwi*hi1**(ndim+2)
                 dwdhi  = -rij*gradwi*hi1 - ndim*wabi*hi1
+                d2wdh2i = ndim*(ndim+1)*wabi*hi21 + 2.*(ndim+1)*q*gradwi*hi1 + gradgradwi*q2
                 
                 wsum = wsum + mi*wabi
                 gradhsum = gradhsum + mi*dwdhi
@@ -175,18 +178,14 @@ program kernelplot3D
                    sums(6) = sums(6) - mi/rhoi*gradwi*dx(1)*dx(3)*rij1
                    rhoj = rhoi
                    sums(7) = sums(7) + rhoi*mi*(gradwi/rhoi**2 + gradwi/rhoj**2)*dx(1)*rij1
-                   sums(8) = sums(8) + mi*gradgradwi
+                   sums(8) = sums(8) + mi*d2wdh2i
+                   sums(9) = sums(9) + mi*(gradgradwi + (ndim - 1)*gradwi*hi1/sqrt(q2))
                 endif
              endif
           enddo
           !
           !--Newton-Raphson stuff for density
           !
-          if (i.eq.ipt .and. iteration.eq.maxiterations) then
-              print*,'iteration ',iteration,' h/psep = ',hi/psep,' R = ',sqrt(radkern2)
-              print*,'rho = ',wsum,' grad1 = ',sums(7),' del2rho = ',sums(8)
-          endif
-
           rhoi     = wsum
           rhohi    = mi/(hi/hfact)**ndim
           dhdrhoi  = - hi/(ndim*wsum)
@@ -217,6 +216,10 @@ program kernelplot3D
              call select_plot(iplot,ikernel,sums,wsum,0.5*grad2wsum,yplot(i),cubic1(i))
           elseif (isetup.eq.2) then
              call select_plot(iplot,ikernel,sums,wsum,0.5*grad2wsum,yplot2(i),cubic2(i))
+          endif
+          if (i.eq.ipt .and. iteration.eq.maxiterations .and. isetup.eq.1) then
+              print*,'iteration ',iteration,' h/psep = ',hi/psep,' R = ',sqrt(radkern2)
+              print*,'rho = ',wsum,' grad1 = ',sums(7),' yplot = ',yplot(i)
           endif
        enddo its
 
@@ -269,6 +272,8 @@ subroutine select_plot(iplot,ikernel,sums,wsum,grad2sum,yploti,cubici)
  real,    intent(out) :: yploti,cubici
 
  select case(iplot)
+ case(8)
+    yploti = sums(9)
  case(7)
     yploti = sums(8)
  case(6)
@@ -298,7 +303,7 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
  xmax = maxval(xplot)
  
  select case(iplot)
- case(7)
+ case(7,8)
     ymin = -999.0
     ymax = 4999.
     ylabel = 'del^2 \rho'
@@ -351,7 +356,7 @@ subroutine plot_kernel(j,xplot)
  real(kind=4), dimension(:), intent(in) :: xplot
  real(kind=4) :: xmin,xmax,ymin,ymax,q
  integer :: i
- real(kind=4), dimension(0:ikern) :: dqkern
+ real(kind=4) :: dqkern(0:ikern),wstuff(0:ikern),wstuff2(0:ikern)
  character(len=20) :: ylabel
 
  xmin = 0. !minval(xplot)
@@ -367,6 +372,10 @@ subroutine plot_kernel(j,xplot)
     q2 = i*dq2table
     q = sqrt(q2)
     dqkern(i) = q
+    !--this is h^ndim * W + h^(ndim+2) * del^2 W
+    wstuff(i) = wij(i) + grgrwij(i) + (ndim - 1)/q*grwij(i)
+    !--this is h^ndim * W + h^(ndim+2) * d^2 W/dh^2
+    wstuff2(i) = 0.*wij(i) + ndim*(ndim+1)*wij(i) + 2.*(ndim+1)*q*grwij(i) + q**2*grgrwij(i)
  enddo
  print*,'xmin,max = ',xmin,xmax
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',trim(ylabel), &
@@ -385,6 +394,11 @@ subroutine plot_kernel(j,xplot)
  call pgsci(3)
  call pgsls(3)
  call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
+ !--other term
+ call pgsci(4)
+ call pgsls(4)
+ !call pgline(ikern+1,dqkern(0:ikern),wstuff(0:ikern))
+ call pgline(ikern+1,dqkern(0:ikern),wstuff2(0:ikern))
  !--restore settings
  call pgsci(1)
  call pgsls(1)
