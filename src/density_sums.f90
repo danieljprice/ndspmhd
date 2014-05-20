@@ -43,7 +43,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    use part,         only:Bfield,ntotal,uu,psi,itype
+    use part,         only:Bfield,ntotal,uu,psi,itype,itypebnd
     use setup_params, only:hfact
     use rates,        only:dBevoldt
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -74,7 +74,7 @@ contains
     real :: dvdotr,pmassi,pmassj,projBi,projBj
     real, dimension(ndxdx) :: dxdxi
     real, dimension(ndimV) :: dr
-    integer :: itypei
+    integer :: itypei,itypej
 !
 !  (kernel quantities)
 !
@@ -102,22 +102,24 @@ contains
     dr(:) = 0.
 
     do i=1,npart
-       rhoin(i) = rho(i)
-       rho(i) = 0.
-       drhodt(i) = 0.
-       densn(i) = 0.
-       dndt(i) = 0.
-       delsqn(i) = 0.
-       gradh(i) = 0.
-       gradhn(i) = 0.
-       gradsoft(i) = 0.
-       gradgradh(i) = 0.
-       if (imhd.eq.5) dBevoldt(:,i) = 0.
-       if (imhd.eq.0) then
-          psi(i) = 0.
-          unity(i) = 0.
+       if (itype(i) /= itypebnd) then
+          rhoin(i) = rho(i)
+          rho(i) = 0.
+          drhodt(i) = 0.
+          densn(i) = 0.
+          dndt(i) = 0.
+          delsqn(i) = 0.
+          gradh(i) = 0.
+          gradhn(i) = 0.
+          gradsoft(i) = 0.
+          gradgradh(i) = 0.
+          if (imhd.eq.5) dBevoldt(:,i) = 0.
+          if (imhd.eq.0) then
+             psi(i) = 0.
+             unity(i) = 0.
+          endif
+          dxdx(:,i) = 0.
        endif
-       dxdx(:,i) = 0.
     enddo
     do i=1,ntotal
        h1(i) = 1./hh(i)
@@ -157,7 +159,8 @@ contains
           loop_over_neighbours: do n = idone+1,nneigh
              j = listneigh(n)
              !--skip particles of different type
-             if (itype(j).ne.itypei .and. itype(j).ne.1) cycle loop_over_neighbours
+             itypej = itype(j)
+             if (itypej.ne.itypei .and. itypej.ne.itypebnd) cycle loop_over_neighbours
 
              dx(:) = xi(:) - x(:,j)
 
@@ -174,6 +177,7 @@ contains
 !
              if ((q2i.LT.radkern2).OR.(q2j.LT.radkern2)  &
                   .AND. (i.LE.npart .OR. j.LE.npart)) then
+
                 !if (i.eq.itemp .or. j.eq.itemp) then
                 !   print*,' neighbour,r/hi,r/hj,hi,hj:',i,j,sqrt(q2i),sqrt(q2j),hi,hj,rho(itemp)
                 !endif
@@ -268,12 +272,17 @@ contains
 !
 !--calculate density and number density
 !
-                rho(i) = rho(i) + pmassj*wabi*weight
-                rho(j) = rho(j) + pmassi*wabj*weight
-                densn(i) = densn(i) + wabalti*weight
-                densn(j) = densn(j) + wabaltj*weight
-                delsqn(i) = delsqn(i) + grgrkerni*weight
-                delsqn(j) = delsqn(j) + grgrkernj*weight
+                if (itypei /= itypebnd) then
+                   rho(i) = rho(i) + pmassj*wabi*weight
+                   densn(i) = densn(i) + wabalti*weight
+                   delsqn(i) = delsqn(i) + grgrkerni*weight
+                endif
+                
+                if (itypej /= itypebnd) then
+                   rho(j) = rho(j) + pmassi*wabj*weight
+                   densn(j) = densn(j) + wabaltj*weight
+                   delsqn(j) = delsqn(j) + grgrkernj*weight
+                endif
 !
 !--drhodt, dndt
 !
@@ -301,12 +310,16 @@ contains
 !  need to divide by rho once rho is known
 !  also do the number density version
 
-                   gradh(i) = gradh(i) + weight*pmassj*dwdhi
-                   gradh(j) = gradh(j) + weight*pmassi*dwdhj
-                   gradhn(i) = gradhn(i) + weight*dwaltdhi
-                   gradhn(j) = gradhn(j) + weight*dwaltdhj
-                   gradgradh(i) = gradgradh(i) + weight*pmassj*dwdhdhi
-                   gradgradh(j) = gradgradh(j) + weight*pmassi*dwdhdhj
+                   if (itypei /= itypebnd) then
+                      gradh(i) = gradh(i) + weight*pmassj*dwdhi
+                      gradhn(i) = gradhn(i) + weight*dwaltdhi
+                      gradgradh(i) = gradgradh(i) + weight*pmassj*dwdhdhi
+                   endif
+                   if (itypej /= itypebnd) then
+                      gradh(j) = gradh(j) + weight*pmassi*dwdhj
+                      gradhn(j) = gradhn(j) + weight*dwaltdhj
+                      gradgradh(j) = gradgradh(j) + weight*pmassi*dwdhdhj
+                   endif
                 endif
                 
                 if (imhd.eq.0) then
@@ -341,32 +354,13 @@ contains
           iprev = i
           if (iprev.NE.-1) i = ll(i)  ! possibly should be only IF (iprev.NE.-1)
        enddo loop_over_cell_particles
-            
+
     enddo loop_over_cells
-    
-   ! do i=1,npart
-       !if (psi(i).lt.0.999 .or. psi(i).gt.1.001) print*,'unity = ',i,x(1,i),psi(i)
-       !if (imhd.eq.0) then
-       !   print*,i,' del^2 rho = ',psi(i)
-       !endif
-       !   psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
-       !   if (psi(i)/uu(i).lt.0.01) psi(i) = 0.
-       !else
-        !  psi(i) = 0.
-       !endif
-!       psi(i) = abs(uu(i) - psi(i)/unity(i)) !/psi(i)
-  !  enddo
-    !print*,'uu = ',i,uu(i),psi(i),uu(i)-psi(i)
-    !enddo
-    !print*,'end of density, rho, gradh = ',rho(itemp),gradh(itemp),hh(itemp),numneigh(itemp)
-    !print*,'maximum number of neighbours = ',MAXVAL(numneigh),MAXLOC(numneigh),rho(MAXLOC(numneigh))
-    !print*,'minimum number of neighbours = ', &
-    !       MINVAL(numneigh(1:npart)),MINLOC(numneigh(1:npart)), &
-    !       rho(MINLOC(numneigh(1:npart)))
+
     if (imhd.eq.5) then
-    do i=1,npart
-       dBevoldt(:,i) = dBevoldt(:,i)/rhoin(i)**2
-    enddo
+       do i=1,npart
+          dBevoldt(:,i) = dBevoldt(:,i)/rhoin(i)**2
+       enddo
     endif
     return
   end subroutine density
@@ -395,7 +389,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:iamincell,numneigh
     use options,      only:igravity,imhd,ikernel,ikernelalt,iprterm
-    use part,         only:Bfield,uu,psi,itype
+    use part,         only:Bfield,uu,psi,itype,itypebnd
     use rates,        only:dBevoldt
     use setup_params, only:hfact
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -496,13 +490,14 @@ contains
        veli(:) = vel(:,i) 
        dxdxi(:) = 0.
        itypei = itype(i)
+       if (itypei.eq.itypebnd) cycle loop_over_particles
 !
 !--loop over current particle's neighbours
 !
        loop_over_neighbours: do n = 1,nneigh
           j = listneigh(n)
           !--skip particles of different type
-          if (itype(j).ne.itypei .and. itype(j).ne.1) cycle loop_over_neighbours
+          if (itype(j).ne.itypei .and. itype(j).ne.itypebnd) cycle loop_over_neighbours
 
           dx(:) = xi(:) - x(:,j)
 !
