@@ -350,7 +350,7 @@ subroutine conservative2primitive
      do i=1,npart
         if (itype(i).eq.itypebnd) then
            j = ireal(i)
-           call copy_particle(i,j)
+           if (j > 0) call copy_particle(i,j)
            !vel(:,i) = vel(:,j)
            !where (ibound.eq.1) vel(:,i) = -vel(:,j)
 !!           uu(i) = uu(j)
@@ -459,13 +459,14 @@ subroutine primitive2conservative
      hh(1:ntotal) = hav
      print*,'HMIN,hmax,hav = ',hmin,hmax,hav
   endif
+
 !
 !--overwrite this with a direct summation
 !  
   if (icty.eq.0 .or. ndirect.lt.100000) then
      if (any(hh(1:npart).le.tiny(hh))) stop 'h < 0 in primitive2conservative'
      write(iprint,*) 'Calculating initial density...' 
-     if (ANY(ibound.GT.1)) call set_ghost_particles
+     if (any(ibound > 1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
      ikernav = 3                ! consistent with h for first density evaluation
@@ -600,7 +601,7 @@ subroutine primitive2conservative
         do i=1,npart
            if (itype(i).eq.itypebnd) then
               j = ireal(i)
-              Bfield(:,i) = Bfield(:,j)
+              if (j > 0) Bfield(:,i) = Bfield(:,j)
            endif
         enddo
      endif
@@ -643,20 +644,22 @@ subroutine primitive2conservative
 !
 !--copy the conservative variables onto the ghost particles
 !  
-  if (any(ibound.gt.1)) then
+  if (any(ibound > 1)) then
      do i=npart+1,ntotal
         j = ireal(i)
-        call copy_particle(i,j)
-        if (any(ibound.eq.6)) then
-           pri = 2.5 - 0.1*dens(i)*x(2,i)
-           uu(i) = pri/((gamma-1.)*dens(i))
-           spsound(i) = sqrt(gamma*pri/dens(i))
-           en(i) = uu(i)
-           if (iener.ne.2) stop 'iener.ne.2 not implemented for ibound=6'
-        else
-           en(i) = en(j)
-           pr(i) = pr(j)
-           spsound(i) = spsound(j)
+        if (j > 0) then
+           call copy_particle(i,j)
+           if (any(ibound.eq.6)) then
+              pri = 2.5 - 0.1*dens(i)*x(2,i)
+              uu(i) = pri/((gamma-1.)*dens(i))
+              spsound(i) = sqrt(gamma*pri/dens(i))
+              en(i) = uu(i)
+              if (iener.ne.2) stop 'iener.ne.2 not implemented for ibound=6'
+           else
+              en(i) = en(j)
+              pr(i) = pr(j)
+              spsound(i) = spsound(j)
+           endif
         endif
      enddo
   endif
@@ -667,12 +670,10 @@ subroutine primitive2conservative
      do i=1,npart
         if (itype(i).eq.itypebnd) then
            j = ireal(i)
-           call copy_particle(i,j)
-           vel(:,i) = vel(:,j)
-           !where (ibound.eq.1) vel(:,i) = -vel(:,j)
-!!           uu(i) = uu(j)
-!           pr(i) = pr(j)
-!           spsound(i) = spsound(j)
+           if (j > 0) then
+              call copy_particle(i,j)
+              vel(:,i) = vel(:,j)
+           endif
         endif
      enddo
   endif

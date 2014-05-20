@@ -36,7 +36,7 @@ subroutine boundary
  use options, only:ibound
  use part, only:x,vel,npart,x0
  use part_in, only:velin,xin
- use timestep, only:time
+! use timestep, only:time
  use setup_params, only:Omega0,domegadr
  use rates, only:force
 ! use part_in

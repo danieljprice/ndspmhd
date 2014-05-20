@@ -54,7 +54,7 @@ subroutine step
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart) :: daldtin
- real :: hdt,dtrhoi
+ real :: hdt !,dtrhoi
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
 !
@@ -105,9 +105,13 @@ subroutine step
 !
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
+       if (itype(i).eq.itypebnd) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
+          if (j > 0) then
+             x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
+          else
+             x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)
+          endif
        elseif (itype(i).eq.itypebnd2) then  ! velocities are vr, vphi
           call coord_transform(xin(1:ndim,i),ndim,1,xcyl(:),ndim,2)
           velcyl(1) = 0.

@@ -87,12 +87,14 @@ subroutine iterate_density
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
   ncalcprev = 0
-  gradh = 0.
-  gradhn = 0.
-  gradsoft = 0.
-  gradgradh = 0.
-  drhodt = 0.
-  dhdt = 0.
+  where (itype /= itypebnd)
+     gradh = 0.
+     gradhn = 0.
+     gradsoft = 0.
+     gradgradh = 0.
+     drhodt = 0.
+     dhdt = 0.
+  end where
   hhin(1:npart) = hh(1:npart)
   if (any(hh(1:npart).le.tiny(hh))) then
      write(iprint,*) 'error: h <= 0 in density call'
@@ -128,12 +130,13 @@ subroutine iterate_density
 !     
      if (ncalc.eq.npart) then
         call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
-!!        call output(0.0,1)
      else
         call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
 
-     delsqn = delsqn*pmass
+     do i=1,ncalc
+        delsqn(i) = delsqn(i)*pmass(i)
+     enddo
 !    print*,' got delsqrho = ',delsqn(1:10)
 
 !
@@ -279,7 +282,7 @@ subroutine iterate_density
         if (nrhosmall.gt.0) then
            write(iprint,"(a,i3,a,i8,a)") ' WARNING: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
         endif
-        
+
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
            write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
         endif
@@ -308,7 +311,7 @@ subroutine iterate_density
         do i=1,npart      ! update fixed parts and ghosts
            if (itype(i).eq.itypebnd) then
               j = ireal(i)
-              if (j.ne.0) then
+              if (j > 0) then
                  rho(i) = rho(j)
                  rhoalt(i) = rhoalt(j)
                  drhodt(i) = drhodt(j)
@@ -324,17 +327,19 @@ subroutine iterate_density
            endif
         enddo
      endif
-     if (any(ibound.gt.1)) then   ! update ghosts
+     if (any(ibound > 1)) then   ! update ghosts
         do i=npart+1,ntotal
            j = ireal(i)
-           rho(i) = rho(j)
-           rhoalt(i) = rhoalt(j)
-           drhodt(i) = drhodt(j)
-           dhdt(i) = dhdt(j)
-           hh(i) = hh(j)
-           gradh(i) = gradh(j)
-           gradhn(i) = gradhn(j)
-           gradsoft(i) = gradsoft(j)
+           if (j > 0) then
+              rho(i) = rho(j)
+              rhoalt(i) = rhoalt(j)
+              drhodt(i) = drhodt(j)
+              dhdt(i) = dhdt(j)
+              hh(i) = hh(j)
+              gradh(i) = gradh(j)
+              gradhn(i) = gradhn(j)
+              gradsoft(i) = gradsoft(j)
+           endif
         enddo
      endif
 
