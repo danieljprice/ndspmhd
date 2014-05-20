@@ -312,7 +312,7 @@ def printkernel_sphNG(w,R,name):
     print "c*********************************************************"
     print "      IMPLICIT NONE ! because life is worth living"
     print "      INCLUDE 'idim'\n"
-    print "      REAL*8 sum, v2max, q, q2, q3, q4, q5, q6, q7, q8"
+    print "      REAL*8 sum, v2max, q, q2, q3, q4, q5, q6, q7, q8, q9"
     print "      INTEGER i"
     print "\n      INCLUDE 'COMMONS/physcon'"
     print "      INCLUDE 'COMMONS/kerne'"
@@ -341,6 +341,7 @@ def printkernel_sphNG(w,R,name):
     print "         q6 = q*q5"
     print "         q7 = q*q6"
     print "         q8 = q*q7"
+    print "         q9 = q*q8"
     if isinstance(w, Piecewise):
        for i, (e, c) in enumerate(w.args):
            (de, dc) = dw.args[i]
@@ -660,10 +661,11 @@ def print_stddevs():
 
 R = sympify(3)
 R = sympify(5)/2
+R = sympify(2)
 #R = symbols('R')
 #f, name = sinq(R,3)
-f, name = m5(R)
-
+#f, name = m5(R)
+f, name = w2(R)
 #printkernel(f,R)
 #printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
