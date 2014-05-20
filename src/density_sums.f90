@@ -160,7 +160,7 @@ contains
              j = listneigh(n)
              !--skip particles of different type
              itypej = itype(j)
-             if (itypej.ne.itypei .and. itypej.ne.itypebnd) cycle loop_over_neighbours
+             if (itypej.ne.itypei .and. itypej.ne.itypebnd .and. itypei.ne.itypebnd) cycle loop_over_neighbours
 
              dx(:) = xi(:) - x(:,j)
 
