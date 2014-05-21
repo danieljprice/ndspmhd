@@ -74,7 +74,7 @@ subroutine conservative2primitive
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (dustfrac(i) < 0) then
-           print*,'ERROR: dust fraction = ',dustfrac(i),' on particle ',i
+           nerr = nerr + 1
            dustfrac(i) = 0.
            !call quit
         endif
@@ -83,6 +83,7 @@ subroutine conservative2primitive
   else
      dens = rho
   endif
+  if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles '
 ! 
 !--set x0 correctly on ghost particles
 !  (needed for remapped B or remapped euler potentials evolution)

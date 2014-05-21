@@ -164,7 +164,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
 !
 !--gravity (2)
 !
-    if (ndim.ge.2) fext(2) = -0.5
+    if (ndim.ge.2) fext(2) = -10.
 
   case(10)
 !

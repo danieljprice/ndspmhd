@@ -43,16 +43,19 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i
- real :: massp,volume,totmass,oldtolh
- real :: denszero,fext(3),cs,gx
+ integer :: i,ngas,ndust
+ real :: massp,volume,totmass,oldtolh,rhodust,masspdust,voldust
+ real :: denszero,fext(3),cs,gx,xmindust(ndim),xmaxdust(ndim)
+ real :: vdust,vgas,epsi,ts
 !
 !--allow for tracing flow
 !
- if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup(sediment)'
 !
 !--set boundaries
-! 	    
+!
+ print*,'Setup for sedimenting dust layer '
+ if (iexternal_force.ne.9) stop 'need iexternal_force = 9 for this setup'
  ibound(1) = 3
       ! boundaries
  ibound(2) = 0     ! boundaries
@@ -67,6 +70,7 @@ subroutine setup
  !xmin(2) = 0.
  !xmax(2) = 1.
  print*,'npart =',npart
+
 !
 !--determine particle mass
 !
@@ -116,6 +120,69 @@ subroutine setup
        nbpts = nbpts + 1
     endif
  enddo
+ 
+ !
+ !--add dust particles
+ !
+ if (idust > 0) then
+    xmindust = xmin
+    xmaxdust = xmax
+    xmindust(2) = 0.6
+    xmaxdust(2) = 0.8
+    rhodust = 0.1 ! in Monaghan 97 this is rhod*thetad = 1000*0.001 = 1.0
+    voldust = product(xmaxdust-xmindust)
+    select case(idust)
+    case(2)
+       ngas = npart
+       call set_uniform_cartesian(1,psep,xmindust,xmaxdust,fill=.true.)
+       npart = ntotal
+       ndust = npart - ngas
+       masspdust = rhodust*voldust/real(ndust)
+       do i=ngas+1,npart
+          itype(i) = itypedust
+          pmass(i) = masspdust
+          dens(i)  = rhodust
+          uu(i)    = 0.
+          Bfield(:,i) = 0.
+          vel(:,i) = 0.
+          vel(2,i) = -1.
+       enddo
+    case default
+       ndust = 0
+       do i=1,npart
+          if (x(2,i) >= xmindust(2) .and. x(2,i) <= xmaxdust(2)) then
+             ndust = ndust + 1
+          endif
+       enddo
+       print*,' assuming Kdrag = ',Kdrag, ' gives vdust = ',-rhodust*gx/Kdrag
+
+       masspdust = rhodust*voldust/real(ndust)
+       do i=1,npart
+          if (x(2,i) >= xmindust(2) .and. x(2,i) <= xmaxdust(2)) then
+             epsi = rhodust/(rhodust + dens(i))
+             vdust = -rhodust*gx/Kdrag
+             vgas  = 0.
+             dustfrac(i) = epsi
+             deltav(:,i) = 0.
+             deltav(2,i) = vdust - vgas
+             vel(2,i) = epsi*vdust + (1. - epsi)*vgas
+             !print*,' vy = ',vel(2,i)
+             !dens(i)  = dens(i) !+ rhodust
+             pmass(i) = pmass(i) + masspdust
+          else
+             dustfrac(i) = 0.
+             deltav(:,i) = 0.
+          endif
+       enddo
+    end select
+    ts = (rhodust*denszero)/(Kdrag*(rhodust + denszero))
+    print*,' resolution criterion is h < ',cs*ts
+    if (idust.eq.2 .and. psep > cs*ts) then
+       print*,' warning: this is not being met '
+       read*
+    endif
+ endif
+ 
 !
 !--allow for tracing flow
 !

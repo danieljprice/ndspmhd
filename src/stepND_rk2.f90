@@ -56,12 +56,13 @@ subroutine step
 !
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
+       if (itype(i).eq.itypebnd) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + hdt*velin(1:ndim,j)
-       else
-          write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
-          stop
+          if (j > 0) then
+             x(:,i) = xin(:,i) + hdt*velin(1:ndim,j)
+          else
+             x(:,i) = xin(:,i)
+          endif
        endif
        if (imhd.gt.0) Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
