@@ -178,6 +178,8 @@ subroutine initialise
  if (ibiascorrection.gt.0) then
     ikernel = 3
     ikernelalt = 2
+ elseif (usenumdens) then
+    ikernelalt = 47
  else
     ikernelalt = ikernel
  endif

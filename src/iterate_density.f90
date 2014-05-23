@@ -351,10 +351,10 @@ subroutine iterate_density
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
      call quit
   elseif (itsdensity > 5) then
-     write(iprint,*) ' Finished density, iterations = ', &
-                     itsdensity, ncalctotal,' used rhomin = ',rhomin
-     write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
-                     ' max nneigh = ',maxval(numneigh(1:npart))
+     write(iprint,"(a,i2,a,f6.3,a,i2,a,i5)") &
+      ' Density, its = ',itsdensity,' mean: ',ncalctotal/real(npart),&
+      ' neigh min: ',minval(numneigh(1:npart)), &
+      ' max: ',maxval(numneigh(1:npart))
   endif
 
   return

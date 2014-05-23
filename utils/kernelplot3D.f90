@@ -361,8 +361,8 @@ subroutine plot_kernel(j,xplot)
 
  xmin = 0. !minval(xplot)
  xmax = 3. !maxval(xplot)
- ymin = -2.2
- ymax = 1.4
+ ymin = -0.8 !-2.2
+ ymax = 0.8 !1.4
  ylabel = 'W, grad W, del^2 W'
 !
 !--setup x axis
@@ -395,10 +395,10 @@ subroutine plot_kernel(j,xplot)
  call pgsls(3)
  call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
  !--other term
- call pgsci(4)
- call pgsls(4)
+ !call pgsci(4)
+ !call pgsls(4)
  !call pgline(ikern+1,dqkern(0:ikern),wstuff(0:ikern))
- call pgline(ikern+1,dqkern(0:ikern),wstuff2(0:ikern))
+ !call pgline(ikern+1,dqkern(0:ikern),wstuff2(0:ikern))
  !--restore settings
  call pgsci(1)
  call pgsls(1)
