@@ -1,15 +1,54 @@
 #!/opt/local/bin/python2.7
+#---------------------------------------------------------------
+#
+#  Daniel Price's automatic smoothing kernel generation script
+#  Prints kernels and all related functions in suitable
+#  manner for direct incorporation into SPH codes
+#
+#---------------------------------------------------------------
 from __future__ import division
 from sympy import *
 q, x, y = symbols('q x y')
-useoddq = True
 
+##############################################
+#                                            #
+# various functions to actually perform the  #
+# symbolic calculations                      #
+#                                            #
+##############################################
+
+#---------------------------------------------
+# function to get normalisation constants for
+# kernel in 1, 2 and 3 dimensions
+#---------------------------------------------
 def getnorm(w,R):
     c1D = sympify(1)/(2*integrate(w,(q,0,R)))
     c2D = sympify(1)/(integrate(2*pi*q*w,(q,0,R)))
     c3D = sympify(1)/(integrate(4*pi*q*q*w,(q,0,R)))
     return (c1D, c2D, c3D)
 
+#-----------------------------------------------
+# work out the integration constant by matching
+# the different parts of the piecewise function
+#-----------------------------------------------
+def intconst(g):
+    if isinstance(g, Piecewise):
+       garg = list(g.args)
+       for i, (e, c) in reversed(list(enumerate(g.args))):
+           if i < len(g.args) - 1:
+              (ep, cp) = garg[i+1]
+              s = "%s" %c
+              qval = sympify(s.split()[2])
+              ge = simplify(e + (ep.subs(q,qval) - e.subs(q,qval)))
+              garg[i] = (ge,c)
+       tuple(garg)
+       g = Piecewise(*garg)
+    return g
+
+#----------------------------------------------
+# function to get force softening kernel and
+# related function from the density kernel
+#----------------------------------------------
 def getkernelfuncs(w,R):
     dw  = diff(w,q)
     d2w = diff(dw,q)
@@ -67,6 +106,9 @@ def getkernelfuncs(w,R):
     
     return (dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh)
 
+#---------------------------------------------
+# function to get the variance of the kernel
+#---------------------------------------------
 def getvar(w,R):
     c1D, c2D, c3D = getnorm(w,R)
     var = (integrate(c1D*q*q*w,(q,0,R)),
@@ -77,10 +119,74 @@ def getvar(w,R):
     reldev = (sqrt(1.0*relvar[0]),sqrt(1.0*relvar[1]),sqrt(1.0*relvar[2]))
     return (var,relvar,reldev)
 
+#-------------------------------------------------------
+# function to get the standard deviation of the kernel
+# scaled relative to the cubic spline
+#-------------------------------------------------------
 def getreldev(w,R):
     var, relvar, reldev = getvar(w,R)
     return (reldev)
 
+#--------------------------------------------------------
+# Functions to return kernels that are constructed from
+# other kernels in some way
+#--------------------------------------------------------
+def intkernel(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-q*f,q))
+    g = intconst(g)
+    name = "Integrated %s" %(name)
+    return(g,name)
+
+def intkernel2(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-q*f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(-q*g,q))
+    g = intconst(g)
+    name = "Twice-integrated %s" %(name)
+    return(g,name)
+
+def intkernel3(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-q*f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(-q*g,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(-q*g,q))
+    g = intconst(g)
+    name = "Triple-integrated %s" %(name)
+    return(g,name)
+
+def doublehump(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(f*q*q)
+    name = "Double-hump %s" %(name)
+    return(g,name)
+
+def doublehump3(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(f*q*q*q)
+    name = "Double-hump-on-steroids %s" %(name)
+    return(g,name)
+
+def doublehump5(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(f*q*q*q*q*q)
+    name = "Double-hump-on-overdrive %s" %(name)
+    return(g,name)
+
+##############################################
+#                                            #
+#  various output functions to print kernel  #
+#  information in different ways             #
+#                                            #
+##############################################
+
+#-------------------------------------------------------
+# function to print the variance and standard deviation 
+# of a kernel, and to print these relative to the cubic
+#-------------------------------------------------------
 def printvariances(w,R):
     var, relvar, reldev = getvar(w,R)
     print "\nVariance of kernel:"
@@ -90,6 +196,9 @@ def printvariances(w,R):
     print reldev[0],reldev[1],reldev[2]
     return
 
+#-----------------------------------------------------------
+# function to print basic kernel information to the screen
+#-----------------------------------------------------------
 def printkernel(w,R):
     dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh = getkernelfuncs(w,R)
     print "\n%s W:" %name
@@ -109,13 +218,22 @@ def printkernel(w,R):
     printvariances(w,R)
     return
 
+#-------------------------------------------------------------
+# print start of a LaTeX table containing kernel information
+#-------------------------------------------------------------
 def printheader_latex():
     print "\\begin{tabular}{|l|l|l|l|l|l|l|l|}\n"
     print "\\hline\nName & Functional form & C$_{1D}$ & C$_{2D}$ & C$_{3D}$ & $\sigma^2_{1D}$ & $\sigma^2_{2D}$ & $\sigma^2_{3D}$\\\\ \n"
 
+#-----------------------------------------------------------
+# print end of a LaTeX table containing kernel information
+#-----------------------------------------------------------
 def printfooter_latex():
     print "\\hline\\end{tabular}\n"
 
+#---------------------------------------------------------------
+# print contents of a LaTeX table containing kernel information
+#---------------------------------------------------------------
 def printkernel_latex(w,R):
     c1D, c2D, c3D = getnorm(w,R)
     var, relvar, reldev = getvar(w,R)
@@ -124,7 +242,18 @@ def printkernel_latex(w,R):
     print "$ & $%s$ & $%s$ & $%s$ & $%s$ & $%s$ & $%s$ \\\\" %(latex(c1D),latex(c2D),latex(c3D),latex(var[0]),latex(var[1]),latex(var[2]))
     return
 
+#--------------------------------
+# format names for LaTeX output
+#--------------------------------
+def fmttex(s):
+    import re
+    s = re.sub("\^\S+","$\g<0>$", s)
+    s = re.sub("\_\S+","$\g<0>$", s)
+    return s
+
+#-------------------------------------------------------------------------------
 # utility to format output of real numbers correctly for Fortran floating point
+#-------------------------------------------------------------------------------
 def fmt(e):
     import re
     s = "%s" %e
@@ -142,9 +271,11 @@ def fmt(e):
     else:
        return g
 
+#------------------------------------------------------------------------
 # extended version of above, replacing q**2 with q2, q**3 with q2*q etc.
 # and getting rid of excess zeros after decimal point, e.g. 7.0000->7
-def fmte(e):
+#------------------------------------------------------------------------
+def fmte(e,useodd):
     import re
     s = "%s" %fmt(e)
     f = sympify(s)
@@ -155,7 +286,7 @@ def fmte(e):
     s = re.sub("q\*\*11","q6*q4*q", s)
     s = re.sub("q\*\*10","q6*q4", s)
     s = re.sub("q\*\*8","q8", s)
-    if (useoddq):
+    if (useodd):
        s = re.sub("q\*\*9","q9", s)
        s = re.sub("q\*\*7","q7", s)    
        s = re.sub("q\*\*5","q5", s)
@@ -173,6 +304,9 @@ def fmte(e):
     s = re.sub("q\*\*-2\.0","1./q2",s)
     return s
 
+#-----------------------------------------------------
+# wrap output to 72 characters for Fortran 77 output
+#-----------------------------------------------------
 def wrapit(s,indent):
     if len(s) > 72:
        pos = s.rfind(" ", 6, 72)
@@ -193,6 +327,9 @@ def wrapit(s,indent):
               s = "%s%s" % (s,hunk)
     return s
 
+#------------------------------------
+# wrap and indent Fortran 77 output
+#------------------------------------
 def wrapf77(s,indent):
     maxl = (72 - indent)
     if len(s) > maxl:
@@ -214,40 +351,44 @@ def wrapf77(s,indent):
               s = "%s%s" % (s,hunk)
     return s
 
+#---------------------------------------------------------
 # wrappers for above routines, specific to output formats
+# these define the line length and the indent
+#---------------------------------------------------------
+
 def fmtp(e):
-    s = "%s" %fmte(e)
+    s = "%s" %fmte(e,True)
     s = wrapit(s,17)
     return s
 
 def fmtn(e):
-    s = "%s" %fmte(e)
+    s = "%s" %fmte(e,False)
     s = wrapit(s,25)
     return s
 
 def fmts(e):
-    s = "%s" %fmte(e)
+    s = "%s" %fmte(e,True)
     s = wrapf77(s,18)
-    return s
-
-# format names for LaTeX output
-def fmttex(s):
-    import re
-    s = re.sub("\^\S+","$\g<0>$", s)
-    s = re.sub("\_\S+","$\g<0>$", s)
     return s
 
 def stripcond(e):
     import re
-    s = "%s" %fmt(e)
+    s = "%s" %fmt(e,True)
     s = re.sub("q|<|>|\s","",s)
     return s
 
+#-------------------------------
+# print FORTRAN77 comment line
+#-------------------------------
 def printc(s):
     print "c\nc--%s\nc" %(s)
     return s
 
+#---------------------------------
+# print kernel code for ndspmhd
+#---------------------------------
 def printkernel_ndspmhd(w,R,name):
+    useoddq = False
     dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh = getkernelfuncs(w,R)
     print "!"
     print "!--%s (auto-generated by kernels.py)" %name
@@ -294,6 +435,9 @@ def printkernel_ndspmhd(w,R,name):
        print w
     print "    enddo\n"
 
+#---------------------------------
+# print kernel code for sphNG
+#---------------------------------
 def printkernel_sphNG(w,R,name):
     import datetime
     dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh = getkernelfuncs(w,R)
@@ -380,6 +524,9 @@ def printkernel_sphNG(w,R,name):
     print "\n      RETURN"
     print "      END"
 
+#---------------------------------
+# print kernel code for Phantom
+#---------------------------------
 def printkernel_phantom(w,R,name):
     dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh = getkernelfuncs(w,R)
     w0 = w.subs(q,0)
@@ -525,54 +672,31 @@ def printkernel_phantom(w,R,name):
     print "\nend function wkern_drag\n"
     print "end module kernel"
 
-def intconst(g):
-    #
-    #--work out the integration constant
-    #  by matching the different parts of the piecewise function
-    #
-    if isinstance(g, Piecewise):
-       garg = list(g.args)
-       for i, (e, c) in reversed(list(enumerate(g.args))):
-           if i < len(g.args) - 1:
-              (ep, cp) = garg[i+1]
-              s = "%s" %c
-              qval = sympify(s.split()[2])
-              ge = simplify(e + (ep.subs(q,qval) - e.subs(q,qval)))
-              garg[i] = (ge,c)
-       tuple(garg)
-       g = Piecewise(*garg)
-    return g
+def printalltex():
+    R = sympify(2)
+    printheader_latex()
+    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+        f, name = x(R)
+        printkernel_latex(f,R)
+    printfooter_latex()
 
+def print_stddevs():
+    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
+       f, name = x(R)
+       reldev = getreldev(f,R)
+       print x.__name__,1.0/reldev[0],1.0/reldev[1],1.0/reldev[2]
+
+
+#####################################
+#  KERNEL DEFINITIONS START BELOW   #
+#####################################
+
+#-------------------------
+# B-spline kernels
+#-------------------------
 def m4(R):
     f = Piecewise((sympify(1)/4*(R-q)**3 - (R/2 - q)**3,q < R/2), (sympify(1)/4*(R-q)**3, q < R), (0, True))
     return(f,'M_4 cubic')
-
-def intkernel(wref,R):
-    f, name = wref(R)
-    g = piecewise_fold(integrate(-q*f,q))
-    g = intconst(g)
-    name = "Integrated %s" %(name)
-    return(g,name)
-
-def intkernel2(wref,R):
-    f, name = wref(R)
-    g = piecewise_fold(integrate(-q*f,q))
-    g = intconst(g)
-    g = piecewise_fold(integrate(-q*g,q))
-    g = intconst(g)
-    name = "Twice-integrated %s" %(name)
-    return(g,name)
-
-def intkernel3(wref,R):
-    f, name = wref(R)
-    g = piecewise_fold(integrate(-q*f,q))
-    g = intconst(g)
-    g = piecewise_fold(integrate(-q*g,q))
-    g = intconst(g)
-    g = piecewise_fold(integrate(-q*g,q))
-    g = intconst(g)
-    name = "Triple-integrated %s" %(name)
-    return(g,name)
 
 def m5(R):
     term1 = sympify((R-q)**4)
@@ -589,6 +713,9 @@ def m6(R):
     f = Piecewise((term1 + term2 + term3,q < sympify(1)/3*R), (term1 + term2, q < sympify(2)/3*R), (term1, q < R), (0, True))
     return(f,'M_6 quintic')
 
+#-------------------------
+# Wendland kernels in 1D
+#-------------------------
 def w2_1D(R):
     f = Piecewise(((1 - q/R)**3*(1 + 3*q/R),q < R), (0, True))
     return(f,'Wendland 1D C^2')
@@ -601,11 +728,9 @@ def w6_1D(R):
     f = Piecewise(((1 - q/R)**7*(1 + 7*q/R + 19*(q/R)**2 + 21*(q/R)**3),q < R), (0, True))
     return(f,'Wendland 1D C^6')
 
-def sinq(R,n):
-    f = Piecewise(((sin(pi*q/R)/q)**n,q < R), (0, True))
-    name = "[sin(q)/q]**%i" %n
-    return(f,name)
-
+#--------------------------
+# Wendland kernels in 2/3D
+#--------------------------
 def w2(R):
     f = Piecewise(((1 - q/R)**4*(1 + 4*q/R),q < R), (0, True))
     return(f,'Wendland 2/3D C^2')
@@ -618,6 +743,11 @@ def w6(R):
     f = Piecewise(((1 - q/R)**8*(1 + 8*q/R + 25*(q/R)**2 + 32*(q/R)**3),q < R), (0, True))
     return(f,'Wendland 2/3D C^6')
 
+def sinq(R,n):
+    f = Piecewise(((sin(pi*q/R)/q)**n,q < R), (0, True))
+    name = "[sin(q)/q]**%i" %n
+    return(f,name)
+
 def pcubic(R):
     f = Piecewise((q**3 - 6*q + 6,q < 1),((2-q)**3,q < 2), (0, True))
     return(f,'A peaked cubic')
@@ -626,6 +756,9 @@ def bcubic(R):
     f = Piecewise(((sympify(10) - sympify(13)*q**2 + sympify(6)*q**3)/16,q < 1), ((2 - q)**2*(5 - sympify(2)*q)/16, q < 2),(0, True))
     return(f,'Better cubic')
 
+#-----------------------------
+# integrated B-spline kernels
+#-----------------------------
 def intm4(R):
     return(intkernel(m4,R))
 
@@ -641,33 +774,48 @@ def intm5(R):
 def intm6(R):
     return(intkernel(m6,R))
 
+#------------------
+# Ferrers kernels
+#------------------
+def f2(R):
+    f = Piecewise(((1 - (q/R)**2)**2,q < R), (0, True))
+    return(f,'Ferrers n=4')
+
+def f3(R):
+    f = Piecewise(((1 - (q/R)**2)**3,q < R), (0, True))
+    return(f,'Ferrers n=4')
+
+def f4(R):
+    f = Piecewise(((1 - (q/R)**2)**4,q < R), (0, True))
+    return(f,'Ferrers n=4')
+
+def f5(R):
+    f = Piecewise(((1 - (q/R)**2)**5,q < R), (0, True))
+    return(f,'Ferrers n=5')
+
 def f6(R):
     f = Piecewise(((1 - (q/R)**2)**6,q < R), (0, True))
     return(f,'Ferrers n=6')
 
-def printalltex():
-    R = sympify(2)
-    printheader_latex()
-    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
-        f, name = x(R)
-        printkernel_latex(f,R)
-    printfooter_latex()
+########################################################
+#  The actual program 
+#  Change the lines below to print the kernel you want
+########################################################
 
-def print_stddevs():
-    for x in m4, m5, m6, w2_1D, w4_1D, w6_1D, w2, w4, w6, intm4, intm5, intm6, int2m4, int3m4, f6:
-       f, name = x(R)
-       reldev = getreldev(f,R)
-       print x.__name__,1.0/reldev[0],1.0/reldev[1],1.0/reldev[2]
-
+# set kernel range
 R = sympify(3)
 R = sympify(5)/2
 R = sympify(2)
 #R = symbols('R')
+
+# define which kernel to use
 #f, name = sinq(R,3)
 #f, name = m5(R)
-f, name = w2(R)
+f, name = doublehump5(m4,R)
+
+# print the desired output
 #printkernel(f,R)
-#printkernel_ndspmhd(f,R,name)
+printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
-printkernel_sphNG(f,R,name)
+#printkernel_sphNG(f,R,name)
 #printall_tex
