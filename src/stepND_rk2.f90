@@ -133,6 +133,8 @@ subroutine step
              write(iprint,*) 'step: hh -ve ',i,hh(i)
              call quit
           endif
+       elseif (ihvar.eq.3) then
+          hh(i) = hh(i) + hdt*dhdt(i)
        endif
        if (iener.ne.0)       en(i)      = enin(i) + dt*dendt(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldt(:,i),1.0)
