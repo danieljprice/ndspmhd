@@ -123,6 +123,7 @@ subroutine step
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
+       x(:,i) = xin(:,i) + dt*vel(:,i)
        vel(:,i) = velin(:,i) + dt*force(:,i)
        if (imhd.ne.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
        if (icty.ge.1) rho(i)     = rhoin(i) + dt*drhodt(i)
