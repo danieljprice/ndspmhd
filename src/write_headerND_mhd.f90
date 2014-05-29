@@ -36,7 +36,7 @@ subroutine write_header(icall,infile,evfile,logfile)
  use kernels, only:ianticlump,eps,neps,radkern
  use artvi
  use bound
- use hterms, only:rhomin
+ use hterms, only:rhomin,h_min
  use eos
  use options
  use setup_params
@@ -261,10 +261,10 @@ subroutine write_header(icall,infile,evfile,logfile)
     end select
     print "(a,f9.3)",' Kernel radius = ',radkern
     
-    write (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, tolh, fNneigh
+    write (iprint,240) ihvar, ikernav, hfact, rhomin, ndim, h_min, tolh, fNneigh
 240 format(' Variable smoothing length: ',/,                                &
       6x,' h varied using method : ',i2,4x,' Kernel averaging :',i2,/,  &
-      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,'); htol = ',es8.2,/ &
+      6x,' h = ',f4.2,'*[m/(rho + ',f7.5,')]^(1/',i1,') + ',f7.5,'; htol = ',es8.2,/ &
       6x,' Number of neighbours = ',f8.2)
 !
 !--print out diagnostics of run

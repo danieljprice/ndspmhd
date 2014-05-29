@@ -189,8 +189,8 @@ subroutine iterate_density
                  dfdh = omegai/dhdni
                  gradsoft(i) = gradsoft(i)*dhdni
               else
-                 rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
-                 dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
+                 rhoi = pmass(i)/((hh(i) - h_min)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
+                 dhdrhoi = -(hh(i) - h_min)/(ndim*(rho(i) + rhomin))          ! deriv of this
 !                 dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
                  dwdhsumi = gradh(i)
                  omegai =  1. - dhdrhoi*gradh(i)
@@ -202,7 +202,7 @@ subroutine iterate_density
                  func = rhoi - rho(i)
                  dfdh = omegai/dhdrhoi
                  gradsoft(i) = gradsoft(i)*dhdrhoi
-                 !--gradgradhi is the "zeta" term in Price (2009)
+                 !--gradgradhi is the "zeta" term in Price (2010)
                  d2hdrho2i = hh(i)*(ndim+1)/(rho(i)*ndim)**2
                  gradgradh(i) = rho(i)*(d2hdrho2i*dwdhsumi + dhdrhoi**2*gradgradh(i))
               endif
@@ -350,8 +350,8 @@ subroutine iterate_density
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
      call quit
-  elseif (itsdensity > 5) then
-     write(iprint,"(a,i2,a,f6.3,a,i2,a,i5)") &
+  elseif (itsdensity > 0 .or. usenumdens) then
+     write(iprint,"(a,i2,a,f6.3,a,i3,a,i5)") &
       ' Density, its = ',itsdensity,' mean: ',ncalctotal/real(npart),&
       ' neigh min: ',minval(numneigh(1:npart)), &
       ' max: ',maxval(numneigh(1:npart))

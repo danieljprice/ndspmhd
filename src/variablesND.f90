@@ -87,7 +87,7 @@ module hterms
  implicit none
  integer :: itsdensity
  real, dimension(:), allocatable :: gradh,gradhn,gradsoft,gradgradh,zeta
- real :: rhomin
+ real :: rhomin,h_min
 end module hterms
 
 !-------------------------------------------------------------------

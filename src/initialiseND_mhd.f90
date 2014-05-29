@@ -179,7 +179,7 @@ subroutine initialise
     ikernel = 3
     ikernelalt = 2
  elseif (usenumdens) then
-    ikernelalt = 47
+    ikernelalt = 43
  else
     ikernelalt = ikernel
  endif
@@ -266,6 +266,7 @@ subroutine initialise
     rhomin = 0.
     write(iprint,*) 'particle mass = ',pmass(1)
  endif
+ h_min = 0.0
 !
 !--if using fixed particle boundaries, set them up
 !
