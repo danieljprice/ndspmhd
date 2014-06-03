@@ -5,6 +5,8 @@
 !! This version uses a 2nd order Runge-Kutta-Fehlberg algorithm
 !! identical to that used in sphNG
 !!
+!! Original reference for this is Fehlberg (1969), NASA-TR 315, page 29
+!!
 !! At the moment there is no XSPH and no direct summation replacements
 !!--------------------------------------------------------------------
          
@@ -35,9 +37,9 @@ subroutine step
  real, parameter :: f21 = 1./256., f22 = 255./256.
  real, parameter :: e1 = 1./512.
  real, parameter :: tolpart = 1.e-5, tolhh = 1.e-5
- real :: errx(ndim), errv(ndimV), errh, erru, errB(ndimV), errm, errdivtol, dum2veli(ndimV)
+ real :: errx(ndim), errv(ndimV), errh, erru, errB(ndimV), errm, errdivtol
  real :: ratio, dtf21, dtf22, rmod1, rmod, dttol
- real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
+ real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin,dum2vel
  real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart)     :: daldtin
 !
@@ -140,10 +142,10 @@ subroutine step
           dustfrac(i) = dustfracin(i)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
-       dum2veli(:) = vel(:,i)
+       dum2vel(:,i) = vel(:,i)
     else
        x(:,i) = xin(:,i) + dtf21*velin(:,i) + dtf22*vel(:,i)
-       dum2veli(:) = vel(:,i)
+       dum2vel(:,i) = vel(:,i)
        vel(:,i) = velin(:,i) + dtf21*forcein(:,i) + dtf22*force(:,i)
        if (imhd.ne.0) Bevol(:,i) = Bevolin(:,i) + dtf21*dBevoldtin(:,i) + dtf22*dBevoldt(:,i)
        if (icty.ge.1) rho(i)     = rhoin(i) + dtf21*drhodtin(i) + dtf22*drhodt(i)
@@ -165,10 +167,18 @@ subroutine step
           endif
        endif
     endif
+ enddo
+!
+!--calculate all derivatives for next step
+!
+ call derivs
+ if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
+
 !
 !--estimate maximum error
 !
-    errx(:) = abs(vel(:,i) - dum2veli(:))
+ do i=1,npart
+    errx(:) = abs(vel(:,i) - dum2vel(:,i))
     errv(:) = abs(forcein(:,i) - force(:,i))
     erru = abs(dendtin(i) - dendt(i))
     errh = 3.*abs(dhdtin(i) - dhdt(i))
@@ -192,12 +202,6 @@ subroutine step
     endif
  enddo
 !
-!--calculate all derivatives for next step
-!
- call derivs
-
- if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
-!
 !--set new timestep from courant/forces condition
 !
  if (.not.dtfixed) then
@@ -206,6 +210,7 @@ subroutine step
     else
        dttol = huge(dttol)
     endif
+    !
     print*,' dt cour  = ',C_cour*dtcourant,' dt tol = ',dttol,' old dt = ',dt,' ratio = ',rmod
     dt = min(dttol,C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
  endif
