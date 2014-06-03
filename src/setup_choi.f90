@@ -43,7 +43,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i
+ integer :: i,ny
  real :: massp,volume,totmass
  real :: denszero,ampl,vA
  real, dimension(3) :: Bzero
@@ -58,6 +58,9 @@ subroutine setup
  nbpts = 0      ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
+ ny = 6
+ if (ndim >= 2) xmax(2) = xmin(2) + ny*psep
+ if (ndim >= 3) xmax(3) = xmin(3) + ny*psep
  gamma = 1.
  ampl = 0.1
  gamma_ambipolar = 1000.
