@@ -350,7 +350,7 @@ subroutine iterate_density
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
      call quit
-  elseif (itsdensity > 0 .or. usenumdens) then
+  elseif (itsdensity > 5 .or. usenumdens) then
      write(iprint,"(a,i2,a,f6.3,a,i3,a,i5)") &
       ' Density, its = ',itsdensity,' mean: ',ncalctotal/real(npart),&
       ' neigh min: ',minval(numneigh(1:npart)), &
