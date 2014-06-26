@@ -50,4 +50,4 @@ checkeditor:
 version=${shell cat docs/version}
 dist:
 	@echo "building tarball of ndspmhd version ${version}"
-	git archive public --format=tar.gz --prefix=ndspmhd > ndspmhd-v${version}.tar.gz
+	git archive public --format=tar.gz --prefix=ndspmhd/ > ndspmhd-v${version}.tar.gz
