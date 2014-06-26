@@ -818,14 +818,14 @@ R = sympify(2)
 # define which kernel to use
 #f, name = sinq(R,3)
 #f, name = m5(R)
-f, name = w2(R)
+#f, name = w2(R)
 
 #printvariances(f,R)
-#f, name = doublehump5(m4,R)
+f, name = doublehump(w6,R)
 
 # print the desired output
 #printkernel(f,R)
-#printkernel_ndspmhd(f,R,name)
-printkernel_phantom(f,R,name)
+printkernel_ndspmhd(f,R,name)
+#printkernel_phantom(f,R,name)
 #printkernel_sphNG(f,R,name)
 #printall_tex
