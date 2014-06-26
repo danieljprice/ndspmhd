@@ -22,7 +22,7 @@
 
 module externf
  implicit none
- real, parameter :: eps2_soft = 1.e-6
+ real, parameter :: eps2_soft = 1.e-8
  
  public :: external_forces, pequil, external_potentials
  
