@@ -54,7 +54,7 @@ subroutine step
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
  real, dimension(3,npart) :: daldtin
- real :: hdt !,dtrhoi
+ real :: hdt,tol,errv,errB,errmax,errvmax,errBmax,dttol
  real, dimension(ndim)  :: xcyl,velcyl
  real, dimension(ndimV) :: vcrossB
 !
@@ -97,9 +97,6 @@ subroutine step
 !--if doing divergence correction then do correction to magnetic field
 ! 
  if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
- if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
- if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
-
 !
 !--Leapfrog Predictor step
 !
@@ -141,7 +138,6 @@ subroutine step
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
        vel(:,i) = velin(:,i) + dt*forcein(:,i)
-       velin(:,i) = velin(:,i) + 0.5*dt*forcein(:,i)
        if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        if (ihvar.eq.1) then
@@ -185,7 +181,7 @@ subroutine step
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
-       vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
+       vel(:,i) = velin(:,i) + hdt*(force(:,i) + forcein(:,i))            
        if (imhd.ne.0) then
           if (iresist.eq.2) then
              Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
@@ -226,7 +222,32 @@ subroutine step
 !--set new timestep from courant/forces condition
 !
  if (.not.dtfixed) then
+    !
+    !--set a tolerance-based timestep based on the difference between the
+    !  second order corrector step and the first order prediction
+    !
+    tol = 1.e-4
+    errmax = 0.
+    errvmax = 0.
+    errBmax = 0.
+    do i=1,npart
+       errv = 0.5*dt*maxval(abs(force(:,i) - forcein(:,i)))
+       errB = 0.5*dt*maxval(abs(dBevoldt(:,i) - dBevoldtin(:,i)))
+       errmax = max(errv,errB,errmax)
+       errvmax = max(errv,errvmax)
+       errBmax = max(errB,errBmax)
+    enddo
+    if (errmax > epsilon(errmax) .and. dt > epsilon(dt)) then
+       dttol = dt*sqrt(tol/errmax)
+    else
+       dttol = huge(dttol)
+    endif
+    
     dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
+    if (dttol < dt) then
+       dt = dttol
+       print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
+    endif
     !if (C_cour*dtav.lt.dt) then
     !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
     !   dt = C_cour*dtav
