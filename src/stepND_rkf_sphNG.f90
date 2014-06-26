@@ -37,7 +37,7 @@ subroutine step
  real, parameter :: f21 = 1./256., f22 = 255./256.
  real, parameter :: e1 = 1./512.
  real, parameter :: tolpart = 1.e-5, tolhh = 1.e-5
- real :: errx(ndim), errv(ndimV), errh, erru, errB(ndimV), errm, errdivtol
+ real :: errx,errv,errh,erru,errB,errm,errdivtol,errmx,errmv,errmB,errmax
  real :: ratio, dtf21, dtf22, rmod1, rmod, dttol
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin,dum2vel
  real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
@@ -177,17 +177,27 @@ subroutine step
 !
 !--estimate maximum error
 !
+ errmB = 0.
+ errmv = 0.
+ errmx = 0.
+ errmax = 0.
+ errB = 0.
+ rmod = huge(rmod)
  do i=1,npart
-    errx(:) = abs(vel(:,i) - dum2vel(:,i))
-    errv(:) = abs(forcein(:,i) - force(:,i))
+    errx = maxval(abs(vel(:,i) - dum2vel(:,i)))
+    errv = maxval(abs(forcein(:,i) - force(:,i)))
     erru = abs(dendtin(i) - dendt(i))
     errh = 3.*abs(dhdtin(i) - dhdt(i))
     if (imhd.ne.0) then
-       errB(:) = abs(dBevoldtin(:,i) - dBevoldt(:,i))
-       errm = max(maxval(errx),maxval(errv),erru,errh,maxval(errB))
+       errB = maxval(abs(dBevoldtin(:,i) - dBevoldt(:,i)))
+       errm = max(errx,errv,erru,errh,errB)
     else
-       errm = max(maxval(errx),maxval(errv),erru,errh)
+       errm = max(errx,errv,erru,errh)
     endif
+    errmax = 0.
+    errmx = max(errx,errmx*dt*e1)
+    errmv = max(errv,errmv*dt*e1)
+    errmB = max(errB,errmB*dt*e1)
     errdivtol = max(errm/tolpart, errh/tolhh)
 !
 !--compute ratio of present to next timestep
@@ -201,6 +211,8 @@ subroutine step
        rmod = 1.
     endif
  enddo
+ print "(5(a,es10.3))",' errmax = ',errmax,' errx = ',errmx,' errv = ',errmv,' errB = ',errmB
+
 !
 !--set new timestep from courant/forces condition
 !
