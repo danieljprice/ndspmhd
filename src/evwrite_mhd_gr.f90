@@ -15,6 +15,7 @@ subroutine evwrite(t,etot,momtot)
  
  use grutils
  use cons2prim, only:conservative2primitive
+ use externf,   only:external_potentials
 !
 !--define local variables
 !
