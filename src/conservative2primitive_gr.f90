@@ -77,7 +77,7 @@ subroutine conservative2primitive
      !
      !--call equation of state to get pressure (needed for source terms)
      !
-     call equation_of_state(pr(i),spsound(i),uu(i),dens(i))
+     call equation_of_state1(pr(i),spsound(i),uu(i),dens(i))
      !
      !--calculate source terms (spatial derivatives of metric)
      !
@@ -108,13 +108,14 @@ end subroutine conservative2primitive
 ! this subroutine is a cut-down version of conservative2primitive
 ! which just calculates v from pmom (used in timestepping)
 !---------------------------------------------------------------------
-subroutine getv_from_pmom(xi,pmomi,veli)
+subroutine getv_from_pmom(xi,pmomi,veli,eni,pri,rhoi,densi,uui)
  use dimen_mhd
  use options, only:geom
  use grutils, only:metric_diag
  real, dimension(ndim), intent(in) :: xi
  real, dimension(ndimV), intent(in) :: pmomi
  real, dimension(ndimV), intent(out) :: veli
+ real, intent(in) :: eni,pri,rhoi,densi,uui
  real, dimension(ndimV) :: gdiag
  real :: sqrtgi
 
@@ -139,6 +140,7 @@ subroutine primitive2conservative
   use grutils
   use setup_params
   use timestep
+  use utils, only:minmaxave
   implicit none
   integer :: i,j,iktemp
   real, dimension(ndimV) :: gdiag
@@ -183,8 +185,8 @@ subroutine primitive2conservative
      if (ANY(ibound.GT.1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
-!        ikernav = 3		! consistent with h for first density evaluation
-     call iterate_density	! evaluate density by direct summation
+!        ikernav = 3        ! consistent with h for first density evaluation
+     call iterate_density   ! evaluate density by direct summation
      ikernav = iktemp  
 !!        hh(1:npart) = hfact*(pmass(1:npart)/rho(1:npart))**dndim
      if (ihvar.le.0) then
@@ -226,7 +228,7 @@ subroutine primitive2conservative
      !
      !--call equation of state to get pressure (needed for source terms)
      !
-     call equation_of_state(pr(i),spsound(i),uu(i),dens(i))
+     call equation_of_state1(pr(i),spsound(i),uu(i),dens(i))
 !     print*,i,'pr = ',pr(i),rho(i)/sqrtg(i)
      !
      !--calculate source terms (spatial derivatives of metric)

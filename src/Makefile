@@ -262,6 +262,7 @@ SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
 CONS2PRIMGR = conservative2primitive_gr.f90
+#CONS2PRIMGR = conservative2primitive_sr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
