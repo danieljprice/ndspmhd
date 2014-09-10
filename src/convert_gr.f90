@@ -75,16 +75,16 @@ subroutine convert_setup(geomold,geom)
     x(:,i) = xnew(:)
  enddo
  if (ndimV.gt.ndim) write(iprint,*)'WARNING: DOES NOT DO 2.5D YET'
- if (geom(1:6) == 'cylrpz') then
+
+ call coord_transform_limits(xmin,xmax,igeomold,igeom,ndim)
+ select case(trim(geom))
+ case('cylrpz')
     !!ibound(1) = 2 ! reflective in r
-    xmin(1) = 0.0
-    xmax(1) = 1.e10 ! a long way away
-    if (ndim.ge.2) then 
-       ibound(2) = 3 ! periodic in phi
-       xmin(2) = -pi ! phi min
-       xmax(2) = pi ! phi max
-    endif
- endif 
+    if (ndim.ge.2) ibound(2) = 3 ! periodic in phi
+ case('sphrpt')
+    if (xmin(1) < tiny(xmin)) ibound(1) = 2 ! reflective in r
+    if (ndim.ge.2) ibound(2) = 3 ! periodic in phi
+ end select
 
 end subroutine convert_setup
 
