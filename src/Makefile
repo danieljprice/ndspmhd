@@ -235,12 +235,12 @@ SOURCES= ndspmhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
          get_curl.f90 get_B_eulerpots.f90 get_lambda.f90 \
+         grutils_gr.f90 \
          smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
          resistivity_implicit.f90 dust_diffusion.f90 \
 	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
-         grutils_gr.f90 \
          density_sums.f90 densityiterate.f90 \
 	 exact_densityprofiles.f90 errors.f90 \
          evolve.f90 external_forces.f90 \
@@ -261,7 +261,7 @@ SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90
 
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90
-CONS2PRIMGR = conservative2primitive_sr.f90
+CONS2PRIMGR = conservative2primitive_gr.f90
 	 
 OBJECTS1D =  $(SOURCES1D:.f90=.o) $(SOURCES:.f90=.o) $(SOURCES2:.f90=.o) \
 	    $(SETUP1D:.f90=.o)
