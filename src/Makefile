@@ -227,7 +227,8 @@ CONS2PRIM = conservative2primitive.f90
 
 # these files are common to all dimensions and coordinate systems
 
-SOURCES= ndspmhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
+SOURCES= ndspmhd.f90 utils.f90 geometry.f90 \
+         grutils_gr.f90 convert_gr.f90 eos.f90 \
          allocateND.f90 \
          kernel_erbs_utils.f90  kernel_cspline_utils.f90 kernelND.f90 \
          readwrite_dumps.f90 \
@@ -235,7 +236,6 @@ SOURCES= ndspmhd.f90 utils.f90 geometry.f90 convert_gr.f90 eos.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
          boundaryND.f90 check_setup.f90 \
          get_curl.f90 get_B_eulerpots.f90 get_lambda.f90 \
-         grutils_gr.f90 \
          smooth.f90 ${CONS2PRIM} \
 	 copy_particle.f90 particlesplitting.f90 \
          resistivity_implicit.f90 dust_diffusion.f90 \

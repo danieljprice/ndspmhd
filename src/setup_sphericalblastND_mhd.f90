@@ -43,7 +43,7 @@ subroutine setup
  use bound
  use eos
  use kernels, only:interpolate_kernel
- use options, only:damp,ibound
+ use options, only:damp,ibound,geom
  use part
  use setup_params, only:psep
  
@@ -58,13 +58,21 @@ subroutine setup
 
 !
 !--set boundaries
-!            	    
- ibound = 3     ! fixed ghosts
+!
+ geom = 'sphrpt'
  nbpts = 0
- xmin(:) = -0.5     ! same xmin in all dimensions
- xmax(:) = 0.5
-! xmin(2) = -0.75
-! xmax(2) = 0.75
+ select case(geom)
+ case('sphrpt')
+    ibound = 1     ! fixed ghosts
+    xmin(1) = 0.1
+    xmax(1) = 0.5
+ case default
+    ibound = 3     ! fixed ghosts
+    xmin(:) = -0.5     ! same xmin in all dimensions
+    xmax(:) = 0.5
+!   xmin(2) = -0.75
+!   xmax(2) = 0.75
+ end select
  denszero = 1.0
  przero = 0.1
  

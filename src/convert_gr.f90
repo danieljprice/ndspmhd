@@ -1,7 +1,31 @@
+!------------------------------------------------------------------------------!
+! NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical) !
+! fluid dynamics simulations in 1, 2 and 3 spatial dimensions.                 !
+!                                                                              !
+! (c) 2002-2014 Daniel Price                                                   !
+!                                                                              !
+! http://users.monash.edu.au/~dprice/ndspmhd                                   !
+! daniel.price@monash.edu -or- dprice@cantab.net (forwards to current address) !
+!                                                                              !
+!  NDSPMHD comes with ABSOLUTELY NO WARRANTY.                                  !
+!  This is free software; and you are welcome to redistribute                  !
+!  it under the terms of the GNU General Public License                        !
+!  (see LICENSE file for details) and the provision that                       !
+!  this notice remains intact. If you modify this file, please                 !
+!  note section 2a) of the GPLv2 states that:                                  !
+!                                                                              !
+!  a) You must cause the modified files to carry prominent notices             !
+!     stating that you changed the files and the date of any change.           !
+!                                                                              !
+!  ChangeLog:                                                                  !
+!------------------------------------------------------------------------------!
+
+!-----------------------------------------------------------------------------
 !
-!--converts the setup from one co-ordinate system to another
+!  converts the setup from one co-ordinate system to another
 !  obviously this only works for co-ordinate systems which map the same space.
 !
+!-----------------------------------------------------------------------------
 module convert
  implicit none
  
@@ -18,11 +42,13 @@ subroutine convert_setup(geomold,geom)
  use setup_params, only:pi
 
  use geometry
+ use grutils, only:metric_diag
  implicit none
  character(len=*), intent(in) :: geomold
  character(len=*), intent(inout) :: geom
  integer :: i,igeomold,igeom,icart
  real, dimension(ndim) :: xnew,vecnew
+ real, dimension(ndimV) :: gdiag
 
  icart = 0
 !
@@ -82,8 +108,16 @@ subroutine convert_setup(geomold,geom)
     !!ibound(1) = 2 ! reflective in r
     if (ndim.ge.2) ibound(2) = 3 ! periodic in phi
  case('sphrpt')
-    if (xmin(1) < tiny(xmin)) ibound(1) = 2 ! reflective in r
+    if (xmin(1) < tiny(xmin)) ibound(1) = 0 ! reflective in r
     if (ndim.ge.2) ibound(2) = 3 ! periodic in phi
+    !--map densities from the cartesian space to spherical space
+    
+    xmin(1) = 0.1 !print*,' rmin = ',xmin(1)
+    do i=1,npart
+       call metric_diag(x(:,i),gdiag,sqrtg(i),ndim,ndimV,geom)
+       x(1,i) = x(1,i)*sqrtg(i) !xmin(1) + (x(1,i) - xmin(1))**2/(xmax(1) - xmin(1))
+       print*,i,'x = ',x(1,i)
+    enddo
  end select
 
 end subroutine convert_setup
