@@ -208,7 +208,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      fext(2) = 0.
      fext(3) = -2.*Omega0*vpart(1)
 
-     case(12)
+  case(12)
 !
 !--vertical linear force to simulate the vertical motion
 !--of particles in a disc
@@ -216,14 +216,14 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      fext(1) = 0.
      fext(2) = - xpart(2) !2D pb
      
-     case(13)
+  case(13)
 !
 !--vertical cubic force to benchmark the settling of dust particles
 !
      fext(1) = 0.
      fext(2) = - xpart(2)**3 !2D pb 
      
-     case(14)
+  case(14)
 !
 !--vertical square root force to benchmark the settling of dust particles
 !
