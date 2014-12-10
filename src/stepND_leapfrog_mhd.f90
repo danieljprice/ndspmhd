@@ -226,7 +226,7 @@ subroutine step
     !--set a tolerance-based timestep based on the difference between the
     !  second order corrector step and the first order prediction
     !
-    tol = 1.e-4
+    tol = 1.e-3
     errmax = 0.
     errvmax = 0.
     errBmax = 0.
