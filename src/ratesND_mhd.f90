@@ -855,7 +855,7 @@ subroutine get_rates
              + (1. - dustfrac(i))*dudt(i))
     endif
  enddo
- if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum)) then
+ if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum) .and. (iener.ge.2)) then
     print*,' SUM (should be zero if conserving energy) = ',sum
     !read*
  endif
@@ -2546,7 +2546,7 @@ contains
 !  for one fluid dust in the terminal velocity approximation
 !----------------------------------------------------------------
   subroutine dust_derivs_diffusion
-    real :: diffterm, Di, Dj, du
+    real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
     real :: const
     real, parameter :: s_grain = 0.001
@@ -2565,7 +2565,16 @@ contains
 
     Di = dustfraci*tstopi
     Dj = dustfracj*tstopj
-    diffterm = rho1i*rho1j*(Di + Dj)*(pri - prj)*grkern/rij
+    
+    if (Di + Dj > 0.) then
+       Dav = 0.5*(Di + Dj)
+       !Dav = 2.*Di*Dj/(Di + Dj)
+       !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
+    else
+       Dav = 0.
+    endif
+    
+    diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
     ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
     ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
     !
