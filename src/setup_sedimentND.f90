@@ -130,7 +130,10 @@ subroutine setup
     xmindust(2) = 0.6
     xmaxdust(2) = 0.8
     rhodust = 0.1 ! in Monaghan 97 this is rhod*thetad = 1000*0.001 = 1.0
+    print*,' rhodust = ',rhodust,' rhogas = ',denszero
     voldust = product(xmaxdust-xmindust)
+    print*,' assuming Kdrag = ',Kdrag, ' gives vdust = ',-rhodust*gx/Kdrag
+
     select case(idust)
     case(2)
        ngas = npart
@@ -145,7 +148,7 @@ subroutine setup
           uu(i)    = 0.
           Bfield(:,i) = 0.
           vel(:,i) = 0.
-          vel(2,i) = -1.
+          vel(2,i) = -rhodust*gx/Kdrag
        enddo
     case default
        ndust = 0
@@ -154,7 +157,6 @@ subroutine setup
              ndust = ndust + 1
           endif
        enddo
-       print*,' assuming Kdrag = ',Kdrag, ' gives vdust = ',-rhodust*gx/Kdrag
 
        masspdust = rhodust*voldust/real(ndust)
        do i=1,npart
@@ -176,6 +178,7 @@ subroutine setup
        enddo
     end select
     ts = (rhodust*denszero)/(Kdrag*(rhodust + denszero))
+    print*,' stopping time ts = ',ts
     print*,' resolution criterion is h < ',cs*ts
     if (idust.eq.2 .and. psep > cs*ts) then
        print*,' warning: this is not being met '
