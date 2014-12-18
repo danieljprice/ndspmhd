@@ -296,10 +296,10 @@ subroutine conservative2primitive
      !      uu(i) = przero/((gamma - 1.)*yprofile(dx,denszero,densmedium,smoothl))
      !      en(i) = uu(i)
      !   enddo
-        if (mod(nsteps,10).eq.0) then
-           vel(:,i) = 0.
-           velin(:,i) = 0.
-        endif
+        !if (mod(nsteps,100).eq.0) then
+        !   vel = 0.
+        !   velin = 0.
+        !endif
      else
         uu = en
      endif
@@ -431,7 +431,11 @@ subroutine primitive2conservative
      else
         rho(i) = dens(i)
      endif
-     hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
+     if (usenumdens) then
+        hh(i) = hfact*psep
+     else
+        hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
+     endif
 !
 !--also work out what polyk should be if using iener = 0
 !  (only do this once, otherwise give an error)
