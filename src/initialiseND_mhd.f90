@@ -179,7 +179,7 @@ subroutine initialise
     ikernel = 3
     ikernelalt = 2
  elseif (usenumdens) then
-    ikernelalt = 43
+    ikernelalt = ikernel !43
  else
     ikernelalt = ikernel
  endif
