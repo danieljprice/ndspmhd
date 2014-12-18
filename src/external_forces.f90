@@ -23,6 +23,7 @@
 module externf
  implicit none
  real, parameter :: eps2_soft = 1.e-8
+ real, parameter, public :: Rdisc = 5.0, Mstar = 1.0
  
  public :: external_forces, pequil, external_potentials
  
@@ -233,6 +234,13 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      else
         fext(2) = (-xpart(2))**0.5 !2D pb
      endif 
+
+  case(15)
+!
+!--vertical gravity in 2D disc
+!
+     fext(1) = 0.
+     fext(2) = -xpart(2)*Mstar/sqrt(Rdisc**2 + xpart(2)**2)**3
 
   case default
      
