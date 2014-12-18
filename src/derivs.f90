@@ -33,7 +33,7 @@ subroutine derivs
  use cons2prim,     only:conservative2primitive
  use resistivity,   only:Bdiffusion
  use timestep,      only:dt
- use options,       only:iresist,etamhd,idust
+ use options,       only:iresist,etamhd,idust,iener
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
  use part, only:vel
@@ -114,7 +114,7 @@ subroutine derivs
        sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
        sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustfracdt(i)
     enddo
-    if (abs(sum) > epsilon(sum)) print*,' sum = ',sum,sum1,sum2,sum3,sum4
+    if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
  endif
 
  if (itiming) then
