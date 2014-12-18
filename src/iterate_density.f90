@@ -63,7 +63,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
-  real, dimension(size(rho)) :: hhin,dndt,delsqn
+  real, dimension(2*size(rho)) :: hhin,dndt,delsqn ! allow space in case of ghost reallocation
   logical :: converged,redolink
   
 !!  integer :: itest
