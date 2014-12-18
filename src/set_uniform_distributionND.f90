@@ -135,9 +135,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
        print*,' periodic boundaries: adjusting nparty = ',nparty
     endif
 !--for periodic boundaries, ymax needs to be divisible by 2
-    if (ndim.eq.3 .and. ibound(3).eq.3 .and..not.present(rmax)) then
-       npartz = 3*int(npartz/3)
-       print*,' periodic boundaries: adjusting npartz = ',npartz
+    if (ndim.eq.3) then
+       if (ibound(3).eq.3 .and..not.present(rmax)) then
+          npartz = 3*int(npartz/3)
+          print*,' periodic boundaries: adjusting npartz = ',npartz
+       endif
     endif
 !
 !--adjust psep so that particles fill the volume
