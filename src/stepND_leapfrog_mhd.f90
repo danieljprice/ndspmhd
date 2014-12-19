@@ -52,7 +52,7 @@ subroutine step
  implicit none
  integer :: i,j,nsplit
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
+ real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustevoldtin
  real, dimension(3,npart) :: daldtin
  real :: hdt,tol,errv,errB,errmax,errvmax,errBmax,dttol
  real, dimension(ndim)  :: xcyl,velcyl
@@ -85,8 +85,8 @@ subroutine step
     dpsidtin(i) = dpsidt(i)
     
     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfracin(i)    = dustfrac(i)
-       ddustfracdtin(i) = ddustfracdt(i)
+       dustevolin(i)    = dustevol(i)
+       ddustevoldtin(i) = ddustevoldt(i)
        if (idust.eq.1) then
           deltavin(:,i)     = deltav(:,i)
           ddeltavdtin(:,i)  = ddeltavdt(:,i)
@@ -132,7 +132,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i)
+          dustevol(i) = dustevolin(i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -150,7 +150,7 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i) + dt*ddustfracdtin(i)
+          dustevol(i) = dustevolin(i) + dt*ddustevoldtin(i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
        endif
     endif
@@ -177,7 +177,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i)
+          dustevol(i) = dustevolin(i)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
@@ -202,7 +202,7 @@ subroutine step
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i) + hdt*(ddustfracdt(i) + ddustfracdtin(i))
+          dustevol(i) = dustevolin(i) + hdt*(ddustevoldt(i) + ddustevoldtin(i))
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
        endif
     endif

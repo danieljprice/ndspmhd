@@ -34,7 +34,7 @@ contains
 !! assumes there has been a previous call to density
 !!------------------------------------------------------------------------
 
-subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,vel,pr,uu,dudt)
+subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,dudt)
  use dimen_mhd, only:ndim, ndimV
  use debug,     only:trace
  use loguns,    only:iprint
@@ -48,7 +48,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
  real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu,pr
  real, dimension(ndimV,ntot), intent(in) :: vel
  real, dimension(ndimV,ntot), intent(inout) :: deltav
- real, dimension(ntot),      intent(out) :: ddustfracdt
+ real, dimension(ntot),      intent(out) :: ddustevoldt
  real, dimension(ntot),    intent(inout) :: dudt
 !
 !--define local variables
@@ -83,7 +83,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
 !--initialise quantities
 !  (do NOT set du/dt to zero)
 !
- ddustfracdt = 0.
+ ddustevoldt = 0.
  listneigh = 0
 !
 ! make sure deltav has been copied to ghosts
@@ -173,8 +173,8 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
                 termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
                 termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj
                 term = termi + termj
-                ddustfracdt(i) = ddustfracdt(i) - pmassj*term
-                ddustfracdt(j) = ddustfracdt(j) + pmassi*term
+                ddustevoldt(i) = ddustevoldt(i) - pmassj*term
+                ddustevoldt(j) = ddustevoldt(j) + pmassi*term
 
                 if (iener.gt.0) then
                    disstermi = 0.!dustfraci*deltav2i/tstopi
@@ -207,7 +207,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,d
 
  do i=npart+1,ntot
     j = ireal(i)
-    ddustfracdt(i) = ddustfracdt(j)
+    ddustevoldt(i) = ddustevoldt(j)
     dudt(i) = dudt(j)
  enddo
  

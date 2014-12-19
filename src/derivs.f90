@@ -28,7 +28,7 @@ subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
  use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr
- use rates,         only:dBevoldt,ddustfracdt,dendt
+ use rates,         only:dBevoldt,ddustevoldt,dendt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
  use resistivity,   only:Bdiffusion
@@ -98,8 +98,8 @@ subroutine derivs
  endif
  
  if (idust.eq.3) then
-    ddustfracdt = 0.
-    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustfracdt,deltav,vel,pr,uu,dendt)
+    ddustevoldt = 0.
+    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,dendt)
     sum = 0.
     sum1 = 0.
     sum2 = 0.
@@ -107,12 +107,12 @@ subroutine derivs
     sum4 = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
-             - uu(i)*ddustfracdt(i) &
+             - uu(i)*ddustevoldt(i) &
              + (1.-dustfrac(i))*dendt(i))
        sum1 = sum1 + pmass(i)*(dot_product(vel(:,i),force(:,i)))
-       sum2 = sum2 - pmass(i)*uu(i)*ddustfracdt(i)
+       sum2 = sum2 - pmass(i)*uu(i)*ddustevoldt(i)
        sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
-       sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustfracdt(i)
+       sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustevoldt(i)
     enddo
     if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
  endif

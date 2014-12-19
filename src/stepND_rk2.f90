@@ -47,7 +47,7 @@ subroutine step
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfracin(i) = dustfrac(i)
+       dustevolin(i) = dustevol(i)
        if (idust.eq.1) deltavin(:,i) = deltav(:,i)
     endif
  enddo
@@ -71,7 +71,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i)
+          dustevol(i) = dustevolin(i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -89,13 +89,13 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + hdt*dpsidt(i) 
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i) + hdt*ddustfracdt(i)
+          dustevol(i) = dustevolin(i) + hdt*ddustevoldt(i)
           if (idust.eq.1) then
              deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
-             if (dustfrac(i).gt.0.) then
-                dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-                deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
-             endif
+!             if (dustevol(i).gt.0.) then
+!                dtstop = Kdrag/(rho(i)*dustevol(i)*(1. - dustevol(i)))
+!                deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
+!             endif
           endif
        endif
     endif
@@ -119,7 +119,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i)
+          dustevol(i) = dustevolin(i)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
@@ -141,13 +141,14 @@ subroutine step
        if (idivbzero.ge.2)   psi(i)     = psiin(i) + dt*dpsidt(i)
        
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustfrac(i) = dustfracin(i)  + dt*ddustfracdt(i)
+          dustevol(i) = dustevolin(i)  + dt*ddustevoldt(i)
           if (idust.eq.1) then
              deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
-             if (dustfrac(i).gt.0.) then
-                dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-                deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
-             endif
+!             if (dustevol(i).gt.0.) then
+!                dustfrac(i) = dustevol(i)
+!                dtstop = Kdrag/(rho(i)*dustevol(i)*(1. - dustfrac(i)))
+!                deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+!             endif
           endif
        endif
     endif

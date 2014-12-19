@@ -73,6 +73,7 @@ subroutine conservative2primitive
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
+        dustfrac(i) = dustevol(i)
         if (dustfrac(i) < 0) then
            nerr = nerr + 1
            dustfrac(i) = 0.
@@ -486,6 +487,7 @@ subroutine primitive2conservative
   endif
 
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     dustevol = dustfrac
      dens = rho*(1. - dustfrac)
   else
      dens = rho

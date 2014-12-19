@@ -216,7 +216,7 @@ subroutine get_rates
      dhdt(i) = 0.
   endif
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-     ddustfracdt(i) = 0.
+     ddustevoldt(i) = 0.
      ddeltavdt(:,i) = 0.
   endif
  enddo
@@ -846,12 +846,12 @@ subroutine get_rates
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
              + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
+             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustevoldt(i) &
              + rhogasi*rho1i*dudt(i))
     elseif (idust.eq.4) then
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
-             - uu(i)*ddustfracdt(i) &
+             - uu(i)*ddustevoldt(i) &
              + (1. - dustfrac(i))*dudt(i))
     endif
  enddo
@@ -2503,8 +2503,8 @@ contains
     termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
     term  = termi + termj
 
-    ddustfracdt(i) = ddustfracdt(i) - pmassj*term
-    ddustfracdt(j) = ddustfracdt(j) + pmassi*term
+    ddustevoldt(i) = ddustevoldt(i) - pmassj*term
+    ddustevoldt(j) = ddustevoldt(j) + pmassi*term
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
@@ -2575,8 +2575,8 @@ contains
     endif
     
     diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
-    ddustfracdt(i) = ddustfracdt(i) - pmassj*diffterm
-    ddustfracdt(j) = ddustfracdt(j) + pmassi*diffterm
+    ddustevoldt(i) = ddustevoldt(i) - pmassj*diffterm
+    ddustevoldt(j) = ddustevoldt(j) + pmassi*diffterm
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !
