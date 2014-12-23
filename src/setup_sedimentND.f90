@@ -60,8 +60,10 @@ subroutine setup
       ! boundaries
  ibound(2) = 0     ! boundaries
  nbpts = 0      ! use ghosts not fixed
- xmin(:) = 0.   ! set position of boundaries
- xmax(:) = 1.
+ xmin(1) = 0.
+ xmax(1) = 0.25
+ xmin(2) = 0.   ! set position of boundaries
+ xmax(2) = 1.
  xmin(2) = xmin(2) - 8.*psep
  xmax(2) = xmax(2) + 8.*psep
  
