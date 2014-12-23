@@ -21,7 +21,7 @@ ifeq ($(SYSTEM), gfortran)
    F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
-   DEBUGFLAG= -g -fcheck=all
+   DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid
    ENDIANFLAGBIG= -fconvert=big-endian
    ENDIANFLAGLITTLE= -fconvert=little-endian
    KNOWN_SYSTEM=yes
