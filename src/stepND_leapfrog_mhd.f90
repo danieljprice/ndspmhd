@@ -85,7 +85,11 @@ subroutine step
     dpsidtin(i) = dpsidt(i)
     
     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustevolin(i)    = dustevol(i)
+       if (use_sqrtdustfrac) then
+          dustevolin(i)    = sqrt(dustevol(i)**2)
+       else
+          dustevolin(i)    = dustevol(i)
+       endif
        ddustevoldtin(i) = ddustevoldt(i)
        if (idust.eq.1) then
           deltavin(:,i)     = deltav(:,i)
