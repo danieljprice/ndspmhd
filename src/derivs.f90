@@ -28,19 +28,19 @@ subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
  use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr
- use rates,         only:dBevoldt,ddustevoldt,dendt
+ use rates,         only:dBevoldt,ddustevoldt,dendt,drhodt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
  use resistivity,   only:Bdiffusion
  use timestep,      only:dt
- use options,       only:iresist,etamhd,idust,iener
+ use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
- use part, only:vel
- use rates, only:force
+ use part,          only:vel
+ use rates,         only:force
  implicit none
  logical, parameter :: itiming = .false.
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,si
  integer :: i,inext
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
@@ -98,13 +98,14 @@ subroutine derivs
  endif
  
  if (idust.eq.3) then
-    ddustevoldt = 0.
+    !ddustevoldt = 0.
     call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,dendt)
     sum = 0.
     sum1 = 0.
     sum2 = 0.
     sum3 = 0.
     sum4 = 0.
+    sum_dustm = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - uu(i)*ddustevoldt(i) &
@@ -113,8 +114,35 @@ subroutine derivs
        sum2 = sum2 - pmass(i)*uu(i)*ddustevoldt(i)
        sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
        sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustevoldt(i)
+
+       if (use_sqrtdustfrac) then
+       !
+       !--convert from deps/dt to ds/dt
+       !
+          si = sqrt(dustfrac(i)*rho(i))
+          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*sqrt(dustfrac(i)/rho(i))*drhodt(i)
+          sum_dustm = sum_dustm + pmass(i)*(2.*si/rho(i)*ddustevoldt(i) - si**2/rho(i)**2*drhodt(i))
+       else
+          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
+       endif
     enddo
     if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
+    if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
+ elseif (idust.eq.4 .or. idust.eq.1) then
+    sum_dustm = 0.
+    if (use_sqrtdustfrac) then
+       do i=1,npart
+          !
+          !--convert from deps/dt to ds/dt
+          !
+          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*sqrt(dustfrac(i)/rho(i))*drhodt(i)
+       enddo
+    else
+       do i=1,npart
+          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
+       enddo
+    endif
+    if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
  endif
 
  if (itiming) then

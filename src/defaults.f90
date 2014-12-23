@@ -95,6 +95,7 @@ subroutine set_default_options
    geom = geomsetup
    idim = 0
    usenumdens = .false.
+   use_sqrtdustfrac = .false.
    isplitpart = 0
    rhocrit = 1.e4
    iuse_exact_derivs = 0

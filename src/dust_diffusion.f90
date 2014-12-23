@@ -41,7 +41,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
  use bound,     only:ireal
  use kernels,   only:interpolate_kernel,radkern2
  use linklist
- use options,   only:iener,Kdrag
+ use options,   only:iener,Kdrag,use_sqrtdustfrac
  use get_neighbour_lists
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
@@ -66,7 +66,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
  real :: pmassi,pmassj,rhoi,rhoj,gradhi,rho1i,rho1j,rhogasi,rhogasj
  real :: dustfraci,dustfracj,projdeltavi,projdeltavj,dvgasdotr
  real :: termi,termj,term,du,disstermi,disstermj,deltav2i,deltav2j
- real :: tstopi,tstopj,pdvtermi,pdvtermj
+ real :: tstopi,tstopj,pdvtermi,pdvtermj,si,sj
  real, dimension(ndim) :: dx
  real, dimension(ndimv) :: dr,deltavi,deltavj,dvgas,vgasi,vgasj
 !
@@ -83,7 +83,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
 !--initialise quantities
 !  (do NOT set du/dt to zero)
 !
- ddustevoldt = 0.
+ !ddustevoldt = 0.
  listneigh = 0
 !
 ! make sure deltav has been copied to ghosts
@@ -170,11 +170,21 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
 !
                 projdeltavi = dot_product(deltav(:,i),dr)
                 projdeltavj = dot_product(deltav(:,j),dr)
-                termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
-                termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj
+
+                if (use_sqrtdustfrac) then
+                   si = sqrt(rhoi*dustfraci)
+                   sj = sqrt(rhoj*dustfracj)
+                   termi = (1. - dustfraci)*rho1i*projdeltavi*grkerni
+                   termj = (1. - dustfracj)*rho1j*projdeltavj*grkernj
+                else
+                   termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
+                   termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj
+                   si = 1.
+                   sj = 1.
+                endif
                 term = termi + termj
-                ddustevoldt(i) = ddustevoldt(i) - pmassj*term
-                ddustevoldt(j) = ddustevoldt(j) + pmassi*term
+                ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*term
+                ddustevoldt(j) = ddustevoldt(j) + pmassi*si*term
 
                 if (iener.gt.0) then
                    disstermi = 0.!dustfraci*deltav2i/tstopi

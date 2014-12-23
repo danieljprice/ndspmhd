@@ -73,10 +73,14 @@ subroutine conservative2primitive
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
-        dustfrac(i) = dustevol(i)
+        if (use_sqrtdustfrac) then
+           dustfrac(i) = dustevol(i)**2/rho(i)
+        else
+           dustfrac(i) = dustevol(i)
+        endif
         if (dustfrac(i) < 0) then
            nerr = nerr + 1
-           dustfrac(i) = 0.
+           !dustfrac(i) = 0.
            !call quit
         endif
      enddo
@@ -381,6 +385,9 @@ subroutine conservative2primitive
            pr(i) = pr(j)
         endif
         Bfield(:,i) = Bfield(:,j)
+        if (idust > 0 .and. idust /= 2) then
+           dustfrac(i) = dustfrac(j)
+        endif
         if (all(ibound.eq.3)) call copy_particle(i,j) ! just to be sure
      enddo
   endif
@@ -487,7 +494,11 @@ subroutine primitive2conservative
   endif
 
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-     dustevol = dustfrac
+     if (use_sqrtdustfrac) then
+        dustevol = sqrt(dustfrac*rho)
+     else
+        dustevol = dustfrac
+     endif
      dens = rho*(1. - dustfrac)
   else
      dens = rho

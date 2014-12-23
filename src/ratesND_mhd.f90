@@ -550,6 +550,9 @@ subroutine get_rates
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci
        rhogasi  = rhoi - rhodusti
+       !
+       !--compute stopping time for drag timestep
+       !
        tstop = rhodusti*rhogasi/(Kdrag*rhoi)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
        deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
@@ -1981,7 +1984,8 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust_diffusion
     implicit none
-    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu,diffeps
+    real :: tstopi,tstopj,vsigeps
 
     if (dvdotr < 0.) then
        !
@@ -2010,6 +2014,27 @@ contains
           dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni + pmassj*diffu/(1. - dustfraci)
           dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj - pmassi*diffu/(1. - dustfracj)
        endif
+    endif
+    
+    if (.not.use_sqrtdustfrac) then
+       select case(idrag_nature)
+       case(2) !--Epstein regime
+          stop 'dissipation not implemented'
+          !const = sqrt(pi*gamma/8.)
+          !tstopi = s_grain*rho_grain*rho1i/spsoundi !*const
+          !tstopj = s_grain*rho_grain*rho1j/spsoundj !*const
+       case default !--constant drag
+          tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
+          tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
+       end select
+       !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
+       !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
+       !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
+       !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
+       !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
+       diffeps = rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
+       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
     endif
 
   end subroutine artificial_dissipation_dust_diffusion
@@ -2492,19 +2517,29 @@ contains
 !----------------------------------------------------------------
   subroutine dust_derivs
     implicit none
-    real :: termi,termj,term,dterm,du
+    real :: termi,termj,term,dterm,du,si,sj
     real, dimension(ndimV) :: prdustterm
 
     !
     !--time derivative of dust to gas ratio
     !  (symmetric derivative to conserve dust/gas mass)
     !
-    termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
-    termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
-    term  = termi + termj
+    if (use_sqrtdustfrac) then
+       si = sqrt(rhoi*dustfraci)
+       sj = sqrt(rhoj*dustfracj)
+       termi = (1. - dustfraci)*rho1i*projdeltavi*grkerni
+       termj = (1. - dustfracj)*rho1j*projdeltavj*grkernj
+       term = termi + termj
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*term
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*term
+    else
+       termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
+       termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
+       term  = termi + termj
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*term
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*term
+    endif
 
-    ddustevoldt(i) = ddustevoldt(i) - pmassj*term
-    ddustevoldt(j) = ddustevoldt(j) + pmassi*term
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
@@ -2548,7 +2583,7 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
-    real :: const
+    real :: const, si, sj
     real, parameter :: s_grain = 0.001
     real, parameter :: rho_grain = 1./s_grain
     real, parameter :: pi = 3.14159265358979
@@ -2562,21 +2597,31 @@ contains
        tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
        tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
     end select
-
-    Di = dustfraci*tstopi
-    Dj = dustfracj*tstopj
     
-    if (Di + Dj > 0.) then
+    if (use_sqrtdustfrac) then
+       Di = tstopi*rho1i
+       Dj = tstopj*rho1j
        Dav = 0.5*(Di + Dj)
-       !Dav = 2.*Di*Dj/(Di + Dj)
-       !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
+       si = sqrt(dustfraci*rhoi)
+       sj = sqrt(dustfracj*rhoj)
+       diffterm = 2./(rhoi + rhoj)*2.*Dav*(pri - prj)*grkern/rij
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*diffterm
     else
-       Dav = 0.
+       Di = dustfraci*tstopi
+       Dj = dustfracj*tstopj
+       !if (Di + Dj > 0.) then
+          Dav = 0.5*(Di + Dj)
+          !Dav = 2.*Di*Dj/(Di + Dj)
+          !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
+       !else
+       !   Dav = 0.
+       !endif
+       diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*diffterm
     endif
-    
-    diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
-    ddustevoldt(i) = ddustevoldt(i) - pmassj*diffterm
-    ddustevoldt(j) = ddustevoldt(j) + pmassi*diffterm
+
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
     !

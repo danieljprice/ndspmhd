@@ -149,7 +149,7 @@ module options
  real :: shearvisc,bulkvisc
  real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
- logical :: usenumdens
+ logical :: usenumdens,use_sqrtdustfrac
 end module
 
 !-------------------------------------------------------------------
