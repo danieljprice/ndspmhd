@@ -22,6 +22,8 @@
 
 module infiles
  implicit none
+ character(len=*), parameter :: disstype(3) = (/'viscosity   ','conductivity','resistivity '/)
+ character(len=*), parameter :: disschar(3) = (/' ','u','B'/)
 
 contains
 
@@ -40,81 +42,105 @@ subroutine write_infile(infile)
  use setup_params
  use timestep
  use xsph
+ use infile_utils, only:write_inopt
 !
 !--define local variables
 !      
  implicit none
  character(len=*), intent(in) :: infile
+ integer :: i
 !
 !--allow for tracing flow
 !      
  if (trace) write(iprint,*) ' entering subroutine write_infile'
               
  open(unit=iread,err=999,file=infile,status='replace',form='formatted')
-  write(iread,10) psep
-  write(iread,20) tmax,tout,nmax,nout
-  write(iread,30) gamma
-  write(iread,40) iener,polyk
-  write(iread,50) icty,ndirect,maxdensits
-  write(iread,60) iprterm
-  write(iread,70) iav,alphamin,alphaumin,alphabmin,beta
-  write(iread,80) iavlim(:),avdecayconst
-  write(iread,90) ikernav
-  write(iread,100) ihvar,hfact,tolh
-  write(iread,110) idumpghost
-  write(iread,120) imhd,imagforce
-  write(iread,130) idivbzero,psidecayfact
-  write(iread,140) iresist,etamhd
-  write(iread,150) ixsph,xsphfac
-  write(iread,160) igravity,hsoft
-  write(iread,170) damp, dampz, dampr
-  write(iread,180) ikernel
-  write(iread,190) iexternal_force
-  write(iread,200) C_cour, C_force
-  write(iread,210) usenumdens
-  write(iread,220) isplitpart,rhocrit
-  write(iread,230) iuse_exact_derivs, nsteps_remap
-  write(iread,240) idust,idrag_nature,idrag_structure,Kdrag,ismooth
-  write(iread,250) ivisc,shearvisc,bulkvisc
-  write(iread,260) iambipolar
+  write(iread,"(a)") '# input file for ndspmhd, options not present assume default values'
+  write(iread,"(/,a)") '# options affecting setup'
+  call write_inopt(psep,'psep','particle separation',iread)
+
+  write(iread,"(/,a)") '# options affecting timestepping/output'
+  call write_inopt(tmax,'tmax','maximum time',iread)
+  call write_inopt(tout,'tout','time between outputs',iread)
+  call write_inopt(nmax,'nmax','maximum number of timesteps',iread)
+  call write_inopt(nout,'nout','number of timesteps between outputs (-1=ignore)',iread)
+  call write_inopt(C_cour,'C_cour','Courant factor on timestep',iread)
+  call write_inopt(C_force,'C_force','Factor in force timestep condition',iread)
+  call write_inopt(idumpghost,'idumpghost','dump ghost particles? (0: no 1: yes)',iread)
+
+  write(iread,"(/,a)") '# options affecting density calculation'
+  call write_inopt(icty,'icty','type of cty equation (0:direct sum 1:time deriv)',iread)
+  call write_inopt(ndirect,'ndirect','perform direct sum every n timesteps (if icty=1)',iread)
+  call write_inopt(maxdensits,'maxdensits','maximum number of density iterations',iread)
+  call write_inopt(ihvar,'ihvar','type of variable smoothing length prediction',iread)
+  call write_inopt(hfact,'hfact','h in units of mean particle spacing',iread)
+  call write_inopt(tolh,'tolh','tolerance on h-rho iterations',iread)
+  call write_inopt(ikernel,'ikernel','kernel type (0: cubic spline, 3:quintic)',iread)
+  call write_inopt(ikernav,'ikernav','type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)',iread)
+  call write_inopt(usenumdens,'usenumdens','Use number density formulation of gradh',iread)
+
+  write(iread,"(/,a)") '# options affecting equation of state, energy equation'
+  call write_inopt(iener,'iener','type of energy equation',iread)
+  call write_inopt(gamma,'gamma','adiabatic index',iread)
+  call write_inopt(polyk,'polyk','polytropic constant if iener=0',iread)
+
+  write(iread,"(/,a)") '# options affecting momentum equation and shock-capturing terms'
+  call write_inopt(iexternal_force,'iexternal_force','external force (1: toy star, 2:1/r^2 )',iread)
+  call write_inopt(iav,'iav','type of artificial viscosity',iread)
+  call write_inopt(alphamin,'alphamin','minimum alpha (viscosity)',iread)
+  call write_inopt(alphaumin,'alphaumin','minimum alphau (conductivity)',iread)
+  call write_inopt(alphaBmin,'alphaBmin','minimum alphaB (resistivity)',iread)
+  call write_inopt(beta,'beta','beta in artificial viscosity',iread)
+  do i=1,3
+     call write_inopt(iavlim(i),'iavlim'//trim(disschar(i)),'use '//trim(disstype(i))//' switch',iread)
+  enddo
+  call write_inopt(avdecayconst,'avdecayconst','decay constant in av switch (0.1-0.2)',iread)
+  call write_inopt(damp,'damp','artificial damping (0.0 or few percent)',iread)
+  call write_inopt(dampz,'dampz','artificial damping in z (0.0 or few percent)',iread)
+  call write_inopt(dampr,'dampr','artificial damping in r (0.0 or few percent)',iread)
+  call write_inopt(ixsph,'ixsph','use XSPH (0:off 1:on)',iread)
+  call write_inopt(xsphfac,'xsphfac','factor for XSPH correction',iread)
+  call write_inopt(iprterm,'iprterm','type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz',iread)
+  call write_inopt(ismooth,'ismooth','smooth initial conditions?',iread)
+
+  write(iread,"(/,a)") '# options affecting magnetic fields'
+  call write_inopt(imhd,'imhd','MHD (0:no 1-10:B/rho >10:B <0:A -3:GEPs)',iread)
+  call write_inopt(imagforce,'imagforce','MHD force type(1:vector 2:tensor)',iread)
+  call write_inopt(idivbzero,'idivbzero','divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)',iread)
+  call write_inopt(psidecayfact,'psidecayfact','decay factor in hyperbolic/parabolic cleaning',iread)
+  call write_inopt(iresist,'iresist','resistivity (0:off 1:explicit 2:implicit)',iread)
+  call write_inopt(etamhd,'etamhd','eta for resistivity',iread)
+  call write_inopt(nsteps_remap,' nsteps_remap','remapping interval (0:never)',iread)
+  call write_inopt(iuse_exact_derivs,'iuse_exact_derivs','use exact derivatives for MHD (0:off 1:on)',iread)
+
+  write(iread,"(/,a)") '# options affecting dust'
+  call write_inopt(idust,'idust','dust (0:off 1:one-f 2:two-f 3:tv-onef)',iread)
+  call write_inopt(idrag_nature,'idrag_nature','drag type (0=none 1=const K 2=const ts',iread)
+  call write_inopt(idrag_structure,'idrag_structure','drag structure (1=default)',iread)
+  call write_inopt(Kdrag,'Kdrag','drag coefficient (if idrag_nature=1)',iread)
+
+  write(iread,"(/,a)") '# options affecting self-gravity'
+  call write_inopt(igravity,'igravity','self-gravity',iread)
+  call write_inopt(hsoft,'hsoft','fixed softening length',iread)  
+
+  write(iread,"(/,a)") '# options affecting physical viscosity'
+  call write_inopt(ivisc,'ivisc','use physical viscosity?',iread)
+  call write_inopt(shearvisc,'shearvisc','shear viscosity (nu)',iread)
+  call write_inopt(bulkvisc,'bulkvisc','bulk viscosity (zeta)',iread)
+  call write_inopt(iambipolar,'iambipolar','ambipolar diffusion',iread)
+
+  write(iread,"(/,a)") '# options affecting particle splitting'
+  call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
+  call write_inopt(rhocrit,'rhocrit','critical density for particle splitting',iread)
+    
  close(unit=iread)
 
-10 format(f14.10,22x,'! particle separation')
-20 format(f7.3,2x,f7.3,2x,i9,1x,i5,3x,'! tmax, tout, nmax, nout')
-30 format(f14.12,22x,'! gamma ')
-40 format(i2,1x,f5.3,28x,'! type of energy equation, polyk(for iener=0)')
-50 format(i2,1x,i9,2x,i4,18x,'! type of cty equation (0:direct sum 1:time deriv), ndirect, maxdensits')
-60 format(i2,34x,'! type of pressure term (0:normal 1:pa+pb/rhoa*rhob 2:hernquist/katz )')
-70 format(i2,1x,f5.3,2x,f5.3,2x,f5.3,2x,f5.3,7x,'! viscosity type, alpha(min), alphau(min), alphaB(min), beta')
-80 format(7x,i1,6x,i1,6x,i1,2x,f5.3,7x,'! use av, au, aB limiter, decay constant for this(0.1-0.2)')
-90 format(i1,35x,'! type of kernel averaging (1:average h, 2:average grad wab 3:springel/hernquist)')
-100 format(i2,1x,f5.3,2x,1pe10.3,16x,'! variable h, initial h factor, h tolerance')
-110 format(i2,34x,'! dump ghost particles? (0: no 1: yes)')
-120 format(i2,4x,i1,29x,'! MHD (0:no 1-10:B/rho >10:B <0:A -3:GEPs), force type(1:vector 2:tensor)')
-130 format(i2,2x,f5.3,27x,'! divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)')
-140 format(i1,2x,f5.3,28x,'! resistivity (0:off 1:explicit 2:implicit), eta')
-150 format(i1,2x,f5.3,28x,'! use xsph, parameter')
-160 format(i2,1x,es9.3,24x,'! self-gravity, fixed softening length')
-170 format(f7.4,1x,f7.4,1x,f7.4,13x,'! artificial damping (0.0 or few percent)')
-180 format(i3,33x,'! kernel type (0: cubic spline, 3:quintic)')
-190 format(i2,34x,'! external force (1: toy star, 2:1/r^2 )')
-200 format(es10.3,2x,f7.3,2x,15x,'! C_cour, C_force')
-210 format(l1,35x,'! Use number density formulation of gradh')
-220 format(i1,1x,1pe9.3,25x,'! particle splitting, critical density')
-230 format(i2,2x,i4,28x,'! use exact derivatives for MHD (0:off 1:on), remapping interval (0:never)')
-240 format(3(i2,1x),es9.3,1x,i2,15x,'! dust (0:off 1:one-f 2:two-f 3:tv-onef), drag type,drag form, Kdrag,ismooth')
-250 format(i1,1x,es9.3,1x,es9.3,15x,'! real viscosity, shear param (nu), bulk param (zeta)')
-260 format(i2,34x,'! ambipolar diffusion')
-
- write(iprint,300) infile
-300 format (' input file ',a20,' created successfully')
-
+ write(iprint,"(/,a)") ' input file '//trim(infile)//' created successfully'
  return
       
 999   stop 'error creating input file, exiting...'
       
 end subroutine write_infile
-
 
 !!-----------------------------------------------------------------
 !! reads parameters for the run from the input file
@@ -131,6 +157,7 @@ subroutine read_infile(infile)
  use setup_params
  use timestep
  use xsph
+ use infile_utils
 !
 !--define local variables
 !      
@@ -138,57 +165,121 @@ subroutine read_infile(infile)
  character(len=*), intent(in) :: infile 
  character(len=len(infile)+3) :: infilebak
  character(len=2*len(infile)+12) :: command
- character(len=1) :: ians  
+ character(len=1) :: ians
+ logical :: iexist
+ integer :: i,ierr,nerr,ierrold
+ type(inopts), allocatable :: db(:)
 !
 !--allow for tracing flow
 !      
  if (trace) write(iprint,*) ' entering subroutine read_infile'
               
- open(unit=iread,err=999,file=infile,status='old',form='formatted')
-  read(iread,*,err=50,end=50) psep
-  read(iread,*,err=50,end=50) tmax,tout,nmax,nout
-  read(iread,*,err=50,end=50) gamma
-  read(iread,*,err=50,end=50) iener,polyk
-  read(iread,*,err=50,end=50) icty,ndirect,maxdensits
-  read(iread,*,err=50,end=50) iprterm
-  read(iread,*,err=50,end=50) iav,alphamin,alphaumin,alphabmin,beta
-  read(iread,*,err=50,end=50) iavlim(:),avdecayconst
-  read(iread,*,err=50,end=50) ikernav
-  read(iread,*,err=50,end=50) ihvar,hfact,tolh
-  read(iread,*,err=50,end=50) idumpghost
-  read(iread,*,err=50,end=50) imhd,imagforce
-  read(iread,*,err=50,end=50) idivbzero,psidecayfact
-  read(iread,*,err=50,end=50) iresist,etamhd
-  read(iread,*,err=50,end=50) ixsph,xsphfac
-  read(iread,*,err=50,end=50) igravity,hsoft
-  if (ndim.eq.3) then
-     read(iread,*,err=50,end=50) damp,dampr,dampz
-  elseif (ndim.eq.2) then
-     read(iread,*,err=50,end=50) damp,dampr
+ inquire(file=infile,exist=iexist)
+ if (.not.iexist) then
+    print "(' input file ',a20,' not found')",infile
+    if (adjustl(infile(1:1)).ne.' ') then 
+       write(*,*) ' would you like to create one with default options?'
+       read*,ians
+       if (ians.eq.'y'.or.ians.eq.'y') call write_infile(infile)
+    endif
+    stop 'exiting...'
+ endif
+ 
+  !print "(a)",'reading setup options from '//trim(infile)
+  call open_db_from_file(db,infile,iread,ierr)
+  if (ierr /= 0) then
+     write (*,"(a)",advance='no') ' trying old format...'
+     call read_infile_old(infile,ierrold)
+     if (ierrold /= 0) then
+        write(*,*) 'ERROR reading old format'
+     else
+        write(*,*) 'OK'     
+     endif
   else
-     read(iread,*,err=50,end=50) damp
+     nerr = 0
+     call read_inopt(psep,'psep',db,errcount=nerr)
+     call read_inopt(tmax,'tmax',db,errcount=nerr)
+     call read_inopt(tout,'tout',db,errcount=nerr)
+     call read_inopt(nmax,'nmax',db,errcount=nerr)
+     call read_inopt(nout,'nout',db,errcount=nerr)
+     call read_inopt(gamma,'gamma',db,errcount=nerr)
+     call read_inopt(iener,'iener',db,errcount=nerr)
+     call read_inopt(polyk,'polyk',db,errcount=nerr)
+     call read_inopt(icty,'icty',db,errcount=nerr)
+     call read_inopt(ndirect,'ndirect',db,errcount=nerr)
+     call read_inopt(maxdensits,'maxdensits',db,errcount=nerr)
+     call read_inopt(iprterm,'iprterm',db,errcount=nerr)
+     call read_inopt(iav,'iav',db,errcount=nerr)
+     call read_inopt(alphamin,'alphamin',db,errcount=nerr)
+     call read_inopt(alphaumin,'alphaumin',db,errcount=nerr)
+     call read_inopt(alphabmin,'alphaBmin',db,errcount=nerr)
+     call read_inopt(beta,'beta',db,errcount=nerr)
+     do i=1,3
+        call read_inopt(iavlim(i),'iavlim'//trim(disschar(i)),db,iread)
+     enddo
+     call read_inopt(avdecayconst,'avdecayconst',db,errcount=nerr)
+     call read_inopt(ikernav,'ikernav',db,errcount=nerr)
+     call read_inopt(ihvar,'ihvar',db,errcount=nerr)
+     call read_inopt(hfact,'hfact',db,errcount=nerr)
+     call read_inopt(tolh,'tolh',db,errcount=nerr)
+     call read_inopt(idumpghost,'idumpghost',db,errcount=nerr)
+     call read_inopt(imhd,'imhd',db,errcount=nerr)
+     call read_inopt(imagforce,'imagforce',db,errcount=nerr)
+     call read_inopt(idivbzero,'idivbzero',db,errcount=nerr)
+     call read_inopt(psidecayfact,'psidecayfact',db,errcount=nerr)
+     call read_inopt(iresist,'iresist',db,errcount=nerr)
+     call read_inopt(etamhd,'etamhd',db,errcount=nerr)
+     call read_inopt(ixsph,'ixsph',db,errcount=nerr)
+     call read_inopt(xsphfac,'xsphfac',db,errcount=nerr)
+     call read_inopt(igravity,'igravity',db,errcount=nerr)
+     call read_inopt(hsoft,'hsoft',db,errcount=nerr)
+     call read_inopt(damp,'damp',db,errcount=nerr)
+     call read_inopt(dampz,'dampz',db,errcount=nerr)
+     call read_inopt(dampr,'dampr',db,errcount=nerr)
+     call read_inopt(ikernel,'ikernel',db,errcount=nerr)
+     call read_inopt(iexternal_force,'iexternal_force',db,errcount=nerr)
+     call read_inopt(C_cour,'C_cour',db,errcount=nerr)
+     call read_inopt(C_force,'C_force',db,errcount=nerr)
+     call read_inopt(usenumdens,'usenumdens',db,errcount=nerr)
+     call read_inopt(isplitpart,'isplitpart',db,errcount=nerr)
+     call read_inopt(rhocrit,'rhocrit',db,errcount=nerr)
+     call read_inopt(iuse_exact_derivs,'iuse_exact_derivs',db,errcount=nerr)
+     call read_inopt(nsteps_remap,'nsteps_remap',db,errcount=nerr)
+     call read_inopt(idust,'idust',db,errcount=nerr)
+     call read_inopt(idrag_nature,'idrag_nature',db,errcount=nerr)
+     call read_inopt(idrag_structure,'idrag_structure',db,errcount=nerr)
+     call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
+     call read_inopt(ismooth,'ismooth',db,errcount=nerr)
+     call read_inopt(ivisc,'ivisc',db,errcount=nerr)
+     call read_inopt(shearvisc,'shearvisc',db,errcount=nerr)
+     call read_inopt(bulkvisc,'bulkvisc',db,errcount=nerr)
+     call read_inopt(iambipolar,'iambipolar',db,errcount=nerr)
   endif
-  read(iread,*,err=50,end=50) ikernel
-  read(iread,*,err=50,end=50) iexternal_force
-  read(iread,*,err=50,end=50) C_Cour, C_force
-  read(iread,*,err=50,end=50) usenumdens
-  read(iread,*,err=50,end=50) isplitpart,rhocrit
-  read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
-  read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
-  read(iread,*,err=50,end=50) ivisc,shearvisc,bulkvisc
-  read(iread,*,err=50,end=50) iambipolar
- close(unit=iread)
+  call close_db(db)
 
- goto 55
-50 continue
-   close(unit=iread)
-   infilebak = trim(infile)//'.old'
-   command = 'mv '//trim(infile)//' '//trim(infilebak)
-   call system(command)
-   write(iprint,*) 'error reading '//trim(infile)//': rewriting (saving previous version to '//trim(infilebak)//')'
-   call write_infile(infile)
-   stop
-55 continue
+  if (nerr > 0) then  ! just overwrite existing file if new format
+     print "(a)",' missing options in input file, re-writing...'
+     call write_infile(infile)
+     stop
+  elseif (ierr /= 0) then ! save old format
+     iexist = .true.
+     i = 0
+     do while(iexist)
+        if (i > 1) then
+           write(infilebak,"(a,i1)") trim(infile)//'.old',i
+        else
+           infilebak = trim(infile)//'.old'
+        endif
+        inquire(file=infilebak,exist=iexist)
+        i = i + 1
+     enddo
+     command = 'mv '//trim(infile)//' '//trim(infilebak)
+     print "(a)",' MOVING '//trim(infile)//'->'//trim(infilebak)
+     call system(command)
+     if (ierr /= 0) print "(a)",' RE-WRITING '//trim(infile)//' in new format'
+     call write_infile(infile)
+     stop
+  endif
 !
 !--check options for possible errors
 !      
@@ -260,17 +351,95 @@ subroutine read_infile(infile)
  endif
 100   format(/' read_infile: warning: ',a)
  return
-            
-999   write(iprint,1000) infile      
+      
+end subroutine read_infile
+
+
+!!-----------------------------------------------------------------
+!! reads parameters for the run from the input file
+!! to allow backwards compatibility with old input files
+!!-----------------------------------------------------------------
+
+subroutine read_infile_old(infile,ierr)
+ use dimen_mhd
+ use debug
+ use loguns
+ 
+ use artvi
+ use eos
+ use options
+ use setup_params
+ use timestep
+ use xsph
+!
+!--define local variables
+!
+ implicit none
+ character(len=*), intent(in)  :: infile
+ integer,          intent(out) :: ierr
+ character(len=1) :: ians
+!
+!--allow for tracing flow
+!
+ if (trace) write(iprint,*) ' entering subroutine read_infile_old'
+
+ ierr = 0
+ open(unit=iread,err=999,file=infile,status='old',form='formatted')
+  read(iread,*,err=50,end=50) psep
+  read(iread,*,err=50,end=50) tmax,tout,nmax,nout
+  read(iread,*,err=50,end=50) gamma
+  read(iread,*,err=50,end=50) iener,polyk
+  read(iread,*,err=50,end=50) icty,ndirect,maxdensits
+  read(iread,*,err=50,end=50) iprterm
+  read(iread,*,err=50,end=50) iav,alphamin,alphaumin,alphabmin,beta
+  read(iread,*,err=50,end=50) iavlim(:),avdecayconst
+  read(iread,*,err=50,end=50) ikernav
+  read(iread,*,err=50,end=50) ihvar,hfact,tolh
+  read(iread,*,err=50,end=50) idumpghost
+  read(iread,*,err=50,end=50) imhd,imagforce
+  read(iread,*,err=50,end=50) idivbzero,psidecayfact
+  read(iread,*,err=50,end=50) iresist,etamhd
+  read(iread,*,err=50,end=50) ixsph,xsphfac
+  read(iread,*,err=50,end=50) igravity,hsoft
+  if (ndim.eq.3) then
+     read(iread,*,err=50,end=50) damp,dampr,dampz
+  elseif (ndim.eq.2) then
+     read(iread,*,err=50,end=50) damp,dampr
+  else
+     read(iread,*,err=50,end=50) damp
+  endif
+  read(iread,*,err=50,end=50) ikernel
+  read(iread,*,err=50,end=50) iexternal_force
+  read(iread,*,err=50,end=50) C_Cour, C_force
+  read(iread,*,err=50,end=50) usenumdens
+  read(iread,*,err=50,end=50) isplitpart,rhocrit
+  read(iread,*,err=50,end=50) iuse_exact_derivs, nsteps_remap
+  read(iread,*,err=50,end=50) idust,idrag_nature,idrag_structure,Kdrag,ismooth
+  read(iread,*,err=50,end=50) ivisc,shearvisc,bulkvisc
+  read(iread,*,err=50,end=50) iambipolar
+ close(unit=iread)
+
+ goto 55
+50 continue
+   close(unit=iread)
+   ierr = 1
+   return
+
+55 continue
+ return
+
+!
+! this should never happen (we check file exists before calling read_infile_old)
+!
+999   write(iprint,1000) infile
 1000  format (' input file ',a20,' not found')
+ ierr = 2
  if (adjustl(infile(1:1)).ne.' ') then 
     write(*,*) ' would you like to create one with default options?'
     read*,ians
     if (ians.eq.'y'.or.ians.eq.'y') call write_infile(infile)
  endif
-
- stop 'exiting...'
       
-end subroutine read_infile
+end subroutine read_infile_old
 
 end module infiles
