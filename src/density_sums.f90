@@ -36,14 +36,14 @@ contains
 !!------------------------------------------------------------------------
 
   subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
-                     gradh,gradhn,gradsoft,gradgradh,npart)
+                     gradh,gradhn,gradsoft,gradgradh,npart,ntotal)
     use dimen_mhd,    only:ndim,ndimV
     use debug,        only:trace
     use loguns,       only:iprint
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm
-    use part,         only:Bfield,ntotal,uu,psi,itype,itypebnd
+    use part,         only:Bfield,uu,psi,itype,itypebnd
     use setup_params, only:hfact
     use rates,        only:dBevoldt
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -51,14 +51,14 @@ contains
 !--define local variables
 !
     implicit none
-    integer, intent(in) :: npart
+    integer, intent(in) :: npart,ntotal
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
  
     integer :: i,j,k,n
     integer :: icell,iprev,nneigh
-    integer, dimension(npart) :: listneigh
+    integer, dimension(ntotal) :: listneigh
     integer :: idone
     integer, parameter :: itemp = 121
 !

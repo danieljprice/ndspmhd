@@ -129,7 +129,7 @@ subroutine iterate_density
 !  only on a partial list
 !     
      if (ncalc.eq.npart) then
-        call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
+        call density(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,npart,ntotal) ! symmetric for particle pairs
      else
         call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
