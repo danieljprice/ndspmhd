@@ -212,7 +212,7 @@ subroutine write_inopt_real8(rval,name,descript,iunit,exp,time,ierr)
          name,rval,descript
     else
        if (abs(rval) < 1.e-1) then
-          write(tmpstring,"(f10.7)",iostat=ierror) rval
+          write(tmpstring,"(f16.13)",iostat=ierror) rval
           tmpstring = adjustl(strip_zeros(tmpstring,3))
        elseif (abs(rval) >= 1.e1) then
           write(tmpstring,"(g16.9)",iostat=ierror) rval       
@@ -221,7 +221,11 @@ subroutine write_inopt_real8(rval,name,descript,iunit,exp,time,ierr)
           write(tmpstring,"(g16.9)",iostat=ierror) rval       
           tmpstring = adjustl(strip_zeros(tmpstring,3))
        endif
-       write(iunit,"(a20,' = ',1x,a10,4x,'! ',a)",iostat=ierror) name,adjustr(trim(tmpstring)),descript
+       if (len_trim(tmpstring) > 10) then
+          write(iunit,"(a20,' = ',1x,a,2x,'! ',a)",iostat=ierror) name,adjustr(trim(tmpstring)),descript
+       else
+          write(iunit,"(a20,' = ',1x,a10,4x,'! ',a)",iostat=ierror) name,adjustr(trim(tmpstring)),descript
+       endif
     endif
  endif
  if (present(ierr)) ierr = ierror
