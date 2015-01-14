@@ -36,7 +36,8 @@ contains
 !!------------------------------------------------------------------------!!
 
 subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
-           fill,adjustbound,offset,perturb,psepx,psepy,psepz,rmin,rmax,mask)
+           fill,adjustbound,offset,perturb,psepx,psepy,psepz,rmin,rmax,mask,&
+           stretchfunc,stretchdim)
 !
 !--include relevant global variables
 !
@@ -63,14 +64,21 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  real, intent(in), optional :: perturb,psepx,psepy,psepz,rmin,rmax
  logical, intent(in), optional :: offset,fill,adjustbound
  integer, intent(in), optional :: mask
+ real, external, optional :: stretchfunc
+ integer,        optional :: stretchdim
  
  integer :: i,j,k,ntot,npartin,npartx,nparty,npartz,ipart,iseed,imask
  integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
  integer, dimension(1000) :: listneigh
  real :: xstart,ystart,zstart,deltax,deltay,deltaz
  real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart
+ real :: xi,xprev,dxmax,func,fracmassold,totmass,xminbisect,xmaxbisect,xminstretch !,dfunc
  real, dimension(ndim) :: xran,xcentre,dx
  logical :: adjustdeltas,offsetx
+ integer :: idims,its
+ integer, parameter :: maxits = 50
+ real, parameter    :: tol = 1.e-8
+ character(len=1)   :: chdim(3)
 !
 !--allow for tracing flow
 !
@@ -515,9 +523,69 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
           xran(j) = ran1(iseed)
        enddo
        x(:,i) = x(:,i) + ampl*(xran(:)-0.5)
-    enddo    
+    enddo
  endif
- 
+
+!------------------------------------------------------------------------
+! STRETCH distribution in one direction to map to a 1D density function
+!------------------------------------------------------------------------
+ if (present(stretchfunc)) then
+    if (present(stretchdim)) then
+       idims = stretchdim
+    else
+       idims = 1
+    endif
+    chdim = (/'x','y','z'/)
+    print*,' stretching in '//chdim(idims)//' direction to match density function'
+    
+    !
+    ! pivot point for stretch transformation
+    ! use the origin if limits straddle it, otherwise pivot about xmin
+    !
+    if (xmax(idims) > 0. .and. xmin(idims) < 0.) then
+       xminstretch = 0.
+    else
+       xminstretch = xmin(idims)
+    endif
+    
+    !
+    ! preliminaries 
+    !
+    totmass  = get_mass(stretchfunc,xmax(idims),xminstretch)
+    dxmax    = xmax(idims) - xminstretch
+    !
+    ! solve for each particle position by iteration
+    ! use bisection method as guarantees convergence
+    !
+    do i=npartin+1,ipart
+       xi   = x(idims,i)
+       fracmassold = (xi - xminstretch)/dxmax
+       if (abs(fracmassold) > 0.) then
+          xprev = 0.
+          its = 0
+          func = 1.e2
+          xminbisect = xmin(idims)
+          xmaxbisect = xmax(idims)
+          do while(abs(func) > tol .and. its < maxits)
+             xi = 0.5*(xminbisect + xmaxbisect)
+             !xprev  = xi
+             its    = its + 1
+             func   = get_mass(stretchfunc,xi,xminstretch)/totmass - fracmassold
+             if (func > 0.) then
+                xmaxbisect = xi
+             else
+                xminbisect = xi
+             endif
+             !dfunc  = stretchfunc(xi)/totmass
+             !xi     = xprev - func/dfunc ! Newton-Raphson
+          enddo
+          if (its >= maxits) then
+             write(iprint,*) 'ERROR: iterations not converged during stretch'
+          endif
+          x(idims,i) = xi
+       endif
+    enddo
+ endif
 !
 !--set total number of particles = npart
 !
@@ -802,5 +870,31 @@ subroutine applymask(imask,xpart,ipart)
  end select
  
 end subroutine applymask
+
+!----------------------------------------------------
+!+
+!  Integrate to get total mass as function of x
+!  used when stretching distribution to match
+!  1D density profile
+!+
+!----------------------------------------------------
+real function get_mass(rhofunc,x,xmin)
+ integer, parameter :: ngrid = 1024
+ real, intent(in) :: x,xmin
+ real, external   :: rhofunc
+ real :: dx,xi,dmi,dmprev
+ integer :: i
+
+ dx = (x - xmin)/real(ngrid)
+ dmprev   = 0.
+ get_mass = 0.
+ do i=1,ngrid
+    xi     = xmin + i*dx
+    dmi    = rhofunc(xi)*dx
+    get_mass = get_mass + 0.5*(dmi + dmprev) ! trapezoidal rule
+    dmprev = dmi
+ enddo
+
+end function get_mass
 
 end module uniform_distributions
