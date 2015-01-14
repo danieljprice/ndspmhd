@@ -46,6 +46,7 @@ subroutine setup
  integer :: i
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0
+ logical :: equalmass
 !
 !--allow for tracing flow
 !
@@ -66,10 +67,8 @@ subroutine setup
  H0 = HonR*Rdisc 
  !xmin(2) = -3.*H0   ! set position of boundaries
  !xmax(2) = 3.*H0
+ equalmass = .true.
 
- call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
- npart = ntotal
- print*,'npart =',npart
 !
 !--determine particle mass
 !
@@ -88,14 +87,28 @@ subroutine setup
  !print*,' temperature = ',1.38e-13*,' assuming distance in AU, mass in Msun and G=1'
  print*,' polyk = ',polyk
  print*,' scale height H0 = ',H0
+
+ if (equalmass) then
+    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=2,stretchfunc=rhoy) 
+ else
+    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
+ endif
+ npart = ntotal
+ print*,'npart =',npart
+
 !
 !--now assign particle properties
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    dens(i) = denszero
-    pmass(i) = massp*exp(-0.5*(x(2,i)/H0)**2) + rhomin*partvol
-    if (i.eq.801) print*,pmass(i),i,exp(-0.5*(x(2,i)/H0)**2)
+    if (equalmass) then
+       dens(i) = denszero*exp(-0.5*(x(2,i)/H0)**2)
+       pmass(i) = massp
+    else
+       dens(i) = denszero
+       pmass(i) = massp*exp(-0.5*(x(2,i)/H0)**2) + rhomin*partvol
+       !if (i.eq.801) print*,pmass(i),i,exp(-0.5*(x(2,i)/H0)**2)
+    endif
     if (gamma > 1.) then
        uu(i) = cs0**2/(gamma*(gamma-1.)) ! adiabatic
     else
@@ -109,4 +122,13 @@ subroutine setup
  if (trace) write(iprint,*) '  exiting subroutine setup'
   
  return
-end
+
+contains
+ real function rhoy(y)
+  real, intent(in) :: y
+
+  rhoy = exp(-0.5*(y/H0)**2)
+
+ end function rhoy
+
+end subroutine setup
