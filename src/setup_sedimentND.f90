@@ -38,7 +38,7 @@ subroutine setup
  use externf,   only:external_forces
  use cons2prim, only:primitive2conservative 
  use uniform_distributions
- use eos, only:polyk
+ use eos, only:polyk,gamma
 !
 !--define local variables
 !            
@@ -91,12 +91,21 @@ subroutine setup
  call external_forces(9,x(:,1),fext,ndim,ndimV,vel(:,1),hh(1),cs,itypegas)
  gx = -fext(2)
  itype = itypegas
+ if (iener >= 1) then
+    if (gamma < 1.001) stop 'need gamma > 1 if non-isothermal'
+ endif
  
  do i=1,ntotal
     vel(:,i) = 0.
-    dens(i) = denszero*exp(-gx*x(2,i)/cs**2)
-    pmass(i) = massp*exp(-gx*x(2,i)/cs**2)
-    uu(i) = 1.5*polyk ! isothermal
+    if (iener <= 0) then
+       dens(i) = denszero*exp(-gx*x(2,i)/cs**2)
+       pmass(i) = massp*exp(-gx*x(2,i)/cs**2)
+       uu(i) = 1.5*polyk ! non-isothermal
+    else
+       dens(i) = denszero
+       pmass(i) = massp
+       uu(i) = 1.5*polyk - gx*x(2,i)/(gamma - 1.) ! non-isothermal
+    endif
     Bfield(:,i) = 0.
  enddo 
 
