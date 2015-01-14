@@ -108,16 +108,18 @@ subroutine write_infile(infile)
   call write_inopt(imagforce,'imagforce','MHD force type(1:vector 2:tensor)',iread)
   call write_inopt(idivbzero,'idivbzero','divergence correction method (0:none 1:projection 2: hyperbolic/parabolic)',iread)
   call write_inopt(psidecayfact,'psidecayfact','decay factor in hyperbolic/parabolic cleaning',iread)
-  call write_inopt(iresist,'iresist','resistivity (0:off 1:explicit 2:implicit)',iread)
-  call write_inopt(etamhd,'etamhd','eta for resistivity',iread)
   call write_inopt(nsteps_remap,' nsteps_remap','remapping interval (0:never)',iread)
   call write_inopt(iuse_exact_derivs,'iuse_exact_derivs','use exact derivatives for MHD (0:off 1:on)',iread)
+  call write_inopt(iresist,'iresist','resistivity (0:off 1:explicit 2:implicit)',iread)
+  call write_inopt(etamhd,'etamhd','eta for resistivity',iread)
+  call write_inopt(iambipolar,'iambipolar','ambipolar diffusion',iread)
 
   write(iread,"(/,a)") '# options affecting dust'
-  call write_inopt(idust,'idust','dust (0:off 1:one-f 2:two-f 3:tv-onef)',iread)
+  call write_inopt(idust,'idust','dust (0:off 1:one-f 2:two-f 3:diff-onef-1st 4:diff-onef-2ndderivs)',iread)
   call write_inopt(idrag_nature,'idrag_nature','drag type (0=none 1=const K 2=const ts',iread)
   call write_inopt(idrag_structure,'idrag_structure','drag structure (1=default)',iread)
   call write_inopt(Kdrag,'Kdrag','drag coefficient (if idrag_nature=1)',iread)
+  call write_inopt(use_sqrtdustfrac,'use_sqrtdustfrac','evolve s=sqrt(rho*eps) instead of eps?',iread)
 
   write(iread,"(/,a)") '# options affecting self-gravity'
   call write_inopt(igravity,'igravity','self-gravity',iread)
@@ -127,7 +129,6 @@ subroutine write_infile(infile)
   call write_inopt(ivisc,'ivisc','use physical viscosity?',iread)
   call write_inopt(shearvisc,'shearvisc','shear viscosity (nu)',iread)
   call write_inopt(bulkvisc,'bulkvisc','bulk viscosity (zeta)',iread)
-  call write_inopt(iambipolar,'iambipolar','ambipolar diffusion',iread)
 
   write(iread,"(/,a)") '# options affecting particle splitting'
   call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
@@ -185,6 +186,7 @@ subroutine read_infile(infile)
     stop 'exiting...'
  endif
  
+  nerr = 0
   !print "(a)",'reading setup options from '//trim(infile)
   call open_db_from_file(db,infile,iread,ierr)
   if (ierr /= 0) then
@@ -196,19 +198,36 @@ subroutine read_infile(infile)
         write(*,*) 'OK'     
      endif
   else
-     nerr = 0
+     ! particle setup
      call read_inopt(psep,'psep',db,errcount=nerr)
+
+     ! timestepping
      call read_inopt(tmax,'tmax',db,errcount=nerr)
      call read_inopt(tout,'tout',db,errcount=nerr)
      call read_inopt(nmax,'nmax',db,errcount=nerr)
      call read_inopt(nout,'nout',db,errcount=nerr)
-     call read_inopt(gamma,'gamma',db,errcount=nerr)
+     call read_inopt(C_cour,'C_cour',db,errcount=nerr)
+     call read_inopt(C_force,'C_force',db,errcount=nerr)
+     call read_inopt(idumpghost,'idumpghost',db,errcount=nerr)
+
+     ! equation of state
      call read_inopt(iener,'iener',db,errcount=nerr)
+     call read_inopt(gamma,'gamma',db,errcount=nerr)
      call read_inopt(polyk,'polyk',db,errcount=nerr)
+
+     ! density calculation
+     call read_inopt(ikernel,'ikernel',db,errcount=nerr)
      call read_inopt(icty,'icty',db,errcount=nerr)
      call read_inopt(ndirect,'ndirect',db,errcount=nerr)
      call read_inopt(maxdensits,'maxdensits',db,errcount=nerr)
+     call read_inopt(ikernav,'ikernav',db,errcount=nerr)
+     call read_inopt(ihvar,'ihvar',db,errcount=nerr)
+     call read_inopt(hfact,'hfact',db,errcount=nerr)
+     call read_inopt(tolh,'tolh',db,errcount=nerr)
+
+     ! momentum equation, dissipation
      call read_inopt(iprterm,'iprterm',db,errcount=nerr)
+     call read_inopt(iexternal_force,'iexternal_force',db,errcount=nerr)
      call read_inopt(iav,'iav',db,errcount=nerr)
      call read_inopt(alphamin,'alphamin',db,errcount=nerr)
      call read_inopt(alphaumin,'alphaumin',db,errcount=nerr)
@@ -218,42 +237,50 @@ subroutine read_infile(infile)
         call read_inopt(iavlim(i),'iavlim'//trim(disschar(i)),db,iread)
      enddo
      call read_inopt(avdecayconst,'avdecayconst',db,errcount=nerr)
-     call read_inopt(ikernav,'ikernav',db,errcount=nerr)
-     call read_inopt(ihvar,'ihvar',db,errcount=nerr)
-     call read_inopt(hfact,'hfact',db,errcount=nerr)
-     call read_inopt(tolh,'tolh',db,errcount=nerr)
-     call read_inopt(idumpghost,'idumpghost',db,errcount=nerr)
-     call read_inopt(imhd,'imhd',db,errcount=nerr)
-     call read_inopt(imagforce,'imagforce',db,errcount=nerr)
-     call read_inopt(idivbzero,'idivbzero',db,errcount=nerr)
-     call read_inopt(psidecayfact,'psidecayfact',db,errcount=nerr)
-     call read_inopt(iresist,'iresist',db,errcount=nerr)
-     call read_inopt(etamhd,'etamhd',db,errcount=nerr)
      call read_inopt(ixsph,'ixsph',db,errcount=nerr)
      call read_inopt(xsphfac,'xsphfac',db,errcount=nerr)
-     call read_inopt(igravity,'igravity',db,errcount=nerr)
-     call read_inopt(hsoft,'hsoft',db,errcount=nerr)
      call read_inopt(damp,'damp',db,errcount=nerr)
      call read_inopt(dampz,'dampz',db,errcount=nerr)
      call read_inopt(dampr,'dampr',db,errcount=nerr)
-     call read_inopt(ikernel,'ikernel',db,errcount=nerr)
-     call read_inopt(iexternal_force,'iexternal_force',db,errcount=nerr)
-     call read_inopt(C_cour,'C_cour',db,errcount=nerr)
-     call read_inopt(C_force,'C_force',db,errcount=nerr)
+     call read_inopt(ismooth,'ismooth',db,errcount=nerr)
+
+     ! mhd options
+     call read_inopt(imhd,'imhd',db,errcount=nerr)
+     if (imhd /= 0) then
+        call read_inopt(imagforce,'imagforce',db,errcount=nerr)
+        call read_inopt(idivbzero,'idivbzero',db,errcount=nerr)
+        call read_inopt(psidecayfact,'psidecayfact',db,errcount=nerr)
+        call read_inopt(iresist,'iresist',db,errcount=nerr)
+        call read_inopt(etamhd,'etamhd',db,errcount=nerr)
+        call read_inopt(iuse_exact_derivs,'iuse_exact_derivs',db,errcount=nerr)
+        call read_inopt(nsteps_remap,'nsteps_remap',db,errcount=nerr)
+        call read_inopt(iambipolar,'iambipolar',db,errcount=nerr)
+     endif
+
+     ! self-gravity
+     call read_inopt(igravity,'igravity',db,errcount=nerr)
+     if (igravity /= 0) then
+        call read_inopt(hsoft,'hsoft',db,errcount=nerr)
+     endif
      call read_inopt(usenumdens,'usenumdens',db,errcount=nerr)
+
+     ! particle splitting
      call read_inopt(isplitpart,'isplitpart',db,errcount=nerr)
      call read_inopt(rhocrit,'rhocrit',db,errcount=nerr)
-     call read_inopt(iuse_exact_derivs,'iuse_exact_derivs',db,errcount=nerr)
-     call read_inopt(nsteps_remap,'nsteps_remap',db,errcount=nerr)
-     call read_inopt(idust,'idust',db,errcount=nerr)
-     call read_inopt(idrag_nature,'idrag_nature',db,errcount=nerr)
-     call read_inopt(idrag_structure,'idrag_structure',db,errcount=nerr)
-     call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
-     call read_inopt(ismooth,'ismooth',db,errcount=nerr)
+
+     ! physical viscosity
      call read_inopt(ivisc,'ivisc',db,errcount=nerr)
      call read_inopt(shearvisc,'shearvisc',db,errcount=nerr)
      call read_inopt(bulkvisc,'bulkvisc',db,errcount=nerr)
-     call read_inopt(iambipolar,'iambipolar',db,errcount=nerr)
+
+     ! dust options
+     call read_inopt(idust,'idust',db,errcount=nerr)
+     if (idust /= 0) then
+        call read_inopt(idrag_nature,'idrag_nature',db,errcount=nerr)
+        call read_inopt(idrag_structure,'idrag_structure',db,errcount=nerr)
+        call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
+        call read_inopt(use_sqrtdustfrac,'use_sqrtdustfrac',db,errcount=nerr)
+     endif
   endif
   call close_db(db)
 
