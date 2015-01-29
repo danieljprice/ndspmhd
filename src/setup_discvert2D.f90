@@ -45,7 +45,7 @@ subroutine setup
  implicit none
  integer :: i
  real :: massp,rhomin
- real :: partvol,denszero,HonR,H0,omega,cs0
+ real :: partvol,denszero,HonR,H0,omega,cs0,totmass
  logical :: equalmass
 !
 !--allow for tracing flow
@@ -60,24 +60,25 @@ subroutine setup
  ibound = 0
  ibound(1) = 3     ! boundaries
  nbpts = 0      ! use ghosts not fixed
- xmin(:) = -3.  ! set position of boundaries
- xmax(:) = 3.
  gamma = 1.
- HonR = 0.1
- H0 = HonR*Rdisc 
- !xmin(2) = -3.*H0   ! set position of boundaries
- !xmax(2) = 3.*H0
+ HonR = 0.05
+ H0 = HonR*Rdisc
+ xmin(1) = -0.5  ! set position of boundaries
+ xmax(1) = 0.5
+ xmin(2) = -3.*H0   ! set position of boundaries
+ xmax(2) = 3.*H0
  equalmass = .true.
 
 !
 !--determine particle mass
 !
- denszero = 1.e-7   ! midplane density
+ denszero = 1.e-6   ! midplane density
  rhomin   = 1.e-12  ! minimum density
  partvol = psep**ndim
  massp = partvol*denszero ! average particle mass
  omega = sqrt(Mstar/Rdisc**3)
- H0 = 0.3921651256
+ !H0 = 0.3921651256
+ print*,' Rdisc = ',Rdisc,' Mstar = ',Mstar
  
  cs0 = H0*omega !0.0453 !H0*omega
  polyk = cs0**2
@@ -95,7 +96,12 @@ subroutine setup
  endif
  npart = ntotal
  print*,'npart =',npart
-
+!
+!--set particle mass from actual integral of surface density profile
+!
+ totmass = 2.*denszero*sqrt(0.5*pi)*H0*erf(xmax(2)/(sqrt(2.)*H0))
+ print*,' totmass = ',totmass, ' massp = ',totmass/npart,massp
+ massp = totmass/npart
 !
 !--now assign particle properties
 ! 
