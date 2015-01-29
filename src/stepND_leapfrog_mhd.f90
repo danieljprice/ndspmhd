@@ -141,7 +141,7 @@ subroutine step
        endif
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
-       vel(:,i) = velin(:,i) + dt*forcein(:,i)
+       vel(:,i) = (velin(:,i) + dt*forcein(:,i))/(1.+damp)
        if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        if (ihvar.eq.1) then
@@ -185,7 +185,7 @@ subroutine step
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
-       vel(:,i) = velin(:,i) + hdt*(force(:,i) + forcein(:,i))            
+       vel(:,i) = (velin(:,i) + hdt*(force(:,i) + forcein(:,i)))/(1.+damp)
        if (imhd.ne.0) then
           if (iresist.eq.2) then
              Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
