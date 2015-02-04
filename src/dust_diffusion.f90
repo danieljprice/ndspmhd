@@ -34,18 +34,19 @@ contains
 !! assumes there has been a previous call to density
 !!------------------------------------------------------------------------
 
-subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,dudt)
+subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,spsound,dudt)
  use dimen_mhd, only:ndim, ndimV
  use debug,     only:trace
  use loguns,    only:iprint
  use bound,     only:ireal
  use kernels,   only:interpolate_kernel,radkern2
  use linklist
- use options,   only:iener,Kdrag,use_sqrtdustfrac
+ use options,   only:iener,Kdrag,use_sqrtdustfrac,idrag_nature
+ use dust,      only:get_tstop
  use get_neighbour_lists
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
- real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu,pr
+ real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu,spsound,pr
  real, dimension(ndimV,ntot), intent(in) :: vel
  real, dimension(ndimV,ntot), intent(inout) :: deltav
  real, dimension(ntot),      intent(out) :: ddustevoldt
@@ -66,7 +67,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
  real :: pmassi,pmassj,rhoi,rhoj,gradhi,rho1i,rho1j,rhogasi,rhogasj
  real :: dustfraci,dustfracj,projdeltavi,projdeltavj,dvgasdotr
  real :: termi,termj,term,du,disstermi,disstermj,deltav2i,deltav2j
- real :: tstopi,tstopj,pdvtermi,pdvtermj,si,sj
+ real :: tstopi,tstopj,pdvtermi,pdvtermj,si,sj,rhodusti,rhodustj
  real, dimension(ndim) :: dx
  real, dimension(ndimv) :: dr,deltavi,deltavj,dvgas,vgasi,vgasj
 !
@@ -120,10 +121,12 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
        gradhi    = gradh(i)
        dustfraci = dustfrac(i)
        rhogasi   = (1. - dustfraci)*rhoi
+       rhodusti  = rhoi - rhogasi
        deltavi   = deltav(:,i)
        deltav2i  = dot_product(deltavi,deltavi)
        vgasi     = vel(:,i) !- dustfraci*deltavi
-       tstopi    = dustfraci*rhogasi/Kdrag
+       tstopi    = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
+       !tstopi    = dustfraci*rhogasi/Kdrag
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -149,9 +152,11 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                 rho1j     = 1./rhoj
                 dustfracj = dustfrac(j)
                 rhogasj   = (1. - dustfracj)*rhoj
+                rhodustj  = rhoj - rhogasj
                 deltavj   = deltav(:,j)
                 deltav2j  = dot_product(deltavj,deltavj)
-                tstopj    = dustfracj*rhogasj/Kdrag
+                tstopj    = get_tstop(idrag_nature,rhogasj,rhodustj,spsound(j),Kdrag)
+                !tstopj    = dustfracj*rhogasj/Kdrag
                 dr = 0.
                 dr(1:ndim) = dx(1:ndim)/(rij + epsilon(rij))  ! unit vector
 !     

@@ -51,6 +51,7 @@ subroutine get_rates
  use utils,         only:cross_product3D
  use resistivity,   only:etafunc
  use externf,       only:external_forces,pequil
+ use dust,          only:get_tstop
 !
 !--define local variables
 !
@@ -142,7 +143,7 @@ subroutine get_rates
 !
 !  (time step criteria)
 !      
- real :: vsigdtc,zero,fhmax, fonh, forcemag
+ real :: vsigdtc,zero,fhmax, fonh, forcemag, ts_min
  integer :: ierr
 !
 !--div B correction
@@ -182,6 +183,7 @@ subroutine get_rates
  dtcourant  = 1.e6  
  dtav       = huge(dtav)
  dtvisc     = huge(dtvisc)
+ ts_min     = huge(ts_min)
  zero       = 1.e-10
  vsigmax    = 0.
  dr(:)      = 0.
@@ -513,25 +515,22 @@ subroutine get_rates
        !
        !--two fluid dust: calculate drag timestep
        !
-       dtdrag = min(dtdrag,rhoi/Kdrag)
+       dtdrag = min(dtdrag,ts_min)
     elseif (idust.eq.1) then
-       !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
-       dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
        !------------------
        !  one fluid dust
        !------------------
-       !
-       !--d/dt(rhod/rho): multiply by terms out the front of the SPH sum
-       !
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci       
        rhogasi  = rhoi - rhodusti
        
+       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
+       dtdrag = min(dtdrag,0.25*tstop)
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
        if (dustfraci.gt.0.) then
-          dtstop   = Kdrag*rhoi/(rhodusti*rhogasi)  ! 1/tstop = K*rho/(rhod*rhog)
+          dtstop   = 1./tstop
           ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
@@ -547,13 +546,16 @@ subroutine get_rates
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
     elseif (idust.eq.3 .or. idust.eq.4) then
+       !--------------------------------------------
+       !  one fluid dust in diffusion approximation
+       !--------------------------------------------
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci
        rhogasi  = rhoi - rhodusti
        !
        !--compute stopping time for drag timestep
        !
-       tstop = rhodusti*rhogasi/(Kdrag*rhoi)
+       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
        deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
        ratio = max(dustfraci*tstop/dtcourant,ratio)
@@ -561,6 +563,11 @@ subroutine get_rates
        dvmax = maxval(abs(deltav(:,i)))
        if (dvmax > 0.) then
           dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
+       endif
+       if (idrag_nature==2) then
+          force(:,i) = 0.
+          vel(:,i) = 0.
+          !print*,'dtdrag = ',dtdrag
        endif
     endif
 
@@ -924,75 +931,37 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
+
+!----------------------------------------------
+! Evaluate drag forces on a pair of particles
+!----------------------------------------------
   subroutine drag_forces
-!--DIRTY declarations for the hack  
     use kernels, only:interpolate_kerneldrag,interpolate_kernel  
-    use options, only:idrag_nature,idrag_structure,Kdrag   
+    use options, only:idrag_nature,Kdrag
+    use dust,    only:get_tstop
     implicit none
     integer :: itypej
-    logical :: iskip_drag
-    real    :: coeff_gei_1,coeff_dq_1,coeff_dq_4
-    real    :: dv2,vij,V0,f,dragcoeff,dragterm,dragterm_en,dragcheck
-    real    :: s2_over_m,spsoundgas
-    real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
-    real    :: dt1,dt12
-    !real    :: gkeri,gkerj
+    real    :: dv2,vij,projv,dragterm,dragterm_en
+    real    :: spsoundgas,ts
+    real    :: wabj,wab,hfacwabj
     real, dimension(ndimV) :: drdrag
-    real, parameter :: pow_drag_exp = 0.4
-    real, parameter :: a2_set       = 0.5
-    real, parameter :: a3_set       = 0.5
     real, parameter :: pi  = 3.141592653589
 !
-!--setup the parameters
-!
-    iskip_drag  = .false.
-    coeff_gei_1 = 4./3.*sqrt(8.*pi/gamma)
-    coeff_dq_1  = sqrt(0.5*gamma)
-    coeff_dq_4  = 9.*pi*gamma/128.
-    s2_over_m   = 1./coeff_gei_1
-    f           = 0.
-    V0          = 0.
-    dragcoeff   = 0.
-    dragcheck   = 0.
-!    dt1         = 1./tout
-          dt1         = 1./(1.8716d-2)
-    dt12        = dt1*dt1
-!
-!--get informations on the differential velocities
+!--differential velocities
 !
     velj(:) = vel(:,j)
     dvel(:) = veli(:) - velj(:)
-    dv2     = dot_product(dvel,dvel)
-    
-    if (rij.le.epsilon(rij)) then !two particles at the same position
-       if (dv2.le.epsilon(dv2)) then !no differential velocity => no drag
-           drdrag(1:ndim) = 0.
-           iskip_drag      = .true.
+    dv2     = dot_product(dvel,dvel)    
+    if (rij.le.epsilon(rij)) then ! two particles at the same position
+       if (dv2.le.epsilon(dv2)) then ! no differential velocity => no drag
+          drdrag(1:ndim) = 0.
+          return
        else ! Change dr so that the drag is colinear to the differential velocity
-           vij            = sqrt(dv2)
-           drdrag(:) = dvel(:)/vij
+          vij       = sqrt(dv2)
+          drdrag(:) = dvel(:)/vij
        endif
     else ! dr = drdrag
-      drdrag(:)       = dr(:)
-    endif
-
-!---start the drag calculation    
-    !if (.not.iskip_drag) then
-!
-!--get the j particle extra properties
-!
-!--Hack special SI    
-    itypej     = itype(j)
-    pmassj     = pmass(j)
-    rhoj       = rho(j)
-    rhoij      = rhoi*rhoj
-    rhoiplusj  = rhoi+rhoj
-    rhoiplusj2 = rhoiplusj*rhoiplusj
-
-    if (itypei.eq.itypegas) then
-       spsoundgas = spsound(i)
-    else
-       spsoundgas = spsound(j)
+       drdrag(:) = dr(:)
     endif
 !
 !--calculate the kernel(s)
@@ -1006,76 +975,35 @@ contains
 !--DIRTY HACK
 !   call interpolate_kernel(q2j,wabj,gkerj) 
 !-OK
-   call interpolate_kerneldrag(q2j,wabj)
+    call interpolate_kerneldrag(q2j,wabj)
     wabj     = wabj*hfacwabj
-    !wab = 0.5*(wabi + wabj)
+!
+!--get particle j properties
+!
+    itypej = itype(j)
+    pmassj = pmass(j)
+    rhoj   = rho(j)
+!
+!--calculate the stopping time for use in the drag force
+!
+    projv = dot_product(dvel,drdrag)
     if (itypei.eq.itypegas) then
+       spsoundgas = spsound(i)
        wab = wabi
+       ts = get_tstop(idrag_nature,rhoi,rhoj,spsoundgas,Kdrag)
     else
+       if (itypej.ne.itypegas) return
+       spsoundgas = spsound(j)
        wab = wabj
-    endif   
-!
-!--calculate the quantities needed for the drag force
-!
-    V0 = dot_product(dvel,drdrag)
-    
-    select case(idrag_nature)
-        case(1) !--constant drag
-           dragcoeff = Kdrag/rhoij
-        case(2) !--Epstein regime
-           select case(idrag_structure)
-              case(1,4,5) !--linear, third order, PM expression
-                 dragcoeff = coeff_gei_1*s2_over_m*spsoundgas
-              case(3)
-                 dragcoeff = pi*s2_over_m
-              case default
-                 print*,'ERROR drag calculation: wrong idrag_structure'
-           end select
-    end select
-    
-    select case(idrag_structure)
-       case(1) !--linear regime
-          f = 1.
-       case(2) !--power law
-          f = dv2**(0.5*pow_drag_exp)
-       case(3) !--quadratic
-          f = sqrt(dv2)
-       case(4) !--cubic expansion
-          select case(idrag_nature)
-             case(1) !--forced drag
-                f = 1. + a3_set*dv2
-             case(2) !--Epstein
-                f = 1. + 0.2*coeff_dq_1*coeff_dq_1*dv2/(spsoundgas*spsoundgas)
-             case default
-                print*,'ERROR drag calculation cubic: wrong drag nature' 
-          end select
-       case(5) !--PM expression
-          select case(idrag_nature)
-             case(1) !--forced drag
-                f = sqrt(1. + a2_set*dv2)
-             case(2) !--Epstein
-                f = sqrt(1. + coeff_dq_4*dv2/(spsoundgas*spsoundgas))
-             case default
-                print*,'ERROR drag calculation PM: wrong drag nature'          
-          end select
-       case default
-          print*,'this value for idrag_structure does not exist'         
-    end select
+       ts = get_tstop(idrag_nature,rhoj,rhoi,spsoundgas,Kdrag)
+    endif
+    ts_min = min(ts_min,ts)
 !
 !--update the force and the energy
 !
- 
-!--DIRTY HACK
-!    dragterm    = wab*dragcoeff*f
-!--OK
-    dragterm    = ndim*wab*dragcoeff*f*V0        
-    dragterm_en = dragterm*V0
-!--DIRTY HACK    
-!    forcei(:)   = forcei(:)  - dragterm*pmassj*dvel(:)
-!    force(:,j)  = force(:,j) + dragterm*pmassi*dvel(:)    
-!-OK
+    dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projv
+    dragterm_en = dragterm*projv
     forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
-!-OK
     force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
        dudt(i)   = dudt(i) + pmassj*dragterm_en
@@ -1083,7 +1011,9 @@ contains
     if (itypej.eq.itypegas) then
        dudt(j)   = dudt(j) + pmassi*dragterm_en
     endif
+
   end subroutine drag_forces
+
 !--------------------------------------------------------------------------------------
 ! This is the interaction between the particle pairs
 ! Note that local variables are used from get_rates
@@ -1985,11 +1915,11 @@ contains
   subroutine artificial_dissipation_dust_diffusion
     implicit none
     real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu,diffeps
-    real :: tstopi,tstopj,vsigeps
+    real :: tstopi,tstopj,vsigeps,alphaB
 
     if (dvdotr < 0.) then
        !
-       ! artificial viscosity, as in LP14d
+       ! artificial viscosity, as in PL15
        !
        vsi = alphai*spsoundi - beta*dvdotr
        vsj = alpha(1,j)*spsoundj - beta*dvdotr
@@ -2004,7 +1934,7 @@ contains
        !
        if (damp.lt.tiny(0.)) then
           !
-          ! artificial thermal conductivity, as in LP14d
+          ! artificial thermal conductivity, as in PL15
           !
           du = uu(i) - uu(j)
           cfaci = 0.5*alphaui*rhoi*vsigu*du
@@ -2017,22 +1947,17 @@ contains
     endif
     
     if (.not.use_sqrtdustfrac) then
-       select case(idrag_nature)
-       case(2) !--Epstein regime
-          stop 'dissipation not implemented'
-          !const = sqrt(pi*gamma/8.)
-          !tstopi = s_grain*rho_grain*rho1i/spsoundi !*const
-          !tstopj = s_grain*rho_grain*rho1j/spsoundj !*const
-       case default !--constant drag
-          tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
-          tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
-       end select
+       alphaB = 0.5*(alphaBi + alpha(3,j))
+       tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
+       tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
        !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
        !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
-       diffeps = rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       !vsigeps = 0.5*(spsoundi + spsoundj)
+       vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
+       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
        ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
        ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
     endif
@@ -2583,20 +2508,10 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
-    real :: const, si, sj
-    real, parameter :: s_grain = 0.001
-    real, parameter :: rho_grain = 1./s_grain
-    real, parameter :: pi = 3.14159265358979
+    real :: si, sj
 
-    select case(idrag_nature)
-    case(2) !--Epstein regime
-       const = sqrt(pi*gamma/8.)
-       tstopi = s_grain*rho_grain*rho1i/spsoundi !*const
-       tstopj = s_grain*rho_grain*rho1j/spsoundj !*const
-    case default !--constant drag
-       tstopi = rhodusti*rhogasi/(Kdrag*rhoi)
-       tstopj = rhodustj*rhogasj/(Kdrag*rhoj)
-    end select
+    tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
+    tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
     
     if (use_sqrtdustfrac) then
        Di = tstopi*rho1i

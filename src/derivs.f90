@@ -27,7 +27,7 @@
 subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
- use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr
+ use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr,spsound
  use rates,         only:dBevoldt,ddustevoldt,dendt,drhodt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
@@ -99,7 +99,7 @@ subroutine derivs
  
  if (idust.eq.3) then
     !ddustevoldt = 0.
-    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,dendt)
+    call dust_diffusion(npart,ntotal,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,deltav,vel,pr,uu,spsound,dendt)
     sum = 0.
     sum1 = 0.
     sum2 = 0.

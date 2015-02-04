@@ -47,10 +47,11 @@ subroutine initialise
  use part_in
  use setup_params
  
- use infiles, only:read_infile
+ use infiles,   only:read_infile
  use dumpfiles, only:read_dump
- use convert, only:convert_setup
+ use convert,   only:convert_setup
  use cons2prim, only:primitive2conservative
+ use dust,      only:init_drag
 !
 !--define local variables
 !      
@@ -191,7 +192,7 @@ subroutine initialise
 !  also radkern MUST match between kernels
 !
  ierr = 0
- if (idrag_nature.gt.0) then
+ if (idust /= 0) then
     if (ikernel.eq.0) then
        call setkerndrag(42,ndim,ierr)
     elseif (ikernel.eq.3) then
@@ -223,7 +224,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
-! if (ifile.eq.0) call modify_dump
+ !if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  
@@ -247,6 +248,10 @@ subroutine initialise
     Bfield = 0.  ! zero mag field if turned off
     Bevol = 0.
  endif
+!
+!--initialise drag terms
+!
+ if (idust /= 0) call init_drag(ierr,gamma)
 !
 !--set velocities to zero if damping is set
 !
