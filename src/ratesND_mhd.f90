@@ -143,7 +143,7 @@ subroutine get_rates
 !
 !  (time step criteria)
 !      
- real :: vsigdtc,zero,fhmax, fonh, forcemag, ts_min
+ real :: vsigdtc,zero,fhmax, fonh, forcemag, ts_min, h_on_csts_max
  integer :: ierr
 !
 !--div B correction
@@ -184,6 +184,7 @@ subroutine get_rates
  dtav       = huge(dtav)
  dtvisc     = huge(dtvisc)
  ts_min     = huge(ts_min)
+ h_on_csts_max = 0.
  zero       = 1.e-10
  vsigmax    = 0.
  dr(:)      = 0.
@@ -500,6 +501,9 @@ subroutine get_rates
  dtdrag = huge(dtdrag)
  sum = 0.
  ratio = 0.
+ if (idust.eq.2 .and. h_on_csts_max > 1.) then
+    print*,' WARNING: violating h < cs*ts resolution criterion by factor of ',h_on_csts_max
+ endif
  do i=1,npart
  
     rhoi  = rho(i)
@@ -511,11 +515,11 @@ subroutine get_rates
 !
 !--Dust
 !
-    if (idust.eq.2 .and. idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
+    if (idust.eq.2 .and. idrag_nature.ne.0 .and. (Kdrag > 0. .or. idrag_nature > 1)) then
        !
        !--two fluid dust: calculate drag timestep
        !
-       dtdrag = min(dtdrag,ts_min)
+       dtdrag = min(dtdrag,0.25*ts_min)
     elseif (idust.eq.1) then
        !------------------
        !  one fluid dust
@@ -558,7 +562,7 @@ subroutine get_rates
        tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
        deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
-       ratio = max(dustfraci*tstop/dtcourant,ratio)
+       ratio = max(tstop/dtcourant,ratio)
        dtdrag = min(dtdrag,0.25*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
        dvmax = maxval(abs(deltav(:,i)))
        if (dvmax > 0.) then
@@ -991,11 +995,13 @@ contains
        spsoundgas = spsound(i)
        wab = wabi
        ts = get_tstop(idrag_nature,rhoi,rhoj,spsoundgas,Kdrag)
+       h_on_csts_max = max(h_on_csts_max,hh(i)/(spsoundgas*ts))
     else
        if (itypej.ne.itypegas) return
        spsoundgas = spsound(j)
        wab = wabj
        ts = get_tstop(idrag_nature,rhoj,rhoi,spsoundgas,Kdrag)
+       h_on_csts_max = max(h_on_csts_max,hh(j)/(spsoundgas*ts))
     endif
     ts_min = min(ts_min,ts)
 !
@@ -1948,18 +1954,18 @@ contains
     
     if (.not.use_sqrtdustfrac) then
        alphaB = 0.5*(alphaBi + alpha(3,j))
-       tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
-       tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
+       !tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
+       !tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
        !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
        !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
        !vsigeps = 0.5*(spsoundi + spsoundj)
-       vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
-       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
-       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
-       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
+       !vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
+       !diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       !ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
+       !ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
     endif
 
   end subroutine artificial_dissipation_dust_diffusion
