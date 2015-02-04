@@ -284,7 +284,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     stop
  elseif ((idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) .and. (iformat.ne.5)) then
     write(iprint,*) 'ERROR: idust=1 but dump file does not contain dustfrac or deltav arrays'
-    stop
+    !stop
  endif
 !
 !--switch current geometry to that of the file if not convertible
