@@ -2,7 +2,7 @@
 ! NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical) !
 ! fluid dynamics simulations in 1, 2 and 3 spatial dimensions.                 !
 !                                                                              !
-! (c) 2002-2014 Daniel Price                                                   !
+! (c) 2002-2015 Daniel Price                                                   !
 !                                                                              !
 ! http://users.monash.edu.au/~dprice/ndspmhd                                   !
 ! daniel.price@monash.edu -or- dprice@cantab.net (forwards to current address) !
@@ -23,6 +23,24 @@
 !----------------------------------------------------------------
 !     Set up a disc section in 2D
 !----------------------------------------------------------------
+module dust_setup
+ implicit none
+ real, parameter :: dust_to_gas_ratio = 1.e-2
+ real, parameter :: grain_size_cm = 1.e-1 ! grain size in cm
+ real, parameter :: grain_dens_cgs = 3. ! g/cm^3
+! constants to translate to physical units
+ real, parameter :: mm = 0.1       ! 1 mm in cm
+ real, parameter :: micron = 1.e-4 ! 1 micron in cm
+ real, parameter :: au = 1.496d13
+ real, parameter :: solarm = 1.9891d33
+ real, parameter :: gg = 6.672d-8
+ real, parameter :: years = 3.1556926d7
+ real, parameter :: umass = solarm
+ real, parameter :: udist = 10.*au
+ real, parameter :: utime = sqrt(udist**3/(gg*umass))
+
+end module dust_setup
+
 
 subroutine setup
 !
@@ -39,15 +57,17 @@ subroutine setup
  use eos,     only:gamma,polyk
  
  use uniform_distributions
+ use dust,       only:init_drag,grain_size,grain_dens,get_tstop
+ use dust_setup
 !
 !--define local variables
 !            
  implicit none
- integer :: i
+ integer :: i,ierr
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0,totmass
- real :: umass,utime,udist,solarm,au,gg,years,sigma
- real :: t_cour,t_stop,graindens,grainsize,mm,micron
+ real :: sigma
+ real :: t_cour,t_stop,rhogas,rhodust
  logical :: equalmass
 !
 !--allow for tracing flow
@@ -65,22 +85,12 @@ subroutine setup
  gamma = 1.
  HonR = 0.05
  H0 = HonR*Rdisc
- xmin(1) = -0.5  ! set position of boundaries
- xmax(1) = 0.5
+ xmin(1) = -0.25  ! set position of boundaries
+ xmax(1) = 0.25
  xmin(2) = -3.*H0   ! set position of boundaries
  xmax(2) = 3.*H0
  equalmass = .true.
 
-! constants to translate to physical units
- mm = 0.1       ! 1 mm in cm
- micron = 1.e-4 ! 1 micron in cm
- au = 1.496d13
- solarm = 1.9891d33
- gg = 6.672d-8
- years = 3.1556926d7
- umass = solarm
- udist = 10.*au
- utime = sqrt(udist**3/(gg*umass))
 !
 !--determine particle mass
 !
@@ -113,16 +123,31 @@ subroutine setup
  print*,' Sigma         =',sigma,' in g/cm^2 =',sigma*(umass/udist**2)
  t_cour = 1.2*psep/cs0
  print*,' t_courant     =',t_cour,' t_cour/t_orb =',t_cour/(2.*pi/omega)
- graindens = 3./(umass/udist**3)
- grainsize = 1.*mm/udist
- print*,' grain size    =',grainsize,' in cm     =',grainsize*udist,' in m =',grainsize*udist*0.01
- print*,' grain density =',graindens,' in g/cm^3 =',graindens*(umass/udist**3)
+ 
+ grain_dens = grain_dens_cgs/(umass/udist**3)
+ grain_size = grain_size_cm/udist
+ print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
+ print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
 
- t_stop = graindens*grainsize/(denszero*cs0)*sqrt(pi/8.)
+ t_stop = grain_dens*grain_size/(denszero*cs0)*sqrt(pi/8.)
  print*,' ts (z=0)      =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
- t_stop = graindens*grainsize/(denszero*exp(-0.5*(2.)**2)*cs0)*sqrt(pi/8.)
+ t_stop = grain_dens*grain_size/(denszero*exp(-0.5*(2.)**2)*cs0)*sqrt(pi/8.)
  print*,' ts (z=2H)     =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
- print*,' ts*omega (est)=',graindens*grainsize/sigma
+ print*,' ts*omega (est)=',grain_dens*grain_size/sigma
+
+ print "(/,a,f6.3)",' CHECK drag routine: gamma = ',gamma
+ call init_drag(ierr,gamma)
+ rhogas  = denszero
+ rhodust = dust_to_gas_ratio*rhogas
+ t_stop  = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+ print*,' ts (z=0)            =',t_stop
+ print*,' equivalent K (z=0)  = ',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+
+ rhogas  = denszero*exp(-0.5*(2.)**2)
+ rhodust = dust_to_gas_ratio*rhogas
+ t_stop = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+ print*,' ts (z=2H)           =',t_stop
+ print*,' equivalent K (z=2H) =',rhogas*rhodust/(t_stop*(rhogas + rhodust))
 
  if (equalmass) then
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=2,stretchfunc=rhoy) 
@@ -176,19 +201,19 @@ subroutine modify_dump
  use options,        only:idust
  use timestep,       only:time
  use mem_allocation, only:alloc
+ use dust, only:grain_dens,grain_size
+ use dust_setup
  implicit none
  integer :: i,j
- real :: dust_to_gas_ratio
  
  time = 0.
- dust_to_gas_ratio = 1.e-2
- 
  if (idust==2) then
     write(iprint,"(/,a,/)") ' > MODIFYING dump by adding dust (two-fluid) <'
     call alloc(2*ntotal)
+    j = npart
     do i=1,npart
        itype(i) = itypegas
-       j = npart+i
+       j = j + 1
        call copy_particle(j,i)
        x(:,j) = x(:,i)
        vel(:,j) = vel(:,i)
@@ -197,7 +222,7 @@ subroutine modify_dump
        uu(j)    = 0.
        itype(j) = itypedust
     enddo
-    npart = 2*npart
+    npart = j
  elseif (idust==1 .or. idust==3 .or. idust==4) then
     write(iprint,"(/,a,/)") ' > MODIFYING dump by adding dust (one-fluid) <'
     do i=1,npart
@@ -205,6 +230,13 @@ subroutine modify_dump
        pmass(i)    = pmass(i)*(1. + dust_to_gas_ratio)
        deltav(:,i) = 0.
     enddo
+ endif
+ 
+ if (idust /= 0) then
+    grain_dens = grain_dens_cgs/(umass/udist**3)
+    grain_size = grain_size_cm/udist
+    print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
+    print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
  endif
 
 end subroutine modify_dump
