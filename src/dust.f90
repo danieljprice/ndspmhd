@@ -24,6 +24,7 @@ module dust
  implicit none
  real, private :: epstein_fac
  real, public :: grain_size, grain_mass, grain_dens
+ logical :: done_init_drag = .false.
 
 contains
 
@@ -45,6 +46,7 @@ subroutine init_drag(ierr,gamma)
  endif
  epstein_fac = 4./3.*sqrt(8.*pi/gamma)
  grain_mass  = 4./3.*pi*grain_dens*grain_size**3
+ done_init_drag = .true.
 
 end subroutine init_drag
 
@@ -56,6 +58,7 @@ real function get_tstop(idrag_nature,rhogas,rhodust,cs,Kdrag)
  real, intent(in)    :: rhogas,rhodust,cs,Kdrag
  real :: rho,ts,ts1
  
+ if (.not.done_init_drag) stop 'drag not initialised before call to get_tstop'
  rho = rhogas + rhodust
  select case(idrag_nature)
   case(1) !--constant drag
@@ -67,7 +70,7 @@ real function get_tstop(idrag_nature,rhogas,rhodust,cs,Kdrag)
      if (epstein_fac <= 0.) stop 'fac < 0; Epstein drag not initialised'
      ts1 = epstein_fac*grain_size**2*cs*rho/grain_mass
      ts  = 1./ts1
-     print*,' DEBUG: equivalent Kdrag = ',rhogas*rhodust/(ts*rho)
+     !print*,' DEBUG: equivalent Kdrag = ',rhogas*rhodust/(ts*rho)
   case default
      ts = huge(ts)
  end select
