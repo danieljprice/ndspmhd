@@ -519,7 +519,7 @@ subroutine get_rates
        !
        !--two fluid dust: calculate drag timestep
        !
-       dtdrag = min(dtdrag,0.25*ts_min)
+       dtdrag = min(dtdrag,ts_min)
     elseif (idust.eq.1) then
        !------------------
        !  one fluid dust
@@ -562,17 +562,17 @@ subroutine get_rates
        tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
        deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
-       ratio = max(tstop/dtcourant,ratio)
+       ratio = max(dustfraci*tstop/dtcourant,ratio)
        dtdrag = min(dtdrag,0.25*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
        dvmax = maxval(abs(deltav(:,i)))
        if (dvmax > 0.) then
           dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
        endif
-       if (idrag_nature==2) then
-          force(:,i) = 0.
-          vel(:,i) = 0.
-          !print*,'dtdrag = ',dtdrag
-       endif
+       !if (idrag_nature==2) then
+       !   force(:,i) = 0.
+       !   vel(:,i) = 0.
+       !   !print*,'dtdrag = ',dtdrag
+       !endif
     endif
 
 !
@@ -970,7 +970,6 @@ contains
 !
 !--calculate the kernel(s)
 !
-    hfacwabj = (1./hh(j)**ndim)
 !-- HACK
 !    call interpolate_kernel(q2i,wabi,gkeri)
 !--OK
@@ -980,6 +979,7 @@ contains
 !   call interpolate_kernel(q2j,wabj,gkerj) 
 !-OK
     call interpolate_kerneldrag(q2j,wabj)
+    hfacwabj = (1./hh(j)**ndim)
     wabj     = wabj*hfacwabj
 !
 !--get particle j properties
@@ -1953,7 +1953,7 @@ contains
     endif
     
     if (.not.use_sqrtdustfrac) then
-       alphaB = 0.5*(alphaBi + alpha(3,j))
+       !alphaB = 0.5*(alphaBi + alpha(3,j))
        !tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
        !tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
        !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
