@@ -63,10 +63,10 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,ierr
+ integer :: i,ierr,nz
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0,totmass
- real :: sigma
+ real :: sigma,zmin,zmax,dz,zonh
  real :: t_cour,t_stop,rhogas,rhodust
  logical :: equalmass
 !
@@ -103,6 +103,10 @@ subroutine setup
  print*,' rho0  = ',denszero,' in g/cm^3 = ',denszero*(umass/udist**3)
  print*,' Rdisc = ',Rdisc,' Mstar = ',Mstar
  print*,' Omega = ',omega,' t_orb = ',2.*pi/omega,' in years = ',2.*pi/omega*utime/years
+ print*,' udist = ',udist,' utime = ',utime,' umass = ',umass
+ print*,' udist (AU) = ',udist/au,' utime (yrs) = ',utime/years,' umass (solarm) = ',umass/solarm
+ print*,' utime/orbits = ',omega/(2.*pi)
+ print*,' density units = ',umass/udist**3
  
  cs0 = H0*omega !0.0453 !H0*omega
  polyk = cs0**2
@@ -134,6 +138,7 @@ subroutine setup
  t_stop = grain_dens*grain_size/(denszero*exp(-0.5*(2.)**2)*cs0)*sqrt(pi/8.)
  print*,' ts (z=2H)     =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
  print*,' ts*omega (est)=',grain_dens*grain_size/sigma
+ print*,' ts            =',grain_dens*grain_size/cs0*sqrt(pi/8.),' / density'
 
  print "(/,a,f6.3)",' CHECK drag routine: gamma = ',gamma
  call init_drag(ierr,gamma)
@@ -148,6 +153,23 @@ subroutine setup
  t_stop = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
  print*,' ts (z=2H)           =',t_stop
  print*,' equivalent K (z=2H) =',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+ 
+ ! WRITE cs*ts to file
+ nz = 1000
+ zmax = 5.
+ zmin = -5.
+ dz = (zmax - zmin)/real(nz - 1)
+ open(unit=1,file='rescrit.out',status='replace')
+ print*,' WRITING cs*ts to rescrit.out'
+ write(1,"(a)") '# [    z (AU)   ] [ ts*cs (AU) ] [   z (code units)  ] [ ts*cs (code units) ]'
+ do i=1,nz
+    zonh = zmin + (i-1)*dz
+    rhogas = denszero*exp(-0.5*(zonh)**2)
+    rhodust = dust_to_gas_ratio*rhogas
+    t_stop = get_tstop(3,rhogas,rhodust,cs0,0.)
+    write(1,*) zonh*H0*udist/AU,t_stop*cs0*udist/au,zonh*H0,t_stop*cs0
+ enddo
+ close(unit=1)
 
  if (equalmass) then
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=2,stretchfunc=rhoy) 
