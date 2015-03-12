@@ -55,7 +55,7 @@ subroutine conservative2primitive
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   use timestep, only:nsteps
-  use part_in, only:Bevolin,velin
+  use part_in, only:Bevolin,dustevolin !,velin
   !use khsetup, only:densmedium,denszero,smoothl,yprofile,przero
   implicit none
   integer :: i,j,nerr,k
@@ -78,9 +78,11 @@ subroutine conservative2primitive
         else
            dustfrac(i) = dustevol(i)
         endif
-        if (dustfrac(i) < 0) then
+        if (dustfrac(i) < 0.) then
            nerr = nerr + 1
-           !dustfrac(i) = 0.
+           dustfrac(i) = 0. !abs(dustfrac(i))
+           dustevol(i) = 0.
+           dustevolin(i) = 0.
            !call quit
         endif
      enddo
