@@ -51,7 +51,7 @@ endif
 
 ifeq ($(SYSTEM), msg)
     F90C= ifort
-    F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
+    F90FLAGS= -O3 -warn all -heap-arrays
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
