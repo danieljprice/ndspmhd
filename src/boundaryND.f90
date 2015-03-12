@@ -74,6 +74,9 @@ subroutine boundary
 !                print*,'ss xold,xmax,xnew = ',jdim,x(jdim,i),xmax(jdim),xmin(jdim) + x(jdim,i) - xmax(jdim)
                 x(jdim,i) = xmin(jdim) + x(jdim,i) - xmax(jdim)
                 if (allocated(x0)) x0(jdim,i) = xmin(jdim) + x0(jdim,i) - xmax(jdim)
+                if (x(jdim,i) > xmax(jdim)) then
+                   print*,' error: ',i,' more than one length away from xmax',x(jdim,i)
+                endif
                 ncross = ncross + 1
              elseif(x(jdim,i).lt.xmin(jdim)) then
 !                print*,'ss xold,xmin,xnew = ',jdim,x(jdim,i),xmin(jdim),xmax(jdim) + x(jdim,i) - xmin(jdim)             
@@ -139,7 +142,7 @@ subroutine boundary
                 ncorrect = ncorrect + 1
 !                print*,'xmax',jdim,i,'xnew = ',x(jdim,i),vel(jdim,i)
              elseif(x(jdim,i).lt.xmin(jdim)) then
-                print*,'xminold',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
+                print*,'xminold',jdim,i,'x,v = ', x(jdim,i),vel(jdim,i)
                 !--move particle back inside boundary
                 x(jdim,i) = xmin(jdim) + (xmin(jdim) - x(jdim,i))
                 xin(jdim,i) = x(jdim,i)
