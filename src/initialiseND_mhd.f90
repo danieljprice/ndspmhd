@@ -232,11 +232,7 @@ subroutine initialise
 !
 !--setup additional quantities that are not done in setup
 !
- if (iavlim(1).gt.0) then
-    alpha(1,:) = 1.0
- else
-    alpha(1,:) = alphamin
- endif
+ alpha(1,:) = alphamin
  alpha(2,:) = alphaumin
  alpha(3,:) = alphaBmin
  divB = 0.
