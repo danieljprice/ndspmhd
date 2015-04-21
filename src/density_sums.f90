@@ -70,7 +70,7 @@ contains
     real, dimension(ndim) :: dx,xi
     real, dimension(ndimV) :: veli,dvel
     real, dimension(npart) :: rhoin
-    real, dimension(ntotal) :: h1,unity
+    real, dimension(npart) :: h1,unity
     real :: dvdotr,pmassi,pmassj,projBi,projBj
     real, dimension(ndxdx) :: dxdxi
     real, dimension(ndimV) :: dr
