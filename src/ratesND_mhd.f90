@@ -415,8 +415,11 @@ subroutine get_rates
                     write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                     call quit
                  endif
+              elseif (rij.le.epsilon(rij)) then
+                 dr = 0.  ! can happen with gas/dust if particles on top of each other
+              else
+                 dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
               endif
-              dr(1:ndim) = dx(1:ndim)/rij      ! unit vector           
               !do idim=1,ndim
               !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
               !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
@@ -529,7 +532,7 @@ subroutine get_rates
        rhogasi  = rhoi - rhodusti
        
        tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
-       dtdrag = min(dtdrag,0.25*tstop)
+       dtdrag = min(dtdrag,tstop)
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
@@ -1290,6 +1293,7 @@ contains
        vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
        !vsigu = sqrt(0.5*(psi(i) + psi(j)))
        !vsigu = abs(dvdotr)
+       !vsigu = sqrt(abs(uui - uuj))
 
        ! vsigdtc is the signal velocity used in the timestep control
        vsigdtc = max(vsig,0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
@@ -1321,9 +1325,10 @@ contains
           call artificial_dissipation_dust
        elseif (idust.eq.3 .or. idust.eq.4) then
           call artificial_dissipation_dust_diffusion
+       elseif (iav.eq.3) then
+          call artificial_dissipation_phantom
        else
           call artificial_dissipation
-!          call artificial_dissipation_phantom
        endif
     endif
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
@@ -1718,17 +1723,42 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_phantom
     implicit none
-    real :: termi,termj,visc
-    !
-    !--definitions
-    !
-    termi = -alphai*vsig*rhogasi*grkerni*abs(dvdotr)
-    termj = -alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
+    real :: dudti,dudtj
 
-    if (dvdotr.lt.0 .and. iav.le.2) then
-       visc = 0.5*(termi*rho21i + termj*rho21j)
+    dudti = 0.
+    dudtj = 0.
+    if (dvdotr < 0.) then
+       !
+       ! artificial viscosity, as in Phantom
+       !
+       vsi = max(alphai*spsoundi - beta*dvdotr,0.)
+       vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
+       qi = -rhoi*vsi*dvdotr
+       qj = -rhoj*vsj*dvdotr
+
+       visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          dudti = 0.5*qi*rho21i*pmassj*dvdotr*grkerni
+          dudtj = 0.5*qj*rho21j*pmassi*dvdotr*grkernj
+       endif
+    endif
+
+    if (damp < tiny(damp)) then
+       !
+       ! artificial thermal conductivity, as in PL15
+       !
+       du = uu(i) - uu(j)
+       cfaci = 0.5*alphaui*rhoi*vsigu*du
+       cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
+       diffu = cfaci*grkerni*rho1i**2 + cfacj*grkernj*rho1j**2
+       dudt(i) = dudt(i) + dudti + pmassj*diffu
+       dudt(j) = dudt(j) + dudtj - pmassi*diffu
     endif
 
   end subroutine artificial_dissipation_phantom
