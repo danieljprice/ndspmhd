@@ -26,7 +26,7 @@
 module dust_setup
  implicit none
  real, parameter :: dust_to_gas_ratio = 1.e-2
- real, parameter :: grain_size_cm = 1.e-1 ! grain size in cm
+ real, parameter :: grain_size_cm = 0.1 ! grain size in cm
  real, parameter :: grain_dens_cgs = 3. ! g/cm^3
 ! constants to translate to physical units
  real, parameter :: mm = 0.1       ! 1 mm in cm
@@ -63,7 +63,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,ierr,nz
+ integer :: i,ierr,nz,idir
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0,totmass
  real :: sigma,zmin,zmax,dz,zonh
@@ -72,23 +72,36 @@ subroutine setup
 !
 !--allow for tracing flow
 !
- if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup (discvert)'
  
- if (ndim /= 2) stop 'setup implemented for 2D only'
- if (iexternal_force /= 15) stop 'need iexternal_force=15 for this problem'
+ select case(ndim)
+ case(1)
+    if (iexternal_force /= 15) stop 'need iexternal_force=15 for this problem'
+ case(2)
+    if (iexternal_force /= 15) stop 'need iexternal_force=15 for this problem' 
+ case default
+    stop 'setup implemented for 1D and 2D only'
+ end select
 !
 !--set boundaries
 !
- ibound = 0
- ibound(1) = 3     ! boundaries
  nbpts = 0      ! use ghosts not fixed
  gamma = 1.
  HonR = 0.05
  H0 = HonR*Rdisc
- xmin(1) = -0.25  ! set position of boundaries
- xmax(1) = 0.25
- xmin(2) = -3.*H0   ! set position of boundaries
- xmax(2) = 3.*H0
+
+ if (ndim==2) then
+    ibound = 0
+    ibound(1) = 3     ! boundaries
+    xmin(1) = -0.25  ! set position of boundaries
+    xmax(1) = 0.25
+    idir = 2
+ else ! ndim = 1
+    ibound = 0
+    idir = 1
+ endif
+ xmin(idir) = -3.*H0   ! set position of boundaries
+ xmax(idir) = 3.*H0
  equalmass = .true.
 
 !
@@ -119,7 +132,8 @@ subroutine setup
 !
 !--set particle mass from actual integral of surface density profile
 !
- totmass = 2.*denszero*sqrt(0.5*pi)*H0*erf(xmax(2)/(sqrt(2.)*H0))*(xmax(1) - xmin(1))
+ totmass = 2.*denszero*sqrt(0.5*pi)*H0*erf(xmax(idir)/(sqrt(2.)*H0))
+ if (ndim==2) totmass = totmass*(xmax(1) - xmin(1))
  print*,' totmass       =',totmass, ' in MSun =',totmass*umass/solarm
  
  ! various information about grain sizes and the stopping time
@@ -172,7 +186,7 @@ subroutine setup
  close(unit=1)
 
  if (equalmass) then
-    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=2,stretchfunc=rhoy) 
+    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=idir,stretchfunc=rhoy) 
  else
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
  endif
@@ -186,12 +200,11 @@ subroutine setup
  do i=1,ntotal
     vel(:,i) = 0.
     if (equalmass) then
-       dens(i) = denszero*exp(-0.5*(x(2,i)/H0)**2)
+       dens(i) = denszero*exp(-0.5*(x(idir,i)/H0)**2)
        pmass(i) = massp
     else
        dens(i) = denszero
-       pmass(i) = massp*exp(-0.5*(x(2,i)/H0)**2) + rhomin*partvol
-       !if (i.eq.801) print*,pmass(i),i,exp(-0.5*(x(2,i)/H0)**2)
+       pmass(i) = massp*exp(-0.5*(x(idir,i)/H0)**2) + rhomin*partvol
     endif
     if (gamma > 1.) then
        uu(i) = cs0**2/(gamma*(gamma-1.)) ! adiabatic
@@ -245,6 +258,7 @@ subroutine modify_dump
        itype(j) = itypedust
     enddo
     npart = j
+    ntotal = npart
  elseif (idust==1 .or. idust==3 .or. idust==4) then
     write(iprint,"(/,a,/)") ' > MODIFYING dump by adding dust (one-fluid) <'
     do i=1,npart

@@ -237,10 +237,10 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
 
   case(15)
 !
-!--vertical gravity in 2D disc
+!--vertical gravity in disc section (always in LAST coordinate: x in 1D, y in 2D, z in 3D)
 !
-     fext(1) = 0.
-     fext(2) = -xpart(2)*Mstar/sqrt(Rdisc**2 + xpart(2)**2)**3
+     fext(:) = 0.
+     fext(ndim) = -xpart(ndim)*Mstar/sqrt(Rdisc**2 + xpart(ndim)**2)**3
 
   case default
      
