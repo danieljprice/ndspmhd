@@ -193,10 +193,10 @@ end module
      if (x .le. tiny(0.)) then
         ker = 1.
      else
-        ker = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker = 2.*bessel_j1(0.5*x)/(0.5*x)
      endif
      rinter1 = 1./(2.*pi)*ker**nc
-     besselstuff = rinter1*x*BesJ0(q*x)
+     besselstuff = rinter1*x*bessel_j0(q*x)
 
      end function besselstuff
 !------------------------------------------------------------------
@@ -210,10 +210,10 @@ end module
      if (x .le. tiny(0.)) then
         ker = 1.
      else
-        ker = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker = 2.*bessel_j1(0.5*x)/(0.5*x)
      endif
      rinter1 = 1./(2.*pi)*ker**nc
-     dbesselstuff = rinter1*x*x*BesJ1(q*x)
+     dbesselstuff = rinter1*x*x*bessel_j1(q*x)
 
      end function dbesselstuff
  !------------------------------------------------------------------
@@ -227,10 +227,10 @@ end module
      if (x .le. tiny(0.)) then
         ker = 1.
      else
-        ker = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker = 2.*bessel_j1(0.5*x)/(0.5*x)
      endif
      rinter1 = 1./(2.*pi)*ker**nc
-     ddbesselstuff = rinter1*x*x*x*BesJ0(q*x)
+     ddbesselstuff = rinter1*x*x*x*bessel_j0(q*x)
 
      end function ddbesselstuff    
  !------------------------------------------------------------------
@@ -244,7 +244,7 @@ end module
      if (x .le. tiny(0.)) then
         ker = 1.
      else
-        ker = 2.*BesJ1(0.5*x)/(0.5*x)
+        ker = 2.*bessel_j1(0.5*x)/(0.5*x)
      endif
      rinter1 = 1./(2.*pi)*ker**nc
      ddzbesselstuff = rinter1*x*x*x
@@ -320,11 +320,11 @@ end module
         ker1 = 1.
         ker2 = 1.        
      else
-        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
-        ker2 = 2.*BesJ1(0.5*secondz*x)/(0.5*secondz*x)
+        ker1 = 2.*bessel_j1(0.5*x)/(0.5*x)
+        ker2 = 2.*bessel_j1(0.5*secondz*x)/(0.5*secondz*x)
      endif
      rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
-     besselstuffder = rinter1*x*BesJ0(q*x)
+     besselstuffder = rinter1*x*bessel_j0(q*x)
 
      end function besselstuffder
 !------------------------------------------------------------------
@@ -339,11 +339,11 @@ end module
         ker1 = 1.
         ker2 = 1.
      else
-        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
-        ker2 = 2.*BesJ1(0.5*secondz*x)/(0.5*secondz*x)
+        ker1 = 2.*bessel_j1(0.5*x)/(0.5*x)
+        ker2 = 2.*bessel_j1(0.5*secondz*x)/(0.5*secondz*x)
      endif
      rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
-     dbesselstuffder = rinter1*x*x*BesJ1(q*x)
+     dbesselstuffder = rinter1*x*x*bessel_j1(q*x)
 
      end function dbesselstuffder
  !------------------------------------------------------------------
@@ -358,11 +358,11 @@ end module
         ker1 = 1.
         ker2 = 1.        
      else
-        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
-        ker2 = 2.*BesJ1(0.5*secondz*x)/(0.5*secondz*x)        
+        ker1 = 2.*bessel_j1(0.5*x)/(0.5*x)
+        ker2 = 2.*bessel_j1(0.5*secondz*x)/(0.5*secondz*x)        
      endif
      rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
-     ddbesselstuffder = rinter1*x*x*x*BesJ0(q*x)
+     ddbesselstuffder = rinter1*x*x*x*bessel_j0(q*x)
 
      end function ddbesselstuffder    
  !------------------------------------------------------------------
@@ -377,8 +377,8 @@ end module
         ker1 = 1.
         ker2 = 1.        
      else
-        ker1 = 2.*BesJ1(0.5*x)/(0.5*x)
-        ker2 = 2.*BesJ1(0.5*secondz*x)/(0.5*secondz*x)         
+        ker1 = 2.*bessel_j1(0.5*x)/(0.5*x)
+        ker2 = 2.*bessel_j1(0.5*secondz*x)/(0.5*secondz*x)         
      endif
      rinter1 = 1./(2.*pi)*ker1**nc1*ker2**nc2
      ddzbesselstuffder = rinter1*x*x*x
