@@ -180,3 +180,11 @@ real function drhor(rr,rmin,rmax)
   endif  
   
 end function drhor
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

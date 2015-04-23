@@ -385,3 +385,11 @@ subroutine get_profile(dx,velx,cs,cs_L,mach_L,Alayer)
 end subroutine get_profile
 
 end subroutine setup
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

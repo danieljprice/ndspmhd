@@ -260,3 +260,11 @@ subroutine fit_quadratic(x0,x1,y0,y1,dydx1,aa,bb,cc)
 
  return
 end subroutine fit_quadratic
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

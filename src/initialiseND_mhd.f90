@@ -224,7 +224,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- !if (ifile.eq.0) call modify_dump
+ if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
  

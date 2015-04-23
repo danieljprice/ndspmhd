@@ -408,3 +408,11 @@ subroutine force_error_densityprofiles(iprofile,npart,xpts,force,residual,errL2,
     
   return
 end subroutine force_error_densityprofiles
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

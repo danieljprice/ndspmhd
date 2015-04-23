@@ -110,3 +110,11 @@ SUBROUTINE setup
             
  RETURN
 END SUBROUTINE
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump
