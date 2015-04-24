@@ -58,7 +58,7 @@ subroutine conservative2primitive
   use part_in, only:Bevolin,dustevolin !,velin
   !use khsetup, only:densmedium,denszero,smoothl,yprofile,przero
   implicit none
-  integer :: i,j,nerr,k
+  integer :: i,j,nerr,nerr1,k
   real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
   real, dimension(ndimV) :: Binti,Bfieldi
   real, dimension(ndim) :: dxbound
@@ -69,6 +69,7 @@ subroutine conservative2primitive
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
   nerr = 0
+  nerr1 = 0
   sqrtg = 1.
   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      !--error checking on dust-to-gas ratio
@@ -84,13 +85,19 @@ subroutine conservative2primitive
            dustevol(i) = 0.
            dustevolin(i) = 0.
            !call quit
+        elseif (dustfrac(i) > 1.) then
+           nerr1 = nerr1 + 1
+           dustfrac(i) = 1. - epsilon(1.)
+           dustevol(i) = 1. - epsilon(1.)
+           dustevolin(i) = 1. - epsilon(1.)
         endif
      enddo
      dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
   else
      dens = rho
   endif
-  if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles '
+  if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles'
+  if (nerr1 > 0) print*,'ERROR: dust fraction > 1 on ',nerr1,' particles'
 ! 
 !--set x0 correctly on ghost particles
 !  (needed for remapped B or remapped euler potentials evolution)
