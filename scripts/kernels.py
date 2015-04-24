@@ -191,6 +191,8 @@ def printvariances(w,R):
     var, relvar, reldev = getvar(w,R)
     print "\nVariance of kernel in 1, 2, 3D:"
     print var[0],var[1],var[2]
+    print "\nStd.dev of kernel in 1, 2, 3D:"
+    print var[0]**0.5,var[1]**0.5,var[2]**0.5
     print "\nVariance and standard dev relative to cubic:"
     print relvar[0],relvar[1],relvar[2]
     print reldev[0],reldev[1],reldev[2]
@@ -828,4 +830,6 @@ f, name = doublehump(w6,R)
 printkernel_ndspmhd(f,R,name)
 #printkernel_phantom(f,R,name)
 #printkernel_sphNG(f,R,name)
-#printall_tex
+#printalltex()
+#print_stddevs()
+#printkernel_latex(f,R)
