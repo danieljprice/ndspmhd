@@ -26,6 +26,19 @@ module dust
  real, public :: grain_size, grain_mass, grain_dens
  logical :: done_init_drag = .false.
 
+ real :: grain_size_cm = 0.1    ! grain size in cm (default=mm)
+ real, parameter :: grain_dens_cgs = 3. ! g/cm^3
+! constants to translate to physical units
+ real, parameter :: mm = 0.1       ! 1 mm in cm
+ real, parameter :: micron = 1.e-4 ! 1 micron in cm
+ real, parameter :: au = 1.496d13
+ real, parameter :: solarm = 1.9891d33
+ real, parameter :: gg = 6.672d-8
+ real, parameter :: years = 3.1556926d7
+ real, parameter :: umass = solarm
+ real, parameter :: udist = 10.*au
+ real, parameter :: utime = sqrt(udist**3/(gg*umass))
+
 contains
 
 !------------------------------------------------------------------------
@@ -33,6 +46,7 @@ contains
 ! stopping time
 !------------------------------------------------------------------------
 subroutine init_drag(ierr,gamma)
+ use options,      only:Kdrag
  use setup_params, only:pi
  integer, intent(out) :: ierr
  real, intent(in)     :: gamma
@@ -44,6 +58,13 @@ subroutine init_drag(ierr,gamma)
     ierr = 1
     return
  endif
+ grain_size_cm = Kdrag
+
+ grain_dens = grain_dens_cgs/(umass/udist**3)
+ grain_size = grain_size_cm/udist
+ print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
+ print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
+
  epstein_fac = 4./3.*sqrt(8.*pi/gamma)
  grain_mass  = 4./3.*pi*grain_dens*grain_size**3
  done_init_drag = .true.

@@ -213,6 +213,10 @@ subroutine initialise
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
  if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup' 
  npart = 0
+!
+!--initialise drag terms
+!
+ if (idust /= 0) call init_drag(ierr,gamma)
 
  if (ifile.lt.0) then
     write(iprint,"(1x,80('-'))")
@@ -244,10 +248,6 @@ subroutine initialise
     Bfield = 0.  ! zero mag field if turned off
     Bevol = 0.
  endif
-!
-!--initialise drag terms
-!
- if (idust /= 0) call init_drag(ierr,gamma)
 !
 !--set velocities to zero if damping is set
 !

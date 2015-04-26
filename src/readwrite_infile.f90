@@ -118,7 +118,7 @@ subroutine write_infile(infile)
   call write_inopt(idust,'idust','dust (0:off 1:one-f 2:two-f 3:diff-onef-1st 4:diff-onef-2ndderivs)',iread)
   call write_inopt(idrag_nature,'idrag_nature','drag type (0=none 1=const K 2=const ts 3=Epstein)',iread)
   !call write_inopt(idrag_structure,'idrag_structure','drag structure (1=default)',iread)
-  call write_inopt(Kdrag,'Kdrag','drag coefficient (if idrag_nature=1) or ts (if idrag_nature=2)',iread)
+  call write_inopt(Kdrag,'Kdrag','drag coeff (idrag=1) or ts (idrag=2) or grain size in cm (idrag=3)',iread)
   call write_inopt(use_sqrtdustfrac,'use_sqrtdustfrac','evolve s=sqrt(rho*eps) instead of eps?',iread)
 
   write(iread,"(/,a)") '# options affecting self-gravity'

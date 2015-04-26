@@ -23,24 +23,6 @@
 !----------------------------------------------------------------
 !     Set up a disc section in 2D
 !----------------------------------------------------------------
-module dust_setup
- implicit none
- real, parameter :: dust_to_gas_ratio = 1.e-2
- real, parameter :: grain_size_cm = 0.1 ! grain size in cm
- real, parameter :: grain_dens_cgs = 3. ! g/cm^3
-! constants to translate to physical units
- real, parameter :: mm = 0.1       ! 1 mm in cm
- real, parameter :: micron = 1.e-4 ! 1 micron in cm
- real, parameter :: au = 1.496d13
- real, parameter :: solarm = 1.9891d33
- real, parameter :: gg = 6.672d-8
- real, parameter :: years = 3.1556926d7
- real, parameter :: umass = solarm
- real, parameter :: udist = 10.*au
- real, parameter :: utime = sqrt(udist**3/(gg*umass))
-
-end module dust_setup
-
 
 subroutine setup
 !
@@ -57,8 +39,8 @@ subroutine setup
  use eos,     only:gamma,polyk
  
  use uniform_distributions
- use dust,       only:init_drag,grain_size,grain_dens,get_tstop
- use dust_setup
+ use dust,    only:init_drag,grain_size,grain_dens,get_tstop,umass,udist,utime,au,&
+                   grain_size_cm,grain_dens_cgs,solarm,years
 !
 !--define local variables
 !            
@@ -69,6 +51,8 @@ subroutine setup
  real :: sigma,zmin,zmax,dz,zonh
  real :: t_cour,t_stop,rhogas,rhodust
  logical :: equalmass
+ real, parameter :: dust_to_gas_ratio = 1.e-2
+
 !
 !--allow for tracing flow
 !
@@ -120,7 +104,7 @@ subroutine setup
  print*,' udist (AU) = ',udist/au,' utime (yrs) = ',utime/years,' umass (solarm) = ',umass/solarm
  print*,' utime/orbits = ',omega/(2.*pi)
  print*,' density units = ',umass/udist**3
- 
+
  cs0 = H0*omega !0.0453 !H0*omega
  polyk = cs0**2
  print*,' cs0   = ',cs0
@@ -135,7 +119,11 @@ subroutine setup
  totmass = 2.*denszero*sqrt(0.5*pi)*H0*erf(xmax(idir)/(sqrt(2.)*H0))
  if (ndim==2) totmass = totmass*(xmax(1) - xmin(1))
  print*,' totmass       =',totmass, ' in MSun =',totmass*umass/solarm
- 
+!
+!--set grain size from Kdrag in input file
+!
+ grain_size_cm = Kdrag
+
  ! various information about grain sizes and the stopping time
  sigma = 2.*denszero*sqrt(0.5*pi)*H0
  print*,' Sigma         =',sigma,' in g/cm^2 =',sigma*(umass/udist**2)
@@ -236,10 +224,11 @@ subroutine modify_dump
  use options,        only:idust
  use timestep,       only:time
  use mem_allocation, only:alloc
- use dust, only:grain_dens,grain_size
- use dust_setup
+ use eos,            only:gamma
+ use dust,           only:init_drag
  implicit none
- integer :: i,j
+ integer :: i,j,ierr
+ real, parameter :: dust_to_gas_ratio = 1.e-2
  
  time = 0.
  if (idust==2) then
@@ -269,10 +258,8 @@ subroutine modify_dump
  endif
  
  if (idust /= 0) then
-    grain_dens = grain_dens_cgs/(umass/udist**3)
-    grain_size = grain_size_cm/udist
-    print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
-    print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
+    call init_drag(ierr,gamma)
+    if (ierr /= 0) stop 'error initialising drag'
  endif
 
 end subroutine modify_dump
