@@ -100,7 +100,7 @@ subroutine set_fixedbound
                  end select
               endif
            enddo
-           ireal(i) = 0
+           !ireal(i) = 0
            !idebug = 'fixed'
            !if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)

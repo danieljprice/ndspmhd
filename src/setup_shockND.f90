@@ -310,10 +310,11 @@ subroutine setup
 !--if using moving boundaries, fix the particles near the boundaries
 !
  nbpts = 0
+ fac = 1.1
  if (ibound(1).eq.1) then
     do i=1,npart
-       if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
-           (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
+       if ((x(1,i).lt.(xmin(1) + fac*radkern*hfact*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - fac*radkern*hfact*psepright))) then
           if (itype(i).eq.itypegas) itype(i) = itypebnd
           nbpts = nbpts + 1
        endif
