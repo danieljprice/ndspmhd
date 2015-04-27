@@ -57,20 +57,10 @@ subroutine setup
 !
 !--set boundaries
 !
- geom = 'sphrpt'
  nbpts = 0
- select case(geom)
- case('sphrpt')
-    ibound = 1     ! fixed ghosts
-    xmin(1) = 0.1
-    xmax(1) = 0.5
- case default
-    ibound = 3     ! fixed ghosts
-    xmin(:) = -0.5     ! same xmin in all dimensions
-    xmax(:) = 0.5
-!   xmin(2) = -0.75
-!   xmax(2) = 0.75
- end select
+ ibound = 3     ! fixed ghosts
+ xmin(:) = -0.5     ! same xmin in all dimensions
+ xmax(:) = 0.5
  denszero = 1.0
  przero = 0.1
  
