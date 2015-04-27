@@ -225,22 +225,9 @@ subroutine step
     endif
     
     dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
-    if (dttol < dt) then
-       dt = dttol
-       print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
-    endif
-    !if (C_cour*dtav.lt.dt) then
-    !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
-    !   dt = C_cour*dtav
-    !endif
-    !dtrho = huge(dtrho)
-    !do i=1,npart
-    !   dtrhoi = abs(rho(i)/(drhodt(i) + epsilon(drhodt)))
-    !   dtrho = min(dtrho,0.01*dtrhoi)
-    !enddo
-    !if (C_rho*dtrho/dtcourant .lt. C_cour) then
-    !   dt = dtrho
-    !   write(iprint,*) 'dtrho equiv courant number = ',C_rho*dtrho/dtcourant
+    !if (dttol < dt) then
+    !   dt = dttol
+    !   print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
     !endif
  endif
 
