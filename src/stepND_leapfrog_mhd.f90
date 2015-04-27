@@ -99,10 +99,14 @@ subroutine step
 !
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (itype(i).eq.itypebnd .and. ireal(i) > 0) then
+       if (itype(i).eq.itypebnd) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
-       elseif (itype(i).eq.itypebnd) then
+          if (j > 0) then
+             x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
+          else
+             x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)
+          endif
+       else
           write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
           stop
        endif
