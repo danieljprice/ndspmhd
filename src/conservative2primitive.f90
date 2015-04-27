@@ -652,7 +652,9 @@ subroutine primitive2conservative
         if (uu(i).lt.0.) stop 'primitive2conservative: utherm -ve '
      enddo
   case(1)   ! en = entropy
-     en = (gamma-1.)*uu/dens**(gamma-1.)
+     where (dens > 0.)
+        en = (gamma-1.)*uu/dens**(gamma-1.)
+     end where
   case(4)   ! en = rho*u (volume thermal energy)
      en = uu*dens
   case default        ! en = thermal energy
