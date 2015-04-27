@@ -384,7 +384,7 @@ targz:
 	gzip NDSPMHD.tar
 
 cleanall: clean
-	rm ?DSPMHD
+	rm -f ?DSPMHD
 
 edit1D: checkeditor
 	$(EDITOR) $(SETUP1D) &
@@ -402,4 +402,4 @@ checkeditor:
    endif
 
 clean:
-	rm *.o *.mod
+	rm -f *.o *.mod
