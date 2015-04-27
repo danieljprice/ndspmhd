@@ -35,7 +35,7 @@ contains
 !! and therefore only does each pairwise interaction once
 !!------------------------------------------------------------------------
 
-  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
+  subroutine density(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                      gradh,gradhn,gradsoft,gradgradh,npart,ntotal)
     use dimen_mhd,    only:ndim,ndimV
     use debug,        only:trace
@@ -53,7 +53,7 @@ contains
     integer, intent(in) :: npart,ntotal
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
+    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh
  
     integer :: i,j,n
     integer :: icell,iprev,nneigh
@@ -106,7 +106,6 @@ contains
           drhodt(i) = 0.
           densn(i) = 0.
           dndt(i) = 0.
-          delsqn(i) = 0.
           gradh(i) = 0.
           gradhn(i) = 0.
           gradsoft(i) = 0.
@@ -272,13 +271,11 @@ contains
                 if (itypei /= itypebnd) then
                    rho(i) = rho(i) + pmassj*wabi*weight
                    densn(i) = densn(i) + wabalti*weight
-                   delsqn(i) = delsqn(i) + grgrkerni*weight
                 endif
                 
                 if (itypej /= itypebnd) then
                    rho(j) = rho(j) + pmassi*wabj*weight
                    densn(j) = densn(j) + wabaltj*weight
-                   delsqn(j) = delsqn(j) + grgrkernj*weight
                 endif
 !
 !--drhodt, dndt
@@ -368,7 +365,7 @@ contains
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
   
-  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
+  subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt, &
                              gradh,gradhn,gradsoft,gradgradh,ntotal,nlist,ipartlist)
     use dimen_mhd,  only:ndim,ndimV
     use debug,      only:trace
@@ -387,7 +384,7 @@ contains
     integer, intent(in) :: ntotal
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
-    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
+    real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh
     integer, intent(in) :: nlist
     integer, intent(in), dimension(:) :: ipartlist
 
@@ -432,7 +429,6 @@ contains
        drhodt(i) = 0.
        densn(i) = 0.
        dndt(i) = 0.
-       delsqn(i) = 0.
        gradh(i) = 0.
        gradhn(i) = 0.
        gradsoft(i) = 0.
@@ -531,7 +527,6 @@ contains
 !
              rho(i) = rho(i) + pmassj*wabi
              densn(i) = densn(i) + wabalti
-             delsqn(i) = delsqn(i) + grgrkerni
 !
 !--drhodt, dndt
 !
