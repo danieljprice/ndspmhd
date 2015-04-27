@@ -115,7 +115,6 @@ contains
              psi(i) = 0.
              unity(i) = 0.
           endif
-          dxdx(:,i) = 0.
        endif
     enddo
     do i=1,ntotal

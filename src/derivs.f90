@@ -27,13 +27,11 @@
 subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
- use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr,spsound
- use rates,         only:dendt,drhodt
+ use part,          only:hh,x,npart,ntotal,rho,pmass,uu,dustfrac,deltav,pr,spsound
+ use rates,         only:ddustevoldt,dendt,drhodt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
- use resistivity,   only:Bdiffusion
- use timestep,      only:dt
- use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac
+ use options,       only:idust,iener,use_sqrtdustfrac
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
  use part,          only:vel

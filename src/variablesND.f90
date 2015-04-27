@@ -156,7 +156,7 @@ module part
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg
  real, dimension(:,:), allocatable  :: x   
- real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound
+ real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound,rhoalt
  real, dimension(:,:), allocatable  :: vel,pmom,sourceterms,alpha
  real, dimension(:,:), allocatable  :: Bfield, Bevol
  real, dimension(ndimB)             :: Bconst

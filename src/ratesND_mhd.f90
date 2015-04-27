@@ -45,6 +45,7 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
+ use externf,       only:external_forces,pequil
  use dust,          only:get_tstop
 !
 !--define local variables
@@ -567,7 +568,7 @@ subroutine get_rates
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
-                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i))
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i))
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !

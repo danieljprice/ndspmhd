@@ -244,7 +244,6 @@ subroutine read_infile(infile)
         call read_inopt(psidecayfact,'psidecayfact',db,errcount=nerr)
         call read_inopt(iresist,'iresist',db,errcount=nerr)
         call read_inopt(etamhd,'etamhd',db,errcount=nerr)
-        call read_inopt(iuse_exact_derivs,'iuse_exact_derivs',db,errcount=nerr)
         call read_inopt(iambipolar,'iambipolar',db,errcount=nerr)
      endif
 

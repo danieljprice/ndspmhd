@@ -58,7 +58,7 @@ subroutine alloc(newsizein,sortlist)
  integer, dimension(newsizein), intent(in), optional :: sortlist
  integer, dimension(newsizein) :: iorder
  integer :: i,newsize,ioldsize,idumsize
- real, dimension(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin
+ real, dimension(newsizein) :: dumpmass,dumrhoin,dumenin,dumpsiin,dumrhoalt
  real, dimension(newsizein) :: dumrho,dumdrhodt,dumuu,dumdudt,dumen,dumdendt
  real, dimension(3,newsizein) :: dumalpha,dumalphain,dumdaldt
  real, dimension(newsizein) :: dumpsi
@@ -155,6 +155,7 @@ subroutine alloc(newsizein,sortlist)
     dumxsphterm(:,1:idumsize) = xsphterm(:,1:idumsize)
         
     dumrho(1:idumsize) = rho(1:idumsize)
+    dumrhoalt(1:idumsize) = rhoalt(1:idumsize)
     dumdrhodt(1:idumsize) = drhodt(1:idumsize)
     dumuu(1:idumsize) = uu(1:idumsize)
     dumdudt(1:idumsize) = dudt(1:idumsize)
@@ -210,6 +211,7 @@ subroutine alloc(newsizein,sortlist)
     deallocate(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     deallocate(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,gradsoft,pr)
     deallocate(gradgradh)
+    if (allocated(rhoalt)) deallocate(rhoalt)
     if (allocated(zeta)) deallocate(zeta)
     if (allocated(poten)) deallocate(poten)
     if (allocated(Bfield)) deallocate(Bfield)
@@ -286,6 +288,7 @@ subroutine alloc(newsizein,sortlist)
     allocate(x(ndim,newsize))
     allocate(vel(ndimv,newsize),force(ndimv,newsize))
     allocate(rho(newsize),drhodt(newsize))
+    allocate(rhoalt(newsize))
     allocate(uu(newsize),dudt(newsize),en(newsize),dendt(newsize))
     allocate(alpha(3,newsize),alphain(3,newsize),daldt(3,newsize))
     allocate(psi(newsize),dpsidt(newsize))
@@ -373,6 +376,7 @@ subroutine alloc(newsizein,sortlist)
     xsphterm(:,1:idumsize) = dumxsphterm(:,iorder(1:idumsize))
         
     rho(1:idumsize) = dumrho(iorder(1:idumsize))
+    rhoalt(1:idumsize) = dumrhoalt(iorder(1:idumsize))
     drhodt(1:idumsize) = dumdrhodt(iorder(1:idumsize))
     uu(1:idumsize) = dumuu(iorder(1:idumsize))
     dudt(1:idumsize) = dumdudt(iorder(1:idumsize))
@@ -389,7 +393,7 @@ subroutine alloc(newsizein,sortlist)
     gradsoft(1:idumsize) = dumgradsoft(iorder(1:idumsize))
     gradgradh(1:idumsize) = dumgradgradh(iorder(1:idumsize))
     if (allocated(poten)) poten(1:idumsize) = dumpoten(iorder(1:idumsize))
-    
+
     pr(1:idumsize) = dumpr(iorder(1:idumsize))
     spsound(1:idumsize) = dumspsound(iorder(1:idumsize))
 !    ll(1:idumsize) = dumll(1:idumsize)
@@ -403,7 +407,7 @@ subroutine alloc(newsizein,sortlist)
     pmomin(:,1:idumsize) = dumpmomin(:,iorder(1:idumsize))
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
-    endif    
+    endif
 !
 !--dust
 !

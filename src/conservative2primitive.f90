@@ -48,14 +48,12 @@ subroutine conservative2primitive
   use eos
   use part
   use getcurl,       only:get_curl
-  use smooth, only:smooth_variable
   use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
-  use timestep, only:nsteps
-  use part_in, only:Bevolin,dustevolin !,velin
+  use part_in, only:dustevolin !,velin
   implicit none
-  integer :: i,j,nerr,nerr1,k
+  integer :: i,j,nerr,nerr1
   real :: B2i, v2i, pri, dhdrhoi
   real, dimension(ndimV) :: Binti,Bfieldi
   logical, parameter :: JincludesBext = .true.
@@ -192,8 +190,6 @@ subroutine conservative2primitive
      uu = en/(gamma-1.)*rho**(gamma-1.)
   case(4)  ! en = rho*u (volume thermal energy variable)
      uu = en/rho
-  case(5)
-     call smooth_variable(en,uu,x,pmass,hh,rho)
   case default    ! en = thermal energy
      if (damp.gt.0.) then
         uu = en
