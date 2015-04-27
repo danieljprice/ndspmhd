@@ -81,7 +81,7 @@ subroutine write_dump(t,dumpfile)
     ncolumns = ncolumns + 2 + ndimV
     iformat = iformat + 2
  endif
- if (idust.eq.1) then
+ if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
     iformat = 5
     ncolumns = ncolumns + ndimV + 1
  endif
@@ -109,7 +109,7 @@ subroutine write_dump(t,dumpfile)
      write(idatfile) vel(i,1:nprint)
   enddo
   write(idatfile) hh(1:nprint)
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      write(idatfile) rho(1:nprint)  
   else
      write(idatfile) dens(1:nprint)
@@ -163,7 +163,7 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) pmom(i,1:nprint)
      enddo
   endif
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      write(idatfile) dustfrac(1:nprint)
      do i=1,ndimV
         write(idatfile) deltav(i,1:nprint)
@@ -281,9 +281,9 @@ subroutine read_dump(dumpfile,tfile,copysetup)
  elseif (imhd.lt.0 .and. (ncolumns.lt.(ndim + 5*ndimV + 12) .or. iformat.ne.2)) then
     write(iprint,*) 'ERROR: cannot re-start with vector potential from this file'
     stop
- elseif (idust.eq.1 .and. (iformat.ne.5)) then
+ elseif ((idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) .and. (iformat.ne.5)) then
     write(iprint,*) 'ERROR: idust=1 but dump file does not contain dustfrac or deltav arrays'
-    stop
+    !stop
  endif
 !
 !--switch current geometry to that of the file if not convertible
@@ -387,7 +387,7 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     enddo
     nread = nread + 2
  endif
- if (idust.eq.1 .and. iformat.eq.5) then
+ if ((idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) .and. iformat.eq.5) then
     read(ireadf,iostat=ierr) dustfrac(1:npart)
     do i=1,ndimV
        read(ireadf,iostat=ierr) deltav(i,1:npart)

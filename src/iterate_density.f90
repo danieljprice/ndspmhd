@@ -63,7 +63,7 @@ subroutine iterate_density
   integer, dimension(npart) :: redolist, redolistprev
   real :: hnew,func,dfdh
   real :: rhoi,dhdrhoi,omegai,densnumi,dhdni,dwdhsumi,d2hdrho2i
-  real, dimension(size(rho)) :: hhin,dndt,densn
+  real, dimension(2*size(rho)) :: hhin,dndt,delsqn ! allow space in case of ghost reallocation
   logical :: converged,redolink
   
 !!  integer :: itest
@@ -87,12 +87,14 @@ subroutine iterate_density
   ncalc = npart   ! number of particles to calculate density on
   redolink = .false.
   ncalcprev = 0
-  gradh = 0.
-  gradhn = 0.
-  gradsoft = 0.
-  gradgradh = 0.
-  drhodt = 0.
-  dhdt = 0.
+  where (itype /= itypebnd)
+     gradh = 0.
+     gradhn = 0.
+     gradsoft = 0.
+     gradgradh = 0.
+     drhodt = 0.
+     dhdt = 0.
+  end where
   hhin(1:npart) = hh(1:npart)
   if (any(hh(1:npart).le.tiny(hh))) then
      write(iprint,*) 'error: h <= 0 in density call'
@@ -127,10 +129,9 @@ subroutine iterate_density
 !  only on a partial list
 !     
      if (ncalc.eq.npart) then
-        call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart) ! symmetric for particle pairs
-!!        call output(0.0,1)
+        call density(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,npart,ntotal) ! symmetric for particle pairs
      else
-        call density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
+        call density_partial(x,pmass,hh,vel,rho,drhodt,rhoalt,dndt,gradh,gradhn,gradsoft,gradgradh,ntotal,ncalc,redolist)
      endif
      
      ncalctotal = ncalctotal + ncalc
@@ -171,8 +172,8 @@ subroutine iterate_density
                  dfdh = omegai/dhdni
                  gradsoft(i) = gradsoft(i)*dhdni
               else
-                 rhoi = pmass(i)/(hh(i)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
-                 dhdrhoi = -hh(i)/(ndim*(rho(i) + rhomin))          ! deriv of this
+                 rhoi = pmass(i)/((hh(i) - h_min)/hfact)**ndim - rhomin ! this is the rho compatible with the old h
+                 dhdrhoi = -(hh(i) - h_min)/(ndim*(rho(i) + rhomin))          ! deriv of this
 !                 dhdrhoi = -hh(i)/(ndim*(rhoi + rhomin))          ! deriv of this
                  dwdhsumi = gradh(i)
                  omegai =  1. - dhdrhoi*gradh(i)
@@ -184,7 +185,7 @@ subroutine iterate_density
                  func = rhoi - rho(i)
                  dfdh = omegai/dhdrhoi
                  gradsoft(i) = gradsoft(i)*dhdrhoi
-                 !--gradgradhi is the "zeta" term in Price (2009)
+                 !--gradgradhi is the "zeta" term in Price (2010)
                  d2hdrho2i = hh(i)*(ndim+1)/(rho(i)*ndim)**2
                  gradgradh(i) = rho(i)*(d2hdrho2i*dwdhsumi + dhdrhoi**2*gradgradh(i))
               endif
@@ -264,7 +265,7 @@ subroutine iterate_density
         if (nrhosmall.gt.0) then
            write(iprint,"(a,i3,a,i8,a)") ' WARNING: iteration ',itsdensity,': rho < 1.e-6 on ',nrhosmall,' particles'
         endif
-        
+
         if ((idebug(1:3).eq.'den').and.(ncalc.gt.0)) then
            write(iprint,*) ' density, iteration ',itsdensity,' ncalc = ',ncalc,':',redolist(1:ncalc)
         endif
@@ -293,7 +294,7 @@ subroutine iterate_density
         do i=1,npart      ! update fixed parts and ghosts
            if (itype(i).eq.itypebnd) then
               j = ireal(i)
-              if (j.ne.0) then
+              if (j > 0) then
                  rho(i) = rho(j)
                  densn(i) = densn(j)
                  drhodt(i) = drhodt(j)
@@ -309,31 +310,34 @@ subroutine iterate_density
            endif
         enddo
      endif
-     if (any(ibound.gt.1)) then   ! update ghosts
+     if (any(ibound > 1)) then   ! update ghosts
         do i=npart+1,ntotal
            j = ireal(i)
-           rho(i) = rho(j)
-           densn(i) = densn(j)
-           drhodt(i) = drhodt(j)
-           dhdt(i) = dhdt(j)
-           hh(i) = hh(j)
-           gradh(i) = gradh(j)
-           gradhn(i) = gradhn(j)
-           gradsoft(i) = gradsoft(j)
+           if (j > 0) then
+              rho(i) = rho(j)
+              densn(i) = densn(j)
+              drhodt(i) = drhodt(j)
+              dhdt(i) = dhdt(j)
+              hh(i) = hh(j)
+              gradh(i) = gradh(j)
+              gradhn(i) = gradhn(j)
+              gradsoft(i) = gradsoft(j)
+           endif
         enddo
      endif
 
   enddo iterate
+  
 
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then
      write(iprint,*) ' ERROR: DENSITY NOT CONVERGED ON ',ncalc,' PARTICLES'
      call quit
-  elseif (itsdensity.gt.5) then
-     write(iprint,*) ' Finished density, iterations = ', &
-                     itsdensity, ncalctotal,' used rhomin = ',rhomin
-     write(iprint,*) ' min. nneigh = ',minval(numneigh(1:npart)), &
-                     ' max nneigh = ',maxval(numneigh(1:npart))
+  elseif (itsdensity > 5 .or. usenumdens) then
+     write(iprint,"(a,i2,a,f6.3,a,i3,a,i5)") &
+      ' Density, its = ',itsdensity,' mean: ',ncalctotal/real(npart),&
+      ' neigh min: ',minval(numneigh(1:npart)), &
+      ' max: ',maxval(numneigh(1:npart))
   endif
 
   return

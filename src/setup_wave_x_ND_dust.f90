@@ -91,7 +91,7 @@ subroutine setup
 !--initially set up a uniform density grid (also determines npart)
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
- if (idust.eq.1) then
+ if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
     ntypes = 1
  else
     ntypes = 2
@@ -142,7 +142,7 @@ subroutine setup
     else
        Bfield(:,i) = 0.
     endif
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfrac(i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
        deltav(:,i) = 0.
        pmass(i) = pmass(i)/(1. - dustfrac(i))
@@ -266,3 +266,11 @@ subroutine setup
  
  return
 end subroutine setup
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

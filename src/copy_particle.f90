@@ -60,7 +60,7 @@ subroutine copy_particle(i,j)
   spsound(i) = spsound(j)
   pr(i) = pr(j)
   dens(i) = dens(j)
-  if (itype(i).ne.itypebnd .and. itype(j).ne.itypebnd) itype(i) = itype(j)
+  if (itype(i).ne.itypebnd .and. itype(i).ne.itypebnd2 .and. itype(j).eq.itypegas) itype(i) = itype(j)
   if (allocated(pmom)) pmom(:,i) = pmom(:,j)
 
   force(:,i) = force(:,j)
@@ -79,9 +79,10 @@ subroutine copy_particle(i,j)
 !
 !  dust
 !
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      dustfrac(i)    = dustfrac(j)
-     ddustfracdt(i) = ddustfracdt(j)
+     dustevol(i)    = dustevol(j)
+     ddustevoldt(i) = ddustevoldt(j)
      deltav(:,i)     = deltav(:,j)
      ddeltavdt(:,i)  = ddeltavdt(:,j)
   endif

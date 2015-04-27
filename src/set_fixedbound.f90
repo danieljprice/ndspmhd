@@ -29,7 +29,7 @@ subroutine set_fixedbound
   use hterms
   use part
   implicit none
-  integer :: i,j,nstart,npart1
+  integer :: i,j,nstart,npart1,iboundold(ndim)
   real :: rr, rmin
   real, dimension(ndim) :: dx
   
@@ -59,11 +59,19 @@ subroutine set_fixedbound
 !--in >1D we setup ghost particles initially but then fix them
 ! 
         write(iprint,10) ' Setting up fixed particles from ghosts'
-        call set_ghost_particles  ! setup ghost particles  
+        iboundold = ibound
+        ibound = 0
+        where (iboundold.eq.1) ibound = 2
+        call set_ghost_particles  ! setup ghost particles
         !--now fix the ghost particles that have been set
         npart1 = npart + 1
         itype(npart1:ntotal) = itypebnd  ! set all these particles to be fixed
         npart = ntotal              ! no ghosts
+        do i=1,npart
+           if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) nbpts = nbpts + 1
+        enddo
+        write(iprint,*) nbpts,' fixed particles set'
+        ibound = iboundold
      endif
   else
 !
@@ -78,7 +86,7 @@ subroutine set_fixedbound
      write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
         if (itype(i).eq.itypebnd) then
-           rmin = 1.e10
+           rmin = huge(rmin)
            do j=1,npart
               if (j.ne.i) then   ! find closest real particle
                  select case(itype(j))
@@ -92,9 +100,9 @@ subroutine set_fixedbound
                  end select
               endif
            enddo
-           !ireal(i) = 0
+           ireal(i) = 0
            !idebug = 'fixed'
-           if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
+           !if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
      enddo

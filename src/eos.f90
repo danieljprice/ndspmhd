@@ -40,7 +40,7 @@ contains
 subroutine equation_of_state(pr,vsound,uu,rho,gammai)
  use options, only:iener
  use loguns
- use part, only:itype,itypegas,itypegas1,itypegas2
+ use part, only:itype,itypegas,itypegas1,itypegas2,itypebnd
 !
 !--define local variables
 !
@@ -80,7 +80,7 @@ subroutine equation_of_state(pr,vsound,uu,rho,gammai)
        pr = polyk*(rho - 1.)
     elsewhere (itype(1:isize).eq.itypegas2)
        pr =  polyk*(rho - 1.) !4.*polyk*((rho/0.5) - 1.)
-    elsewhere
+    elsewhere(itype(1:isize).ne.itypebnd)
       pr = 0.
     end where
     if (abs(gamma1).gt.1.e-3) then       

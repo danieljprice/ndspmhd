@@ -59,7 +59,6 @@ subroutine setup
 !--set up the uniform density grid
 ! 
  call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)
-
  npart = ntotal
  print*,'npart =',npart
 !
@@ -74,7 +73,6 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    !vel(1,i) = 0.01*sin(2.*pi*(x(1,i)-xmin(1)))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0 ! isothermal
@@ -87,3 +85,11 @@ subroutine setup
   
  return
 end
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

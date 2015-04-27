@@ -230,12 +230,12 @@ subroutine setup
  xmaxleft(1) = xshock
  xminright(1) = xshock
  
- if (idust.eq.1) then
+ if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
     psepleft = psep
     psepright = psep*(densleft/densright)**(1./ndim)
  else
     if (jtype.eq.2) then
-       psepleft = psep*(densleft/densdustleft)**(1./ndim)
+       psepleft = psep
        psepright = psepleft*(densdustleft/densdustright)**(1./ndim)
     else
        psepleft = psep
@@ -276,8 +276,8 @@ subroutine setup
        if (jtype.eq.2) then
           total_mass = volume*densdustleft
           massp = total_mass/(npart - npartprev)       
-          masspdustleft  = massp  !*densdustleft/densleft
-          masspdustright = masspdustleft*densdustright/densright
+          masspdustleft  = massp
+          masspdustright = masspdustleft
        else
           total_mass = volume*densleft
           massp = total_mass/(npart - npartprev)
@@ -418,7 +418,7 @@ subroutine setup
 !
 !--setup dust-to-gas ratio
 !
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfrac(i) = densdust/(dens(i) + densdust)
       ! print*,i,densdust,dens(i),dustfrac(i)
        deltav(:,i)  = 0.
@@ -479,3 +479,11 @@ subroutine setup
  
  return
 end subroutine setup
+
+!
+! use this routine to modify the dump upon code restart
+!
+subroutine modify_dump()
+ implicit none
+
+end subroutine modify_dump

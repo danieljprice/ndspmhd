@@ -1,7 +1,7 @@
 !!--------------------------------------------------------------------
 !! Computes one timestep
 !! Change this subroutine to change the timestepping algorithm
-!! This version uses a leapfrog predictor-corrector
+!! This version uses a 2nd order Runge-Kutta algorithm (i.e. midpoint)
 !! At the moment there is no XSPH and no direct summation replacements
 !!--------------------------------------------------------------------
          
@@ -44,9 +44,9 @@ subroutine step
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
-    if (idust.eq.1) then
-       dustfracin(i)    = dustfrac(i)
-       deltavin(:,i)     = deltav(:,i)
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       dustevolin(i) = dustevol(i)
+       if (idust.eq.1) deltavin(:,i) = deltav(:,i)
     endif
  enddo
 !
@@ -54,22 +54,23 @@ subroutine step
 !
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
+       if (itype(i).eq.itypebnd) then
           j = ireal(i)
-          x(:,i) = xin(:,i) + hdt*velin(1:ndim,j)
-       else
-          write(iprint,*) 'step: error: ireal not set for fixed part ',i,ireal(i)
-          stop
+          if (j > 0) then
+             x(:,i) = xin(:,i) + hdt*velin(1:ndim,j)
+          else
+             x(:,i) = xin(:,i)
+          endif
        endif
        if (imhd.gt.0) Bevol(:,i) = Bevolin(:,i)
        rho(i) = rhoin(i)
-       hh(i) = hhin(i)            
+       hh(i) = hhin(i)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i)
-          deltav(:,i) = deltavin(:,i)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
        x(:,i)   = xin(:,i) + hdt*vel(1:ndim,i)
@@ -78,29 +79,31 @@ subroutine step
        if (icty.ge.1) rho(i) = rhoin(i) + hdt*drhodt(i)
        if (ihvar.eq.1) then
 !           hh(i) = hfact*(pmass(i)/rho(i))**dndim        ! my version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's           
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's
        elseif (ihvar.eq.2 .or. ihvar.eq.3) then
           hh(i) = hhin(i) + hdt*dhdt(i)
        endif
        if (iener.ne.0) en(i) = enin(i) + hdt*dendt(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + hdt*dpsidt(i) 
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i) + hdt*ddustfracdt(i)
-          deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
-          if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-             deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i) + hdt*ddustevoldt(i)
+          if (idust.eq.1) then
+             deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
+!             if (dustevol(i).gt.0.) then
+!                dtstop = Kdrag/(rho(i)*dustevol(i)*(1. - dustevol(i)))
+!                deltav(:,i) = deltav(:,i)*exp(-hdt*dtstop)
+!             endif
           endif
        endif
     endif
  enddo
 
- !if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--calculate all derivatives at the half step
 !
  call derivs
+ if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 !
 !--Now do the corrector (full) step
 !
@@ -113,11 +116,12 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i)
-          deltav(:,i)  = deltavin(:,i)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i)
+          if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
+       x(:,i) = xin(:,i) + dt*vel(:,i)
        vel(:,i) = velin(:,i) + dt*force(:,i)
        if (imhd.ne.0) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
        if (icty.ge.1) rho(i)     = rhoin(i) + dt*drhodt(i)
@@ -127,17 +131,22 @@ subroutine step
              write(iprint,*) 'step: hh -ve ',i,hh(i)
              call quit
           endif
+       elseif (ihvar.eq.3) then
+          hh(i) = hh(i) + hdt*dhdt(i)
        endif
        if (iener.ne.0)       en(i)      = enin(i) + dt*dendt(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldt(:,i),1.0)
        if (idivbzero.ge.2)   psi(i)     = psiin(i) + dt*dpsidt(i)
        
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i)  + dt*ddustfracdt(i)
-          deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
-          if (dustfrac(i).gt.0.) then
-             dtstop = Kdrag/(rho(i)*dustfrac(i)*(1. - dustfrac(i)))
-             deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i)  + dt*ddustevoldt(i)
+          if (idust.eq.1) then
+             deltav(:,i)  = deltavin(:,i)   + dt*ddeltavdt(:,i)
+!             if (dustevol(i).gt.0.) then
+!                dustfrac(i) = dustevol(i)
+!                dtstop = Kdrag/(rho(i)*dustevol(i)*(1. - dustfrac(i)))
+!                deltav(:,i) = deltav(:,i)*exp(-dt*dtstop)
+!             endif
           endif
        endif
     endif

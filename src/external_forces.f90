@@ -20,6 +20,16 @@
 !  ChangeLog:                                                                  !
 !------------------------------------------------------------------------------!
 
+module externf
+ implicit none
+ real, parameter :: eps2_soft = 1.e-8
+ real, parameter, public :: Rdisc = 5.0, Mstar = 1.0
+ 
+ public :: external_forces, pequil, external_potentials
+ 
+ private
+
+contains
 !!-----------------------------------------------------------------------
 !!
 !! Computes external (body) forces on a particle given its co-ordinates
@@ -29,9 +39,9 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
                            spsound,itypei)
   use options, only:ibound
   use eos,     only:gamma,polyk
-  use bound, only:xmax,xmin
+  use bound,   only:xmax,xmin
   use streaming
-  use part, only: itypegas,itypedust
+  use part,         only:itypegas,itypedust
   use setup_params, only:xlayer,dwidthlayer,Alayercs,Omega0,Omega2,domegadr,pi
   implicit none
   integer, intent(in) :: iexternal_force,ndim,ndimV,itypei
@@ -41,7 +51,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
   real, dimension(ndimV), intent(out) :: fext
   real, dimension(ndim) :: dr
   real :: rr,rr2,drr2,rcyl2,rcyl,rsph,v2onr,sink
-  real :: q2i,betai,gradwkernbound,expterm
+  real :: q2i,betai,expterm
   real, parameter :: Rtorus = 1.0, dfac = 1.1
   real, parameter :: Asin = 100., Bsin = 2.0
   real, parameter :: smoothl = 0.025
@@ -59,7 +69,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
 !
 !--1/r^2 force from central point mass
 !
-     rr2 = DOT_PRODUCT(xpart,xpart) 
+     rr2 = DOT_PRODUCT(xpart,xpart) + eps2_soft
      rr = SQRT(rr2)
      drr2 = 1./rr2
      dr(:) = xpart(:)/rr
@@ -155,7 +165,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
 !
 !--gravity (2)
 !
-    if (ndim.ge.2) fext(2) = -0.5
+    if (ndim.ge.2) fext(2) = -10.
 
   case(10)
 !
@@ -199,7 +209,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      fext(2) = 0.
      fext(3) = -2.*Omega0*vpart(1)
 
-     case(12)
+  case(12)
 !
 !--vertical linear force to simulate the vertical motion
 !--of particles in a disc
@@ -207,14 +217,14 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      fext(1) = 0.
      fext(2) = - xpart(2) !2D pb
      
-     case(13)
+  case(13)
 !
 !--vertical cubic force to benchmark the settling of dust particles
 !
      fext(1) = 0.
      fext(2) = - xpart(2)**3 !2D pb 
      
-     case(14)
+  case(14)
 !
 !--vertical square root force to benchmark the settling of dust particles
 !
@@ -225,6 +235,13 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
         fext(2) = (-xpart(2))**0.5 !2D pb
      endif 
 
+  case(15)
+!
+!--vertical gravity in disc section (always in LAST coordinate: x in 1D, y in 2D, z in 3D)
+!
+     fext(:) = 0.
+     fext(ndim) = -xpart(ndim)*Mstar/sqrt(Rdisc**2 + xpart(ndim)**2)**3
+
   case default
      
      fext(:) = 0.
@@ -234,6 +251,9 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
   return
 end subroutine external_forces
 
+!-----------------------
+! kernel boundary force
+!-----------------------
 real function gradwkernbound(q2)
  implicit none
  real, intent(in) :: q2
@@ -290,7 +310,7 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
  case(1) ! toy star force (x^2 potential)
     epot = 0.5*DOT_PRODUCT(xpart,xpart)
  case(2) ! 1/r^2 force(1/r potential)
-    epot = -1./SQRT(DOT_PRODUCT(xpart,xpart))
+    epot = -1./SQRT(DOT_PRODUCT(xpart,xpart) + eps2_soft)
  case(3) ! potential from n point masses
     epot = 0.
  case(5)
@@ -304,3 +324,5 @@ subroutine external_potentials(iexternal_force,xpart,epot,ndim)
 
  return
 end subroutine external_potentials
+
+end module externf

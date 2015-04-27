@@ -136,7 +136,7 @@ subroutine boundary
                 ncorrect = ncorrect + 1
 !                print*,'xmax',jdim,i,'xnew = ',x(jdim,i),vel(jdim,i)
              elseif(x(jdim,i).lt.xmin(jdim)) then
-                print*,'xminold',jdim,i,'x,v = ',x(jdim,i),vel(jdim,i)
+                print*,'xminold',jdim,i,'x,v = ', x(jdim,i),vel(jdim,i)
                 !--move particle back inside boundary
                 x(jdim,i) = xmin(jdim) + (xmin(jdim) - x(jdim,i))
                 xin(jdim,i) = x(jdim,i)

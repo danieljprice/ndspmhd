@@ -45,6 +45,7 @@ subroutine get_rates
  use fmagarray
  use derivB
  use get_neighbour_lists
+ use dust,          only:get_tstop
 !
 !--define local variables
 !
@@ -96,7 +97,7 @@ subroutine get_rates
 !! real :: rhoi5,rhoj5
  real :: vsig2i,vsig2j,vsigproji,vsigprojj,vsigB,vsigu
 !! real :: vsigii,vsigjj
- real :: prneti,prnetj,pequil
+ real :: prneti,prnetj
 !
 !  (av switch)
 !
@@ -119,7 +120,7 @@ subroutine get_rates
  real :: dtstop,projdeltavi,projdeltavj
  real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
- real :: sum
+ real :: sum,tstop,ratio,dvmax
 
 !
 !  (kernel related quantities)
@@ -132,7 +133,7 @@ subroutine get_rates
 !
 !  (time step criteria)
 !      
- real :: vsigdtc,zero,fhmax, fonh, forcemag
+ real :: vsigdtc,zero,fhmax, fonh, forcemag, ts_min, h_on_csts_max
  integer :: ierr
 !
 !--div B correction
@@ -166,6 +167,8 @@ subroutine get_rates
  dtcourant  = 1.e6  
  dtav       = huge(dtav)
  dtvisc     = huge(dtvisc)
+ ts_min     = huge(ts_min)
+ h_on_csts_max = 0.
  zero       = 1.e-10
  vsigmax    = 0.
  dr(:)      = 0.
@@ -181,7 +184,7 @@ subroutine get_rates
   gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
-  if (imhd.gt.0) curlB(:,i) = 0.0
+  if (imhd.gt.0 .and. iambipolar.eq.0) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
   if (allocated(del2v)) del2v(i) = 0.
   xsphterm(:,i) = 0.0
@@ -194,8 +197,8 @@ subroutine get_rates
      gradhn(i) = 0.
      dhdt(i) = 0.
   endif
-  if (idust.eq.1) then
-     ddustfracdt(i) = 0.
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     ddustevoldt(i) = 0.
      ddeltavdt(:,i) = 0.
   endif
  enddo
@@ -316,7 +319,7 @@ subroutine get_rates
        gdiagi(:) = 1.
 
        ! one fluid dust definitions
-       if (idust.eq.1) then
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustfraci  = dustfrac(i)
           rhodusti       = dustfraci*rhoi          
           rhogasi        = rhoi - rhodusti
@@ -344,7 +347,7 @@ subroutine get_rates
        hi = hh(i)
        if (hi.le.0.) then
           write(iprint,*) ' rates: h <= 0 particle',i,hi
-        call quit
+          call quit
        endif
        hi1 = h1(i)
        hi21 = hi1*hi1
@@ -381,8 +384,11 @@ subroutine get_rates
                     write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
                     call quit
                  endif
+              elseif (rij.le.epsilon(rij)) then
+                 dr = 0.  ! can happen with gas/dust if particles on top of each other
+              else
+                 dr(1:ndim) = dx(1:ndim)/rij      ! unit vector
               endif
-              dr(1:ndim) = dx(1:ndim)/rij      ! unit vector           
               if (itype(j).eq.itypei &
                   .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
                   .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
@@ -462,40 +468,41 @@ subroutine get_rates
  fmean(:) = 0.
  dtdrag = huge(dtdrag)
  sum = 0.
+ ratio = 0.
+ if (idust.eq.2 .and. h_on_csts_max > 1.) then
+    print*,' WARNING: violating h < cs*ts resolution criterion by factor of ',h_on_csts_max
+ endif
  do i=1,npart
  
     rhoi  = rho(i)
     rho1i = 1./rhoi
-    if (ivisc.gt.0 .and. idust.ne.1) then
+    if (ivisc.gt.0 .and. idust.ne.1 .and. idust.ne.4) then
        sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
     endif
     fexternal(:) = 0.
 !
 !--Dust
 !
-    if (idust.eq.2 .and. idrag_nature.ne.0 .and. Kdrag.gt.0. .and. ismooth.lt.1) then
+    if (idust.eq.2 .and. idrag_nature.ne.0 .and. (Kdrag > 0. .or. idrag_nature > 1)) then
        !
        !--two fluid dust: calculate drag timestep
        !
-       dtdrag = min(dtdrag,rhoi/Kdrag)
+       dtdrag = min(dtdrag,ts_min)
     elseif (idust.eq.1) then
-       !print *,'dtdrag = ',min(dtdrag,rhoi/Kdrag)
-       dtdrag = min(dtdrag,0.25*rhoi/Kdrag)
        !------------------
        !  one fluid dust
        !------------------
-       !
-       !--d/dt(rhod/rho): multiply by terms out the front of the SPH sum
-       !
        dustfraci = dustfrac(i)
        rhodusti = rhoi*dustfraci       
        rhogasi  = rhoi - rhodusti
        
+       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
+       dtdrag = min(dtdrag,tstop)
        !
        !--d/dt(deltav)  : add terms that do not involve sums over particles
        !
        if (dustfraci.gt.0.) then
-          dtstop   = Kdrag*rhoi/(rhodusti*rhogasi)  ! 1/tstop = K*rho/(rhod*rhog)
+          dtstop   = 1./tstop
           ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
        else
           dtstop = 0.
@@ -510,6 +517,30 @@ subroutine get_rates
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
           dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
        endif
+    elseif (idust.eq.3 .or. idust.eq.4) then
+       !--------------------------------------------
+       !  one fluid dust in diffusion approximation
+       !--------------------------------------------
+       dustfraci = dustfrac(i)
+       rhodusti = rhoi*dustfraci
+       rhogasi  = rhoi - rhodusti
+       !
+       !--compute stopping time for drag timestep
+       !
+       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
+       ! CAUTION: Line below must be done BEFORE external forces have been applied
+       deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
+       ratio = max(dustfraci*tstop/dtcourant,ratio)
+       dtdrag = min(dtdrag,0.25*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
+       dvmax = maxval(abs(deltav(:,i)))
+       if (dvmax > 0.) then
+          dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
+       endif
+       !if (idrag_nature==2) then
+       !   force(:,i) = 0.
+       !   vel(:,i) = 0.
+       !   !print*,'dtdrag = ',dtdrag
+       !endif
     endif
 
 !
@@ -517,12 +548,17 @@ subroutine get_rates
 !  also divide by rho for J and div B calculated the "normal" way
 !
     if (imhd.ne.0) then
-       if (imagforce.eq.4) then
-          call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
-          force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
-          fmag(:,i) = fmagi(:)*rho1i
-       elseif (imhd.gt.0) then ! not for vector potential
-          curlB(:,i) = curlB(:,i)*rho1i
+       if (iambipolar > 0) then
+          B2i = dot_product(Bfield(:,i),Bfield(:,i))
+          dtdrag = min(dtdrag,gamma_ambipolar*rho_ion*rhoi*hh(i)**2/B2i)
+       else
+          if (imagforce.eq.4) then
+             call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
+             force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
+             fmag(:,i) = fmagi(:)*rho1i
+          elseif (imhd.gt.0) then ! not for vector potential
+             curlB(:,i) = curlB(:,i)*rho1i
+          endif
        endif
        divB(i) = divB(i)*rho1i
     endif
@@ -531,8 +567,7 @@ subroutine get_rates
 !
     if (iexternal_force.ne.0) then
        call external_forces(iexternal_force,x(1:ndim,i),fexternal(1:ndimV), &
-                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i), &
-                            rhoi)
+                            ndim,ndimV,vel(1:ndimV,i),hh(i),spsound(i),itype(i))
        force(1:ndimV,i) = force(1:ndimV,i) + fexternal(1:ndimV)
     endif
 !
@@ -643,7 +678,8 @@ subroutine get_rates
     elseif (iener.eq.4) then
        dendt(i) = (pr(i) + en(i))*rho1i*drhodt(i) + rhoi*dudt(i)
        if (iav.lt.0) stop 'iener=4 not compatible with Godunov SPH'
-    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. idust.ne.1) then
+    elseif (iener.gt.0 .and. iav.ge.0 .and. iener.ne.10 .and. iener.ne.11 .and. &
+           (idust.ne.1 .and. idust.ne.3 .and. idust.ne.4)) then
        if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)    
        dendt(i) = dudt(i)
     else
@@ -726,15 +762,21 @@ subroutine get_rates
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
              + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustfracdt(i) &
+             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustevoldt(i) &
              + rhogasi*rho1i*dudt(i))
+    elseif (idust.eq.4) then
+       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+             - dot_product(vel(:,i),fexternal(:)) &
+             - uu(i)*ddustevoldt(i) &
+             + (1. - dustfrac(i))*dudt(i))
     endif
-
  enddo
- if (idust.eq.1 .and. abs(sum).gt.1.e-9) then
+ if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum) .and. (iener.ge.2)) then
     print*,' SUM (should be zero if conserving energy) = ',sum
     !read*
  endif
+ if (idust.ne.0 .and. ratio > 1.) print "(a,g8.3,a)",' WARNING: max ts/dt = ',ratio,' approximation not valid'
+
  if (ivisc.gt.0) print*,' dEk/dt = ',sum
  
  if (imhd.ne.0 .and. &
@@ -797,72 +839,37 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
+
+!----------------------------------------------
+! Evaluate drag forces on a pair of particles
+!----------------------------------------------
   subroutine drag_forces
-    use kernels, only:interpolate_kerneldrag
-    use options, only:idrag_nature,idrag_structure,Kdrag   
+    use kernels, only:interpolate_kerneldrag,interpolate_kernel  
+    use options, only:idrag_nature,Kdrag
+    use dust,    only:get_tstop
     implicit none
     integer :: itypej
-    logical :: iskip_drag
-    real    :: coeff_gei_1,coeff_dq_1,coeff_dq_4
-    real    :: dv2,vij,V0,f,dragcoeff,dragterm,dragterm_en,dragcheck
-    real    :: s2_over_m,spsoundgas
-    real    :: wabj,wab,hfacwabj,rhoiplusj,rhoiplusj2
-    real    :: dt1,dt12
+    real    :: dv2,vij,projv,dragterm,dragterm_en
+    real    :: spsoundgas,ts
+    real    :: wabj,wab,hfacwabj
     real, dimension(ndimV) :: drdrag
-    real, parameter :: pow_drag_exp = 0.4
-    real, parameter :: a2_set       = 0.5
-    real, parameter :: a3_set       = 0.5
     real, parameter :: pi  = 3.141592653589
 !
-!--setup the parameters
-!
-    iskip_drag  = .false.
-    coeff_gei_1 = 4./3.*sqrt(8.*pi/gamma)
-    coeff_dq_1  = sqrt(0.5*gamma)
-    coeff_dq_4  = 9.*pi*gamma/128.
-    s2_over_m   = 1./coeff_gei_1
-    f           = 0.
-    V0          = 0.
-    dragcoeff   = 0.
-    dragcheck   = 0.
-!    dt1         = 1./tout
-          dt1         = 1./(1.8716d-2)
-    dt12        = dt1*dt1
-!
-!--get informations on the differential velocities
+!--differential velocities
 !
     velj(:) = vel(:,j)
     dvel(:) = veli(:) - velj(:)
-    dv2     = dot_product(dvel,dvel)
-    
-    if (rij.le.epsilon(rij)) then !two particles at the same position
-       if (dv2.le.epsilon(dv2)) then !no differential velocity => no drag
-           drdrag(1:ndim) = 0.
-           iskip_drag      = .true.
+    dv2     = dot_product(dvel,dvel)    
+    if (rij.le.epsilon(rij)) then ! two particles at the same position
+       if (dv2.le.epsilon(dv2)) then ! no differential velocity => no drag
+          drdrag(1:ndim) = 0.
+          return
        else ! Change dr so that the drag is colinear to the differential velocity
-           vij            = sqrt(dv2)
-           drdrag(:) = dvel(:)/vij
+          vij       = sqrt(dv2)
+          drdrag(:) = dvel(:)/vij
        endif
     else ! dr = drdrag
-      drdrag(:)       = dr(:)
-    endif
-
-!---start the drag calculation    
-    !if (.not.iskip_drag) then
-!
-!--get the j particle extra properties
-!
-    itypej     = itype(j)
-    pmassj     = pmass(j)
-    rhoj       = rho(j)
-    rhoij      = rhoi*rhoj
-    rhoiplusj  = rhoi+rhoj
-    rhoiplusj2 = rhoiplusj*rhoiplusj
-
-    if (itypei.eq.itypegas) then
-       spsoundgas = spsound(i)
-    else
-       spsoundgas = spsound(j)
+       drdrag(:) = dr(:)
     endif
 !
 !--calculate the kernel(s)
@@ -872,64 +879,34 @@ contains
     wabi     = wabi*hfacwabi
     call interpolate_kerneldrag(q2j,wabj)
     wabj     = wabj*hfacwabj
-    !wab = 0.5*(wabi + wabj)
+!
+!--get particle j properties
+!
+    itypej = itype(j)
+    pmassj = pmass(j)
+    rhoj   = rho(j)
+!
+!--calculate the stopping time for use in the drag force
+!
+    projv = dot_product(dvel,drdrag)
     if (itypei.eq.itypegas) then
+       spsoundgas = spsound(i)
        wab = wabi
+       ts = get_tstop(idrag_nature,rhoi,rhoj,spsoundgas,Kdrag)
+       h_on_csts_max = max(h_on_csts_max,hh(i)/(spsoundgas*ts))
     else
+       if (itypej.ne.itypegas) return
+       spsoundgas = spsound(j)
        wab = wabj
-    endif   
-!
-!--calculate the quantities needed for the drag force
-!
-    V0 = dot_product(dvel,drdrag)
-    
-    select case(idrag_nature)
-        case(1) !--constant drag
-           dragcoeff = Kdrag/rhoij
-        case(2) !--Epstein regime
-           select case(idrag_structure)
-              case(1,4,5) !--linear, third order, PM expression
-                 dragcoeff = coeff_gei_1*s2_over_m*spsoundgas
-              case(3)
-                 dragcoeff = pi*s2_over_m
-              case default
-                 print*,'ERROR drag calculation: wrong idrag_structure'
-        end select
-    end select
-    
-    select case(idrag_structure)
-       case(1) !--linear regime
-          f = 1.
-       case(2) !--power law
-          f = dv2**(0.5*pow_drag_exp)
-       case(3) !--quadratic
-          f = sqrt(dv2)
-       case(4) !--cubic expansion
-          select case(idrag_nature)
-             case(1) !--forced drag
-                f = 1. + a3_set*dv2
-             case(2) !--Epstein
-                f = 1. + 0.2*coeff_dq_1*coeff_dq_1*dv2/(spsoundgas*spsoundgas)
-             case default
-                print*,'ERROR drag calculation cubic: wrong drag nature' 
-          end select
-       case(5) !--PM expression
-          select case(idrag_nature)
-             case(1) !--forced drag
-                f = sqrt(1. + a2_set*dv2)
-             case(2) !--Epstein
-                f = sqrt(1. + coeff_dq_4*dv2/(spsoundgas*spsoundgas))
-             case default
-                print*,'ERROR drag calculation PM: wrong drag nature'          
-          end select
-       case default
-          print*,'this value for idrag_structure does not exist'         
-    end select
+       ts = get_tstop(idrag_nature,rhoj,rhoi,spsoundgas,Kdrag)
+       h_on_csts_max = max(h_on_csts_max,hh(j)/(spsoundgas*ts))
+    endif
+    ts_min = min(ts_min,ts)
 !
 !--update the force and the energy
 !
-    dragterm    = ndim*wab*dragcoeff*f*V0        
-    dragterm_en = dragterm*V0
+    dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projv
+    dragterm_en = dragterm*projv
     forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
     force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
@@ -938,6 +915,7 @@ contains
     if (itypej.eq.itypegas) then
        dudt(j)   = dudt(j) + pmassi*dragterm_en
     endif
+
   end subroutine drag_forces
 
 !--------------------------------------------------------------------------------------
@@ -1026,13 +1004,13 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfracj  = dustfrac(j)
        rhodustj       = rhoj*dustfracj
        rhogasj        = rhoj - rhodustj
+       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
        vgasi(:)       = veli(:) - dustfraci*deltavi(:)
        vgasj(:)       = velj(:) - dustfracj*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
@@ -1121,6 +1099,7 @@ contains
     endif
 
     vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
+    !vsig = max(4.*vsigi*vsigj/(vsigi + vsigj) - beta*dvdotr,0.)
     !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
     !vsigB = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
     !vsigB = max(-dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
@@ -1128,9 +1107,10 @@ contains
     vsigu = sqrt(abs(prneti-prnetj)*rhoav1)
     !vsigu = sqrt(0.5*(psi(i) + psi(j)))
     !vsigu = abs(dvdotr)
+    !vsigu = sqrt(abs(uui - uuj))
 
     ! vsigdtc is the signal velocity used in the timestep control
-    vsigdtc = max(0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
+    vsigdtc = max(vsig,0.5*(vsigi + vsigj + beta*abs(dvdotr)),vsigB)
     if (idust.eq.1) then
        vsigdtc = vsigdtc + sqrt(deltav2i + deltav2j)
     endif
@@ -1153,9 +1133,12 @@ contains
     if (iav.gt.0) then
        if (idust.eq.1) then
           call artificial_dissipation_dust
+       elseif (idust.eq.3 .or. idust.eq.4) then
+          call artificial_dissipation_dust_diffusion
+       elseif (iav.eq.3) then
+          call artificial_dissipation_phantom
        else
           call artificial_dissipation
-!          call artificial_dissipation_phantom
        endif
     endif
     if (vsigav.gt.zero) dtav = min(dtav,min(hi/vsigav,hj/vsigav))
@@ -1230,7 +1213,11 @@ contains
 !  Time derivative of dust to gas ratio and deltav for one fluid dust
 !------------------------------------------------------------------------
 
-    if (idust.eq.1) call dust_derivs
+    if (idust.eq.1) then
+       call dust_derivs
+    elseif (idust.eq.4) then
+       call dust_derivs_diffusion
+    endif
 !
 !   Add contributions to j from mhd terms and dissipation here
 !   to avoid repeated memory access
@@ -1509,17 +1496,42 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_phantom
     implicit none
-    real :: termi,termj,visc
-    !
-    !--definitions
-    !
-    termi = alphai*vsig*rhogasi*grkerni*abs(dvdotr)
-    termj = alpha(1,j)*vsig*rhogasj*grkernj*abs(dvdotr)
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
+    real :: dudti,dudtj
 
-    if (dvdotr.lt.0 .and. iav.le.2) then
-       visc = 0.5*(termi*rho21i + termj*rho21j)
+    dudti = 0.
+    dudtj = 0.
+    if (dvdotr < 0.) then
+       !
+       ! artificial viscosity, as in Phantom
+       !
+       vsi = max(alphai*spsoundi - beta*dvdotr,0.)
+       vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
+       qi = -rhoi*vsi*dvdotr
+       qj = -rhoj*vsj*dvdotr
+
+       visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          dudti = 0.5*qi*rho21i*pmassj*dvdotr*grkerni
+          dudtj = 0.5*qj*rho21j*pmassi*dvdotr*grkernj
+       endif
+    endif
+
+    if (damp < tiny(damp)) then
+       !
+       ! artificial thermal conductivity, as in PL15
+       !
+       du = uu(i) - uu(j)
+       cfaci = 0.5*alphaui*rhoi*vsigu*du
+       cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
+       diffu = cfaci*grkerni*rho1i**2 + cfacj*grkernj*rho1j**2
+       dudt(i) = dudt(i) + dudti + pmassj*diffu
+       dudt(j) = dudt(j) + dudtj - pmassi*diffu
     endif
 
   end subroutine artificial_dissipation_phantom
@@ -1706,6 +1718,62 @@ contains
   end subroutine artificial_dissipation_dust
 
 !--------------------------------------------------------------------------------------
+! Artificial viscosity term for one-fluid dust in the terminal velocity approximation
+! this is just regular AV term, Phantom-style, multiplied by (1 - epsilon)
+!--------------------------------------------------------------------------------------
+  subroutine artificial_dissipation_dust_diffusion
+    implicit none
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu,diffeps
+    real :: tstopi,tstopj,vsigeps,alphaB
+
+    if (dvdotr < 0.) then
+       !
+       ! artificial viscosity, as in PL15
+       !
+       vsi = alphai*spsoundi - beta*dvdotr
+       vsj = alpha(1,j)*spsoundj - beta*dvdotr
+       qi = -rhogasi*vsi*dvdotr
+       qj = -rhogasj*vsj*dvdotr
+
+       visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
+       forcei(:) = forcei(:) - pmassj*visc*dr(:)
+       forcej(:) = forcej(:) + pmassi*visc*dr(:)
+       !
+       !  add to thermal energy equation
+       !
+       if (damp.lt.tiny(0.)) then
+          !
+          ! artificial thermal conductivity, as in PL15
+          !
+          du = uu(i) - uu(j)
+          cfaci = 0.5*alphaui*rhoi*vsigu*du
+          cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
+          diffu = cfaci*grkerni*rho1i**2 + cfacj*grkernj*rho1j**2
+          
+          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni + pmassj*diffu/(1. - dustfraci)
+          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj - pmassi*diffu/(1. - dustfracj)
+       endif
+    endif
+    
+    if (.not.use_sqrtdustfrac) then
+       !alphaB = 0.5*(alphaBi + alpha(3,j))
+       !tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
+       !tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
+       !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
+       !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
+       !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
+       !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
+       !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
+       !vsigeps = 0.5*(spsoundi + spsoundj)
+       !vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
+       !diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       !ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
+       !ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
+    endif
+
+  end subroutine artificial_dissipation_dust_diffusion
+
+!--------------------------------------------------------------------------------------
 ! Physical viscosity terms, done using direct 2nd derivatives
 ! as in Espanol & Revenga (2003)
 !
@@ -1737,7 +1805,7 @@ contains
   subroutine mhd_terms
     implicit none
     real :: dalphaterm,termi,termj
-    real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm
+    real, dimension(ndimV) :: dBdtvisc,curlBj,curlBterm,vec,JxBxBi,JxBxBj,dBdtambi
     real :: dwdxdxi,dwdxdyi,dwdydyi,dwdxdzi,dwdydzi,dwdzdzi
     real :: dwdxdxj,dwdxdyj,dwdydyj,dwdxdzj,dwdydzj,dwdzdzj,rij1
     real :: dgradwdhi,dgradwdhj,BdotBextj,term
@@ -1909,7 +1977,8 @@ contains
     !
     !--compute rho * current density J
     !
-    if (imagforce.eq.4) then
+    dBdtambi = 0.
+    if (imagforce.eq.4 .and. iambipolar.eq.0) then
     !
     !--compute J via a direct second derivative for the vector/Euler potentials
     !  (J = -\nabla^2 \alpha)
@@ -1923,20 +1992,36 @@ contains
           stop 'JxB force not yet implemented in 3D'
        endif
     else
+       if (iambipolar > 0) then
+       !
+       !--curl B has already been calculated, here we use it to compute
+       !  the ambipolar diffusion term
+       !
+          call cross_product3D(curlB(:,i),Bi,vec) ! J x B
+          call cross_product3D(vec,Bi,JxBxBi)     ! J x B x B
+          call cross_product3D(curlB(:,j),Bj,vec) ! J x B
+          call cross_product3D(vec,Bj,JxBxBj)     ! J x B x B
+          call cross_product3D(JxBxBi,dr,curlBi)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+          call cross_product3D(JxBxBj,dr,curlBj)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+          termi = 1./(rhoi*rho_ion*gamma_ambipolar)
+          termj = 1./(rhoj*rho_ion*gamma_ambipolar)
+          dBdtambi(:) = termi*curlBi(:)*rho21i*grkerni + termj*curlBj(:)*rho21j*grkernj
+       else
        !
        !--calculate curl B for current (only if field is 3D)
        !  this is used in the switch for the artificial resistivity term
        !
-       if (imhd.gt.0) then ! not for vector potential
-          call cross_product3D(dB,dr,curlBi)
-          curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
-          curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
-       elseif (imhd.lt.0 .and. allocated(curlBsym)) then
-          call cross_product3D(Bi,dr,curlBi)
-          call cross_product3D(Bj(:),dr,curlBj)
-          curlBterm(:) = (curlBi(:)*rho21i*grkerni + curlBj(:)*rho21j*grkernj)
-          curlBsym(:,i) = curlBsym(:,i) - pmassj*curlBterm(:)
-          curlBsym(:,j) = curlBsym(:,j) + pmassi*curlBterm(:)
+          if (imhd.gt.0 .and. iambipolar.eq.0) then ! not for vector potential or ambipolar diffusion
+             call cross_product3D(dB,dr,curlBi)
+             curlB(:,i) = curlB(:,i) + pmassj*curlBi(:)*grkern
+             curlB(:,j) = curlB(:,j) + pmassi*curlBi(:)*grkern
+          elseif (imhd.lt.0 .and. allocated(curlBsym)) then
+             call cross_product3D(Bi,dr,curlBi)
+             call cross_product3D(Bj(:),dr,curlBj)
+             curlBterm(:) = (curlBi(:)*rho21i*grkerni + curlBj(:)*rho21j*grkernj)
+             curlBsym(:,i) = curlBsym(:,i) - pmassj*curlBterm(:)
+             curlBsym(:,j) = curlBsym(:,j) + pmassi*curlBterm(:)
+          endif
        endif
        !
        !--add Lorentz force to total force
@@ -1989,9 +2074,9 @@ contains
           - phij_on_phii*pmassi*(dvel(:)*projBrhoj - rho1j*velj(:)*projdB)*grkernj
     case(1,11) ! surface flux-conservative (usual) form
        dBevoldti(:) = dBevoldti(:)            &
-          - phii_on_phij*pmassj*(dvel(:)*projBrhoi)*grkerni
+          - phii_on_phij*pmassj*((dvel(:)*projBrhoi)*grkerni + rhoi*dBdtambi(:))
        dBevoldt(:,j) = dBevoldt(:,j)          &
-          - phij_on_phii*pmassi*(dvel(:)*projBrhoj)*grkernj
+          - phij_on_phii*pmassi*((dvel(:)*projBrhoj)*grkernj - rhoj*dBdtambi(:))
     case(-1) ! vector potential evolution - crap gauge
        termi = pmassj*projvi*grkerni
        dBevoldti(:) = dBevoldti(:) - termi*dBevol(:)
@@ -2042,23 +2127,33 @@ contains
  
 !----------------------------------------------------------------
 !  Derivatives of dust to gas ratio and deltav 
-!  for one fluid dust
+!  for (full) one fluid dust, as in Laibe & Price (2014b)
 !----------------------------------------------------------------
   subroutine dust_derivs
     implicit none
-    real :: termi,termj,term,dterm,du
+    real :: termi,termj,term,dterm,du,si,sj
     real, dimension(ndimV) :: prdustterm
 
     !
     !--time derivative of dust to gas ratio
     !  (symmetric derivative to conserve dust/gas mass)
     !
-    termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
-    termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
-    term  = termi + termj
+    if (use_sqrtdustfrac) then
+       si = sqrt(rhoi*dustfraci)
+       sj = sqrt(rhoj*dustfracj)
+       termi = (1. - dustfraci)*rho1i*projdeltavi*grkerni
+       termj = (1. - dustfracj)*rho1j*projdeltavj*grkernj
+       term = termi + termj
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*term
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*term
+    else
+       termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
+       termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
+       term  = termi + termj
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*term
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*term
+    endif
 
-    ddustfracdt(i) = ddustfracdt(i) - pmassj*term
-    ddustfracdt(j) = ddustfracdt(j) + pmassi*term
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
@@ -2094,6 +2189,55 @@ contains
     endif
 
   end subroutine dust_derivs
+
+!----------------------------------------------------------------
+!  Derivative of dust fraction and thermal energy
+!  for one fluid dust in the terminal velocity approximation
+!----------------------------------------------------------------
+  subroutine dust_derivs_diffusion
+    real :: diffterm, Di, Dj, du, Dav
+    real :: tstopi, tstopj, pdvtermi, pdvtermj
+    real :: si, sj
+
+    tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
+    tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
+    
+    if (use_sqrtdustfrac) then
+       Di = tstopi*rho1i
+       Dj = tstopj*rho1j
+       Dav = 0.5*(Di + Dj)
+       si = sqrt(dustfraci*rhoi)
+       sj = sqrt(dustfracj*rhoj)
+       diffterm = 2./(rhoi + rhoj)*2.*Dav*(pri - prj)*grkern/rij
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*diffterm
+    else
+       Di = dustfraci*tstopi
+       Dj = dustfracj*tstopj
+       !if (Di + Dj > 0.) then
+          Dav = 0.5*(Di + Dj)
+          !Dav = 2.*Di*Dj/(Di + Dj)
+          !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
+       !else
+       !   Dav = 0.
+       !endif
+       diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
+       ddustevoldt(i) = ddustevoldt(i) - pmassj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) + pmassi*diffterm
+    endif
+
+    !
+    !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
+    !
+    if (iener.gt.0) then
+       du = uu(i) - uu(j)
+       pdvtermi = pri*rho1i/rhogasi*pmassj*dvdotr*grkerni
+       pdvtermj = prj*rho1j/rhogasj*pmassi*dvdotr*grkernj
+       dudt(i) = dudt(i) + pdvtermi - 0.5*pmassj*du*diffterm/(1. - dustfraci)
+       dudt(j) = dudt(j) + pdvtermj - 0.5*pmassi*du*diffterm/(1. - dustfracj)
+    endif
+
+  end subroutine dust_derivs_diffusion
 
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle

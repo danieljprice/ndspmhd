@@ -35,37 +35,36 @@ subroutine setup
  use options
  use part
  use setup_params
- use eos, only:gamma
- use cons2prim 
+ use eos, only:polyk
+ 
  use uniform_distributions
 !
 !--define local variables
 !            
  implicit none
- integer :: i
+ integer :: i,iprofile
  real :: massp,volume,totmass
- real :: denszero,rmin,rmax,spsound2
+ real :: denszero,dustfrac0,A,B,r,rmin,rcrit
 !
 !--allow for tracing flow
 !
- if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup(dustydiffusion)'
 !
 !--set boundaries
 ! 	    
  ibound = 3     ! boundaries
  nbpts = 0      ! use ghosts not fixed
- xmin(:) = 0.   ! set position of boundaries
- xmax(:) = 1.
-!
-!--set up the uniform density grid
-! 
- rmin = 0.
- rmax = 0.5
-
- call set_uniform_cartesian(4,psep,xmin,xmax,.false.)
-
+ xmin(:) = -0.5   ! set position of boundaries
+ xmax(:) = 0.5
+ 
+ call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
  npart = ntotal
  print*,'npart =',npart
+ if (idust.eq.2) then
+    itype(1:npart) = itypegas
+    print*,' setting up dust particles...'
+    !call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
+ endif
 !
 !--determine particle mass
 !
@@ -73,21 +72,44 @@ subroutine setup
  volume = product(xmax(:)-xmin(:))
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
- spsound2 = 1.0
 !
 !--now assign particle properties
 ! 
+ dustfrac0 = 0.1 !1.e-3
+ rcrit = 0.25
+ B = rcrit**2/dustfrac0
+ A = dustfrac0/B**(-0.6)
+ print*,' A = ',A,' B = ',B
+ iprofile = 2
+ polyk = 1.
+ rmin = psep
  do i=1,ntotal
     vel(:,i) = 0.
-    !!!vel(1,i) = x(1,i)
     dens(i) = denszero
     pmass(i) = massp
-!    uu(i) = 1.0	! isothermal
-    uu(i) = spsound2/(gamma*(gamma-1.))
+    uu(i) = 1.5*polyk ! isothermal
     Bfield(:,i) = 0.
- enddo
- 
- print*,'sound speed = ',sqrt(spsound2), ' sound crossing time = ',(xmax(1)-xmin(1))/sqrt(spsound2)
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       r = sqrt(dot_product(x(:,i),x(:,i)))
+       select case(iprofile)
+       case(3)
+          dustfrac(i) = 0.5*exp(-(r/0.1)**2)
+       case(2)
+          dustfrac(i) = max(dustfrac0*(1. - (r/rcrit)**2),1.e-4)
+          !dustfrac(i) = A*(B)**(-0.6) - r**2/B
+       case(1)
+          dustfrac(i) = r**2/A
+       case default
+          if (r < 0.5) then
+             dustfrac(i) = min(sqrt(A**2/r + dustfrac0**2),0.9)      
+          else
+             dustfrac(i) = dustfrac0
+          endif       
+       end select
+    else
+       dustfrac(i) = 0.
+    endif 
+ enddo 
 !
 !--allow for tracing flow
 !

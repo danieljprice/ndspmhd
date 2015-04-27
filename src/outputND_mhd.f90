@@ -61,7 +61,7 @@ subroutine output(t,nstep)
 !      
 !! write(iprint,"('| ',a73,'|')") trim(dumpfile)
  write (iprint,10) t,abs(nstep),npart,ntotal-npart,trim(dumpfile)
-10 format('| t = ',f7.3,' | step = ',i8,' | npart = ',i7,        &
+10 format('| t = ',g10.3,' | step = ',i8,' | npart = ',i7,        &
              ' | nghost = ',i5,' |',a)
 !! write(iprint,"(76('-'))")
 

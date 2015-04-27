@@ -87,7 +87,7 @@ module hterms
  implicit none
  integer :: itsdensity
  real, dimension(:), allocatable :: gradh,gradhn,gradsoft,gradgradh,zeta
- real :: rhomin
+ real :: rhomin,h_min
 end module hterms
 
 !-------------------------------------------------------------------
@@ -128,14 +128,15 @@ module options
  integer :: iexternal_force,ixsph
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits
- integer :: ivisc,ibiascorrection
+ integer :: ivisc,ibiascorrection,iambipolar
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd
  real :: Kdrag
  real :: shearvisc,bulkvisc
+ real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
- logical :: usenumdens
+ logical :: usenumdens,use_sqrtdustfrac
 end module
 
 !-------------------------------------------------------------------
@@ -160,7 +161,7 @@ module part
  real, dimension(:,:), allocatable  :: Bfield, Bevol
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
- real, dimension(:), allocatable    :: dustfrac
+ real, dimension(:), allocatable    :: dustfrac,dustevol
  real, dimension(:), allocatable    :: del2v
 end module part 
 
@@ -174,7 +175,7 @@ module part_in
  real, dimension(:,:), allocatable :: xin,velin,pmomin,alphain
  real, dimension(:,:), allocatable :: Bevolin
  real, dimension(:,:), allocatable :: deltavin
- real, dimension(:),   allocatable :: dustfracin
+ real, dimension(:),   allocatable :: dustevolin
 end module
 
 !-------------------------------------------------------------------
@@ -186,19 +187,9 @@ module rates
  real, dimension(:), allocatable :: drhodt,dudt,dendt,dhdt,dpsidt,poten
  real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
  real, dimension(:,:), allocatable :: ddeltavdt
- real, dimension(:), allocatable   :: ddustfracdt
+ real, dimension(:), allocatable   :: ddustevoldt
  real :: potengrav
 end module rates
-
-!-------------------------------------------------------------------
-!  rates of change at the beginning of the time step
-!-------------------------------------------------------------------
-
-!MODULE rates_in      ! only needed if using leapfrog
-! IMPLICIT NONE
-! real, DIMENSION(:), ALLOCATABLE :: drhodtin,dudtin,dendtin,daldtin
-! real, DIMENSION(:,:), ALLOCATABLE :: forcein,dBfielddtin
-!END MODULE rates_in
 
 !-------------------------------------------------------------------
 !  initial particle separation, initial smoothing length (in units of psep)
@@ -265,11 +256,3 @@ module xsph
  real, dimension(:,:), allocatable :: xsphterm
  real :: xsphfac
 end module xsph
-
-!-------------------------------------------------------------------
-! etavz factor
-!-------------------------------------------------------------------
-module streaming
-  implicit none
-  real, parameter :: eta=0.005
-end module streaming

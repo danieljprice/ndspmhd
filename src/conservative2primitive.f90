@@ -53,9 +53,9 @@ subroutine conservative2primitive
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB
   use timestep, only:nsteps
-  use part_in, only:velin
+  use part_in, only:Bevolin,dustevolin !,velin
   implicit none
-  integer :: i,j,nerr
+  integer :: i,j,nerr,nerr1,k
   real :: B2i, v2i, pri, dhdrhoi
   real, dimension(ndimV) :: Binti,Bfieldi
   logical, parameter :: JincludesBext = .true.
@@ -63,8 +63,35 @@ subroutine conservative2primitive
   if (trace) write(iprint,*) ' Entering subroutine conservative2primitive'
 
   nerr = 0
+  nerr1 = 0
   sqrtg = 1.
-  dens = rho
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     !--error checking on dust-to-gas ratio
+     do i=1,npart
+        if (use_sqrtdustfrac) then
+           dustfrac(i) = dustevol(i)**2/rho(i)
+        else
+           dustfrac(i) = dustevol(i)
+        endif
+        if (dustfrac(i) < 0.) then
+           nerr = nerr + 1
+           dustfrac(i) = 0. !abs(dustfrac(i))
+           dustevol(i) = 0.
+           dustevolin(i) = 0.
+           !call quit
+        elseif (dustfrac(i) > 1.) then
+           nerr1 = nerr1 + 1
+           dustfrac(i) = 1. - epsilon(1.)
+           dustevol(i) = 1. - epsilon(1.)
+           dustevolin(i) = 1. - epsilon(1.)
+        endif
+     enddo
+     dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
+  else
+     dens = rho
+  endif
+  if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles'
+  if (nerr1 > 0) print*,'ERROR: dust fraction > 1 on ',nerr1,' particles'
 !
 !--calculate magnetic flux density B from the conserved variable
 !  
@@ -139,7 +166,13 @@ subroutine conservative2primitive
   else
      dens = rho
   endif
-
+!
+!--get magnetic current, needed for ambipolar diffusion calculation
+!
+  if (iambipolar > 0) then
+     !--get J using standard (differenced) curl operator
+     call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB)
+  endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)
 !
@@ -164,10 +197,10 @@ subroutine conservative2primitive
   case default    ! en = thermal energy
      if (damp.gt.0.) then
         uu = en
-        if (mod(nsteps,10).eq.0) then
-           vel(:,i) = 0.
-           velin(:,i) = 0.
-        endif
+        !if (mod(nsteps,100).eq.0) then
+        !   vel = 0.
+        !   velin = 0.
+        !endif
      else
         uu = en
      endif
@@ -178,13 +211,15 @@ subroutine conservative2primitive
  if (iprterm.eq.10) then
     pr(1:npart) = (gamma-1.)*psi(1:npart)
     spsound(1:npart) = gamma*pr(1:npart)/rho(1:npart)
-    if (idust.eq.1) stop 'iprterm=10 not implemented with idust=1'
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) &
+       stop 'iprterm=10 not implemented with one-fluid dust'
  elseif (iprterm.eq.11) then
     call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),  &
                         rho(1:npart),psi(1:npart))
-    if (idust.eq.1) stop 'iprterm=11 not implemented with idust=1'
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) &
+       stop 'iprterm=11 not implemented with one-fluid dust'
  else
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        !
        !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
        !
@@ -200,7 +235,7 @@ subroutine conservative2primitive
      do i=1,npart
         if (itype(i).eq.itypebnd) then
            j = ireal(i)
-           call copy_particle(i,j)
+           if (j > 0) call copy_particle(i,j)
            !vel(:,i) = vel(:,j)
            !where (ibound.eq.1) vel(:,i) = -vel(:,j)
 !!           uu(i) = uu(j)
@@ -229,6 +264,9 @@ subroutine conservative2primitive
            pr(i) = pr(j)
         endif
         Bfield(:,i) = Bfield(:,j)
+        if (idust > 0 .and. idust /= 2) then
+           dustfrac(i) = dustfrac(j)
+        endif
         if (all(ibound.eq.3)) call copy_particle(i,j) ! just to be sure
      enddo
   endif
@@ -269,12 +307,20 @@ subroutine primitive2conservative
 !
   isetpolyk = .false.
   do i=1,npart
-     if (idust.eq.1) then
-        rho(i) = dens(i)/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
+     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+        ! Note: for most of the one-fluid dust setups, we set dens to mean the
+        ! total density. This is only fixed once conservative2primitive has 
+        ! been called. Hence do NOT divide by (1 - eps) below so that 
+        ! smoothing lengths can be guessed correctly
+        rho(i) = dens(i)  !/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
      else
         rho(i) = dens(i)
      endif
-     hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
+     if (usenumdens) then
+        hh(i) = hfact*psep
+     else
+        hh(i) = hfact*(pmass(i)/(rho(i) + rhomin))**dndim
+     endif
 !
 !--also work out what polyk should be if using iener = 0
 !  (only do this once, otherwise give an error)
@@ -303,13 +349,14 @@ subroutine primitive2conservative
      hh(1:ntotal) = hav
      print*,'HMIN,hmax,hav = ',hmin,hmax,hav
   endif
+
 !
 !--overwrite this with a direct summation
 !  
   if (icty.eq.0 .or. ndirect.lt.100000) then
      if (any(hh(1:npart).le.tiny(hh))) stop 'h < 0 in primitive2conservative'
      write(iprint,*) 'Calculating initial density...' 
-     if (ANY(ibound.GT.1)) call set_ghost_particles
+     if (any(ibound > 1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
      ikernav = 3                ! consistent with h for first density evaluation
@@ -321,17 +368,17 @@ subroutine primitive2conservative
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
         hh(1:npart) = hav
      endif
-     if (idust.eq.1) then
-        dens = rho*(1. - dustfrac)
+  endif
+
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     if (use_sqrtdustfrac) then
+        dustevol = sqrt(dustfrac*rho)
      else
-        dens = rho     !--set density same as rho
+        dustevol = dustfrac
      endif
+     dens = rho*(1. - dustfrac)
   else
-     if (idust.eq.1) then
-        dens = rho*(1. - dustfrac)
-     else
-        dens = rho
-     endif
+     dens = rho
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
@@ -413,20 +460,22 @@ subroutine primitive2conservative
 !
 !--copy the conservative variables onto the ghost particles
 !  
-  if (any(ibound.gt.1)) then
+  if (any(ibound > 1)) then
      do i=npart+1,ntotal
         j = ireal(i)
-        call copy_particle(i,j)
-        if (any(ibound.eq.6)) then
-           pri = 2.5 - 0.1*dens(i)*x(2,i)
-           uu(i) = pri/((gamma-1.)*dens(i))
-           spsound(i) = sqrt(gamma*pri/dens(i))
-           en(i) = uu(i)
-           if (iener.ne.2) stop 'iener.ne.2 not implemented for ibound=6'
-        else
-           en(i) = en(j)
-           pr(i) = pr(j)
-           spsound(i) = spsound(j)
+        if (j > 0) then
+           call copy_particle(i,j)
+           if (any(ibound.eq.6)) then
+              pri = 2.5 - 0.1*dens(i)*x(2,i)
+              uu(i) = pri/((gamma-1.)*dens(i))
+              spsound(i) = sqrt(gamma*pri/dens(i))
+              en(i) = uu(i)
+              if (iener.ne.2) stop 'iener.ne.2 not implemented for ibound=6'
+           else
+              en(i) = en(j)
+              pr(i) = pr(j)
+              spsound(i) = spsound(j)
+           endif
         endif
      enddo
   endif
@@ -437,12 +486,10 @@ subroutine primitive2conservative
      do i=1,npart
         if (itype(i).eq.itypebnd) then
            j = ireal(i)
-           call copy_particle(i,j)
-           vel(:,i) = vel(:,j)
-           !where (ibound.eq.1) vel(:,i) = -vel(:,j)
-!!           uu(i) = uu(j)
-!           pr(i) = pr(j)
-!           spsound(i) = spsound(j)
+           if (j > 0) then
+              call copy_particle(i,j)
+              vel(:,i) = vel(:,j)
+           endif
         endif
      enddo
   endif

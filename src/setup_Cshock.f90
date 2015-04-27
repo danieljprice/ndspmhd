@@ -21,7 +21,7 @@
 !------------------------------------------------------------------------------!
 
 !----------------------------------------------------------------
-!     Set up a uniform density cartesian grid of particles in ND
+! Set up C shock problem in MacLow et al. (1995), ApJ 442, 726
 !----------------------------------------------------------------
 
 subroutine setup
@@ -35,59 +35,105 @@ subroutine setup
  use options
  use part
  use setup_params
- use eos, only:gamma
- use cons2prim 
+ use eos
+ 
  use uniform_distributions
 !
 !--define local variables
 !            
  implicit none
- integer :: i
- real :: massp,volume,totmass
- real :: denszero,rmin,rmax,spsound2
+ integer :: i,nparty
+ real :: massp,volume,totmass,shockl,domainl,va
+ real :: denszero,Bzero,vamach,csmach,theta,cs,vs,vx0
 !
 !--allow for tracing flow
 !
- if (trace) write(iprint,*) ' entering subroutine setup(unifdis)'
+ if (trace) write(iprint,*) ' entering subroutine setup (C-shock)'
 !
 !--set boundaries
-! 	    
- ibound = 3     ! boundaries
- nbpts = 0      ! use ghosts not fixed
- xmin(:) = 0.   ! set position of boundaries
- xmax(:) = 1.
 !
-!--set up the uniform density grid
+ ibound = 3     ! y-z boundaries are periodic 
+ ibound(1) = 1  ! x-boundary is fixed
+ nbpts = 0      ! use ghosts not fixed
+ vamach = 5.
+ csmach = 50.
+ cs = 0.1
+ vs = cs*csmach
+ theta = 0.25*pi
+ denszero = 1.0
+ rho_ion  = 1.e-5
+ vx0 = 4.45
+ Bzero = 1.
+ print "(/,1x,a)",'C-shock: '
+ gamma = 1.
+ gamma_ambipolar = 1.
+ shockl = Bzero/(gamma_ambipolar*rho_ion*sqrt(denszero))
+ va = Bzero/sqrt(denszero)
+ 
+ print "(a,es10.3)",'      neutral density = ',denszero
+ print "(a,es10.3)",'          ion density = ',rho_ion
+ print "(a,es10.3)",'                gamma = ',gamma_ambipolar
+ print "(a,es10.3)",'                   B0 = ',Bzero
+ print "(a,es10.3)",'                  Bx0 = ',Bzero*cos(theta)
+ print "(a,es10.3)",'                  By0 = ',Bzero*sin(theta)
+ print "(a,es10.3)",'         shock length = ',shockl
+ print "(a,es10.3)",' Alfvenic mach number = ',vs/(Bzero**2/denszero)
+ print "(a,es10.3)",'    sonic mach number = ',csmach
+ print "(a,es10.3)",'          sound speed = ',cs
+ print "(a,es10.3)",'         Alfven speed = ',va
+ print "(a,es10.3,/)",'               vshock = ',vs
+ nparty = 8
+ domainl = 500.*shockl
+ xmin(:) = -domainl - nparty*psep   ! set position of boundaries
+ xmax(:) = domainl + nparty*psep
+ if (ndim.ge.2) then
+    xmin(2:ndim) = 0.0
+    xmax(2:ndim) = xmin(2:ndim) + nparty*psep
+ endif
 ! 
- rmin = 0.
- rmax = 0.5
-
- call set_uniform_cartesian(4,psep,xmin,xmax,.false.)
-
+!--set up the uniform density grid
+!
+ call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
  npart = ntotal
  print*,'npart =',npart
 !
 !--determine particle mass
 !
- denszero = 1.0
- volume = product(xmax(:)-xmin(:))
+ volume = product(xmax-xmin)
  totmass = denszero*volume
  massp = totmass/float(ntotal) ! average particle mass
- spsound2 = 1.0
 !
 !--now assign particle properties
-! 
+!
  do i=1,ntotal
     vel(:,i) = 0.
-    !!!vel(1,i) = x(1,i)
+    if (x(1,i) < -domainl) then
+       itype(i) = itypebnd
+       nbpts = nbpts + 1
+       vel(1,i) = vx0
+    elseif (x(1,i) > domainl) then
+       nbpts = nbpts + 1
+       itype(i) = itypebnd
+       vel(1,i) = -vx0
+    elseif (x(1,i) < 0.) then
+       itype(i) = itypegas
+       vel(1,i) = vx0
+    else
+       itype(i) = itypegas
+       vel(1,i) = -vx0    
+    endif
     dens(i) = denszero
     pmass(i) = massp
-!    uu(i) = 1.0	! isothermal
-    uu(i) = spsound2/(gamma*(gamma-1.))
+    if (iener.gt.0) then
+       uu(i) = cs**2/(gamma*(gamma - 1.)) ! isothermal
+    endif
     Bfield(:,i) = 0.
- enddo
- 
- print*,'sound speed = ',sqrt(spsound2), ' sound crossing time = ',(xmax(1)-xmin(1))/sqrt(spsound2)
+    if (imhd > 0) then
+       Bfield(1,i) = Bzero*cos(theta)
+       Bfield(2,i) = Bzero*sin(theta)
+    endif
+ enddo 
+ polyk = cs**2
 !
 !--allow for tracing flow
 !

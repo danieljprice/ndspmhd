@@ -78,6 +78,8 @@ program ndspmhd
  integer, parameter :: maxruns = 200
  integer :: i,iprev,irun, nruns
  character(len=120), dimension(maxruns) :: runname
+
+ runname(1) = 'a'
 !
 !--version number
 !

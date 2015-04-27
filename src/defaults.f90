@@ -95,10 +95,13 @@ subroutine set_default_options
    geom = geomsetup
    idim = 0
    usenumdens = .false.
+   use_sqrtdustfrac = .false.
    idust = 0
    idrag_nature = 0
    idrag_structure = 0
    Kdrag = 0.
-   ismooth = 0
+   iambipolar = 0
+   rho_ion = 1.e-5
+   gamma_ambipolar = 1.
    
  end subroutine set_default_options

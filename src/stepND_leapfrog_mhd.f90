@@ -50,11 +50,10 @@ subroutine step
  implicit none
  integer :: i,j
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustfracdtin
+ real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustevoldtin
  real, dimension(3,npart) :: daldtin
- real :: hdt
+ real :: hdt,tol,errv,errB,errmax,errvmax,errBmax,dttol
  real, dimension(ndimV) :: vcrossB
-
 !
 !--allow for tracing flow
 !      
@@ -82,11 +81,17 @@ subroutine step
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
     
-    if (idust.eq.1) then
-       dustfracin(i)    = dustfrac(i)
-       deltavin(:,i)     = deltav(:,i)
-       ddustfracdtin(i) = ddustfracdt(i)
-       ddeltavdtin(:,i)  = ddeltavdt(:,i)
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       if (use_sqrtdustfrac) then
+          dustevolin(i)    = sqrt(dustevol(i)**2)
+       else
+          dustevolin(i)    = dustevol(i)
+       endif
+       ddustevoldtin(i) = ddustevoldt(i)
+       if (idust.eq.1) then
+          deltavin(:,i)     = deltav(:,i)
+          ddeltavdtin(:,i)  = ddeltavdt(:,i)
+       endif
     endif
  enddo
 !
@@ -94,7 +99,7 @@ subroutine step
 !
  do i=1,npart
     if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (ireal(i).ne.0 .and. itype(i).eq.itypebnd) then
+       if (itype(i).eq.itypebnd .and. ireal(i) > 0) then
           j = ireal(i)
           x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
        elseif (itype(i).eq.itypebnd) then
@@ -113,14 +118,13 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i)
-          deltav(:,i) = deltavin(:,i)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
        x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
-       vel(:,i) = velin(:,i) + dt*forcein(:,i)
-       velin(:,i) = velin(:,i) + 0.5*dt*forcein(:,i)
+       vel(:,i) = (velin(:,i) + dt*forcein(:,i))/(1.+damp)
        if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        if (ihvar.eq.1) then
@@ -132,9 +136,9 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i) + dt*ddustfracdtin(i)
-          deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i) + dt*ddustevoldtin(i)
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
        endif
     endif
  enddo
@@ -159,12 +163,12 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i)
-          deltav(:,i)  = deltavin(:,i)
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i)
+          if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
-       vel(:,i) = velin(:,i) + hdt*(force(:,i)) !+forcein(:,i))            
+       vel(:,i) = (velin(:,i) + hdt*(force(:,i) + forcein(:,i)))/(1.+damp)
        if (imhd.ne.0) then
           if (iresist.eq.2) then
              Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
@@ -184,9 +188,9 @@ subroutine step
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
-       if (idust.eq.1) then
-          dustfrac(i) = dustfracin(i) + hdt*(ddustfracdt(i) + ddustfracdtin(i))
-          deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
+       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+          dustevol(i) = dustevolin(i) + hdt*(ddustevoldt(i) + ddustevoldtin(i))
+          if (idust.eq.1) deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
        endif
     endif
 
@@ -198,11 +202,47 @@ subroutine step
 !
 !--set new timestep from courant/forces condition
 !
- if (.not.dtfixed) dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
- !if (C_cour*dtav.lt.dt) then
- !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
- !   dt = C_cour*dtav
- !endif
+ if (.not.dtfixed) then
+    !
+    !--set a tolerance-based timestep based on the difference between the
+    !  second order corrector step and the first order prediction
+    !
+    tol = 1.e-3
+    errmax = 0.
+    errvmax = 0.
+    errBmax = 0.
+    do i=1,npart
+       errv = 0.5*dt*maxval(abs(force(:,i) - forcein(:,i)))
+       errB = 0.5*dt*maxval(abs(dBevoldt(:,i) - dBevoldtin(:,i)))
+       errmax = max(errv,errB,errmax)
+       errvmax = max(errv,errvmax)
+       errBmax = max(errB,errBmax)
+    enddo
+    if (errmax > epsilon(errmax) .and. dt > epsilon(dt)) then
+       dttol = dt*sqrt(tol/errmax)
+    else
+       dttol = huge(dttol)
+    endif
+    
+    dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
+    if (dttol < dt) then
+       dt = dttol
+       print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
+    endif
+    !if (C_cour*dtav.lt.dt) then
+    !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
+    !   dt = C_cour*dtav
+    !endif
+    !dtrho = huge(dtrho)
+    !do i=1,npart
+    !   dtrhoi = abs(rho(i)/(drhodt(i) + epsilon(drhodt)))
+    !   dtrho = min(dtrho,0.01*dtrhoi)
+    !enddo
+    !if (C_rho*dtrho/dtcourant .lt. C_cour) then
+    !   dt = dtrho
+    !   write(iprint,*) 'dtrho equiv courant number = ',C_rho*dtrho/dtcourant
+    !endif
+ endif
 
  if (trace) write (iprint,*) ' Exiting subroutine step'
       

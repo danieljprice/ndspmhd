@@ -18,7 +18,7 @@ ifeq ($(SYSTEM), gfortran)
    F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
-   DEBUGFLAG= -g -fcheck=all
+   DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid
    ENDIANFLAGBIG= -fconvert=big-endian
    ENDIANFLAGLITTLE= -fconvert=little-endian
    KNOWN_SYSTEM=yes
@@ -38,6 +38,17 @@ endif
 ifeq ($(SYSTEM), ifort)
     F90C= ifort
     F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
+    DBLFLAG= -r8
+    DEBUGFLAG= -C
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+endif
+
+ifeq ($(SYSTEM), msg)
+    F90C= ifort
+    F90FLAGS= -O3 -warn all -heap-arrays
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
@@ -166,11 +177,15 @@ CONS2PRIM = conservative2primitive.f90
 # these files are common to all dimensions and coordinate systems
 
 SOURCES= ndspmhd.f90 utils.f90 eos.f90 \
-         allocateND.f90 kernelND.f90 readwrite_dumps.f90 \
-         get_neighbour_lists.f90 smooth.f90 \
+         allocateND.f90 utils_infiles.f90 \
+         kernelND.f90 \
+         readwrite_dumps.f90 \
+         get_neighbour_lists.f90 \
          readwrite_infile.f90 set_uniform_distributionND.f90 \
-         boundaryND.f90 check_setup.f90 get_curl.f90 ${CONS2PRIM} \
-	 copy_particle.f90 defaults.f90 derivs.f90 \
+         boundaryND.f90 check_setup.f90 dust.f90 \
+         get_curl.f90 ${CONS2PRIM} \
+	 copy_particle.f90 dust_diffusion.f90 \
+	 defaults.f90 derivs.f90 \
          direct_sum_poisson3D_soft.f90 \
          density_sums.f90 evolve.f90 external_forces.f90 \
          ghostND_mhd.f90 initialiseND_mhd.f90 \

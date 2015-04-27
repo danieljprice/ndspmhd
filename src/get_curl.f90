@@ -20,11 +20,42 @@
 !  ChangeLog:                                                                  !
 !------------------------------------------------------------------------------!
 
-!!------------------------------------------------------------------------
-!! Computes an SPH estimate of the curl of a vector quantity
-!! This version computes the curl for all particles
-!! and therefore only does each pairwise interaction once
-!!------------------------------------------------------------------------
+!------------------------------------------------------------------------
+! Computes an SPH estimate of the curl of a vector quantity
+! This version computes the curl for all particles
+! and therefore only does each pairwise interaction once
+!
+! Input:
+!    icurltype - type of curl operator (see below)
+!    npart - number of particles
+!    x     - positions
+!    pmass - particle masses
+!    rho   - density
+!    hh    - smoothing length
+!    Bvec  - vector quantity to take curl of
+!
+! Output:
+!    curlB - curl of Bvec
+!    (optional) curlBgradh - term required for vector potential stuff
+!
+! icurltype = 1 (default): mass-weighted differenced curl operator:
+! 
+!    1/(rho_i*Omega_i) \sum m_j (B_i - B_j) x \nabla W_ij (h_i)
+!
+! icurltype = 2: mass-weighted symmetric curl operator:
+! 
+!    -rho_i \sum m_j ((B_i x \nabla W_ij(h_i)) / (rho_i^2 Omega_i) +
+!                    ((B_j x \nabla W_ij(h_j)) / (rho_j^2 Omega_j)
+!    
+! icurltype = 3: differenced curl operator with constant weights:
+! 
+!    m_i/(rho_i*h_i**3) \sum (B_i - B_j) x \nabla W_ij (h_i)
+!
+! icurltype = 4: differenced curl operator:
+! 
+!    rho_i \sum m_j/rho_j**2 (B_i - B_j) x \nabla W_ij (h_i)
+!
+!------------------------------------------------------------------------
 module getcurl
  implicit none
  

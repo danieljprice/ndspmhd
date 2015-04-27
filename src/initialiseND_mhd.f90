@@ -47,9 +47,10 @@ subroutine initialise
  use part_in
  use setup_params
  
- use infiles, only:read_infile
+ use infiles,   only:read_infile
  use dumpfiles, only:read_dump
  use cons2prim, only:primitive2conservative
+ use dust,      only:init_drag
 !
 !--define local variables
 !      
@@ -183,7 +184,7 @@ subroutine initialise
 !  also radkern MUST match between kernels
 !
  ierr = 0
- if (idrag_nature.gt.0) then
+ if (idust /= 0) then
     if (ikernel.eq.0) then
        call setkerndrag(42,ndim,ierr)
     elseif (ikernel.eq.3) then
@@ -204,6 +205,10 @@ subroutine initialise
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
  if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup' 
  npart = 0
+!
+!--initialise drag terms
+!
+ if (idust /= 0) call init_drag(ierr,gamma)
 
  if (ifile.lt.0) then
     write(iprint,"(1x,80('-'))")
@@ -215,7 +220,7 @@ subroutine initialise
 !
 !--change coordinate systems if necessary
 !
- !if (ifile.eq.0) call modify_dump
+ if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) stop 'unknown geometry'
  
@@ -223,14 +228,9 @@ subroutine initialise
 !
 !--setup additional quantities that are not done in setup
 !
- if (iavlim(1).gt.0) then
-    alpha(1,:) = 1.0
- else
-    alpha(1,:) = alphamin
- endif
+ alpha(1,:) = alphamin
  alpha(2,:) = alphaumin
  alpha(3,:) = alphaBmin
- gradh = 1.
  divB = 0.
  curlB = 0.
  fmag = 0.
@@ -259,6 +259,7 @@ subroutine initialise
     rhomin = 0.
     write(iprint,*) 'particle mass = ',pmass(1)
  endif
+ h_min = 0.0
 !
 !--if using fixed particle boundaries, set them up
 !

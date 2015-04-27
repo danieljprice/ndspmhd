@@ -73,7 +73,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
  integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
 !--dust
- real, dimension(newsizein)       :: dumdustfrac,dumdustfracin,dumddustfracdt
+ real, dimension(newsizein)       :: dumdustfrac,dumdustevol,dumdustevolin,dumddustevoldt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
 
  logical :: reallocate, isortparts
@@ -186,11 +186,12 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(pmomin)) dumpmomin(:,1:idumsize) = pmomin(:,1:idumsize)
     
     if (allocated(dustfrac))    dumdustfrac(1:idumsize)    = dustfrac(1:idumsize)
-    if (allocated(ddustfracdt)) dumddustfracdt(1:idumsize) = ddustfracdt(1:idumsize)
-    if (allocated(deltav))       dumdeltav(:,1:idumsize)     = deltav(:,1:idumsize)
-    if (allocated(ddeltavdt))    dumddeltavdt(:,1:idumsize)  = ddeltavdt(:,1:idumsize)
-    if (allocated(dustfracin))    dumdustfracin(1:idumsize) = dustfracin(1:idumsize)
-    if (allocated(deltavin))       dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
+    if (allocated(dustevol))    dumdustevol(1:idumsize)    = dustevol(1:idumsize)
+    if (allocated(ddustevoldt)) dumddustevoldt(1:idumsize) = ddustevoldt(1:idumsize)
+    if (allocated(deltav))      dumdeltav(:,1:idumsize)    = deltav(:,1:idumsize)
+    if (allocated(ddeltavdt))   dumddeltavdt(:,1:idumsize) = ddeltavdt(:,1:idumsize)
+    if (allocated(dustevolin))  dumdustevolin(1:idumsize)  = dustevolin(1:idumsize)
+    if (allocated(deltavin))    dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
     
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -251,10 +252,11 @@ subroutine alloc(newsizein,sortlist)
 !--dust
 !
     if (allocated(dustfrac))    deallocate(dustfrac)
+    if (allocated(dustevol))    deallocate(dustevol)
     if (allocated(deltav))       deallocate(deltav)
-    if (allocated(ddustfracdt)) deallocate(ddustfracdt)
+    if (allocated(ddustevoldt)) deallocate(ddustevoldt)
     if (allocated(ddeltavdt))    deallocate(ddeltavdt)
-    if (allocated(dustfracin)) deallocate(dustfracin)
+    if (allocated(dustevolin)) deallocate(dustevolin)
     if (allocated(deltavin))    deallocate(deltavin)
 !
 !--physical viscosity
@@ -331,9 +333,9 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-   if (idust.eq.1) then
-      allocate(dustfrac(newsize),dustfracin(newsize))
-      allocate(ddustfracdt(newsize))
+   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+      allocate(dustfrac(newsize),dustevol(newsize),dustevolin(newsize))
+      allocate(ddustevoldt(newsize))
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
       allocate(ddeltavdt(ndimV,newsize))
    endif
@@ -341,6 +343,7 @@ subroutine alloc(newsizein,sortlist)
 !--physical viscosity
 !
    if (ivisc.gt.0) allocate(del2v(newsize))   
+
  endif
  
  if (reallocate .or. isortparts) then
@@ -404,12 +407,13 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        dustfrac(1:idumsize)    = dumdustfrac(iorder(1:idumsize))
-       ddustfracdt(1:idumsize) = dumddustfracdt(iorder(1:idumsize))
+       dustevol(1:idumsize)    = dumdustevol(iorder(1:idumsize))
+       ddustevoldt(1:idumsize) = dumddustevoldt(iorder(1:idumsize))
        deltav(:,1:idumsize)     = dumdeltav(:,iorder(1:idumsize))
        ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,iorder(1:idumsize))
-       dustfracin(1:idumsize)  = dumdustfracin(iorder(1:idumsize))
+       dustevolin(1:idumsize)  = dumdustevolin(iorder(1:idumsize))
        deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
     endif
     ! no need to copy physical viscosity stuff
