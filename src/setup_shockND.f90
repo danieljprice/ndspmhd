@@ -180,10 +180,8 @@ subroutine setup
 !                        
  if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright))) then
     ibound(1) = 1               ! fixed x particles
- elseif (idust.ne.0 .or. ndim.gt.1) then
-    ibound(1) = 2                ! reflecting in x 
  else
-    ibound(1) = 1                ! fixed
+    ibound(1) = 2                ! reflecting in x
  endif
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
@@ -314,8 +312,8 @@ subroutine setup
  nbpts = 0
  if (ibound(1).eq.1) then
     do i=1,npart
-       if ((x(1,i).lt.(xmin(1) + fac*radkern*hfact*psepleft)).or. &
-           (x(1,i).gt.(xmax(1) - fac*radkern*hfact*psepright))) then
+       if ((x(1,i).lt.(xmin(1) + radkern*hfact*psepleft)).or. &
+           (x(1,i).gt.(xmax(1) - radkern*hfact*psepright))) then
           if (itype(i).eq.itypegas) itype(i) = itypebnd
           nbpts = nbpts + 1
        endif
@@ -475,7 +473,7 @@ subroutine setup
           uu(i) = 0.
        endif
     enddo
- endif 
+ endif
  
  return
 end subroutine setup
