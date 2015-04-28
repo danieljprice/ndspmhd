@@ -1724,8 +1724,8 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust_diffusion
     implicit none
-    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu,diffeps
-    real :: tstopi,tstopj,vsigeps,alphaB
+    real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
+    !real :: tstopi,tstopj,vsigeps,alphaB,diffeps
 
     if (dvdotr < 0.) then
        !
