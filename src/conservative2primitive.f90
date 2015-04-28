@@ -128,14 +128,14 @@ subroutine conservative2primitive
            do i=1,npart
               if (itype(i).eq.itypebnd) then
                  j = ireal(i)
-                 Bfield(:,i) = Bfield(:,j)
+                 if (j > 0) Bfield(:,i) = Bfield(:,j)
               endif
            enddo
         endif
         if (any(ibound.gt.1)) then
            do i=npart+1,ntotal
               j = ireal(i)
-              Bfield(:,i) = Bfield(:,j)
+              if (j > 0) Bfield(:,i) = Bfield(:,j)
            enddo
         endif
         !--get J using symmetric curl operator
@@ -412,14 +412,14 @@ subroutine primitive2conservative
         do i=1,npart
            if (itype(i).eq.itypebnd) then
               j = ireal(i)
-              Bfield(:,i) = Bfield(:,j)
+              if (j > 0) Bfield(:,i) = Bfield(:,j)
            endif
         enddo
      endif
      if (any(ibound.gt.1)) then
         do i=npart+1,ntotal
            j = ireal(i)
-           Bfield(:,i) = Bfield(:,j)
+           if (j > 0) Bfield(:,i) = Bfield(:,j)
         enddo
      endif
      call get_curl(Jcurltype,npart,x,pmass,rho,hh,Bfield,curlB)
