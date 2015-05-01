@@ -178,7 +178,7 @@ subroutine setup
 !
 !--set boundaries
 !                        
- if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright))) then
+ if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright)).or. (imhd < 0) .or. (ndim>1)) then
     ibound(1) = 1               ! fixed x particles
  else
     ibound(1) = 2                ! reflecting in x
