@@ -773,7 +773,7 @@ subroutine get_rates
     endif
  enddo
  if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum) .and. (iener.ge.2)) then
-    print*,' SUM (should be zero if conserving energy) = ',sum
+    !print*,' SUM (should be zero if conserving energy) = ',sum
     !read*
  endif
  if (idust.ne.0 .and. ratio > 1.) print "(a,g8.3,a)",' WARNING: max ts/dt = ',ratio,' approximation not valid'
