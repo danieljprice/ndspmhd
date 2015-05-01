@@ -136,7 +136,7 @@ subroutine derivs
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
        enddo
     endif
-    if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
+    if (abs(sum_dustm) > 1.e-14) print*,' ERROR in ddustm/dt = ',sum_dustm
  endif
 
  if (itiming) then
