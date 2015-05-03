@@ -1951,7 +1951,7 @@ contains
   subroutine artificial_dissipation_dust_diffusion
     implicit none
     real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
-    !real :: tstopi,tstopj,vsigeps,alphaB,diffeps
+    real :: tstopi,tstopj,vsigeps,alphaB,diffeps
 
     if (dvdotr < 0.) then
        !
@@ -1983,7 +1983,7 @@ contains
     endif
     
     if (.not.use_sqrtdustfrac) then
-       !alphaB = 0.5*(alphaBi + alpha(3,j))
+       alphaB = 0.5*(alphaBi + alpha(3,j))
        !tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
        !tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
        !vsigeps = 0.5*(dustfraci + dustfracj)*sqrt(abs(pri - prj)*2./(rhogasi + rhogasj))
@@ -1991,11 +1991,11 @@ contains
        !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
        !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
-       !vsigeps = 0.5*(spsoundi + spsoundj)
+       vsigeps = 0. !5*(spsoundi + spsoundj)
        !vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
-       !diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
-       !ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
-       !ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
+       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
+       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
     endif
 
   end subroutine artificial_dissipation_dust_diffusion
