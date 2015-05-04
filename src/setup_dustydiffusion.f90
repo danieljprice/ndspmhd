@@ -96,7 +96,6 @@ subroutine setup
           dustfrac(i) = 0.5*exp(-(r/0.1)**2)
        case(2)
           dustfrac(i) = max(dustfrac0*(1. - (r/rcrit)**2),1.e-4)
-          !dustfrac(i) = A*(B)**(-0.6) - r**2/B
        case(1)
           dustfrac(i) = r**2/A
        case default
@@ -104,7 +103,7 @@ subroutine setup
              dustfrac(i) = min(sqrt(A**2/r + dustfrac0**2),0.9)      
           else
              dustfrac(i) = dustfrac0
-          endif       
+          endif
        end select
     else
        dustfrac(i) = 0.
