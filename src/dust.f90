@@ -84,7 +84,7 @@ real function get_tstop(idrag_nature,rhogas,rhodust,cs,Kdrag)
  select case(idrag_nature)
   case(1) !--constant drag
      ts = rhodust*rhogas/(Kdrag*rho)
-  case(2) !--constant ts
+  case(2,4) !--constant ts
      ts = Kdrag
   case(3) !--Epstein regime
      if (grain_mass <= 0.) stop 'grain mass < 0; Epstein drag not initialised'
