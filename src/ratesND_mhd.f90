@@ -566,16 +566,17 @@ subroutine get_rates
        ! CAUTION: Line below must be done BEFORE external forces have been applied
        deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
        ratio = max(dustfraci*tstop/dtcourant,ratio)
-       dtdrag = min(dtdrag,0.25*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
+       dtdrag = min(dtdrag,0.5*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
        dvmax = maxval(abs(deltav(:,i)))
        if (dvmax > 0.) then
           dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
        endif
-       !if (idrag_nature==2) then
-       !   force(:,i) = 0.
-       !   vel(:,i) = 0.
+       if (idrag_nature==4) then
+          ! this is constant ts but keeping the particles fixed
+          force(:,i) = 0.
+          vel(:,i) = 0.
        !   !print*,'dtdrag = ',dtdrag
-       !endif
+       endif
     endif
 
 !
