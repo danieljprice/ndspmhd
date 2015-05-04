@@ -151,7 +151,7 @@ subroutine conservative2primitive
      gradpsi(:,:) = 0.
   endif
 
-  if (idust.eq.1) then
+  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (dustfrac(i) < 0) then
@@ -219,7 +219,7 @@ subroutine conservative2primitive
        !
        !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
        !
-       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))    
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))
     else
        call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),rho(1:npart))
     endif
