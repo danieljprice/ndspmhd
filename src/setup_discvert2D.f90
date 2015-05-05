@@ -45,10 +45,10 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,ierr,nz,idir
+ integer :: i,ierr,idir!,nz
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0,totmass
- real :: sigma,zmin,zmax,dz,zonh
+ real :: sigma!,zmin,zmax,dz,zonh
  real :: t_cour,t_stop,rhogas,rhodust
  logical :: equalmass
  real, parameter :: dust_to_gas_ratio = 1.e-2
@@ -122,56 +122,58 @@ subroutine setup
 !
 !--set grain size from Kdrag in input file
 !
- grain_size_cm = Kdrag
+ if (idust > 0) then
+    grain_size_cm = Kdrag
 
- ! various information about grain sizes and the stopping time
- sigma = 2.*denszero*sqrt(0.5*pi)*H0
- print*,' Sigma         =',sigma,' in g/cm^2 =',sigma*(umass/udist**2)
- t_cour = 1.2*psep/cs0
- print*,' t_courant     =',t_cour,' t_cour/t_orb =',t_cour/(2.*pi/omega)
- 
- grain_dens = grain_dens_cgs/(umass/udist**3)
- grain_size = grain_size_cm/udist
- print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
- print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
+    ! various information about grain sizes and the stopping time
+    sigma = 2.*denszero*sqrt(0.5*pi)*H0
+    print*,' Sigma         =',sigma,' in g/cm^2 =',sigma*(umass/udist**2)
+    t_cour = 1.2*psep/cs0
+    print*,' t_courant     =',t_cour,' t_cour/t_orb =',t_cour/(2.*pi/omega)
 
- t_stop = grain_dens*grain_size/(denszero*cs0)*sqrt(pi/8.)
- print*,' ts (z=0)      =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
- t_stop = grain_dens*grain_size/(denszero*exp(-0.5*(2.)**2)*cs0)*sqrt(pi/8.)
- print*,' ts (z=2H)     =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
- print*,' ts*omega (est)=',grain_dens*grain_size/sigma
- print*,' ts            =',grain_dens*grain_size/cs0*sqrt(pi/8.),' / density'
+    grain_dens = grain_dens_cgs/(umass/udist**3)
+    grain_size = grain_size_cm/udist
+    print*,' grain size    =',grain_size,' in cm     =',grain_size*udist,' in m =',grain_size*udist*0.01
+    print*,' grain density =',grain_dens,' in g/cm^3 =',grain_dens*(umass/udist**3)
 
- print "(/,a,f6.3)",' CHECK drag routine: gamma = ',gamma
- call init_drag(ierr,gamma)
- rhogas  = denszero
- rhodust = dust_to_gas_ratio*rhogas
- t_stop  = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
- print*,' ts (z=0)            =',t_stop
- print*,' equivalent K (z=0)  = ',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+    t_stop = grain_dens*grain_size/(denszero*cs0)*sqrt(pi/8.)
+    print*,' ts (z=0)      =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
+    t_stop = grain_dens*grain_size/(denszero*exp(-0.5*(2.)**2)*cs0)*sqrt(pi/8.)
+    print*,' ts (z=2H)     =',t_stop,' ts*omega  =',t_stop*omega,' ts/t_cour =',t_stop/t_cour
+    print*,' ts*omega (est)=',grain_dens*grain_size/sigma
+    print*,' ts            =',grain_dens*grain_size/cs0*sqrt(pi/8.),' / density'
 
- rhogas  = denszero*exp(-0.5*(2.)**2)
- rhodust = dust_to_gas_ratio*rhogas
- t_stop = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
- print*,' ts (z=2H)           =',t_stop
- print*,' equivalent K (z=2H) =',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+    print "(/,a,f6.3)",' CHECK drag routine: gamma = ',gamma
+    call init_drag(ierr,gamma)
+    rhogas  = denszero
+    rhodust = dust_to_gas_ratio*rhogas
+    t_stop  = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+    print*,' ts (z=0)            =',t_stop
+    print*,' equivalent K (z=0)  = ',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+
+    rhogas  = denszero*exp(-0.5*(2.)**2)
+    rhodust = dust_to_gas_ratio*rhogas
+    t_stop = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+    print*,' ts (z=2H)           =',t_stop
+    print*,' equivalent K (z=2H) =',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+ endif
  
  ! WRITE cs*ts to file
- nz = 1000
- zmax = 5.
- zmin = -5.
- dz = (zmax - zmin)/real(nz - 1)
- open(unit=1,file='rescrit.out',status='replace')
- print*,' WRITING cs*ts to rescrit.out'
- write(1,"(a)") '# [    z (AU)   ] [ ts*cs (AU) ] [   z (code units)  ] [ ts*cs (code units) ]'
- do i=1,nz
-    zonh = zmin + (i-1)*dz
-    rhogas = denszero*exp(-0.5*(zonh)**2)
-    rhodust = dust_to_gas_ratio*rhogas
-    t_stop = get_tstop(3,rhogas,rhodust,cs0,0.)
-    write(1,*) zonh*H0*udist/AU,t_stop*cs0*udist/au,zonh*H0,t_stop*cs0
- enddo
- close(unit=1)
+ !nz = 1000
+ !zmax = 5.
+ !zmin = -5.
+ !dz = (zmax - zmin)/real(nz - 1)
+ !open(unit=1,file='rescrit.out',status='replace')
+ !print*,' WRITING cs*ts to rescrit.out'
+ !write(1,"(a)") '# [    z (AU)   ] [ ts*cs (AU) ] [   z (code units)  ] [ ts*cs (code units) ]'
+ !do i=1,nz
+ !   zonh = zmin + (i-1)*dz
+ !   rhogas = denszero*exp(-0.5*(zonh)**2)
+ !   rhodust = dust_to_gas_ratio*rhogas
+ !   t_stop = get_tstop(3,rhogas,rhodust,cs0,0.)
+ !   write(1,*) zonh*H0*udist/AU,t_stop*cs0*udist/au,zonh*H0,t_stop*cs0
+ !enddo
+ !close(unit=1)
 
  if (equalmass) then
     call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.,stretchdim=idir,stretchfunc=rhoy) 
