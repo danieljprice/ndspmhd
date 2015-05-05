@@ -92,8 +92,8 @@ subroutine conservative2primitive
   else
      dens = rho
   endif
-  if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles'
-  if (nerr1 > 0) print*,'ERROR: dust fraction > 1 on ',nerr1,' particles'
+  if (nerr > 0) print*,'WARNING: dust fraction < 0 on ',nerr,' particles'
+  if (nerr1 > 0) print*,'WARNING: dust fraction > 1 on ',nerr1,' particles'
 !
 !--calculate magnetic flux density B from the conserved variable
 !  
@@ -153,20 +153,6 @@ subroutine conservative2primitive
 
      !--reset gradpsi to zero after we have finished using it
      gradpsi(:,:) = 0.
-  endif
-
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-     !--error checking on dust-to-gas ratio
-     do i=1,npart
-        if (dustfrac(i) < 0) then
-           print*,'ERROR: dust fraction = ',dustfrac(i),' on particle ',i
-           dustfrac(i) = 0.
-           !call quit
-        endif
-     enddo
-     dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
-  else
-     dens = rho
   endif
 !
 !--get magnetic current, needed for ambipolar diffusion calculation
