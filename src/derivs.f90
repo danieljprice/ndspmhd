@@ -114,7 +114,7 @@ subroutine derivs
        !--convert from deps/dt to ds/dt
        !
           si = sqrt(dustfrac(i)*rho(i))
-          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*sqrt(dustfrac(i)/rho(i))*drhodt(i)
+          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*si*drhodt(i)/rho(i)
           sum_dustm = sum_dustm + pmass(i)*(2.*si/rho(i)*ddustevoldt(i) - si**2/rho(i)**2*drhodt(i))
        else
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
@@ -129,7 +129,9 @@ subroutine derivs
           !
           !--convert from deps/dt to ds/dt
           !
-          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*sqrt(dustfrac(i)/rho(i))*drhodt(i)
+          si = sqrt(dustfrac(i)*rho(i))
+          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*si*drhodt(i)/rho(i)
+          sum_dustm = sum_dustm + pmass(i)*(2.*si/rho(i)*ddustevoldt(i) - si**2/rho(i)**2*drhodt(i))
        enddo
     else
        do i=1,npart

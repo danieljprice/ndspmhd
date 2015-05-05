@@ -2199,7 +2199,7 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
-    real :: si, sj
+    real :: si, sj, rhoav1d
 
     tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
     tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
@@ -2210,7 +2210,9 @@ contains
        Dav = 0.5*(Di + Dj)
        si = sqrt(dustfraci*rhoi)
        sj = sqrt(dustfracj*rhoj)
-       diffterm = 2./(rhoi + rhoj)*2.*Dav*(pri - prj)*grkern/rij
+       !rhoav1d = 0.5*(rho1i + rho1j)
+       rhoav1d = 2./(rhoi + rhoj)
+       diffterm = rhoav1d*2.*Dav*(pri - prj)*grkern/rij
        ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*diffterm
        ddustevoldt(j) = ddustevoldt(j) + pmassi*si*diffterm
     else

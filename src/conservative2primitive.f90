@@ -74,14 +74,18 @@ subroutine conservative2primitive
         if (dustfrac(i) < 0.) then
            nerr = nerr + 1
            dustfrac(i) = 0. !abs(dustfrac(i))
+           if (.not. use_sqrtdustfrac) then
            dustevol(i) = 0.
            dustevolin(i) = 0.
+           endif
            !call quit
         elseif (dustfrac(i) > 1.) then
            nerr1 = nerr1 + 1
            dustfrac(i) = 1. - epsilon(1.)
+           if (.not. use_sqrtdustfrac) then
            dustevol(i) = 1. - epsilon(1.)
            dustevolin(i) = 1. - epsilon(1.)
+           endif
         endif
      enddo
      dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
