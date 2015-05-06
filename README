@@ -2,7 +2,7 @@
  NDSPMHD: A Smoothed Particle (Magneto)Hydrodynamics code for (astrophysical)
  fluid dynamics simulations in 1, 2 and 3 spatial dimensions.
 
- (c) 2002-2014 Daniel Price
+ (c) 2002-2015 Daniel Price
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
@@ -11,7 +11,7 @@
   
   Please note that I am able to provide only limited support for this code.
   
-  daniel.price@monash.edu, February 2014
+  daniel.price@monash.edu, May 2015
 
 -------------------------------------------------------------------------------
 
@@ -25,3 +25,11 @@ docs    -- contains documentation for NDSPMHD
 scripts -- various scripts for manipulating data/running multiple jobs
 	   
 see the INSTALL file for installation instructions
+
+-------------------------------------------------------------------------------
+All documentation that exists for this code is now on the web page:
+
+http://users.monash.edu.au/~dprice/ndspmhd/
+
+I no longer maintain separate documentation in the code directories
+-------------------------------------------------------------------------------
