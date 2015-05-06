@@ -312,7 +312,7 @@ program ndspmhd
  iprev = 1
  i = 1
  do while (runname(iprev)(1:1).ne.' ' .and. i.le.maxruns)
-    call getarg(i,runname(i))
+    call get_command_argument(i,runname(i))
     !!print*,i,runname(i)
     iprev = i
     i = i + 1
