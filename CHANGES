@@ -1,0 +1,12 @@
+2.1:
+update including dust diffusion algorithms
+use phantom-style input files
+
+2.0:
+major update including dust algorithms
+
+1.0.1:
+minor bug fix with build
+ 
+1.0:
+first public versions
