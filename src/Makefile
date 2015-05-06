@@ -18,7 +18,7 @@ DOUBLEPRECISION= yes
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    F90C= gfortran
-   F90FLAGS= -O3 -Wall -funroll-loops -g #-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   F90FLAGS= -O3 -Wall -funroll-loops -g -std=f2008 -fall-intrinsics#-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid
