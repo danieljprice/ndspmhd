@@ -83,7 +83,7 @@ program ndspmhd
 !
 !--version number
 !
-    version = 'v2.1 [5th May 2015]'
+    version = 'v2.1 [8th May 2015]'
 !   * major update including dust and ambipolar diffusion algorithms
 !    version = 'v2.0 [21st Feb 2014]'
 !   * major update including dust algorithms
