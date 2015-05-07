@@ -762,11 +762,8 @@ subroutine applymask(imask,xpart,ipart)
  real, dimension(:), intent(in) :: xpart
  integer, intent(inout) :: ipart
  real, dimension(size(xpart)) :: dx,xorigin
- real :: radius1,radius2,phi,z,Rfunc,Rfunc2
- 
- Rfunc(z) = -50. + 10.*cos(2.*pi*z/100.)
- Rfunc2(z) = -0.01*cos(6.*pi*z)
- 
+ real :: radius1,radius2,phi
+  
  select case(imask)
  case(1,-1)
 !
@@ -869,6 +866,20 @@ subroutine applymask(imask,xpart,ipart)
 
  end select
  
+contains
+ real function Rfunc(z)
+  real, intent(in) :: z
+ 
+   Rfunc = -50. + 10.*cos(2.*pi*z/100.)
+
+ end function Rfunc
+ 
+ real function Rfunc2(z)
+  real, intent(in) :: z
+  
+   Rfunc2 = -0.01*cos(6.*pi*z)
+
+ end function Rfunc2
 end subroutine applymask
 
 !----------------------------------------------------
