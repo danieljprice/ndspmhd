@@ -192,7 +192,7 @@ SOURCES= ndspmhd.f90 utils.f90 eos.f90 \
 	 iterate_density.f90 linkND.f90 logun.f90 outputND_mhd.f90\
 	 random.f90 ratesND_mhd.f90 riemannsolver.f90 \
 	 set_fixedbound.f90 write_headerND_mhd.f90 \
-	 get_divB.f90 divBcorrect.f90 \
+	 get_divB.f90 \
 	 check_neighbourlist.f90 direct_sum_poisson2D_vec.f90
 
 # these are the ordinary cartesian versions
