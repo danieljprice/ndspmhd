@@ -46,10 +46,10 @@ subroutine setup
  integer :: i
  integer, parameter :: itsmax = 100
 ! real, parameter :: pi = 3.1415926536
- real, parameter :: tol = 1.e-8
+ real, parameter :: tol = 1.e-10
  integer :: its,iwave
  real, dimension(ndimV) :: Bzero
- real :: massp
+ real :: massp,xcom(ndim),vcom(ndimV)
  real :: ampl,wk,xlambda,dxmax,denom
  real :: dxi,dxprev,xmassfrac,func,fderiv
  real :: spsoundi,valfven2i,vamplx,vamply,vamplz
@@ -61,7 +61,7 @@ subroutine setup
  if (trace) write(iprint,*) ' Entering subroutine setup'
 10 format(/,'-------------- ',a,' ----------------')
 
- iwave = 0                 ! preset wave parameters
+ iwave = 3                ! preset wave parameters
 !
 !--setup parameters (could read in from a file)
 !
@@ -77,6 +77,14 @@ subroutine setup
     denszero = 1.0
     uuzero = 0.3
     if (imhd.ne.0) Bzero(1:3) = 0.5  
+    write(iprint,10) 'MHD fast wave'
+ elseif (iwave.EQ.3) then    ! MHD fast wave from Athena
+    ampl = 1.e-6
+    denszero = 1.0
+    gamma = 5./3.
+    przero = 1./gamma
+    uuzero = przero/((gamma-1.)*denszero)
+    if (imhd.ne.0) Bzero(1:3) = (/1.0,sqrt(2.),0.5/) 
     write(iprint,10) 'MHD fast wave'
  else                        ! Sound wave
     ampl = 0.0001
@@ -102,8 +110,8 @@ subroutine setup
 !
  ibound = 3        ! periodic boundaries
  nbpts = 0                ! use ghosts not fixed
- xmin(:) = 0.   ! set position of boundaries
- xmax(1) = 1.0 
+ xmin(:) = -0.5   ! set position of boundaries
+ xmax(1) = 0.5 
  if (ndim.GE.2) then
     xmax(2:ndim) = 6.*psep ! would need to adjust this depending on grid setup
  endif
@@ -133,7 +141,7 @@ subroutine setup
     else
        Bfield(:,i) = 0.
     endif 
- ENDDO
+ enddo
 
  ntotal = npart
 !
@@ -164,7 +172,7 @@ subroutine setup
  if (iwave.EQ.1) then
     vwave = vslow
     if (imhd.le.0) write(iprint,*) 'Error: can''t have slow wave if no mhd'
- elseif (iwave.EQ.2) then
+ elseif (iwave.EQ.2 .or. iwave.eq.3) then
     vwave = vfast
  else
     vwave = spsoundi
@@ -181,6 +189,8 @@ subroutine setup
 !
 !--now perturb the particles appropriately
 !
+ xcom(:) = 0.
+ vcom(:) = 0.
  do i=1,npart
     
     dxi = x(1,i)-xmin(1)
@@ -225,8 +235,8 @@ subroutine setup
     vamplz = -vamplx*Bfield(1,i)*Bfield(3,i)/(dens(i)*term)
     
     vel(1,i) = vamplx*SIN(wk*dxi)
-!    vel(2,i) = vamply*SIN(wk*dxi)
-!    vel(3,i) = vamplz*SIN(wk*dxi)
+    vel(2,i) = vamply*SIN(wk*dxi)
+    vel(3,i) = vamplz*SIN(wk*dxi)
 !
 !--perturb internal energy if not using a polytropic equation of state 
 !  (do this before density is perturbed)
@@ -235,10 +245,17 @@ subroutine setup
 !    
 !--perturb density if not using summation
 !
-!    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
-!    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
+    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
+    Bfield(3,i) = Bfield(3,i) + vwave*Bfield(3,i)*vamplx/term*SIN(wk*dxi)
     dens(i) = dens(i)*(1.+ampl*SIN(wk*dxi))
-
+    xcom(:) = xcom(:) + x(:,i)
+    vcom(:) = vcom(:) + vel(:,i)
+ enddo
+ xcom = xcom/npart
+ vcom = vcom/npart
+ do i=1,npart
+    x(:,i) = x(:,i) - xcom
+    vel(:,i) = vel(:,i) - vcom
  enddo
 
  write(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
