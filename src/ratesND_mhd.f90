@@ -1286,6 +1286,7 @@ contains
        endif
 
        vsig = 0.5*(max(vsigi + vsigj - beta*dvdotr,0.0)) ! also used where dvdotr>0 in MHD
+       !vsig = sqrt(vsigi**2 + beta*dvdotr**2) + sqrt(vsigj**2 + beta*dvdotr**2) - dvdotr 
        !vsig = max(4.*vsigi*vsigj/(vsigi + vsigj) - beta*dvdotr,0.)
        !vsig = 0.5*(vsigi + vsigj + beta*abs(dvdotr))
        !vsigB = 0.5*max(vsigi + vsigj - 4.0*dvdotr,0.0) !!!*(1./(1.+exp(1000.*dvdotr/vsig)))
