@@ -21,9 +21,9 @@ FFLAGS = $(F90FLAGS)
 %.o : %.f90
 	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
 
-SOURCES= multirun_hfact.f90
+SOURCES= multi_wave.f90
  
-OBJECTS = dimen1D.o variablesND.o defaults.o eos.o \
+OBJECTS = dimen1D.o variablesND.o defaults.o eos.o utils_infiles.o \
           kernel_cspline_utils.o kernel_erbs_utils.o kernelND.o readwrite_infile.o \
 	  $(SOURCES:.f90=.o)
 
@@ -53,6 +53,9 @@ defaults.o :
 
 readwrite_infile.o :
 	$(F90C) -c $(F90FLAGS) ../src/readwrite_infile.f90 -o $@
+
+utils_infiles.o :
+	$(F90C) -c $(F90FLAGS) ../src/utils_infiles.f90 -o $@
 
 clean:
 	rm *.o *.mod

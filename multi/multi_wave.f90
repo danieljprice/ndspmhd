@@ -9,9 +9,7 @@ PROGRAM multirun
  USE options
  USE setup_params
  USE timestep
- USE xsph
- USE anticlumping
- 
+ USE xsph 
  USE infiles
  IMPLICIT NONE
  INTEGER :: i,j,nruns
