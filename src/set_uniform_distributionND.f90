@@ -71,7 +71,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
  integer, dimension(1000) :: listneigh
  real :: xstart,ystart,zstart,deltax,deltay,deltaz
- real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart
+ real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart,fac
  real :: xi,xprev,dxmax,func,fracmassold,totmass,xminbisect,xmaxbisect,xminstretch !,dfunc
  real, dimension(ndim) :: xran,xcentre,dx
  logical :: adjustdeltas,offsetx
@@ -129,10 +129,11 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     if (present(psepy)) deltay = 0.5*sqrt(3.)*psepy
     if (present(psepz)) deltaz = sqrt(6.)/3.*psepz
     
-    npartx = int(0.999*(xmax(1)-xmin(1))/deltax) + 1
-    nparty = int(0.999*(xmax(2)-xmin(2))/deltay) + 1
+    fac = 1. - epsilon(1.)
+    npartx = int(fac*(xmax(1)-xmin(1))/deltax) + 1
+    nparty = int(fac*(xmax(2)-xmin(2))/deltay) + 1
     if (ndim.ge.3) then
-       npartz = int(0.999*(xmax(3)-xmin(3))/deltaz) + 1
+       npartz = int(fac*(xmax(3)-xmin(3))/deltaz) + 1
     else
        npartz = 1
     endif
@@ -451,14 +452,14 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
     if (present(psepy)) deltay = psepy
     if (present(psepz)) deltaz = psepz
     
-    npartx = int((xmax(1)-xmin(1))/deltax)    
+    npartx = nint((xmax(1)-xmin(1))/deltax)    
     if (ndim.ge.2) then
-       nparty = int((xmax(2)-xmin(2))/deltay)    
+       nparty = nint((xmax(2)-xmin(2))/deltay)    
     else
        nparty = 1
     endif
     if (ndim.ge.3) then
-       npartz = int((xmax(3)-xmin(3))/deltaz)    
+       npartz = nint((xmax(3)-xmin(3))/deltaz)    
     else
        npartz = 1    
     endif
