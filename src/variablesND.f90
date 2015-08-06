@@ -68,6 +68,7 @@ module derivB
  implicit none
  real, dimension(:), allocatable :: divB
  real, dimension(:,:), allocatable :: curlB
+ real, dimension(:,:,:), allocatable :: gradB
 end module
 
 !-------------------------------------------------------------------

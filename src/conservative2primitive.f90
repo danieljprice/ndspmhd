@@ -53,14 +53,15 @@ subroutine conservative2primitive
   use smooth, only:smooth_variable
   use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
-  use derivB, only:curlB
+  use derivB, only:curlB,gradB
   use timestep, only:nsteps
   use part_in, only:Bevolin,dustevolin !,velin
+  !use utils,   only:curl3D_epsijk
   !use khsetup, only:densmedium,denszero,smoothl,yprofile,przero
   implicit none
   integer :: i,j,nerr,nerr1,k
   real :: B2i, v2i, pri, dhdrhoi, emag, emagold, dx
-  real, dimension(ndimV) :: Binti,Bfieldi
+  real, dimension(ndimV) :: Binti,Bfieldi !,curlBi
   real, dimension(ndim) :: dxbound
   logical, parameter :: JincludesBext = .true.
   logical :: remap
@@ -83,16 +84,16 @@ subroutine conservative2primitive
            nerr = nerr + 1
            dustfrac(i) = 0. !abs(dustfrac(i))
            if (.not. use_sqrtdustfrac) then
-           dustevol(i) = 0.
-           dustevolin(i) = 0.
+              dustevol(i) = 0.
+              dustevolin(i) = 0.
            endif
            !call quit
         elseif (dustfrac(i) > 1.) then
            nerr1 = nerr1 + 1
            dustfrac(i) = 1. - epsilon(1.)
            if (.not. use_sqrtdustfrac) then
-           dustevol(i) = 1. - epsilon(1.)
-           dustevolin(i) = 1. - epsilon(1.)
+              dustevol(i) = 1. - epsilon(1.)
+              dustevolin(i) = 1. - epsilon(1.)
            endif
         endif
      enddo
@@ -280,9 +281,30 @@ subroutine conservative2primitive
 !
 !--get magnetic current, needed for ambipolar diffusion calculation
 !
-  if (iambipolar > 0) then
-     !--get J using standard (differenced) curl operator
-     call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB)
+  if (iambipolar > 0 .or. iavlim(3)==2) then
+     if (iavlim(3)==2) then
+        !--get J and grad(B) using standard (differenced) curl operator
+        call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB,gradB=gradB)
+        do i=1,npart
+           B2i = dot_product(Bfield(:,i),Bfield(:,i))
+           if (B2i > 1.e-8) then
+              ! Tricco & Price (2013) resistivity switch
+              alpha(3,i) = min(hh(i)*norm2(gradB(:,:,i))/sqrt(B2i + epsilon(B2i)),1.0)
+           else
+              alpha(3,i) = 0.
+           endif
+           !if (B2i > 1.e-8) then
+              !call curl3D_epsijk(gradB(:,:,i),curlBi)
+              !print*, ' gradB = ',gradB(:,:,i)
+              !print*,' got curlz = ',curlBi(:)
+              !print*,' should be = ',curlB(:,i)
+              !read*
+           !endif
+        enddo
+     else
+        !--get J using standard (differenced) curl operator
+        call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB)
+     endif
   endif
 !
 !--calculate thermal energy from the conserved energy (or entropy)

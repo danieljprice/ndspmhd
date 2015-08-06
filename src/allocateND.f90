@@ -69,6 +69,7 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndimv,newsizein) :: dumvelin,dumvel,dumBevolin
  real, dimension(ndimv,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
  real, dimension(ndimv,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
+ real, dimension(ndimv,ndimv,newsizein) :: dumgradB
 !--gr terms
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
@@ -154,6 +155,7 @@ subroutine alloc(newsizein,sortlist)
     dumdBevoldt(:,1:idumsize) = dBevoldt(:,1:idumsize)
     dumfmag(:,1:idumsize) = fmag(:,1:idumsize)
     dumcurlB(:,1:idumsize) = curlB(:,1:idumsize)
+    dumgradB(:,:,1:idumsize) = gradB(:,:,1:idumsize)
     dumgradpsi(:,1:idumsize) = gradpsi(:,1:idumsize)
     dumxsphterm(:,1:idumsize) = xsphterm(:,1:idumsize)
         
@@ -245,6 +247,7 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(fmag)) deallocate(fmag)
     if (allocated(divB)) deallocate(divB)
     if (allocated(curlB)) deallocate(curlB)
+    if (allocated(gradB)) deallocate(gradB)
 !
 !--xsph
 !
@@ -329,7 +332,7 @@ subroutine alloc(newsizein,sortlist)
 !
 !--mhd quantities and derivatives
 !
-    allocate(fmag(ndimb,newsize),divB(newsize),curlB(ndimb,newsize))
+    allocate(fmag(ndimb,newsize),divB(newsize),curlB(ndimb,newsize),gradB(ndimb,ndimb,newsize))
 !
 !--xsph
 !
@@ -387,6 +390,7 @@ subroutine alloc(newsizein,sortlist)
     gradpsi(:,1:idumsize) = dumgradpsi(:,iorder(1:idumsize))
     fmag(:,1:idumsize) = dumfmag(:,iorder(1:idumsize))
     curlB(:,1:idumsize) = dumcurlB(:,iorder(1:idumsize))
+    gradB(:,:,1:idumsize) = dumgradB(:,:,iorder(1:idumsize))
     xsphterm(:,1:idumsize) = dumxsphterm(:,iorder(1:idumsize))
         
     rho(1:idumsize) = dumrho(iorder(1:idumsize))

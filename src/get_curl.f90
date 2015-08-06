@@ -61,7 +61,7 @@ module getcurl
  
 contains
 
-subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
+subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
  use dimen_mhd,           only:ndim,ndimV,idim
  use debug,               only:trace
  use loguns,              only:iprint
@@ -82,9 +82,10 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  real, dimension(ndimV,idim), intent(in) :: Bvec
  real, dimension(ndimV,idim), intent(out) :: curlB
  real, dimension(ndimV,idim), intent(out), optional :: curlBgradh
+ real, dimension(ndimV,ndimV,idim), intent(out), optional :: gradB
  real :: weight
 
- integer :: i,j,n
+ integer :: i,j,n,k
  integer :: icell,iprev,nneigh
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
@@ -94,6 +95,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
  real :: pmassi
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr,dB,Bi,curlBi,curlBterm,curlBtermi,curlBtermj,curlBgradhi
+ real, dimension(ndimV,ndimV) :: gradBi
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
  real :: dgradwdhi,dgradwdhj,rho21i,rho21gradhi
  real, dimension(ntotal) :: h1
@@ -112,6 +114,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
     h1(i) = 1./hh(i)
  enddo
  if (present(curlBgradh)) curlBgradh(:,:) = 0.
+ if (present(gradB)) gradB(:,:,:) = 0.
 !
 !--loop over all the link-list cells
 !
@@ -142,6 +145,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        rho21gradhi = rho21i*gradh(i)
        curlBi(:) = 0.
        curlBgradhi(:) = 0.
+       gradBi(:,:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -225,6 +229,13 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
                       curlBgradhi(:) = curlBgradhi(:) + pmass(j)*curlBterm(:)*dgradwdhi
                       curlBgradh(:,j) = curlBgradh(:,j) + pmassi*curlBterm(:)*dgradwdhj
                    endif
+                   
+                   if (present(gradB)) then
+                      do k=1,ndimV
+                         gradBi(:,k) = gradBi(:,k) + pmass(j)*dB(k)*dr(:)*grkerni
+                         gradB(:,k,j) = gradB(:,k,j) + pmassi*dB(k)*dr(:)*grkernj
+                      enddo
+                   endif
                 end select
 
              endif
@@ -234,6 +245,9 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        curlB(:,i) = curlB(:,i) + curlBi(:)
        if (present(curlBgradh)) then
           curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
+       endif
+       if (present(gradB)) then
+          gradB(:,:,i) = gradB(:,:,i) + gradBi(:,:)       
        endif
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
@@ -253,6 +267,9 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh)
        curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
        if (present(curlBgradh)) then
           curlBgradh(:,i) = curlBgradh(:,i)*gradh(i)
+       endif
+       if (present(gradB)) then
+          gradB(:,:,i) = -gradB(:,:,i)*gradh(i)/rho(i)
        endif
     end select
  enddo
