@@ -336,6 +336,7 @@ subroutine get_rates
        v2i = dot_product(veli(:),veli(:))
        alphai = alpha(1,i)
        alphaui = alpha(2,i)
+       alphaBi = alpha(3,i)
        phii = phi(i)
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
@@ -365,7 +366,6 @@ subroutine get_rates
 !          endif
           Brho2i = B2i*rho21i
           valfven2i = B2i*rho1i
-          alphaBi = alpha(3,i)
           if (imhd.lt.0) Bevoli(:) = Bevol(:,i)
           if (iresist.eq.1) then
              etai = etamhd
@@ -1775,10 +1775,10 @@ contains
 !--------------------------------------------------------------------------------------
   subroutine artificial_dissipation_dust
     implicit none
-    real :: visc,alphaav,alphau
+    real :: visc,alphaav,alphau,alphaB
     real :: vissv,vissu,vissdv,vsigdv
     real :: term,dpmomdotr,faci,facj
-    real :: termu,termv,termdv
+    real :: termu,termv,termdv,vsigeps,diffeps
     
     real :: dustfracav,projdvgasav,projddeltav,projepsdeltav
     real, dimension(ndimV) :: ddeltav
@@ -1788,6 +1788,7 @@ contains
     !
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
+    alphaB = 0.5*(alphaBi + alpha(3,j))
     vsigav = max(alphaav,alphau)*vsig
 
     dustfracav = 0.5*(dustfraci + dustfracj)
@@ -1942,6 +1943,11 @@ contains
           dudt(i) = dudt(i) + faci*pmassj*(termv*(vissv) + termu*vissu + termdv*vissdv)
           dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
        endif
+
+       vsigeps = 0.5*(spsoundi + spsoundj)
+       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
+       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
+       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
        
     endif
   end subroutine artificial_dissipation_dust
