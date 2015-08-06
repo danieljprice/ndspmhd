@@ -24,7 +24,7 @@ subroutine setup
  integer :: i,iring,ipart,npartphi,nringsguess,nrings
  real, dimension(maxrings) :: rhoring,drhoring,rring
  real :: massp,volume,totmass,rindex
- real :: denszero,rhoringi,dr,rr,psepold,omegadot,rmin,rmax,rbuffer
+ real :: denszero,rhoringi,dr,rr,psepold,omega,rmin,rmax,rbuffer
  real :: phi,phimin,phimax
  real :: rhor,drhor
  real :: gamm1
@@ -35,18 +35,18 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- nbpts = 0	! use ghosts not fixed
- ibound = 0	! no boundaries
- rmin = 0.5	! rmin
- rmax = 1.5     ! rmax
- rbuffer = 0.3   ! size of buffer region (quadratic falloff)
+ nbpts = 0      ! use ghosts not fixed
+ ibound = 0     ! no boundaries
+ rmin = 0.5     ! rmin
+ rmax = 2.0     ! rmax
+ rbuffer = 0.   ! size of buffer region (quadratic falloff)
  phimin = 0.0
  phimax = 2.*pi ! this must be 2\pi unless in cylindrical co-ords
 !
 !--set density profile
 !
  denszero = 1.0
- rindex = -1.5   ! density \propto r**(rindex)
+ rindex = 0. !-1.5   ! density \propto r**(rindex)
  gamm1 = gamma -1.
  if (gamm1.lt.1.e-3) stop 'error: isothermal eos not implemented'
  write(iprint,*) ' sound speed = ',sqrt(gamma*polyk*denszero**gamm1)
@@ -54,8 +54,8 @@ subroutine setup
 !--particle separation determines number of particles in each ring
 !
  psepold = psep
- npartphi = INT((phimax-phimin)/psep)
- psep = (phimax-phimin)/REAL(npartphi) ! adjust so exact division of 2\pi
+ npartphi = int((phimax-phimin)/psep)
+ psep = (phimax-phimin)/real(npartphi) ! adjust so exact division of 2\pi
 !
 !--setup radius of all the rings
 !
@@ -94,7 +94,9 @@ subroutine setup
  ntotal = nrings*npartphi
  volume = pi*(rmax**2 - rmin**2)
  totmass = denszero*volume
- massp = totmass/FLOAT(ntotal) ! average particle mass
+ massp = totmass/real(ntotal) ! average particle mass
+ ipart = 0
+ npart = 0
 
 !---------------------------------------------
 !  now setup the particles on these rings
@@ -110,20 +112,20 @@ subroutine setup
     do i=1,npartphi
        ipart = ipart + 1
        npart = npart + 1
-       if (ipart.gt.SIZE(dens)) call alloc(npart+npartphi)
+       if (ipart.gt.size(dens)) call alloc(npart+npartphi)
        phi = phimin + (i-1)*psep
        !
        !--translate r, phi back to cartesian co-ords
        !
-       x(1,ipart) = rr*COS(phi)
-       x(2,ipart) = rr*SIN(phi)
+       x(1,ipart) = rr*cos(phi)
+       x(2,ipart) = rr*sin(phi)
        dens(ipart) = rhoringi*denszero
        !
        !--keplerian velocity profile balancing pressure gradient
        !
-       omegadot = SQRT(1./rr**3 + polyk/rr*dens(ipart)**gamm1*drhoring(iring))
-       vel(1,ipart) = -rr*SIN(phi)*omegadot
-       vel(2,ipart) = rr*COS(phi)*omegadot
+       omega = sqrt(1./rr**3 + polyk/rr*dens(ipart)**gamm1*drhoring(iring))
+       vel(1,ipart) = -rr*sin(phi)*omega
+       vel(2,ipart) = rr*cos(phi)*omega
        uu(ipart) = polyk/gamm1*dens(ipart)**gamm1
        Bfield(:,ipart) = 0.
        pmass(ipart) = massp
@@ -132,7 +134,7 @@ subroutine setup
  enddo
 
  if (ntotal.ne.npart) stop 'something wrong in setup...npart.ne.ntotal'
- if (ntotal.ne.SIZE(dens)) call alloc(ntotal)   ! trim memory if too much
+ if (ntotal.ne.size(dens)) call alloc(ntotal)   ! trim memory if too much
 !
 !--allow for tracing flow
 !
