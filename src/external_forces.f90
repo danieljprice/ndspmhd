@@ -22,7 +22,7 @@
 
 module externf
  implicit none
- real, parameter :: eps2_soft = 1.e-8
+ real, parameter, public :: eps2_soft = 0.0625
  real, parameter, public :: Rdisc = 5.0, Mstar = 1.0
  
  public :: external_forces, pequil, external_potentials
@@ -73,7 +73,7 @@ subroutine external_forces(iexternal_force,xpart,fext,ndim,ndimV,vpart,hpart, &
      rr = SQRT(rr2)
      drr2 = 1./rr2
      dr(:) = xpart(:)/rr
-     fext(:) = - dr(:)*drr2
+     fext(1:ndim) = - dr(1:ndim)*drr2
 
   case(3)
 !
