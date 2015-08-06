@@ -124,7 +124,7 @@ subroutine set_linklist
        call quit
     endif
        
-    icell = icellx(1) 
+    icell = icellx(1)
     if (ndim.ge.2) then
        j = 2
        icell = icell + (icellx(j)-1)*ncellsx(j-1)
@@ -134,6 +134,10 @@ subroutine set_linklist
        endif
     endif
 
+    if (icell < 0 .or. icell > size(ifirstincell)) then
+       icell = size(ifirstincell)
+       write(iprint,*) 'error in cell',i,x(:,i),icell
+    endif
     ll(i) = ifirstincell(icell)            ! link to previous start of chain
     ifirstincell(icell) = i            ! set head of chain to current particle       
     iamincell(i) = icell             ! save which cell particle is in 
