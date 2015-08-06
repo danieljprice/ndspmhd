@@ -48,10 +48,12 @@ subroutine setup
  integer :: ipart
  real :: denszero,przero,vzero,uuzero,Azero
  real :: totmass,gam1,massp,rr,rzero
+ logical :: square
 !
 !--check number of dimensions is right
 !
  if (ndim.ne.2) stop ' ndim must be = 2 for current advection test'
+ square = .true.
 !
 !--set boundaries
 !                        
@@ -59,10 +61,15 @@ subroutine setup
  nbpts = 0      ! must use fixed particles if inflow/outflow at boundaries
  !costheta = 2./sqrt(5.)
  !sintheta = 1./sqrt(5.)
- xmin(1) = -1.0  ! x
- xmax(1) = -xmin(1)
- xmin(2) = -0.5  ! y
- xmax(2) = -xmin(2)
+ if (square) then
+    xmin = -0.5
+    xmax = 0.5
+ else
+    xmin(1) = -1.0  ! x
+    xmax(1) = -xmin(1)
+    xmin(2) = -0.5  ! y
+    xmax(2) = -xmin(2)
+ endif
 !
 !--setup parameters
 !
@@ -95,8 +102,13 @@ subroutine setup
 !--now assign particle properties
 ! 
  do ipart=1,ntotal
-    vel(1,ipart) = 2. !!vzero*costheta
-    vel(2,ipart) = 1. !!vzero*sintheta
+    if (square) then
+       vel(1,ipart) = 2.
+       vel(2,ipart) = 0.5
+    else
+       vel(1,ipart) = 2. !!vzero*costheta
+       vel(2,ipart) = 1. !!vzero*sintheta
+    endif
     if (ndimv.eq.3) vel(3,ipart) = 0.
     dens(ipart) = denszero
     pmass(ipart) = massp
