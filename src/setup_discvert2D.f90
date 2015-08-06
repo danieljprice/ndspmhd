@@ -184,6 +184,13 @@ subroutine setup
  print*,' npart =',npart
  print*,' massp = ',totmass/npart,massp
  massp = totmass/npart
+
+ if (iener==0) then
+    gamma = 1.
+ else
+    gamma = 5./3.
+ endif
+ print*,' using gamma = ',gamma
 !
 !--now assign particle properties
 ! 
@@ -197,7 +204,7 @@ subroutine setup
        pmass(i) = massp*exp(-0.5*(x(idir,i)/H0)**2) + rhomin*partvol
     endif
     if (gamma > 1.) then
-       uu(i) = cs0**2/(gamma*(gamma-1.)) ! adiabatic
+       uu(i) = cs0**2/(gamma-1.) ! adiabatic, set u so that P = cs_0 rho = (gamma - 1)*u_0 rho
     else
        uu(i) = 1.5*polyk ! isothermal
     endif
