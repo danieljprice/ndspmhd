@@ -151,7 +151,7 @@ subroutine step
           hh(i) = hhin(i) + dt*dhdtin(i)
        endif
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
-       if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
+       where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
           dustevol(i) = dustevolin(i) + dt*ddustevoldtin(i)
@@ -202,7 +202,7 @@ subroutine step
           endif
        endif
        if (iener.ne.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
-       if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
+       where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
@@ -248,10 +248,10 @@ subroutine step
     endif
     
     dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
-    if (dttol < dt) then
-       dt = dttol
-       print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
-    endif
+    !if (dttol < dt) then
+    !   dt = dttol
+    !   print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
+    !endif
     !if (C_cour*dtav.lt.dt) then
     !   print*,'WARNING: AV controlling timestep: (old)dt = ',dt,' (new)dt = ',C_cour*dtav
     !   dt = C_cour*dtav
