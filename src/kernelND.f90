@@ -125,7 +125,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: q,q2,q4,q3,q5,q6,q7,q8,cnormk,cnormkaniso,secondz
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
- real :: ddterm1,ddterm2,ddterm3,ddterm4,w0
+ real :: ddterm1,ddterm2,ddterm3,ddterm4,w0,cnormkd(3)
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
  character(len=20) :: filename
  logical :: iexist
@@ -3171,9 +3171,78 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           grgrwkern(i) = 0.
        endif
     enddo
-    
+
+ case(100)
+!
+!--read the preset table from a data file if it exists
+!   
+    kernellabel = 'Genetically bred kernel'
+    radkern = max(radkern,  2.0)
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)
+
+    write(filename,"(a,i3.3,'.dat')") 'kernel',ikernel
+    inquire(file=filename,exist=iexist)
+    if (iexist) then
+       open(unit=lu,file=filename,status='old',iostat=ierrf)
+       print*,'reading kernel from '//trim(filename)
+       if (ierrf.eq.0) then
+          read(lu,*,iostat=ierrf) cnormkd(1:3)
+          cnormk = cnormkd(ndim)
+          print*,' Got cnormk = ',cnormkd(ndim),10./(7.*pi)
+          do i=0,ikern
+             read(lu,*,iostat=ierrf) a,wkern(i),grwkern(i),grgrwkern(i)
+          enddo
+       endif
+       close(unit=lu)
+    else
+       print*,trim(filename)//' does not exist, creating kernel table'
+       ierrf = 1
+    endif
+!
+!--if file not found or errors reading from it, recreate the kernel table
+!  and write a new data file
+!
+    if (ierrf.ne.0) then
+       cnormkd(1) = 0.66666666666
+       cnormkd(2) = 10./(7.*pi)
+       cnormkd(3) = 1./pi
+       do i=0,ikern
+          q2 = i*dq2table
+          q = sqrt(q2)
+          if (q.lt.1.0) then
+             wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+             grwkern(i) = -3.*q+ 2.25*q2
+             grgrwkern(i) = -3. + 4.5*q
+          elseif ((q.ge.1.0).and.(q.le.2.0)) then
+             wkern(i) = 0.25*(2.-q)**3
+             grwkern(i) = -0.75*(2.-q)**2
+             grgrwkern(i) = 1.5*(2.-q)
+          else
+             wkern(i) = 0.0
+             grwkern(i) = 0.0
+             grgrwkern(i) = 0.
+          endif
+       enddo
+       cnormk = cnormkd(ndim)
+       open(unit=lu,file=trim(filename),status='replace',iostat=ierrf)
+       if (ierrf.ne.0) then
+          print*,'ERROR: could not write to '//trim(filename)
+       else
+          print*,'WRITING kernel to file: '//trim(filename)
+          write(lu,*) cnormkd(1:3)
+          do i=0,ikern
+             q2 = i*dq2table
+             q = sqrt(q2)
+             write(lu,*,iostat=ierrf) q,wkern(i),grwkern(i),grgrwkern(i)
+          enddo
+          if (ierrf.ne.0) print*,'ERROR writing to '//trim(filename)
+       endif
+       close(unit=lu)
+    endif
+
   case default
-    
+!    
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
 !   
     kernellabel = 'M_4 cubic spline'    
