@@ -17,8 +17,8 @@ DOUBLEPRECISION= yes
 
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
-   F90C= gfortran
-   F90FLAGS= -O3 -Wall -funroll-loops -g -std=f2008 -fall-intrinsics#-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
+   FC= gfortran
+   FFLAGS= -O3 -Wall -funroll-loops -g -std=f2008 -fall-intrinsics#-ffast-math #-mtune=native -ftree-vectorize -ftree-vectorizer-verbose=3
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
    DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid
@@ -28,8 +28,8 @@ ifeq ($(SYSTEM), gfortran)
 endif
 
 ifeq ($(SYSTEM), g95)
-    F90C= g95
-    F90FLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
+    FC= g95
+    FFLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
     DBLFLAG= -r8
     DEBUGFLAG= -g -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
@@ -39,8 +39,8 @@ ifeq ($(SYSTEM), g95)
 endif
 
 ifeq ($(SYSTEM), ifort)
-    F90C= ifort
-    F90FLAGS= -O3 -Vaxlib -w90 -w95 -cm
+    FC= ifort
+    FFLAGS= -O3 -Vaxlib -w90 -w95 -cm
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
@@ -50,8 +50,8 @@ ifeq ($(SYSTEM), ifort)
 endif
 
 ifeq ($(SYSTEM), msg)
-    F90C= ifort
-    F90FLAGS= -O3 -warn all -heap-arrays
+    FC= ifort
+    FFLAGS= -O3 -warn all -heap-arrays
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
@@ -61,8 +61,8 @@ ifeq ($(SYSTEM), msg)
 endif
 
 ifeq ($(SYSTEM), sunf95)
-    F90C= sunf95
-    F90FLAGS= -fast
+    FC= sunf95
+    FFLAGS= -fast
     DBLFLAG= -xtypemap=real:64,double:64 -ftrap=common
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
@@ -72,8 +72,8 @@ endif
 
 ifeq ($(SYSTEM), pgf90)
 #  this is for the Portland Group Fortran 90 compiler (tested with version 7.2-5)
-   F90C= pgf90
-   F90FLAGS= -fast -mcmodel=medium -Mbackslash -Ktrap=none
+   FC= pgf90
+   FFLAGS= -fast -mcmodel=medium -Mbackslash -Ktrap=none
    DEBUGFLAG= -C -g -gopt -Mbounds -Mchkfpstk -Mchkptr -Mchkstk -Mcoff \
               -Mdwarf1 -Mdwarf2 -Melf -Mpgicoff -traceback
    ENDIANFLAGBIG= -Mbyteswapio  # only works on a little-endian machine
@@ -83,8 +83,8 @@ endif
 
 ifeq ($(SYSTEM), pathf95)
 #  this is for the Pathscale f95 compiler
-   F90C= pathf95
-   F90FLAGS= -Ofast -mcmodel=medium
+   FC= pathf95
+   FFLAGS= -Ofast -mcmodel=medium
    DEBUGFLAG= -C -g
    ENDIANFLAGBIG= -convert big_endian
    ENDIANFLAGLITTLE= -convert little_endian
@@ -94,29 +94,25 @@ endif
 # Set other optional flags depending on settings
 
 ifeq ($(DEBUG), yes)
-    F90FLAGS += ${DEBUGFLAG}
+    FFLAGS += ${DEBUGFLAG}
 endif
 
 ifeq ($(ENDIAN), BIG)
-    F90FLAGS += ${ENDIANFLAGBIG}
+    FFLAGS += ${ENDIANFLAGBIG}
 endif
 
 ifeq ($(ENDIAN), LITTLE)
-    F90FLAGS += ${ENDIANFLAGLITTLE}
+    FFLAGS += ${ENDIANFLAGLITTLE}
 endif
 
 ifeq ($(DOUBLEPRECISION), yes)
-    F90FLAGS += ${DBLFLAG}
+    FFLAGS += ${DBLFLAG}
 endif
-
-# Fortran flags same as F90
-FC = $(F90C)
-FFLAGS = $(F90FLAGS)
 
 # define the implicit rule to make a .o file from a .f90 file
 
 %.o : %.f90
-	$(F90C) -c $(F90FLAGS) $(FPPFLAGS) $< -o $@
+	$(FC) -c $(FFLAGS) $(FPPFLAGS) $< -o $@
 
 
 # use the appropriate dimensions module and dimension specific routines
@@ -285,33 +281,33 @@ crap:
 	echo specify number of dimensions, e.g. make 1D
 
 1D: checksystem $(OBJECTS1D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../1DSPMHD $(OBJECTS1D)
 
 2D : checksystem $(OBJECTS2D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DSPMHD $(OBJECTS2D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../2DSPMHD $(OBJECTS2D)
 
 3D : checksystem $(OBJECTS3D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../3DSPMHD $(OBJECTS3D)
 
 1DGR : checksystem $(OBJECTSGR1D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../1DGRSPMHD $(OBJECTSGR1D)
 
 2DGR : checksystem $(OBJECTSGR2D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../2DGRSPMHD $(OBJECTSGR2D)
 
 3DGR : checksystem $(OBJECTSGR3D)
-	$(F90C) $(F90FLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
+	$(FC) $(FFLAGS) $(LDFLAGS) -o ../3DGRSPMHD $(OBJECTSGR3D)
 
 ## files from elsewhere
 
 prompting.o: $(SPLASH_DIR)/prompting.f90
-	$(F90C) -c $(SPLASH_DIR)/prompting.f90 -o $@
+	$(FC) -c $(SPLASH_DIR)/prompting.f90 -o $@
 
 geometry.o: $(SPLASH_DIR)/geometry.f90
-	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/geometry.f90 -o $@
+	$(FC) -c $(FFLAGS) $(SPLASH_DIR)/geometry.f90 -o $@
 
 exact_densityprofiles.o: $(SPLASH_DIR)/exact_densityprofiles.f90
-	$(F90C) -c $(F90FLAGS) $(SPLASH_DIR)/exact_densityprofiles.f90 -o $@
+	$(FC) -c $(FFLAGS) $(SPLASH_DIR)/exact_densityprofiles.f90 -o $@
 
 evolve_montecarlo.o: setup_densityprofileND.o
 
@@ -325,13 +321,13 @@ OBJMODDUMP3D = $(OBJMODDUMP) $(MODDUMPSRC3D:.f90=.o)
              
 
 moddump1D: dimen1D.o $(OBJMODDUMP1D)
-	$(F90C) $(F90FLAGS) -o ../$@ dimen1D.o $(OBJMODDUMP1D)
+	$(FC) $(FFLAGS) -o ../$@ dimen1D.o $(OBJMODDUMP1D)
 
 moddump2D: dimen2D.o $(OBJMODDUMP2D)
-	$(F90C) $(F90FLAGS) -o ../$@ dimen2D.o $(OBJMODDUMP2D)
+	$(FC) $(FFLAGS) -o ../$@ dimen2D.o $(OBJMODDUMP2D)
 
 moddump3D: dimen3D.o $(OBJMODDUMP3D)
-	$(F90C) $(F90FLAGS) -o ../$@ dimen3D.o $(OBJMODDUMP3D)
+	$(FC) $(FFLAGS) -o ../$@ dimen3D.o $(OBJMODDUMP3D)
 
 checksystem:
    ifeq ($(KNOWN_SYSTEM), yes)
