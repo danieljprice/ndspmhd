@@ -52,6 +52,7 @@ module kernels
  public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
  public  :: setkerndrag, interpolate_kerneldrag
  private :: setkerntable
+ logical, parameter :: write_kernel_table = .false.
 
 contains
 
@@ -127,8 +128,6 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0,cnormkd(3)
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
- character(len=20) :: filename
- logical :: iexist
  integer :: ierrf
  integer, parameter :: lu = 55
 
@@ -2728,21 +2727,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--read the preset table from a data file if it exists
 !   
-    write(filename,"(a,i2.2,'.dat')") 'kernel',ikernel
-    inquire(file=filename,exist=iexist)
-    if (iexist) then
-       open(unit=lu,file=filename,status='old',iostat=ierrf)
-       print*,'reading kernel from '//trim(filename)
-       if (ierrf.eq.0) then
-          do i=0,ikern
-             read(lu,*,iostat=ierrf) wkern(i),grwkern(i),grgrwkern(i)
-          enddo
-       endif
-       close(unit=lu)
-    else
-       print*,trim(filename)//' does not exist, creating kernel table'
-       ierrf = 1
-    endif
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
+    cnormk = cnormkd(ndim)
 !
 !--if file not found or errors reading from it, recreate the kernel table
 !  and write a new data file
@@ -2754,17 +2740,9 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           call getcsplinekernelder(ncspline1,ncspline2,secondz,radkern,q, &
                                    wkern(i),grwkern(i),grgrwkern(i))
        enddo
-       open(unit=lu,file=trim(filename),status='replace',iostat=ierrf)
-       if (ierrf.ne.0) then
-          print*,'ERROR: could not write to '//trim(filename)
-       else
-          print*,'WRITING kernel to file: '//trim(filename)
-          do i=0,ikern
-             write(lu,*,iostat=ierrf) wkern(i),grwkern(i),grgrwkern(i)
-          enddo
-          if (ierrf.ne.0) print*,'ERROR writing to '//trim(filename)
-       endif
-       close(unit=lu)
+       cnormkd = 1.
+       cnormk = cnormkd(ndim)
+       call write_kernel_to_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern)
     endif
 
  case(91)
@@ -3181,24 +3159,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
 
-    write(filename,"(a,i3.3,'.dat')") 'kernel',ikernel
-    inquire(file=filename,exist=iexist)
-    if (iexist) then
-       open(unit=lu,file=filename,status='old',iostat=ierrf)
-       print*,'reading kernel from '//trim(filename)
-       if (ierrf.eq.0) then
-          read(lu,*,iostat=ierrf) cnormkd(1:3)
-          cnormk = cnormkd(ndim)
-          print*,' Got cnormk = ',cnormkd(ndim),10./(7.*pi)
-          do i=0,ikern
-             read(lu,*,iostat=ierrf) a,wkern(i),grwkern(i),grgrwkern(i)
-          enddo
-       endif
-       close(unit=lu)
-    else
-       print*,trim(filename)//' does not exist, creating kernel table'
-       ierrf = 1
-    endif
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
+    cnormk = cnormkd(ndim)
 !
 !--if file not found or errors reading from it, recreate the kernel table
 !  and write a new data file
@@ -3225,20 +3187,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           endif
        enddo
        cnormk = cnormkd(ndim)
-       open(unit=lu,file=trim(filename),status='replace',iostat=ierrf)
-       if (ierrf.ne.0) then
-          print*,'ERROR: could not write to '//trim(filename)
-       else
-          print*,'WRITING kernel to file: '//trim(filename)
-          write(lu,*) cnormkd(1:3)
-          do i=0,ikern
-             q2 = i*dq2table
-             q = sqrt(q2)
-             write(lu,*,iostat=ierrf) q,wkern(i),grwkern(i),grgrwkern(i)
-          enddo
-          if (ierrf.ne.0) print*,'ERROR writing to '//trim(filename)
-       endif
-       close(unit=lu)
+       call write_kernel_to_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern)
     endif
 
   case default
@@ -3368,6 +3317,12 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     kernellabel=trim(kernellabel)//' & modified cubic spline'   
  
  endif
+ 
+ if (write_kernel_table) then
+    cnormkd(:) = 0.
+    cnormkd(ndim) = cnormk
+    call write_kernel_to_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern)
+ endif 
 !
 !--normalise kernel
 !
@@ -3382,6 +3337,71 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  ddq2table = 1./dq2table 
 
 end subroutine setkerntable
+
+!-----------------------------
+! write kernel to file
+!-----------------------------
+subroutine write_kernel_to_file(ikernel,lu,cnormkd,w,grw,grgrw)
+ integer, intent(in) :: ikernel,lu
+ real,    intent(in) :: cnormkd(3)
+ real,    intent(in), dimension(0:ikern) :: w,grw,grgrw
+ integer             :: ierrf,i
+ character(len=120)  :: filename
+ real :: q2,q
+
+ if (ikernel < 100) then
+    write(filename,"('kernel',i2.2,'.dat')") ikernel
+ else
+    write(filename,"('kernel',i3.3,'.dat')") ikernel
+ endif
+ open(unit=lu,file=trim(filename),status='replace',iostat=ierrf)
+ if (ierrf.ne.0) then
+    print*,'ERROR: could not write to '//trim(filename)
+ else
+    print*,'WRITING kernel to file: '//trim(filename)
+    write(lu,*) cnormkd(1:3)
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       write(lu,*,iostat=ierrf) q,w(i),grw(i),grgrw(i)
+    enddo
+    if (ierrf.ne.0) print*,'ERROR writing to '//trim(filename)
+ endif
+ close(unit=lu)
+
+end subroutine write_kernel_to_file
+
+!-----------------------------
+! read kernel back from file
+!-----------------------------
+subroutine read_kernel_from_file(ikernel,lu,cnormkd,w,grw,grgrw,ierrf)
+ integer, intent(in)  :: ikernel,lu
+ integer, intent(out) :: ierrf
+ character(len=120)   :: filename
+ real, intent(out)    :: cnormkd(3)
+ real, intent(out), dimension(0:ikern) :: w,grw,grgrw
+ logical :: iexist
+ real    :: dum
+ integer :: i
+ 
+ write(filename,"(a,i3.3,'.dat')") 'kernel',ikernel
+ inquire(file=filename,exist=iexist)
+ if (iexist) then
+    open(unit=lu,file=filename,status='old',iostat=ierrf)
+    print*,'reading kernel from '//trim(filename)
+    if (ierrf.eq.0) then
+       read(lu,*,iostat=ierrf) cnormkd(1:3)
+       do i=0,ikern
+          read(lu,*,iostat=ierrf) dum,w(i),grw(i),grgrw(i)
+       enddo
+    endif
+    close(unit=lu)
+ else
+    print*,trim(filename)//' does not exist'
+    ierrf = 1
+ endif
+
+end subroutine read_kernel_from_file
 
 !!----------------------------------------------------------------------
 !! function to interpolate linearly from kernel tables
