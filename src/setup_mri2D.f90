@@ -15,6 +15,7 @@ subroutine setup
  use options
  use part
  use setup_params
+ use random, only:ran1
  
  use uniform_distributions
  use mem_allocation, only:alloc
@@ -25,7 +26,7 @@ subroutine setup
  integer :: i,iseed
  real :: massp,totmass
  real :: denszero,uuzero,cs0,polyk0
- real :: przero,Bzeroz,asize,betamhd,ran1,wavekmin,valfvenz
+ real :: przero,Bzeroz,asize,betamhd,wavekmin,valfvenz
  real :: ksi,dksidX0,wavenum,wavenumsq,U,Omega2_wave
  integer, parameter :: ipert = 2
  integer, parameter :: isheartest = 1

@@ -52,6 +52,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 
  use options
  use part
+ use random,         only:ran1
 !
 !--define local variables
 !  (note we read boundaries of region as input, so that more than one region
@@ -71,7 +72,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
  integer :: idist,ineigh,nneigh,jpart,nskipx,nskipy,nskipz,istartx,istarty
  integer, dimension(1000) :: listneigh
  real :: xstart,ystart,zstart,deltax,deltay,deltaz
- real :: ran1,ampl,radmin,radmax,rr,rr2,phi,dangle,hpart,fac
+ real :: ampl,radmin,radmax,rr,rr2,phi,dangle,hpart,fac
  real :: xi,xprev,dxmax,func,fracmassold,totmass,xminbisect,xmaxbisect,xminstretch !,dfunc
  real, dimension(ndim) :: xran,xcentre,dx
  logical :: adjustdeltas,offsetx

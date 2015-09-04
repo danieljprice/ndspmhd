@@ -72,6 +72,7 @@ subroutine setup
  use mem_allocation, only:alloc
  use uniform_distributions
  use linklist
+ use random,    only:ran1,ran2
  use functions, only:distfunc,ddistfunc,iset,massp
 !
 !--define local variables
@@ -87,7 +88,6 @@ subroutine setup
  real :: myran,rhomax,xi(ndim),dx,dy,rhoi,rhoprev,dxtry,dxmin
  real :: dxstep,xmincell,ymincell,fret,t1,t2
  real, dimension(ndim) :: grad
- real, external :: ran1,ran2
  logical, external :: iallowed
  logical, parameter :: userandom = .true.,adaptmesh=.false.,usemin=.false.
 !

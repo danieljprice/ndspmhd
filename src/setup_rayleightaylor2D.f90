@@ -19,12 +19,13 @@ subroutine setup
  
  use uniform_distributions
  use cons2prim, only:primitive2conservative
+ use random,    only:ran1
 !
 !--define local variables
 !            
  implicit none
  integer :: i,iseed,ipart
- real :: massp,volume,totmass,ran1,massmedium,Rfunc2,z
+ real :: massp,volume,totmass,massmedium,Rfunc2,z
  real :: denszero,densmedium,przero,psepmedium,pri
  real, dimension(ndim) :: xminregion,xmaxregion
  logical, parameter :: equalmass = .true.

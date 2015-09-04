@@ -82,6 +82,7 @@ subroutine setup
  use setup_params, only:psep,pi
  use eos, only:gamma
  use mem_allocation, only:alloc
+ use random, only:ran1
  
  use uniform_distributions
  use cons2prim, only:primitive2conservative
@@ -92,7 +93,7 @@ subroutine setup
 !            
  implicit none
  integer :: i,iseed,ipart
- real :: massp,volume,totmass,ran1
+ real :: massp,volume,totmass
  real :: psepmedium
  real :: densmid,vmid,expterm,yi
  real, dimension(ndim) :: xminregion,xmaxregion

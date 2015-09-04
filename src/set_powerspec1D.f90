@@ -22,6 +22,7 @@ SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq,iseedin,iseed2in)
 !
  USE debug
  USE loguns
+ use random, only:ran1,rayleigh_deviate
 !
 !--local variables
 ! 
@@ -40,7 +41,6 @@ SUBROUTINE set_powerspec1D(x,vel,npart,xmin,xmax,pindex,nfreq,iseedin,iseed2in)
  REAL :: wk,wk_min,wkmod,wkdotx	! wave number
  REAL :: Lbox,twopi
  REAL :: ekin
- REAL :: ran1,rayleigh_deviate
 !
 !--allow for tracing flow
 ! 

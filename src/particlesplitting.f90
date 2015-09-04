@@ -41,12 +41,13 @@ end subroutine particle_splitting
 subroutine splitpart(i,npartnew)
  use part
  use mem_allocation, only:alloc
+ use random,         only:ran1
  implicit none
  integer, intent(in) :: i
  integer, intent(inout) :: npartnew
  integer :: j,npartold
  integer, parameter :: nmake = 5
- real :: pmassnew,ran1
+ real :: pmassnew
  integer :: iseed = -123
  save iseed
  

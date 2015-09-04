@@ -18,12 +18,13 @@ subroutine evolve
  use kernels, only:radkern
  use plummer_setup, only:npart1,npart2,idist
  use cons2prim, only:primitive2conservative
+ use random,    only:ran1
 !
 !--define local variables
 !
  implicit none
  integer :: i,ierr,noutput,nevwrite
- real :: t_start,t_end,t_used,ran1
+ real :: t_start,t_end,t_used
  real :: etot, momtot, etotin, momtotin, detot, dmomtot
  character(len=10) :: finishdate, finishtime
  integer, parameter :: nexact = 10001

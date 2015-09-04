@@ -16,6 +16,7 @@ subroutine setup
  use setup_params
  use mem_allocation, only:alloc
  use uniform_distributions
+ use random, only:ran1
 !
 !--define local variables
 !            
@@ -23,7 +24,7 @@ subroutine setup
  integer :: i,iseed,ipart,npartadd,iadd
  integer, parameter :: npts = 100
  real :: massp,volume,totmass,rhofunc,xpos,rhopartprev,xoffset
- real :: denszero,myran,rhomax,xi,ran1,dx,rhoi,rhoprev,xprev,totmassprev,frac
+ real :: denszero,myran,rhomax,xi,dx,rhoi,rhoprev,xprev,totmassprev,frac
  real, dimension(npts) :: rhogrid
  real :: rhointerp
 !
