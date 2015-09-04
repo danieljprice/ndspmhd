@@ -111,14 +111,13 @@ contains
   integer, intent(in)  :: ikern
   real(dp),intent(inout) :: wkern(0:ikern),grkern(0:ikern),grgrwkern(0:ikern)
   integer, intent(inout) :: iseed,iseed2
-  integer :: i,mode
+  integer :: i !mode
   real(dp), parameter :: pindex = 1.5
-  real(dp) :: h,ampl,q2,q,dq2table,f,phi,kx,pow,k0,q0
+  real(dp) :: h,ampl,q2,q,dq2table,f,phi,kx,pow,k0
   
   f = ran2(iseed)
   !print*,'f = ',f,iseed,iseed2
   if (f < mut_prob) then
-     !q0 = ran2(iseed)*radkern
      phi = -pi + 2.*pi*ran2(iseed)
      h = ran2(iseed)*radkern
      kx = 2.*pi/h
@@ -138,7 +137,6 @@ contains
         !grgrwkern(i) = grgrwkern(i)*(1. + ampl*exp(-(q - q0)**2/(2.*h**2)))
         grgrwkern(i) = grgrwkern(i)*(1. + ampl*sin(kx*q + phi))
      enddo
-     !print*,' INTEGRATING...'
      ! integrate to get gradient
      call integrate(ikern,grgrwkern,grkern)
      ! integrate to get kernel

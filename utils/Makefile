@@ -54,6 +54,16 @@ kernelplot3D: $(OBJECTS) kernelplot3D.o
 getkernellist: $(OBJECTS) getkernellist.o
 	$(F90C) $(F90FLAGS) $(LDFLAGS) -o $@ $(OBJECTS) getkernellist.o
 
+SRCSORT=utils_sort.f90 sort.f90
+OBJSORT=${SRCSORT:.f90=.o}
+sort: $(OBJSORT)
+	$(F90C) $(F90FLAGS) -o $@ $(OBJSORT)
+
+SRCBREED=random.f90 breed.f90
+OBJBREED=${SRCBREED:.f90=.o}
+breed: $(OBJBREED)
+	$(F90C) $(F90FLAGS) -o $@ $(OBJBREED)
+
 kernelplot.o : kernelND.o
 
 sametime : sametime.o
