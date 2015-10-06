@@ -43,13 +43,13 @@ OBJMODDUMP = variablesND.o allocateND.o prompting.o \
 all: kernelplot kernelplot3D getkernellist
 
 kernelplot: $(OBJECTS) kernelplot.o kernelstability1D.o
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot.o kernelstability1D.o
+	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernelplot.o kernelstability1D.o $(LDFLAGS)
 
 kernelplot3D: $(OBJECTS) kernelplot3D.o
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) kernelplot3D.o
+	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernelplot3D.o $(LDFLAGS)
 
 getkernellist: $(OBJECTS) getkernellist.o
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) getkernellist.o
+	$(FC) $(FFLAGS) -o $@ $(OBJECTS) getkernellist.o $(LDFLAGS)
 
 SRCSORT=utils_sort.f90 sort.f90
 OBJSORT=${SRCSORT:.f90=.o}
@@ -64,16 +64,16 @@ breed: $(OBJBREED)
 kernelplot.o : kernelND.o
 
 sametime : sametime.o
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ sametime.o
+	$(FC) $(FFLAGS) -o $@ sametime.o $(LDFLAGS)
 
 plotfreq : plotfreq.o danpgtile.o
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ plotfreq.o danpgtile.o
+	$(FC) $(FFLAGS) -o $@ plotfreq.o danpgtile.o $(LDFLAGS)
 
 plotfreq.o : plotfreq.f90
 	$(FC) -c $(FFLAGS) plotfreq.f90 -o $@
 
 sphderiv : $(OBJSPHDERIV)
-	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJSPHDERIV)
+	$(FC) $(FFLAGS) -o $@ $(OBJSPHDERIV) $(LDFLAGS)
         
 moddump1D: dimen1D.o $(OBJMODDUMP)
 	$(FC) $(FFLAGS) -o $@ dimen1D.o $(OBJMODDUMP)
