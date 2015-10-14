@@ -177,7 +177,7 @@ module part
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
  real, dimension(:), allocatable    :: dustfrac,dustevol
- real, dimension(:), allocatable    :: del2v
+ real, dimension(:,:), allocatable  :: del2v,graddivv
 end module part 
 
 !-------------------------------------------------------------------
