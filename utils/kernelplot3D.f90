@@ -8,27 +8,28 @@ program kernelplot3D
  integer :: ipart,maxiterations,iteration,isetup
  integer, dimension(10)   :: iplotorder
  real    :: q2,q,xi(3),rij2,mi,rhoi,rhoj
- real    :: hi,hi1,hi21,dh,hmin,hmax,hnew
+ real    :: hi,hi1,hi21,dh,hmin,hmax,hnew,dw,ddw
  real    :: psep,dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact
- real    :: volfrac,dzmax,dymax,erri,errmin
+ real    :: volfrac,dzmax,dymax,erri,errmin,d2wdxdx,d2wdxdy
  real    :: dwdhi,d2wdh2i,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum
  logical :: samepage,plotall,plot_cubic
  logical :: centre_on_particle
 !! character(len=50) :: text
+ character(len=30) :: filename
  integer, parameter :: npts = 101 !241 !76 !51
  integer, parameter :: nsetups = 2
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
  real(kind=4), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
  integer, parameter :: nx = 32
- integer :: np,ipt,idim,iplot
+ integer :: np,ipt,idim,iplot,ifile = 20,iunit
  real, dimension(3,2*nx**3+1) :: xyzpart
  real, parameter :: pi = 3.1415926536
  real, dimension(10) :: sums
 
- data iplotorder /0, 2, 3, 61, 62, 63, 94, 62, 63, 13/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 3, 61, 62, 41, 94, 62, 63, 13/   ! order in which kernels are plotted
  !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
- plotall = .true.
+ plotall = .false.
  centre_on_particle = .true.
 
  !--options for plotit routine
@@ -58,6 +59,7 @@ program kernelplot3D
  print*,' 6) gradgradw normalisation condition'
  print*,' 7) del^2 rho as a function of r/h'
  print*,' 8) del^2 kernel stuff as a function of r/h'
+ print*,' 9) graddivv as a function of r/h'
  print*,'Enter your selection now (0 = quit):'
  read*,iplot
  if (iplot <= 0) stop
@@ -127,8 +129,17 @@ program kernelplot3D
     errmin = huge(errmin)
     imin = 0
     rhoi = 1.
-
+    
+    if (iplot == 9) then
+    
+        ifile = ifile + 1
+!        write(filename,"(a,i5.5,a)") 'RMS_',ifile,'.txt'
+!        open(newunit=iunit, file = filename)
+!    
+    end if
+    
     do i=1,npts
+
        hi = hmin + (i-1)*dh
        xplot(i) = hi/psep
        hfact = hi/psep
@@ -158,6 +169,8 @@ program kernelplot3D
                 nneigh = nneigh + 1
                 call interpolate_kernels(q2,wabi,dum,gradwi,gradgradwi)
                 wabi   = wabi*hi1**ndim
+                dw=gradwi
+                ddw=gradgradwi
                 gradwi = gradwi*hi1**(ndim+1)
                 gradgradwi = gradgradwi*hi1**(ndim+2)
                 dwdhi  = -rij*gradwi*hi1 - ndim*wabi*hi1
@@ -170,6 +183,7 @@ program kernelplot3D
                       gradwsum(idim)  = gradwsum(idim) - mi/rhoi*dx(idim)*dx(idim)*rij1*gradwi
                    enddo
                    grad2wsum = grad2wsum + 0.5*mi/rhoi*dx(1)*dx(1)*gradgradwi
+
                    sums(1) = sums(1) + mi/rhoi*wabi*dx(1)*dx(1)/rij2
                    sums(2) = sums(2) + mi/rhoi*wabi*dx(1)*dx(2)/rij2
                    sums(3) = sums(3) + mi/rhoi*wabi*dx(1)*dx(3)/rij2
@@ -179,10 +193,18 @@ program kernelplot3D
                    rhoj = rhoi
                    sums(7) = sums(7) + rhoi*mi*(gradwi/rhoi**2 + gradwi/rhoj**2)*dx(1)*rij1
                    sums(8) = sums(8) + mi*d2wdh2i
-                   sums(9) = sums(9) + mi*(gradgradwi + (ndim - 1)*gradwi*hi1/sqrt(q2))
+                   sums(9) = sums(9) + mi*(gradgradwi + (ndim - 1)*gradwi*hi1/q)
+                   d2wdxdx = gradgradwi
+                   d2wdxdy = (gradgradwi-gradwi*hi1/q)*dx(1)*dx(2)/rij2
+                   sums(10) = sums(10) + mi/rhoi*dx(1)*dx(2)*d2wdxdy
                 endif
              endif
+
           enddo
+          
+          if (iplot ==9 ) write (ifile,*) sqrt((sums(10)-1.)**2/npts), hi
+
+
           !
           !--Newton-Raphson stuff for density
           !
@@ -221,7 +243,11 @@ program kernelplot3D
               print*,'iteration ',iteration,' h/psep = ',hi/psep,' R = ',sqrt(radkern2)
               print*,'rho = ',wsum,' grad1 = ',sums(7),' yplot = ',yplot(i)
           endif
+          
+
+          
        enddo its
+!       if (iplot == 9) close(ifile+5)
 
        if (erri.lt.errmin .and. xplot(i).gt.0.8 .and. xplot(i).lt.1.1) then
           imin = i
@@ -272,6 +298,10 @@ subroutine select_plot(iplot,ikernel,sums,wsum,grad2sum,yploti,cubici)
  real,    intent(out) :: yploti,cubici
 
  select case(iplot)
+ case(9)
+    yploti = sums(10)
+!    print*, 'graddivv', yploti
+!    read*
  case(8)
     yploti = sums(9)
  case(7)
@@ -303,6 +333,10 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
  xmax = maxval(xplot)
  
  select case(iplot)
+ case(9)
+    ymin = 0.9
+    ymax = 1.1
+    ylabel = 'graddivv'
  case(7,8)
     ymin = -999.0
     ymax = 4999.
@@ -608,5 +642,17 @@ subroutine setpart(ilattice,nx,n,ndim,xyzpart,ipart,ymax,zmax)
  endif
 
 end subroutine setpart
+
+subroutine RMS(sums,h,ifile,npts)
+ integer, intent(in) :: ifile,npts
+ real, intent(in) :: sums,h
+ character(len=30) :: filename
+
+    write(filename,"(a,i5.5,a)") 'RMS_',ifile,'.txt'
+    open(unit = 5, file = filename)
+    write (5,*) sqrt((sums-1.)**2/npts), h
+    close( 5 )
+
+end subroutine
 
 end program kernelplot3D
