@@ -50,6 +50,7 @@ subroutine conservative2primitive
   use getcurl,       only:get_curl
   use getBeulerpots, only:get_B_eulerpots
   use getlambda,     only:get_lambda
+  use get2ndderivs,  only:get_2ndderivs
   use smooth, only:smooth_variable
   use rates,  only:gradpsi
   use hterms, only:gradgradh,gradh,zeta
@@ -349,6 +350,12 @@ subroutine conservative2primitive
 !
  if (ibiascorrection.gt.0) then
     call get_lambda(sqrtg,ntotal)
+ endif
+!
+!--get second derivatives of velocity
+!
+ if (.false.) then
+    call get_2ndderivs(2,npart,x,pmass,rho,hh,vel,del2v,graddivv)
  endif
 !
 !--call equation of state calculation

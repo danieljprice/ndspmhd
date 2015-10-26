@@ -344,7 +344,6 @@ subroutine iterate_density
      endif
 
   enddo iterate
-  
 
 !--NB: itsdensity is also used in step  
   if (itsdensity.gt.itsdensitymax .and. itsdensitymax.gt.0) then

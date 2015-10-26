@@ -114,7 +114,6 @@ subroutine get_rates
  real :: source,tdecay1,sourcedivB,sourceJ,sourceB,sourceu
  real :: graduterm, graddivvmag,curr2
  real, dimension(:), allocatable :: del2u
- real, dimension(:,:), allocatable :: graddivv
 !
 !  (alternative forms)
 !
@@ -164,7 +163,7 @@ subroutine get_rates
  nlistdim = ntotal
  allocate ( listneigh(nlistdim),STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating neighbour list, ierr = ',ierr
- allocate ( phi(ntotal), del2u(ntotal), graddivv(ndimV,ntotal), STAT=ierr )
+ allocate ( phi(ntotal), del2u(ntotal), STAT=ierr )
  if (ierr.ne.0) write(iprint,*) ' Error allocating phi, ierr = ',ierr
  if (imhd.lt.0) then
     allocate( curlBsym(ndimV,ntotal), STAT=ierr )
@@ -207,7 +206,7 @@ subroutine get_rates
      dveldx(:,:,i) = 0.
      dxdx(:,i) = 0.
   endif
-  if (allocated(del2v)) del2v(i) = 0.
+  if (allocated(del2v)) del2v(:,i) = 0.
   xsphterm(:,i) = 0.0
   del2u(i) = 0.0
   graddivv(:,i) = 0.0
@@ -918,7 +917,7 @@ subroutine get_rates
  enddo
  
  if (allocated(listneigh)) deallocate(listneigh)
- if (allocated(phi)) deallocate(phi,del2u,graddivv)
+ if (allocated(phi)) deallocate(phi,del2u)
  if (trace) write(iprint,*) ' Exiting subroutine get_rates'
  if (itiming) then
     call cpu_time(t5)
@@ -1040,6 +1039,7 @@ contains
     real :: wabalti,wabaltj,wabalt
     real :: altrhoi,altrhoj,gammastar,vperp2
     real :: enthalpi,enthalpj,term,denom,term1
+    real :: abs_dvcrossr,dvcrossr(ndimV)
 
    pmassj = pmass(j)
 !
@@ -1102,6 +1102,8 @@ contains
     v2j = dot_product(velj(:),velj(:))
     dvel(:) = veli(:) - velj(:)
     dvdotr = dot_product(dvel,dr)
+    call cross_product3D(dvel,dr,dvcrossr)
+    abs_dvcrossr = sqrt(dot_product(dvcrossr,dvcrossr))
     projvi = dot_product(veli,dr)
     projvj = dot_product(velj,dr)
     rhoj = rho(j)
@@ -1274,9 +1276,14 @@ contains
              print*,j,'rho,dens = ',rho(j),dens(j)
              call quit  
           endif
-          vsigi = SQRT(0.5*(vsig2i + SQRT(vsigproji)))
-          vsigj = SQRT(0.5*(vsig2j + SQRT(vsigprojj)))
-          vsigB = 0.5*(vsigi + vsigj) + abs(dvdotr)
+          vsigi = sqrt(0.5*(vsig2i + sqrt(vsigproji)))
+          vsigj = sqrt(0.5*(vsig2j + sqrt(vsigprojj)))
+          if (iavlim(3).ne.2) then
+             vsigB = norm2(dvel) ! abs_dvcrossr + abs(dvdotr)
+          else
+             vsigB = 0.5*(vsigi + vsigj) + abs(dvdotr)
+          endif
+
           !vsigB = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
           !vsigB = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
        else
@@ -2134,10 +2141,8 @@ contains
     dtvisc = min(dtvisc,min(hi**2,hj**2)/shearvisc)
    
     if (allocated(del2v)) then
-!       del2v(i) = del2v(i) + 0.5*pmassj*rhoav1*dx(1)*dr(1)*(-2.*grkern)
-!       del2v(j) = del2v(j) + 0.5*pmassi*rhoav1*dx(1)*dr(1)*(-2.*grkern)
-       del2v(i) = del2v(i) - pmassj*rhoav1*dvel(1)*grgrw
-       del2v(j) = del2v(j) + pmassi*rhoav1*dvel(1)*grgrw
+       del2v(:,i) = del2v(:,i) - pmassj*rhoav1*dvel(:)*grgrw
+       del2v(:,j) = del2v(:,j) + pmassi*rhoav1*dvel(:)*grgrw
     endif
    
   end subroutine physical_viscosity
@@ -2552,7 +2557,7 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
-    real :: si, sj, rhoav1d
+    real :: si, sj, rhoav1d, grgrkern
 
     tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
     tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
@@ -2578,9 +2583,12 @@ contains
        !else
        !   Dav = 0.
        !endif
-       diffterm = rho1i*rho1j*2.*Dav*(pri - prj)*grkern/rij
-       ddustevoldt(i) = ddustevoldt(i) - pmassj*diffterm
-       ddustevoldt(j) = ddustevoldt(j) + pmassi*diffterm
+       grgrkern = -2.*grkern/rij
+       !grgrkern = 0.5*(grgrkernalti + grgrkernaltj)
+
+       diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
+       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffterm
     endif
 
     !

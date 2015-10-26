@@ -278,6 +278,7 @@ subroutine alloc(newsizein,sortlist)
 !--physical viscosity
 !
     if (allocated(del2v)) deallocate(del2v)
+    if (allocated(graddivv)) deallocate(graddivv)
     endif
 
  endif
@@ -362,7 +363,10 @@ subroutine alloc(newsizein,sortlist)
 !
 !--physical viscosity
 !
-   if (ivisc.gt.0) allocate(del2v(newsize))   
+  ! if (ivisc.gt.0) then
+      allocate(del2v(ndimV,newsize))
+      allocate(graddivv(ndimV,newsize))
+   !endif
 
  endif
  

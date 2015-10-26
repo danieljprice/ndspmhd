@@ -57,7 +57,7 @@ program kernelplot3D
  print*,' 4) density as function of r/h'
  print*,' 5) gradw normalisation condition'
  print*,' 6) gradgradw normalisation condition'
- print*,' 7) del^2 rho as a function of r/h'
+ print*,' 7) del^2 rho/dh^2 as a function of r/h'
  print*,' 8) del^2 kernel stuff as a function of r/h'
  print*,' 9) graddivv as a function of r/h'
  print*,'Enter your selection now (0 = quit):'

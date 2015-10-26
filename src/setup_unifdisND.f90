@@ -56,7 +56,7 @@ subroutine setup
  xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
  
- call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
+ call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
  npart = ntotal
  print*,'npart =',npart
 !
@@ -71,6 +71,9 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
+    !vel(1,i) = vx(x(:,i))
+    !vel(2,i) = vy(x(:,i))
+    !vel(3,i) = vz(x(:,i))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0 ! isothermal
@@ -82,7 +85,52 @@ subroutine setup
  if (trace) write(iprint,*) '  exiting subroutine setup'
   
  return
-end
+ 
+contains
+
+!----------------------------------------------------------------
+!+
+!  functional form for v and its derivatives
+!+
+!----------------------------------------------------------------
+real function vx(xyzhi)
+ use bound
+ use setup_params, only:pi
+ real, intent(in) :: xyzhi(3)
+ real :: dxbound
+ 
+ dxbound = xmax(1) - xmin(1)
+
+ vx = 0.5/pi*dxbound*sin(2.*pi*(xyzhi(1)-xmin(1))/dxbound)
+
+end function vx
+
+real function vy(xyzhi)
+ use bound
+ use setup_params, only:pi
+ real, intent(in) :: xyzhi(3)
+ real :: dxbound(3)
+ 
+ dxbound(:) = xmax(:) - xmin(:)
+
+ vy = 0.5/pi*dxbound(1)*sin(2.*pi*(xyzhi(1)-xmin(1))/dxbound(1)) &
+     - 0.5/pi*dxbound(3)*sin(2.*pi*(xyzhi(3)-xmin(3))/dxbound(3))
+
+end function vy
+
+real function vz(xyzhi)
+ use bound
+ use setup_params, only:pi
+ real, intent(in) :: xyzhi(3)
+ real :: dxbound(3)
+ 
+ dxbound(:) = xmax(:) - xmin(:)
+
+ vz = 0.05/pi*dxbound(2)*cos(4.*pi*(xyzhi(2)-xmin(2))/dxbound(2))
+
+end function vz
+
+end subroutine setup
 
 !
 ! use this routine to modify the dump upon code restart
@@ -91,3 +139,4 @@ subroutine modify_dump()
  implicit none
 
 end subroutine modify_dump
+

@@ -75,7 +75,7 @@ subroutine write_dump(t,dumpfile)
     ncolumns = ncolumns + 5
     iformat = 1
     if (igravity.ne.0) ncolumns = ncolumns + 1
-    if (allocated(del2v)) ncolumns = ncolumns + 1
+    if (allocated(del2v)) ncolumns = ncolumns + 2*ndimV
  endif
  if (geom(1:4).ne.'cart') then
     ncolumns = ncolumns + 2 + ndimV
@@ -154,7 +154,14 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) force(i,1:nprint)
      enddo
      if (igravity.ne.0) write(idatfile) poten(1:nprint)
-     if (allocated(del2v)) write(idatfile) del2v(1:nprint)
+     if (allocated(del2v)) then
+        do i=1,ndimV
+           write(idatfile) del2v(i,1:nprint)
+        enddo
+        do i=1,ndimV
+           write(idatfile) graddivv(i,1:nprint)
+        enddo
+     endif
   endif
   if (geom(1:4).ne.'cart') then
      write(idatfile) rho(1:nprint)

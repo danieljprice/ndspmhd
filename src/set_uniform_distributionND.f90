@@ -52,7 +52,7 @@ subroutine set_uniform_cartesian(idistin,psep,xmin,xmax, &
 
  use options
  use part
- use random,         only:ran1
+ use random,         only:ran1,sobseq
 !
 !--define local variables
 !  (note we read boundaries of region as input, so that more than one region

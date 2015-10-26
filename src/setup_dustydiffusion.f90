@@ -57,7 +57,7 @@ subroutine setup
  xmin(:) = -0.5   ! set position of boundaries
  xmax(:) = 0.5
  
- call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+ call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
  npart = ntotal
  print*,'npart =',npart
  if (idust.eq.2) then
