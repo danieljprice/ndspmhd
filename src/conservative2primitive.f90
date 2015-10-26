@@ -354,8 +354,8 @@ subroutine conservative2primitive
 !
 !--get second derivatives of velocity
 !
- if (.false.) then
-    call get_2ndderivs(2,npart,x,pmass,rho,hh,vel,del2v,graddivv)
+ if (icompute_d2v > 0) then
+    call get_2ndderivs(icompute_d2v,npart,x,pmass,rho,hh,vel,del2v,graddivv)
  endif
 !
 !--call equation of state calculation

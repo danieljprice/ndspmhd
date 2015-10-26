@@ -71,9 +71,9 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    !vel(1,i) = vx(x(:,i))
-    !vel(2,i) = vy(x(:,i))
-    !vel(3,i) = vz(x(:,i))
+    vel(1,i) = vx(x(:,i))
+    vel(2,i) = vy(x(:,i))
+    vel(3,i) = vz(x(:,i))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0 ! isothermal

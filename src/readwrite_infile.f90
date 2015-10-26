@@ -129,6 +129,7 @@ subroutine write_infile(infile)
   call write_inopt(ivisc,'ivisc','use physical viscosity?',iread)
   call write_inopt(shearvisc,'shearvisc','shear viscosity (nu)',iread)
   call write_inopt(bulkvisc,'bulkvisc','bulk viscosity (zeta)',iread)
+  call write_inopt(icompute_d2v,'icompute_d2v','compute velocity derivatives (0:none 1:brookshaw 2:direct)',iread)
 
   write(iread,"(/,a)") '# options affecting particle splitting'
   call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
@@ -272,6 +273,7 @@ subroutine read_infile(infile)
      call read_inopt(ivisc,'ivisc',db,errcount=nerr)
      call read_inopt(shearvisc,'shearvisc',db,errcount=nerr)
      call read_inopt(bulkvisc,'bulkvisc',db,errcount=nerr)
+     call read_inopt(icompute_d2v,'icompute_d2v',db,errcount=nerr)
 
      ! dust options
      call read_inopt(idust,'idust',db,errcount=nerr)

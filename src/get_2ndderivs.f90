@@ -83,7 +83,7 @@ subroutine get_2ndderivs(iderivtype,npart,x,pmass,rho,hh,v,del2v,graddivv)
  real, dimension(ndimV) :: dr,dv,vi,del2vi,graddivvi
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
  real :: rho1i,rho1j,del2Wi,del2Wj,rij1,projv
- real, dimension(ntotal) :: h1
+ real, dimension(ntotal) :: h1,del2rho
 !
 !--allow for tracing flow
 !      
@@ -98,6 +98,13 @@ subroutine get_2ndderivs(iderivtype,npart,x,pmass,rho,hh,v,del2v,graddivv)
  enddo
  del2v(:,:) = 0.
  graddivv(:,:) = 0.
+ del2rho(:) = 0.
+ select case(iderivtype)
+ case(2)
+    print "(a)",' computing 2nd derivs with direct method'
+ case default
+    print "(a)",' computing 2nd derivs with Brookshaw/moment method' 
+ end select
 !
 !--loop over all the link-list cells
 !
@@ -191,7 +198,13 @@ subroutine get_2ndderivs(iderivtype,npart,x,pmass,rho,hh,v,del2v,graddivv)
                    graddivvi(:)  = graddivvi(:)  + pmass(j)*rho1j*((ndim + 2)*projv*dr(:) - dv(:))*grkerni*rij1
                    graddivv(:,j) = graddivv(:,j) - pmass(i)*rho1i*((ndim + 2)*projv*dr(:) - dv(:))*grkernj*rij1
                 end select
-
+!
+!--2nd derivatives of density
+!
+                del2rho(i) = del2rho(i) + pmass(j)*del2Wi
+                !if (i.eq.1) print*,j,q2i,grgrkerni/(hfacwabi*hi1*hi1),pmass(j)*grgrkerni,pmass(j)*(ndim-1)*grkerni*rij1
+                !if (j.eq.1) print*,i,q2j,grgrkernj/(hfacwabj*hj1*hj1),pmassi*del2Wj,pmassi*grgrkernj,pmassi*(ndim-1)*grkernj*rij1
+                del2rho(j) = del2rho(j) + pmassi*del2Wj
              endif
           endif! j .ne. i   
        enddo loop_over_neighbours
@@ -203,6 +216,8 @@ subroutine get_2ndderivs(iderivtype,npart,x,pmass,rho,hh,v,del2v,graddivv)
     enddo loop_over_cell_particles
     
  enddo loop_over_cells
+ 
+    print*,' del2rho = ',del2rho(10),del2rho(10)*hh(10)**(ndim+2)/pmass(10)
 
  return
 end subroutine get_2ndderivs
