@@ -48,12 +48,17 @@ run_gen()
      cd $child;
      rm -f kernel100.dat;
      ln -s ../$child.dat kernel100.dat;
-     line=`../../run-child.sh`;
-     errL2=`echo $line | cut -d'=' -f 3 | cut -d'L' -f 1`;
-     errLinf=`echo $line | cut -d'=' -f 4 | cut -d'(' -f 1`;
-     echo $child $errL2 $errLinf > score;
+     #line=`../../run-child.sh`;
+     #score=`echo $line | cut -d'=' -f 3 | cut -d'L' -f 1`;
+     score=`../../run-child.sh`;
+     mutfile="../$child.dat.mut";
+     mut='';
+     if [ -e $mutfile ]; then
+        mut=`cat $mutfile`;
+     fi
+     echo $child $score $mut > score;
      cat score;
-     echo $child $errL2 $errLinf >> ../score.list;
+     echo $child $score $mut >> ../score.list;
      cd ..;
  done
  ../sort score.list > ranked.list;
@@ -69,6 +74,9 @@ make_starting_gen()
   #   echo $x;
   #  ./breed cubic.dat cubic.dat $x.dat;
   #done
+  cd startlib;
+  run_gen;
+  cd ..;
   ./breed startlib
 }
 
@@ -104,7 +112,7 @@ for n in `seq 1 999`; do
     echo $dir;
     mkdir $dir;
     cd $dir;
-    mv ../??.dat .;
+    mv ../??.dat* .;
     run_gen;
     cd ..
     make_new_gen $dir;

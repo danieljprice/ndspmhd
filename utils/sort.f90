@@ -7,10 +7,10 @@
 program sort
  use sortutils, only:indexx
  implicit none
- character(len=120) :: filename
- integer :: ierr,n,i,narg
+ character(len=120) :: filename,line
+ integer :: ierr,n,i,narg,ierr1
  integer, parameter :: maxk = 100
- real :: dat(3,maxk)
+ real :: dat(4,maxk)
  integer :: index(maxk)
  
  narg = command_argument_count()
@@ -27,7 +27,8 @@ program sort
  ierr = 0
  do while (ierr==0)
    n = n + 1
-   read(1,*,iostat=ierr) dat(1:3,n)
+   read(1,"(a)",iostat=ierr) line
+   read(line,*,iostat=ierr1) dat(1:4,n)
    if (ierr /= 0) n = n - 1
  enddo
  close(unit=1)
@@ -37,7 +38,7 @@ program sort
  
  ! now write
  do i=1,n
-    write(*,"(i2.2,2(1x,es10.3))") nint(dat(1,index(i))),dat(2:3,index(i))
+    write(*,"(i2.2,1(1x,es10.3),1x,i2)") nint(dat(1,index(i))),dat(2,index(i)),nint(dat(3,index(i)))
  enddo
 
 end program sort

@@ -52,7 +52,8 @@ module kernels
  public  :: setkern,interpolate_kernel,interpolate_kernels,interpolate_softening
  public  :: setkerndrag, interpolate_kerneldrag
  private :: setkerntable
- logical, parameter :: write_kernel_table = .false.
+ logical, public :: write_kernel_table = .false.
+ logical, public :: verbose = .true.
 
 contains
 
@@ -150,7 +151,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     radkern = max(radkern,  2.5)
     radkern2 = radkern*radkern
     dq2table = radkern2/real(ikern)
-    print*,' setting up quartic with radkern = ',radkern
+    if (verbose) print*,' setting up quartic with radkern = ',radkern
     select case(ndim)
       case(1)
          cnormk = 1./24.
@@ -374,29 +375,29 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       beta = 0.85
       !print*,' enter beta'
       !read*,beta
-      print*,'beta = ',beta, ' calculating alpha'
+      if (verbose) print*,'beta = ',beta, ' calculating alpha'
       term1 = (beta+2.)*(beta**3 - 2.*beta**2 - 4.*beta + 128)
       alpha = -0.5*(4.*beta + beta**2 + 4. - sqrt(term1))/(beta + 2.)
    
       term2 = (beta-2.)*(beta+2.)*(beta-alpha)*(beta+alpha)
       dterm2 = (alpha+2)*(-alpha**2 + beta**2 - 4.)
       q = 2.*alpha*(-alpha**2 - 2.*alpha + beta**2 - 4. + sqrt(term2))/dterm2
-      print*,' 3rd derivative zero at q = ',q    
+      if (verbose) print*,' 3rd derivative zero at q = ',q    
     endif
     c =0.
     a =  (-radkern**4 + (radkern**2 + c*gamma**2)*beta**2)      &
         /(alpha**2*(alpha**2-beta**2))      
     b = -(radkern**4 + a*alpha**4 + c*gamma**4)/(beta**4)
-    print*,'matching points = ',beta,alpha
+    if (verbose) print*,'matching points = ',beta,alpha
     select case(ndim)
       case(1)
         cnormk = 3./(a*alpha**6 + b*beta**6 + c*gamma**6 + radkern**6)   ! for radkern = 2 and 1d
-        print*,'1d cnormk = ',cnormk,' a,b = ',a,b
+        if (verbose) print*,'1d cnormk = ',cnormk,' a,b = ',a,b
       case(2)
         cnormk = 42./(2.*pi*(a*alpha**7 + b*beta**7 + c*gamma**7 + radkern**7))
-        print*,'2d cnormk = ',cnormk,' a,b = ',a,b,beta,alpha
+        if (verbose) print*,'2d cnormk = ',cnormk,' a,b = ',a,b,beta,alpha
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
        !stop  
@@ -625,7 +626,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
        cnormk = 1./16.
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -661,7 +662,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
          cnormk = 0.5*(npower+1)/radkern**(npower+1)
       case(2,3)
-         write(*,666)
+         if (verbose) write(*,666)
          ierr = 1
          return
          !stop 'normalisation const not defined in kernel'
@@ -697,7 +698,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 15./(64.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -732,7 +733,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 30./(31.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -775,7 +776,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = -30.*alpha/(pi*(20.*alpha**3 - 45.*alpha**2 + 4.*alpha - 10.))
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -828,7 +829,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           cnormk = 1.
        end select
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -952,7 +953,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 1./8.097925
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -994,7 +995,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 1./24.02428 !!/113.3185 !!/136.77!!/24.02428
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1041,7 +1042,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
          cnormk = 0.643998 ! 0.7764 from Mathematica
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select  
@@ -1186,7 +1187,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !         print*,cnormk,3.947
          cnormk = 3.947
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select  
@@ -1275,7 +1276,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 315./(32768.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1310,7 +1311,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 45045./(32768.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1346,7 +1347,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 109395./(65536.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1382,7 +1383,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 2078505./(1048576.*pi)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1414,7 +1415,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
        cnormk = 1./pi
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1478,7 +1479,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 1.
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1504,7 +1505,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 1.
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1855,7 +1856,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        a = 85./63.
        cnormk = 1./pi * (630./283.)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1892,7 +1893,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 1./pi
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1947,7 +1948,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(3)
        cnormk = 30./(31.*pi)/(-0.877)
       case default
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -1986,7 +1987,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 1./sqrt(pi)
       case default
-        write(*,666)
+        if (verbose) write(*,666)
         ierr = 1
         return
     end select
@@ -2404,7 +2405,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(1)
         cnormk = 4.
       case(2,3)
-       write(*,666)
+       if (verbose) write(*,666)
        ierr = 1
        return
     end select
@@ -2631,7 +2632,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        kernellabel = 'C-spline O(6)'
        ncspline = 6 
     else
-       print*,'kernelND cspline - incorrect csplines'
+       if (verbose) print*,'kernelND cspline - incorrect csplines'
        ierr = 1
        return
     endif
@@ -2641,13 +2642,13 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     dq2table = radkern*radkern/real(ikern)    
     select case(ndim)
       case(1)
-        print*,'cspline should not be used in 1D'
+        if (verbose) print*,'cspline should not be used in 1D'
         ierr = 1
         return
       case(2)
         cnormk = 1.
       case(3)
-        print*,'cspline should not be used in 3D'
+        if (verbose) print*,'cspline should not be used in 3D'
         ierr = 1
         return
     end select
@@ -2708,7 +2709,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        secondz   = 0.5*sqrt(3.)
       
       case default
-       print*,'kernelND cspline - incorrect csplines derivatives'
+       if (verbose) print*,'kernelND cspline - incorrect csplines derivatives'
        ierr = 2
        return           
     end select
@@ -2719,9 +2720,9 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       case(2)
         cnormk = 1.
       case default
-        write(*,666)
+        if (verbose) write(*,666)
         ierr = 1
-        print*,'cspline derivative not implemented in ',ndim,'D'
+        if (verbose) print*,'cspline derivative not implemented in ',ndim,'D'
         return
     end select        
 !
@@ -3318,7 +3319,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  
  endif
  
- if (write_kernel_table) then
+ if (write_kernel_table .and. ierr == 0) then
     cnormkd(:) = 0.
     cnormkd(ndim) = cnormk
     call write_kernel_to_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern)
@@ -3388,7 +3389,7 @@ subroutine read_kernel_from_file(ikernel,lu,cnormkd,w,grw,grgrw,ierrf)
  inquire(file=filename,exist=iexist)
  if (iexist) then
     open(unit=lu,file=filename,status='old',iostat=ierrf)
-    print*,'reading kernel from '//trim(filename)
+    if (verbose) print*,'reading kernel from '//trim(filename)
     if (ierrf.eq.0) then
        read(lu,*,iostat=ierrf) cnormkd(1:3)
        do i=0,ikern

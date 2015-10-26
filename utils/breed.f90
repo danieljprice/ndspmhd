@@ -27,7 +27,7 @@ module genalg
  implicit none
  integer, parameter :: dp = 8
  real(dp), parameter :: mut_prob = 0.4
- real(dp), parameter :: mut_ampl = 1.0
+ real(dp), parameter :: mut_ampl = 0.5
  
  
  real(dp), parameter :: radkern = 2.
@@ -145,6 +145,71 @@ contains
 
  end subroutine mutate2
 
+ !------------------------------------------------------
+ ! Mutation method 3: Mutate on 3rd derivative
+ !  We then integrate to get effect on kernel
+ !------------------------------------------------------
+ subroutine mutate3(ikern,wkern,grkern,grgrwkern,iseed,iseed2,imethod,ampl)
+  use random, only:ran2,rayleigh_deviate
+  integer, intent(in)  :: ikern
+  real(dp),intent(inout) :: wkern(0:ikern),grkern(0:ikern),grgrwkern(0:ikern)
+  integer, intent(inout) :: iseed,iseed2
+  integer, intent(out)   :: imethod
+  real(dp), intent(out)  :: ampl
+  integer :: i
+  real(dp), parameter :: pindex = 1.0
+  real(dp) :: h,q2,q,dq2table,f,phi,kx,pow,k0
+  real(dp) :: gr3w(0:ikern),gr4w(0:ikern)
+  
+  f = ran2(iseed)
+  imethod = 0
+  ampl = 0.
+  !print*,'f = ',f,iseed,iseed2
+  if (f < mut_prob) then
+     phi = -pi + 2.*pi*ran2(iseed)
+     h = ran2(iseed)*radkern
+     kx = 2.*pi/h
+     k0 = 2.*pi/radkern
+     !mode = int(radkern/h) + 1
+     !kx = mode*k0
+     ! power law decay in amplitudes
+     pow = 1./(kx/k0)**pindex
+     ampl = mut_ampl*rayleigh_deviate(iseed2)*pow
+
+     dq2table = radkern2/real(ikern,kind=dp)
+     ! get 3rd deriv
+     call differentiate(ikern,grgrwkern,gr3w)
+     !call differentiate(ikern,gr3w,gr4w)
+
+!     call diff(ikern,grgrwkern,gr3w,gr4w)    
+     !print*,'MUTATE = ',phi,'mode=',mode,' lambda = ',h,2.*pi/kx,' ampl = ',ampl
+     imethod = int(ran2(iseed)*3.) + 1
+     do i=0,ikern
+        q2 = i*dq2table
+        q  = sqrt(q2)
+        select case(imethod)
+        case(3)
+           grgrwkern(i) = grgrwkern(i)*(1 + 0.1*ampl*sin(kx*q + phi))
+!        case(2)
+!           gr4w(i) = gr4w(i)*(1 + 0.01*ampl*sin(kx*q + phi))
+        case(2)
+           gr3w(i) = gr3w(i) + ampl*sin(kx*q + phi)*(1. - q2/radkern2)**3
+        case default
+           gr3w(i) = gr3w(i)*(1 + 0.1*ampl*sin(kx*q + phi))
+        end select
+     enddo
+     ! integrate to get 3rd deriv
+     !if (imethod == 2) call integrate(ikern,gr4w,gr3w)
+     ! integrate to get 2nd deriv
+     if (imethod < 3) call integrate(ikern,gr3w,grgrwkern)
+     ! integrate to get gradient
+     call integrate(ikern,grgrwkern,grkern)
+     ! integrate to get kernel
+     call integrate(ikern,grkern,wkern)
+  endif
+
+ end subroutine mutate3
+
  !-----------------------------------------
  ! routine to normalise the kernel table
  ! appropriately in 1, 2 and 3D
@@ -187,14 +252,17 @@ contains
  !-----------------------------------------------
  subroutine diff(ikern,wkern,grkern,grgrkern)
   integer, intent(in)    :: ikern
-  real(dp),    intent(in)    :: wkern(0:ikern)
+  real(dp),    intent(inout)    :: wkern(0:ikern)
   real(dp),    intent(out)   :: grkern(0:ikern),grgrkern(0:ikern)
   real(dp) :: dq2table,q2,q,qm1,qm2,qm3,qp1,qp2,qp3
   real(dp) :: dq,dqm1,dqm2,dqm3,dqp1,dqp2,a,b,c,d
   integer :: i
  
   dq2table = radkern2/real(ikern,kind=dp)
-
+  !do i=0,ikern
+  !   wkern(i) = i*dq2table
+  !enddo
+  
   ! finite differencing to get kernel derivatives
   do i=0,ikern
      q2 = i*dq2table
@@ -212,28 +280,29 @@ contains
         c = -dq/(dqp1*(dq + dqp1))      
         grkern(i) = a*wkern(i) + b*wkern(i+1) + c*wkern(i+2)
      ! second deriv, forward diff
-        a = (6.*dq + 4.*dqp1 + 2.*dqp2)/(dq*(dq + dqp1)*(dq + dqp1 + dqp2))
-        b = -(4.*(dq + dqp1) + 2.*dqp2)/(dq*dqp1*(dqp1 + dqp2))
-        c = (4.*dq + 2.*(dqp1 + dqp2))/((dqp1 + dq)*dqp1*dqp2)
-        d = -(4.*dq + 2.*dqp1)/((dq + dqp1 + dqp2)*(dqp2 + dqp1)*dqp2)
+        a = (6.d0*dq + 4.d0*dqp1 + 2.d0*dqp2)/(dq*(dq + dqp1)*(dq + dqp1 + dqp2))
+        b = -(4.d0*(dq + dqp1) + 2.d0*dqp2)/(dq*dqp1*(dqp1 + dqp2))
+        c = (4.d0*dq + 2.d0*(dqp1 + dqp2))/((dqp1 + dq)*dqp1*dqp2)
+        d = -(4.d0*dq + 2.d0*dqp1)/((dq + dqp1 + dqp2)*(dqp2 + dqp1)*dqp2)
         grgrkern(i) = a*wkern(i) + b*wkern(i+1) + c*wkern(i+2) + d*wkern(i+3)     
      elseif (i==ikern .or. i==ikern-1) then
+     !elseif (i > 3) then
      ! backward diff
         qm1 = sqrt((i-1)*dq2table)
         qm2 = sqrt((i-2)*dq2table)
         qm3 = sqrt((i-3)*dq2table)
-        dqm2 = qm1 - qm2
         dqm1 = q - qm1
+        dqm2 = qm1 - qm2
         dqm3 = qm2 - qm3
         a = dqm1/(dqm2*(dqm1+dqm2))
         b = -(dqm1 + dqm2)/(dqm1*dqm2)
-        c = (2.*dqm1 + dqm2)/(dqm1*(dqm1 + dqm2))
+        c = (2.d0*dqm1 + dqm2)/(dqm1*(dqm1 + dqm2))
         grkern(i) = a*wkern(i-2) + b*wkern(i-1) + c*wkern(i)
      ! second deriv, backwards
-        a = -(4.*dqm1 + 2.*dqm2)/(dqm3*(dqm3 + dqm2)*(dqm3 + dqm2 + dqm1))
-        b = (4.*dqm1 + 2.*(dqm2 + dqm3))/(dqm3*dqm2*(dqm2 + dqm1))
-        c = -(4.*(dqm1 + dqm2) + 2.*dqm2)/((dqm2 + dqm3)*dqm2*dqm1)
-        d = (6.*dqm1 + 4.*dqm2 + 2.*dqm3)/((dqm1 + dqm2 + dqm3)*(dqm1 + dqm2)*dqm1)
+        a = -(4.d0*dqm1 + 2.d0*dqm2)/(dqm3*(dqm3 + dqm2)*(dqm3 + dqm2 + dqm1))
+        b = (4.d0*dqm1 + 2.d0*(dqm2 + dqm3))/(dqm3*dqm2*(dqm2 + dqm1))
+        c = -(4.d0*(dqm1 + dqm2) + 2.d0*dqm3)/((dqm2 + dqm3)*dqm2*dqm1)
+        d = (6.d0*dqm1 + 4.d0*dqm2 + 2.d0*dqm3)/((dqm1 + dqm2 + dqm3)*(dqm1 + dqm2)*dqm1)
         grgrkern(i) = a*wkern(i-3) + b*wkern(i-2) + c*wkern(i-1) + d*wkern(i)
      else
         qp2 = sqrt((i+2)*dq2table)
@@ -252,15 +321,120 @@ contains
         !c = 2./(dq*(dq + dqm1))
         !grgrkern(i) = a*wkern(i-1) + b*wkern(i) + c*wkern(i+1)
      ! two nodes forward, one back 2nd derivative estimate
-        a = 2.*(2.*dq + dqp1)/(dqm1*(dqm1 + dq)*(dqm1 + dq + dqp1))
-        b = -2.*(2.*dq + dqp1 - dqm1)/(dqm1*dq*(dq + dqp1))
-        c =  2.*(dq + dqp1 - dqm1)/((dqm1 + dq)*dq*dqp1)
-        d = -2.*(dq - dqm1)/((dqm1 + dq + dqp1)*(dq + dqp1)*dqp1)
+        !a = 2.d0*(2.d0*dq + dqp1)/(dqm1*(dqm1 + dq)*(dqm1 + dq + dqp1))
+        !b = -2.d0*(2.d0*dq + dqp1 - dqm1)/(dqm1*dq*(dq + dqp1))
+        !c =  2.d0*(dq + dqp1 - dqm1)/((dqm1 + dq)*dq*dqp1)
+        !d = -2.d0*(dq - dqm1)/((dqm1 + dq + dqp1)*(dq + dqp1)*dqp1)
+        !print*,a,b,c,d
+        a = (2.*dqp1 + 4.*dq)/((q-qm1)*(qp1-qm1)*(qp2-qm1))
+        b = 2.*((qm1 - q) + 2.*(qp1-q) + qp2-qp1)/((qm1 - q)*(qp1-q)*(qp2 - q))
+        c = 2.*(-2.*q + qm1 + qp2)/((q - qp1)*(qm1 - qp1)*(qp2 - qp1))
+        d = 2.*(-2.*q + qm1 + qp1)/((q - qp2)*(qm1 - qp2)*(qp1 - qp2))
+        !print*,a,b,c,d
         grgrkern(i) = a*wkern(i-1) + b*wkern(i) + c*wkern(i+1) + d*wkern(i+2)
      endif
   enddo
  
  end subroutine diff
+
+ !-----------------------------------------------
+ ! differentiate the kernel table to get
+ ! tables for the derivative and 2nd deriv
+ ! We use 2nd-order accurate finite differencing
+ ! on non-uniform meshes
+ !-----------------------------------------------
+ subroutine differentiate(ikern,wfunc,grfunc)
+  integer, intent(in)    :: ikern
+  real(dp),    intent(in)    :: wfunc(0:ikern)
+  real(dp),    intent(out)   :: grfunc(0:ikern)
+  real(dp) :: dq2table,q2,q,qm1,qm2,qp1,qp2
+  real(dp) :: dq,dqm1,dqm2,dqp1,a,b,c
+  integer :: i
+ 
+  dq2table = radkern2/real(ikern,kind=dp)
+
+  ! finite differencing to get kernel derivatives
+  do i=0,ikern
+     q2 = i*dq2table
+     q  = sqrt(q2)
+     if (i==0 .or. i==1) then
+     ! forward diff
+        qp1 = sqrt((i+1)*dq2table)
+        qp2 = sqrt((i+2)*dq2table)
+        dq = qp1 - q
+        dqp1 = qp2 - qp1
+        a = -(2.*dq + dqp1)/(dq*(dq + dqp1))
+        b = (dq + dqp1)/(dq*dqp1)
+        c = -dq/(dqp1*(dq + dqp1))
+        grfunc(i) = a*wfunc(i) + b*wfunc(i+1) + c*wfunc(i+2)
+     elseif (i==ikern .or. i==ikern-1) then
+     ! backward diff
+        qm1 = sqrt((i-1)*dq2table)
+        qm2 = sqrt((i-2)*dq2table)
+        dqm2 = qm1 - qm2
+        dqm1 = q - qm1
+        a = dqm1/(dqm2*(dqm1+dqm2))
+        b = -(dqm1 + dqm2)/(dqm1*dqm2)
+        c = (2.*dqm1 + dqm2)/(dqm1*(dqm1 + dqm2))
+        grfunc(i) = a*wfunc(i-2) + b*wfunc(i-1) + c*wfunc(i)
+     else
+        qp1 = sqrt((i+1)*dq2table)
+        qm1 = sqrt((i-1)*dq2table)
+        dqm1 = q - qm1
+        dq   = qp1 - q
+     ! 2nd order unequal grid finite diff
+        grfunc(i) = -dq/(dqm1*(dq+dqm1))*wfunc(i-1) &
+                   + (dq-dqm1)/(dq*dqm1)*wfunc(i) &
+                   + dqm1/(dq*(dq + dqm1))*wfunc(i+1)
+     endif
+  enddo
+ 
+ end subroutine differentiate
+
+ !-----------------------------------------------
+ ! differentiate the kernel table to get
+ ! tables for the derivative and 2nd deriv
+ ! this version does standard finite differencing
+ ! on the q2 mesh and then chain rule to get
+ ! deriv w.r.t. q instead of q2
+ !-----------------------------------------------
+ subroutine diffu(ikern,wkern,grkern,grgrkern)
+  integer, intent(in)    :: ikern
+  real(dp),    intent(in)  :: wkern(0:ikern)
+  real(dp),    intent(out) :: grkern(0:ikern),grgrkern(0:ikern)
+  real(dp) :: dq2table,q2,q
+  real(dp) :: ddq2,ddq22,qp1,qm1
+  integer :: i
+ 
+  dq2table = radkern2/real(ikern,kind=dp)
+  ddq2     = 1.d0/dq2table
+  ddq22    = ddq2*ddq2
+  ! finite differencing to get kernel derivatives
+  do i=0,ikern
+     q2 = i*dq2table
+     q  = sqrt(q2)
+     if (i==0) then
+     ! forward diff
+        grkern(i) = 0.5*(-3.*wkern(i) + 4.*wkern(i+1) - wkern(i+2))*ddq2
+        grgrkern(i) = (2.*wkern(i) - 5.*wkern(i+1) + 4.*wkern(i+2) - wkern(i+3))*ddq22*2.*q + grkern(i)*2.
+        grkern(i) = grkern(i)*2.*q
+     elseif (i==ikern) then
+     ! backward diff
+        grkern(i) = 0.5*(wkern(i-2) - 4.*wkern(i-1) + 3.*wkern(i))*ddq2
+        grgrkern(i) = (-wkern(i-3) + 4.*wkern(i-2) - 5.*wkern(i-1) + 2.*wkern(i))*ddq22*2.*q + grkern(i)*2.
+        grkern(i) = grkern(i)*2.*q
+     else
+       qp1 = sqrt((i+1)*dq2table)
+       qm1 = sqrt((i-1)*dq2table)
+     ! centred diff
+        grkern(i) = 0.5*(wkern(i+1) - wkern(i-1))*ddq2
+        grgrkern(i) = (wkern(i-1) - 2.*wkern(i) + wkern(i+1))*ddq22*2.*q + grkern(i)*2.
+        grkern(i) = grkern(i)*2.*q
+        if (i.eq.1 .or. i.eq.2 .or. i.eq.3) print*,i,grkern(i)
+     endif
+  enddo
+
+ end subroutine diffu
 
  !-----------------------------------------------
  ! Integrate the kernel table to get
@@ -319,15 +493,21 @@ contains
   real(dp),    intent(in)  :: wkern(0:ikern),grkern(0:ikern),grgrkern(0:ikern),c(3)
   integer, intent(out) :: ierr
   integer :: lu,i
-  real(dp) :: q,dq2table
+  real(dp) :: q,dq2table,d2W
 
   dq2table = radkern2/real(ikern,kind=dp)  
   open(newunit=lu,file=filename,status='replace',iostat=ierr)
-  if (ierr /= 0) return  
+  if (ierr /= 0) return
   write(lu,*) c(1:3)
   do i=0,ikern
      q = sqrt(i*dq2table)
-     write(lu,*) q,wkern(i),grkern(i),grgrkern(i)
+     if (q > 0.) then
+        d2W = grgrkern(i) + 2.*grgrkern(i)/q
+     else
+        d2W = 0.
+     endif
+     write(lu,*) q,wkern(i),grkern(i),grgrkern(i),d2W
+     !write(lu,*) q,wkern(i),grkern(i),grgrkern(i),d2W
   enddo
   close(lu)
 
@@ -342,8 +522,8 @@ contains
   character(len=*), intent(in)    :: file1,file2,fileout
   integer,          intent(inout) :: iseed,iseed2
   real(dp), dimension(0:ikern)    :: wkern1,wkern2,wkern,grkern,grgrkern
-  real(dp) :: c(3)
-  integer :: ierr1,ierr2,ierrw
+  real(dp) :: c(3),ampl
+  integer :: ierr1,ierr2,ierrw,imethod
 
   call read_kernel(file1,ikern,wkern1,ierr1)
   call read_kernel(file2,ikern,wkern2,ierr2)
@@ -353,13 +533,17 @@ contains
   !call mutate(ikern,wkern,iseed,iseed2)
   call diff(ikern,wkern,grkern,grgrkern)
   call mutate2(ikern,wkern,grkern,grgrkern,iseed,iseed2)
+  !call mutate3(ikern,wkern,grkern,grgrkern,iseed,iseed2,imethod,ampl)
 
   call normalise(ikern,wkern,c)
-  wkern = wkern*c(2)
-  c(:) = c(:)/c(2)
+  wkern = wkern*c(3)
+  c(:) = c(:)/c(3)
   call diff(ikern,wkern,grkern,grgrkern)
 
   call write_kernel(fileout,ikern,c,wkern,grkern,grgrkern,ierrw)
+  !open(unit=100,file=trim(fileout)//'.mut',status='replace',form='formatted')
+  !write(100,*) imethod,ampl
+  !close(100)
   if (ierrw /= 0) print*,' ERROR during write'
 
  end subroutine breed_pair
@@ -379,10 +563,13 @@ contains
   if (ierr1 /= 0) stop 'error reading kernel files'
 
   call normalise(ikern,wkern,c)
-  wkern = wkern*c(2)
-  c(:) = c(:)/c(2)
+  wkern = wkern*c(3)
+  c(:) = c(:)/c(3)
+!  call differentiate(ikern,wkern,grkern)
+!  call differentiate(ikern,grkern,grgrkern)
   call diff(ikern,wkern,grkern,grgrkern)
-  print "(3a)",trim(filein),' -> ',trim(fileout)
+  !call diffu(ikern,wkern,grkern,grgrkern)
+  print "(3a)",trim(filein),' save-> ',trim(fileout)
 
   call write_kernel(fileout,ikern,c,wkern,grkern,grgrkern,ierrw)
   if (ierrw /= 0) print*,' ERROR during write'
@@ -490,7 +677,9 @@ program breed
     call breed_pair(file1,file2,fileout,iseed,iseed2)
     print "(5a)",trim(file1),' + ',trim(file2),' -> ',trim(fileout)
  elseif (nargs /= 1) then
-    stop 'usage: breed dir'
+    print*, 'usage: breed dir           (to breed all)'
+    print*, '   or: breed kernel.dat    (to normalise a kernel table)'
+    stop
  else
     call get_command_argument(1,dir)
 
