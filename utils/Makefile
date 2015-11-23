@@ -12,7 +12,7 @@
 
 ## Compiler flags
 FC =  gfortran
-FFLAGS =  -O2 -Wall -fdefault-real-8 -fdefault-double-8 -fbounds-check
+FFLAGS =  -O2 -Wall -fdefault-real-8 -fdefault-double-8 #-fbounds-check
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 LDFLAGS =  -L/usr/X11/lib -lX11 -L${PGPLOT_DIR} -lpgplot -lpng
 DBLFLAGS = -fdefault-real-8
@@ -40,13 +40,15 @@ OBJSPHDERIV = kernelND.o sphderiv.o
 OBJMODDUMP = variablesND.o allocateND.o prompting.o \
              readwrite_dumps.o modifydump.o
 
+OBJPLOT = legend.o setpage.o
+
 all: kernelplot kernelplot3D kernelcalc3D getkernellist
 
-kernelplot: $(OBJECTS) legend.o setpage.o kernelplot.o kernelstability1D.o
-	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernelplot.o kernelstability1D.o $(LDFLAGS)
+kernelplot: $(OBJECTS) $(OBJPLOT) kernelplot.o kernelstability1D.o
+	$(FC) $(FFLAGS) -o $@ $(OBJECTS) $(OBJPLOT) kernelplot.o kernelstability1D.o $(LDFLAGS)
 
-kernelplot3D: $(OBJECTS) legend.o setpage.o kernel_sums.o kernelplot3D.o
-	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernel_sums.o kernelplot3D.o $(LDFLAGS)
+kernelplot3D: $(OBJECTS) $(OBJPLOT) kernel_sums.o kernelplot3D.o
+	$(FC) $(FFLAGS) -o $@ $(OBJECTS) $(OBJPLOT) kernel_sums.o kernelplot3D.o $(LDFLAGS)
 
 kernelcalc3D: $(OBJECTS) kernel_sums.o kernelcalc3D.o
 	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernel_sums.o kernelcalc3D.o
