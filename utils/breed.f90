@@ -106,15 +106,16 @@ contains
  ! Mutation method 2: Mutate on 2nd derivative
  !  We then integrate to get effect on kernel
  !------------------------------------------------------
- subroutine mutate2(ikern,wkern,grkern,grgrwkern,iseed,iseed2)
+ subroutine mutate2(ikern,wkern,grkern,grgrwkern,iseed,iseed2,imethod)
   use random, only:ran2,rayleigh_deviate
   integer, intent(in)  :: ikern
   real(dp),intent(inout) :: wkern(0:ikern),grkern(0:ikern),grgrwkern(0:ikern)
   integer, intent(inout) :: iseed,iseed2
-  integer :: i !mode
+  integer :: i,imethod
   real(dp), parameter :: pindex = 1.5
   real(dp) :: h,ampl,q2,q,dq2table,f,phi,kx,pow,k0
   
+  imethod = 0
   f = ran2(iseed)
   !print*,'f = ',f,iseed,iseed2
   if (f < mut_prob) then
@@ -126,17 +127,23 @@ contains
      !kx = mode*k0
      ! power law decay in amplitudes
      pow = 1./(kx/k0)**pindex
-     ampl = mut_ampl*rayleigh_deviate(iseed2)*pow
-     !! use gaussian deviate as mutation can be either + or -
-     !ampl = mut_ampl*gauss_dev(iseed2)*pow
-     dq2table = radkern2/real(ikern,kind=dp)
-     !print*,'MUTATE = ',phi,'mode=',mode,' lambda = ',h,2.*pi/kx,' ampl = ',ampl
-     do i=0,ikern
-        q2 = i*dq2table
-        q  = sqrt(q2)
-        !grgrwkern(i) = grgrwkern(i)*(1. + ampl*exp(-(q - q0)**2/(2.*h**2)))
-        grgrwkern(i) = grgrwkern(i)*(1. + ampl*sin(kx*q + phi))
-     enddo
+     imethod = int(ran2(iseed)*2.) + 1
+     select case(imethod)
+     case(2)
+        call smooth(ikern,grgrwkern)
+     case default
+        ampl = mut_ampl*rayleigh_deviate(iseed2)*pow
+        !! use gaussian deviate as mutation can be either + or -
+        !ampl = mut_ampl*gauss_dev(iseed2)*pow
+        dq2table = radkern2/real(ikern,kind=dp)
+        !print*,'MUTATE = ',phi,'mode=',mode,' lambda = ',h,2.*pi/kx,' ampl = ',ampl
+        do i=0,ikern
+           q2 = i*dq2table
+           q  = sqrt(q2)
+           !grgrwkern(i) = grgrwkern(i)*(1. + ampl*exp(-(q - q0)**2/(2.*h**2)))
+           grgrwkern(i) = grgrwkern(i)*(1. + ampl*sin(kx*q + phi))
+        enddo
+     end select
      ! integrate to get gradient
      call integrate(ikern,grgrwkern,grkern)
      ! integrate to get kernel
@@ -183,32 +190,68 @@ contains
 
 !     call diff(ikern,grgrwkern,gr3w,gr4w)    
      !print*,'MUTATE = ',phi,'mode=',mode,' lambda = ',h,2.*pi/kx,' ampl = ',ampl
-     imethod = int(ran2(iseed)*3.) + 1
-     do i=0,ikern
-        q2 = i*dq2table
-        q  = sqrt(q2)
-        select case(imethod)
-        case(3)
-           grgrwkern(i) = grgrwkern(i)*(1 + 0.1*ampl*sin(kx*q + phi))
-!        case(2)
-!           gr4w(i) = gr4w(i)*(1 + 0.01*ampl*sin(kx*q + phi))
-        case(2)
-           gr3w(i) = gr3w(i) + ampl*sin(kx*q + phi)*(1. - q2/radkern2)**3
-        case default
-           gr3w(i) = gr3w(i)*(1 + 0.1*ampl*sin(kx*q + phi))
-        end select
-     enddo
-     ! integrate to get 3rd deriv
-     !if (imethod == 2) call integrate(ikern,gr4w,gr3w)
-     ! integrate to get 2nd deriv
-     if (imethod < 3) call integrate(ikern,gr3w,grgrwkern)
-     ! integrate to get gradient
-     call integrate(ikern,grgrwkern,grkern)
-     ! integrate to get kernel
-     call integrate(ikern,grkern,wkern)
+     imethod = int(ran2(iseed)*4.) + 1
+     
+     if (imethod==4) then
+        call smooth(ikern,grgrwkern)
+     else
+        do i=0,ikern
+           q2 = i*dq2table
+           q  = sqrt(q2)
+           select case(imethod)
+           case(3)
+              grgrwkern(i) = grgrwkern(i)*(1 + 0.1*ampl*sin(kx*q + phi))
+   !        case(2)
+   !           gr4w(i) = gr4w(i)*(1 + 0.01*ampl*sin(kx*q + phi))
+           case(2)
+              gr3w(i) = gr3w(i) + ampl*sin(kx*q + phi)*(1. - q2/radkern2)**3
+           case default
+              gr3w(i) = gr3w(i)*(1 + 0.1*ampl*sin(kx*q + phi))
+           end select
+        enddo
+        ! integrate to get 3rd deriv
+        !if (imethod == 2) call integrate(ikern,gr4w,gr3w)
+        ! integrate to get 2nd deriv
+        if (imethod < 3) call integrate(ikern,gr3w,grgrwkern)
+     endif
+        ! integrate to get gradient
+        call integrate(ikern,grgrwkern,grkern)
+        ! integrate to get kernel
+        call integrate(ikern,grkern,wkern)
   endif
 
  end subroutine mutate3
+ 
+ !-----------------------------------------
+ ! Apply a smoothing operator to a kernel
+ ! We do this by solving a diffusion
+ ! equation, evolving for several steps
+ ! to eliminate high frequency noise
+ !-----------------------------------------
+ subroutine smooth(ikern,wkern)
+  integer,  intent(in)    :: ikern
+  real(dp), intent(inout) :: wkern(0:ikern)
+  real(dp) :: dq2table,wnew(0:ikern) !,ddq22
+  integer :: i,j
+
+  dq2table = radkern2/real(ikern,kind=dp)
+  !ddq22 = dq2table
+  !dt = deltax^2/kappa, but coeff is 0.5*dt*kappa/deltax^2
+  
+  do j=1,10
+     do i=0,ikern
+        if (i==0) then
+           wnew(i) = wkern(i+1) !+ 0.1*(2.*wkern(i) - 5.*wkern(i+1) + 4.*wkern(i+2) - wkern(i+3))
+        elseif (i==ikern) then
+           wnew(i) = wkern(i-1) ! + 0.1*(wkern(i-3) + 4.*wkern(i-2) - 5.*wkern(i-1) + 2.*wkern(i))     
+        else
+           wnew(i) = wkern(i) + 0.25*(wkern(i-1) - 2.*wkern(i) + wkern(i+1))
+        endif
+     enddo
+     wkern = wnew
+  enddo
+  
+ end subroutine smooth
 
  !-----------------------------------------
  ! routine to normalise the kernel table
@@ -532,7 +575,8 @@ contains
   call mate(ikern,wkern1,wkern2,wkern,iseed)
   !call mutate(ikern,wkern,iseed,iseed2)
   call diff(ikern,wkern,grkern,grgrkern)
-  call mutate2(ikern,wkern,grkern,grgrkern,iseed,iseed2)
+  ampl = 0.
+  call mutate2(ikern,wkern,grkern,grgrkern,iseed,iseed2,imethod)
   !call mutate3(ikern,wkern,grkern,grgrkern,iseed,iseed2,imethod,ampl)
 
   call normalise(ikern,wkern,c)
@@ -541,9 +585,9 @@ contains
   call diff(ikern,wkern,grkern,grgrkern)
 
   call write_kernel(fileout,ikern,c,wkern,grkern,grgrkern,ierrw)
-  !open(unit=100,file=trim(fileout)//'.mut',status='replace',form='formatted')
-  !write(100,*) imethod,ampl
-  !close(100)
+  open(unit=100,file=trim(fileout)//'.mut',status='replace',form='formatted')
+  write(100,*) imethod,ampl
+  close(100)
   if (ierrw /= 0) print*,' ERROR during write'
 
  end subroutine breed_pair
