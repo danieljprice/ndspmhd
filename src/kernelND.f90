@@ -34,6 +34,7 @@
 module kernels
  use erbskernels, only:geterbskernel1,geterbskernel2
  use csplinekernels, only:getcsplinekernel,getcsplinekernelder
+ use kernel_utils,   only:differentiate,normalise
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
@@ -129,6 +130,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0,cnormkd(3)
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
+ real :: bb(0:5),K,theta,dbesj1,ddbesj1
  integer :: ierrf
  integer, parameter :: lu = 55
 
@@ -925,7 +927,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
             grwkern(i)   = (1.0*pi*q*cos(0.5*pi*q) - 2.0*sin(0.5*pi*q))*sin(0.5*pi*q)/q2*q 
             grgrwkern(i) = (-1.0*pi**2*q2*sin(0.5*pi*q)**2 + 0.5*pi**2*q2 - &
                            4.0*pi*q*sin(0.5*pi*q)*cos(0.5*pi*q) + 6.0*sin(0.5*pi*q)**2)/q4 
-            fsoft(i)     = (1.0*pi*q*cos(0.5*pi*q) - 2.0*sin(0.5*pi*q))*sin(0.5*pi*q)/q2*q 
+            fsoft(i)     = (1.0*pi*q*cos(0.5*pi*q) - 2.0*sin(0.5*pi*q))*sin(0.5*pi*q)/q2*q
             potensoft(i) = (1.0*pi*q*cos(0.5*pi*q) - 2.0*sin(0.5*pi*q))*sin(0.5*pi*q)/q2*q 
             dphidh(i)    = (1.0*pi*q*cos(0.5*pi*q) - 2.0*sin(0.5*pi*q))*sin(0.5*pi*q)/q2*q 
          else
@@ -951,7 +953,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
     dq2table = radkern2/real(ikern)
     select case(ndim)
       case(1)
-        cnormk = 1./8.097925
+        cnormk = 0.123558082
+      case(2)
+        cnormk = 0.2994570731/pi
+      case(3)
+        cnormk = 0.236804709/pi
       case default
        if (verbose) write(*,666)
        ierr = 1
@@ -981,6 +987,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       endif
     enddo
     grgrwkern(0) = grgrwkern(1)
+!    call normalise(ikern,wkern,cnormkd,radkern2)
+    print*,cnormkd(1),cnormkd(2)*pi,cnormkd(3)*pi
 
   case(21)
 !
@@ -2359,20 +2367,25 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !   
     kernellabel = 'Bessel function kernel'    
   
-    radkern = max(radkern,  2.0)      ! interaction radius of kernel
+    K = 1.75
+    radkern = max(radkern,  K)      ! interaction radius of kernel
     radkern2 = radkern*radkern
-    dq2table = radkern*radkern/real(ikern)    
+    dq2table = radkern*radkern/real(ikern)
+    bb(0:5) = (/2.49e-4,1.38e-4,-3000.91e-4,434.14e-4,150.62e-4,28.49e-4/)
+    term = K*(3830.*bb(5)*K**4 + 4596.*bb(4)*K**3 + 5745.*bb(3)*K**2 + 7660.*bb(2)*K + 11490.*bb(1)) + 6000.*bb(0)
+    term = -term/1.07211697
     select case(ndim)
       case(1)
-        cnormk = 1.
+        cnormk = 3000./term
       case(2)
-        cnormk = 9./(5.*pi)
+        cnormk = 3000./(pi*term)
       case(3)
-        cnormk = 45./(32.*pi)
-    end select
+        cnormk = 3000./(2.*pi*term)
+    end select    
 !
 !--setup kernel table
 !   
+    theta = 3.8318  ! 
     do i=0,ikern
        q2 = i*dq2table
        q = sqrt(q2)
@@ -2381,17 +2394,27 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        ! potential must be divided by h
        ! force must be divided by h^2
        !
-       if (q.lt.2.0) then
-          wkern(i) = 0. !sqrt(q)*(besj0(2.*sqrt(2.*q))  + besj1(2.*sqrt(2.*q)))
+       if (q < tiny(0.)) then
+          wkern(i) = 1.
           grwkern(i) = 0.
-          grgrwkern(i) = 0.
+       elseif (q.lt.K) then
+          term1 = (bessel_j1(theta/K*q)/((theta/K)*q))
+          dbesj1 = 0.5*(bessel_j0(theta/K*q) - bessel_jn(2,theta/K*q))
+          dterm1 = dbesj1/q - bessel_j1(theta/K*q)/((theta/K)*q2)
+          ddbesj1 = 0.5*(-bessel_j1(theta/K*q) - 0.5*(bessel_j1(theta/K*q) - bessel_jn(3,theta/K*q)))          
+          ddterm1 = ddbesj1*(theta/K)/q - 2.*dbesj1/q2 + 2.*bessel_j1(theta/K*q)/(theta/K*q**3)
+          wkern(i) = 4.*term1*term1
+          grwkern(i) = 8.*term1*dterm1
+          grgrwkern(i) = 8.*dterm1*dterm1 + 8.*term1*ddterm1
+          !wkern(i) = 0. !sqrt(q)*(besj0(2.*sqrt(2.*q))  + besj1(2.*sqrt(2.*q)))
        else
           wkern(i) = 0.0
           grwkern(i) = 0.0
           grgrwkern(i) = 0.
        endif
     enddo
-
+    !call differentiate(ikern,wkern,grwkern,radkern2)
+    !call differentiate(ikern,grwkern,grgrwkern,radkern2)
   case(68)
 !
 !--second derivative using the cubic spline
