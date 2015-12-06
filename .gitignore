@@ -6,6 +6,7 @@
 *.pdf
 *.ps
 *.in
+*.dat
 utils/kernelplot
 utils/kernelplot3D
 multi/multirun
