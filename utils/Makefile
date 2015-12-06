@@ -12,10 +12,10 @@
 
 ## Compiler flags
 FC =  gfortran
-FFLAGS =  -O2 -Wall -fdefault-real-8 -fdefault-double-8 #-fbounds-check
+FFLAGS =  -O2 -Wall
 #LDFLAGS =  -L/usr/X11R6/lib -lX11 -L/sw/lib -lpng -laquaterm -lcc_dynamic -Wl,-framework -Wl,Foundation -L/sw/lib/pgplot95 -lpgplot
 LDFLAGS =  -L/usr/X11/lib -lX11 -L${PGPLOT_DIR} -lpgplot -lpng
-DBLFLAGS = -fdefault-real-8
+DBLFLAGS = -fdefault-real-8 -fdefault-double-8 
 ifndef SPLASH_DIR
 SPLASH_DIR=$(HOME)/splash/src
 endif
@@ -33,7 +33,7 @@ CC = $(FC)
 #%.f90 :
 #	$(FC) $(FFLAGS) $(LDFLAGS) $< -o $@
 
-OBJECTS=kernel_cspline_utils.o kernel_erbs_utils.o kernelND.o
+OBJECTS=kernel_cspline_utils.o kernel_erbs_utils.o kernel_utils.o kernelND.o
 
 OBJSPHDERIV = kernelND.o sphderiv.o
 
@@ -51,7 +51,7 @@ kernelplot3D: $(OBJECTS) $(OBJPLOT) kernel_sums.o kernelplot3D.o
 	$(FC) $(FFLAGS) -o $@ $(OBJECTS) $(OBJPLOT) kernel_sums.o kernelplot3D.o $(LDFLAGS)
 
 kernelcalc3D: $(OBJECTS) kernel_sums.o kernelcalc3D.o
-	$(FC) $(FFLAGS) -o $@ $(OBJECTS) kernel_sums.o kernelcalc3D.o
+	$(FC) $(FFLAGS) $(DBLFLAGS) -o $@ $(OBJECTS) kernel_sums.o kernelcalc3D.o
 
 getkernellist: $(OBJECTS) getkernellist.o
 	$(FC) $(FFLAGS) -o $@ $(OBJECTS) getkernellist.o $(LDFLAGS)
