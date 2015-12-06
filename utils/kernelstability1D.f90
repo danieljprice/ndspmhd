@@ -36,7 +36,7 @@ subroutine kernelstability1D(iplot,nacrossin,ndownin,eps,neps)
 !  
   contours = .false.     ! plot whole dispersion relation or just kx=0
   negstress = .false.    ! plot vs h or R
-  normplot = .false.     ! plot normalisation conditions
+  normplot = .true.     ! plot normalisation conditions
   R = 1.0       ! R=1 gives usual hydrodynamics, R < 0 gives negative stress
   h = 1.2*psep   ! value of smoothing length
   ikx = 12 !nkx/2 !1  !!nkx/2        ! frequency for cs vs R or h plots

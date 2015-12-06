@@ -40,7 +40,7 @@ end subroutine print_plot_options
 subroutine select_plot(iplot,sums,wsum,grad2sum,yploti)
  integer, intent(in)  :: iplot
  real,    intent(in)  :: sums(:),wsum,grad2sum
- real,    intent(out) :: yploti
+ real(4),    intent(out) :: yploti
 
  select case(iplot)
  case(8)
@@ -70,8 +70,8 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
                            wnorm,gradwnorm,grad2wnorm,psep,hmin,dh,radkern2)
  use kernels, only:interpolate_kernels,interpolate_kernel_curl
  integer, intent(in)  :: iplot,nsetups,nx,ndim,npts
- real, intent(out), dimension(npts) :: xplot,yplot,yplot2
- real, intent(out), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
+ real(kind=4), intent(out), dimension(npts) :: xplot,yplot,yplot2
+ real(kind=4), intent(out), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
  real,     intent(in) :: psep,hmin,dh,radkern2
  real    :: q2,q,xi(3),rij2,mi,rhoi,rhoj
  real    :: hi,hi1,hi21,hnew

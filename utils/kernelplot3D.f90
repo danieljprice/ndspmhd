@@ -23,7 +23,7 @@ program kernelplot3D
  integer :: iplot
  real, parameter :: pi = 3.1415926536
 
- data iplotorder /0, 2, 3, 61, 62, 100, 94, 62, 63, 13/   ! order in which kernels are plotted
+ data iplotorder /0, 3, 20, 61, 62, 100, 94, 62, 63, 13/   ! order in which kernels are plotted
  !data iplotorder /0, 3, 24, 23, 42, 44, 64, 65, 14, 13/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
@@ -146,8 +146,8 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
     ymax = 1.1
     ylabel = '\nabla W_{norm}'
  case default
-    ymin = 0.95
-    ymax = 1.08
+    ymin = 0.99
+    ymax = 1.01
     ylabel = 'W(norm)'
  end select
 
@@ -159,7 +159,7 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
  call pgsci(2)
  if (plot_cubic) then
     call pgsls(4)
-    call pgline(size(xplot),xplot,cubic1)
+    !call pgline(size(xplot),xplot,cubic1)
  endif
 !--current kernel
  call pgsls(1)
@@ -169,7 +169,7 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
 !--cubic spline
  if (plot_cubic) then
     call pgsls(4)
-    call pgline(size(xplot),xplot,cubic2)
+ !   call pgline(size(xplot),xplot,cubic2)
  endif
 !--current kernel 
  call pgsls(2)
@@ -244,8 +244,8 @@ subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
 
  xmin = minval(xplot)
  xmax = maxval(xplot)
- ymin = 0.95
- ymax = 1.05
+ ymin = 0.98
+ ymax = 1.02
  ylabel = 'W_{norm}'
 
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/\gDx',trim(ylabel), &
