@@ -132,6 +132,10 @@ subroutine plotit(j,iplot,xplot,yplot,yplot2,cubic1,cubic2)
  xmax = maxval(xplot)
  
  select case(iplot)
+ case(9)
+    ymin = 0.9
+    ymax = 1.1
+    ylabel = 'graddivv'
  case(7,8)
     !ymin = -999.; ymax = 4999.
     ymin = -100.; ymax = 100.
