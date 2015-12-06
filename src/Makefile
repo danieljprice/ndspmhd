@@ -225,7 +225,7 @@ CONS2PRIM = conservative2primitive.f90
 
 SOURCES= ndspmhd.f90 utils.f90 geometry.f90 \
          grutils_gr.f90 convert_gr.f90 eos.f90 \
-         allocateND.f90 utils_infiles.f90 \
+         allocateND.f90 utils_infiles.f90 kernel_utils.f90 \
          kernel_erbs_utils.f90  kernel_cspline_utils.f90 kernelND.f90 \
          readwrite_dumps.f90 random.f90 \
          get_neighbour_lists.f90 penrose.f90 \
