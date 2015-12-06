@@ -60,7 +60,7 @@ subroutine setup
  real :: tstopl,tstopr,psepreql,psepreqr
  real :: densdustleft,densdustright,densdust,masspdustleft,masspdustright
  character(len=20) :: shkfile
- logical :: equalmass, stretchx
+ logical :: equalmass, stretchx, weird_shock
  
  ntypes = 1
  if (idust.eq.2 .and. idrag_nature.gt.0) ntypes = 2
@@ -78,31 +78,51 @@ subroutine setup
  stretchx = .false.    ! stretch in x-direction only to give density contrast?
  const = sqrt(4.*pi)
  gamm1 = gamma - 1.
+ weird_shock = .false.
  
- mach_R = 5.
- mach_L = sqrt((2. + gamm1*mach_R**2)/(2.*gamma*mach_R**2 - gamm1))
- vjump = (2. + (gamm1)*mach_R**2)/((gamma + 1.)*mach_R**2)
- cs_L = 1.0
- cs2_L = cs_L**2
- cs2_R = cs2_L*((gamma+1.)**2*mach_R**2)/ &
-        ((2.*gamma*mach_R**2 - gamm1)*(2. + gamm1*mach_R**2))
- densleft = 1.0
- densright = vjump*densleft
- prleft = cs2_L*densleft/gamma
- prright = cs2_R*densright/gamma
- vxright = -sqrt(mach_R**2*cs2_R)
- vxleft = vjump*vxright
- vyleft = 0.01
- vyright = 0.
- vzleft = 0.5
- vzright = 0.
- if (imhd.ne.0) then
-    Bxinit = 2./const
-    Byleft = 3.6/const
-    Byright = 4./const
-    Bzleft = 2./const
-    Bzright = 2./const
+ if (weird_shock) then
+    mach_R = 5.
+    mach_L = sqrt((2. + gamm1*mach_R**2)/(2.*gamma*mach_R**2 - gamm1))
+    vjump = (2. + (gamm1)*mach_R**2)/((gamma + 1.)*mach_R**2)
+    cs_L = 1.0
+    cs2_L = cs_L**2
+    cs2_R = cs2_L*((gamma+1.)**2*mach_R**2)/ &
+           ((2.*gamma*mach_R**2 - gamm1)*(2. + gamm1*mach_R**2))
+    densleft = 1.0
+    densright = vjump*densleft
+    prleft = cs2_L*densleft/gamma
+    prright = cs2_R*densright/gamma
+    vxright = -sqrt(mach_R**2*cs2_R)
+    vxleft = vjump*vxright
+    vyleft = 0.01
+    vyright = 0.
+    vzleft = 0.5
+    vzright = 0.
+    if (imhd.ne.0) then
+       Bxinit = 2./const
+       Byleft = 3.6/const
+       Byright = 4./const
+       Bzleft = 2./const
+       Bzright = 2./const
+    endif
+ else ! default setup for Sod shock tube
+    densleft = 1.0
+    densright = 0.125
+    prleft = 1.0
+    prright = 0.1
+    vxleft = 0.
+    vxright = 0.
+    vyleft = 0.
+    vyright = 0.
+    vzleft = 0.
+    vzright = 0.
+    Bxinit = 0.
+    Byleft = 0.
+    Byright = 0.
+    Bzleft = 0.
+    Bzright = 0.
  endif
+ 
  if (idust.ne.0) then
     densdustleft = densleft
     densdustright = densright
