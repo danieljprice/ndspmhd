@@ -134,6 +134,9 @@ subroutine write_infile(infile)
   write(iread,"(/,a)") '# options affecting particle splitting'
   call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
   call write_inopt(rhocrit,'rhocrit','critical density for particle splitting',iread)
+
+  write(iread,"(/,a)") '# options affecting Quantum SPH'
+  call write_inopt(iquantum,'iquantum','quantum SPH term',iread) 
     
  close(unit=iread)
 
@@ -283,6 +286,10 @@ subroutine read_infile(infile)
         call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
         call read_inopt(use_sqrtdustfrac,'use_sqrtdustfrac',db,errcount=nerr)
      endif
+
+     ! Quantum SPH options
+     call read_inopt(iquantum,'iquantum',db,errcount=nerr) 
+
   endif
   call close_db(db)
 

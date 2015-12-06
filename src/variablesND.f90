@@ -143,6 +143,7 @@ module options
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
  integer :: ivisc,ibiascorrection,iambipolar,icompute_d2v
+ integer :: iquantum
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit

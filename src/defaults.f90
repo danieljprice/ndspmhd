@@ -110,5 +110,6 @@ subroutine set_default_options
    rho_ion = 1.e-5
    gamma_ambipolar = 1.
    icompute_d2v = 0
+   iquantum = 0
    
  end subroutine set_default_options
