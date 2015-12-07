@@ -24,7 +24,7 @@
 !-----------------------------------------------------------------------------
 module kernel_utils
  implicit none
- integer, parameter  :: dp = 4
+ integer, parameter  :: dp = 8
  real(dp), parameter :: pi = 3.1415926536
 
 contains
