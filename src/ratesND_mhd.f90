@@ -1421,6 +1421,12 @@ contains
     if (imhd.ne.0) call mhd_terms
 
 !------------------------------------------------------------------------
+!  QSPH terms
+!------------------------------------------------------------------------
+
+    if (iquantum.ne.0) call quantum_terms
+
+!------------------------------------------------------------------------
 !  Time derivative of dust to gas ratio and deltav for one fluid dust
 !------------------------------------------------------------------------
 
@@ -2603,6 +2609,20 @@ contains
     endif
 
   end subroutine dust_derivs_diffusion
+
+!---------------------------------------------------------------------------
+!  quantum terms
+!
+!---------------------------------------------------------------------------
+  subroutine quantum_terms
+    real :: qsphterm
+
+    qsphterm = 0.0
+
+    forcei(:) = forcei(:) + pmassj*qsphterm
+    forcej(:) = forcej(:) - pmassi*qsphterm
+
+  end subroutine quantum_terms
 
 !----------------------------------------------------------------------------
 !  energy equation if evolving the total energy/particle
