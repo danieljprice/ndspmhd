@@ -35,7 +35,7 @@ subroutine copy_particle(i,j)
   use part
   use rates
   use xsph
-  use options, only:imhd,idust
+  use options, only:imhd,onef_dust
   !use matrixcorr
   implicit none
   integer :: i,j
