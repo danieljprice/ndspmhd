@@ -80,13 +80,26 @@ subroutine copy_particle(i,j)
 !
 !  dust
 !
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+  if (onef_dust) then
      dustfrac(i)    = dustfrac(j)
      dustevol(i)    = dustevol(j)
      ddustevoldt(i) = ddustevoldt(j)
      deltav(:,i)     = deltav(:,j)
      ddeltavdt(:,i)  = ddeltavdt(:,j)
+     rhodust(i)     = rhodust(j)
+     rhogas(i)      = rhogas(j)
   endif
+!
+! quantum
+!
+  if (allocated(P_Q)) then
+     P_Q(:,:,i) = P_Q(:,:,j)
+  endif
+!
+! viscosity
+!
+  if (allocated(del2v)) del2v(:,i) = del2v(:,j)
+  if (allocated(graddivv)) graddivv(:,i) = graddivv(:,j)
 
   if (allocated(rho0)) rho0(i) = rho0(j)
   !gradmatrix(:,:,i) = gradmatrix(:,:,j)
