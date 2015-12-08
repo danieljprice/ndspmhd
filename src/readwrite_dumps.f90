@@ -81,9 +81,9 @@ subroutine write_dump(t,dumpfile)
     ncolumns = ncolumns + 2 + ndimV
     iformat = iformat + 2
  endif
- if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+ if (onef_dust) then
     iformat = 5
-    ncolumns = ncolumns + ndimV + 1
+    ncolumns = ncolumns + ndimV + 3
  endif
  
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
@@ -170,11 +170,13 @@ subroutine write_dump(t,dumpfile)
         write(idatfile) pmom(i,1:nprint)
      enddo
   endif
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+  if (onef_dust) then
      write(idatfile) dustfrac(1:nprint)
      do i=1,ndimV
         write(idatfile) deltav(i,1:nprint)
      enddo
+     write(idatfile) rhogas(1:nprint)
+     write(idatfile) rhodust(1:nprint)
   endif
   write(idatfile) itype(1:nprint)
 

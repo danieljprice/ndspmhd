@@ -84,11 +84,11 @@ subroutine step
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
     
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+    if (onef_dust) then
        if (use_sqrtdustfrac) then
-          dustevolin(i)    = sqrt(dustevol(i)**2)
+          dustevolin(i) = sqrt(dustevol(i)**2)
        else
-          dustevolin(i)    = dustevol(i)
+          dustevolin(i) = dustevol(i)
        endif
        ddustevoldtin(i) = ddustevoldt(i)
        if (idust.eq.1) then

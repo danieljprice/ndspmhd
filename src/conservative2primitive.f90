@@ -73,7 +73,7 @@ subroutine conservative2primitive
   nerr = 0
   nerr1 = 0
   sqrtg = 1.
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+  if (onef_dust) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (use_sqrtdustfrac) then
@@ -83,11 +83,11 @@ subroutine conservative2primitive
         endif
         if (dustfrac(i) < 0.) then
            nerr = nerr + 1
-           dustfrac(i) = 0. !abs(dustfrac(i))
-           if (.not. use_sqrtdustfrac) then
-              dustevol(i) = 0.
-              dustevolin(i) = 0.
-           endif
+           !dustfrac(i) = 0. !abs(dustfrac(i))
+           !if (.not. use_sqrtdustfrac) then
+           !   dustevol(i) = 0.
+           !   dustevolin(i) = 0.
+           !  endif
            !call quit
         elseif (dustfrac(i) > 1.) then
            nerr1 = nerr1 + 1
@@ -472,7 +472,7 @@ subroutine primitive2conservative
 !
   isetpolyk = .false.
   do i=1,npart
-     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+     if (onef_dust) then
         ! Note: for most of the one-fluid dust setups, we set dens to mean the
         ! total density. This is only fixed once conservative2primitive has 
         ! been called. Hence do NOT divide by (1 - eps) below so that 
@@ -535,7 +535,7 @@ subroutine primitive2conservative
      endif
   endif
 
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+  if (onef_dust) then
      if (use_sqrtdustfrac) then
         dustevol = sqrt(dustfrac*rho)
      else

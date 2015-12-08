@@ -151,7 +151,7 @@ module options
  real :: shearvisc,bulkvisc
  real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
- logical :: usenumdens,use_sqrtdustfrac
+ logical :: usenumdens,use_sqrtdustfrac,onef_dust,use_smoothed_rhodust
 end module
 
 !-------------------------------------------------------------------
@@ -177,7 +177,7 @@ module part
  real, dimension(:), allocatable    :: rho0
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
- real, dimension(:), allocatable    :: dustfrac,dustevol
+ real, dimension(:), allocatable    :: dustfrac,dustevol,rhogas,rhodust
  real, dimension(:,:), allocatable  :: del2v,graddivv
 end module part 
 

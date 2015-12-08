@@ -96,6 +96,7 @@ subroutine set_default_options
    idim = 0
    usenumdens = .false.
    use_sqrtdustfrac = .false.
+   use_smoothed_rhodust = .true.
    isplitpart = 0
    rhocrit = 1.e4
    iuse_exact_derivs = 0

@@ -145,6 +145,7 @@ subroutine initialise
  call set_default_options   ! set the default options
  call read_infile(infile)
 ! geom = 'cylrpz' 
+ onef_dust = (idust==1 .or. idust==3 .or. idust==4)
 !
 !--Open data/ev files
 !

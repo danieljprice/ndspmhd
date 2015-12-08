@@ -79,6 +79,7 @@ subroutine alloc(newsizein,sortlist)
 !--dust
  real, dimension(newsizein)       :: dumdustfrac,dumdustevol,dumdustevolin,dumddustevoldt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
+ real, dimension(newsizein)       :: dumrhodust,dumrhogas
 
  logical :: reallocate, isortparts
 !
@@ -199,6 +200,9 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(dustevolin))  dumdustevolin(1:idumsize)  = dustevolin(1:idumsize)
     if (allocated(deltavin))    dumdeltavin(:,1:idumsize)  = deltavin(:,1:idumsize)
     
+    if (allocated(rhodust)) dumrhodust(1:idumsize) = rhodust(1:idumsize)
+    if (allocated(rhogas)) dumrhogas(1:idumsize) = rhogas(1:idumsize)
+    
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
     dumx0(:,1:idumsize) = x0(:,1:idumsize)
     if (allocated(rho0)) dumrho0(1:idumsize) = rho0(1:idumsize)
@@ -274,6 +278,8 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(ddeltavdt))    deallocate(ddeltavdt)
     if (allocated(dustevolin)) deallocate(dustevolin)
     if (allocated(deltavin))    deallocate(deltavin)
+    if (allocated(rhodust))     deallocate(rhodust)
+    if (allocated(rhogas))      deallocate(rhogas)
 !
 !--physical viscosity
 !
@@ -359,6 +365,7 @@ subroutine alloc(newsizein,sortlist)
       allocate(ddustevoldt(newsize))
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
       allocate(ddeltavdt(ndimV,newsize))
+      allocate(rhogas(newsize),rhodust(newsize))
    endif
 !
 !--physical viscosity
@@ -444,6 +451,8 @@ subroutine alloc(newsizein,sortlist)
        ddeltavdt(:,1:idumsize)  = dumddeltavdt(:,iorder(1:idumsize))
        dustevolin(1:idumsize)  = dumdustevolin(iorder(1:idumsize))
        deltavin(:,1:idumsize)   = dumdeltavin(:,iorder(1:idumsize))
+       rhogas(1:idumsize)      = dumrhogas(iorder(1:idumsize))
+       rhodust(1:idumsize)     = dumrhodust(iorder(1:idumsize))
     endif
     ! no need to copy physical viscosity stuff
  else

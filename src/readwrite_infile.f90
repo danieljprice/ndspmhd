@@ -120,6 +120,7 @@ subroutine write_infile(infile)
   !call write_inopt(idrag_structure,'idrag_structure','drag structure (1=default)',iread)
   call write_inopt(Kdrag,'Kdrag','drag coeff (idrag=1) or ts (idrag=2) or grain size in cm (idrag=3)',iread)
   call write_inopt(use_sqrtdustfrac,'use_sqrtdustfrac','evolve s=sqrt(rho*eps) instead of eps?',iread)
+  call write_inopt(use_smoothed_rhodust,'use_smoothed_rhodust','use smoothed dust/gas density estimates?',iread)
 
   write(iread,"(/,a)") '# options affecting self-gravity'
   call write_inopt(igravity,'igravity','self-gravity',iread)
@@ -285,6 +286,7 @@ subroutine read_infile(infile)
         !call read_inopt(idrag_structure,'idrag_structure',db,errcount=nerr)
         call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
         call read_inopt(use_sqrtdustfrac,'use_sqrtdustfrac',db,errcount=nerr)
+        call read_inopt(use_smoothed_rhodust,'use_smoothed_rhodust',db,errcount=nerr)
      endif
 
      ! Quantum SPH options

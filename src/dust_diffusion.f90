@@ -179,8 +179,8 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                 if (use_sqrtdustfrac) then
                    si = sqrt(rhoi*dustfraci)
                    sj = sqrt(rhoj*dustfracj)
-                   termi = (1. - dustfraci)*rho1i*projdeltavi*grkerni
-                   termj = (1. - dustfracj)*rho1j*projdeltavj*grkernj
+                   termi = (1. - dustfraci)*rho1i*rho1i*projdeltavi*grkerni
+                   termj = (1. - dustfracj)*rho1j*rho1j*projdeltavj*grkernj
                 else
                    termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
                    termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj

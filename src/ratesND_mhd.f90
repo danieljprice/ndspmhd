@@ -217,7 +217,7 @@ subroutine get_rates
      gradhn(i) = 0.
      dhdt(i) = 0.
   endif
-  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+  if (onef_dust) then
      ddustevoldt(i) = 0.
      ddeltavdt(:,i) = 0.
   endif
@@ -340,10 +340,15 @@ subroutine get_rates
        phii1 = 1./phii
        sqrtgi = sqrtg(i)
        ! one fluid dust definitions
-       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       if (onef_dust) then
           dustfraci  = dustfrac(i)
-          rhodusti       = dustfraci*rhoi          
-          rhogasi        = rhoi - rhodusti
+          if (use_smoothed_rhodust) then
+             rhodusti = rhodust(i)
+             rhogasi  = rhogas(i)
+          else
+             rhodusti = dustfraci*rhoi
+             rhogasi  = rhoi - rhodusti
+          endif
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
           rhogrhodonrhoi = rhogasi*rhodusti*rho1i
@@ -526,9 +531,13 @@ subroutine get_rates
        !------------------
        !  one fluid dust
        !------------------
-       dustfraci = dustfrac(i)
-       rhodusti = rhoi*dustfraci       
-       rhogasi  = rhoi - rhodusti
+       if (use_smoothed_rhodust) then
+          rhodusti = rhodust(i)
+          rhogasi  = rhogas(i)
+       else
+          rhodusti = rhoi*dustfrac(i)
+          rhogasi  = rhoi - rhodusti
+       endif
        
        tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
        dtdrag = min(dtdrag,tstop)
@@ -555,17 +564,26 @@ subroutine get_rates
        !--------------------------------------------
        !  one fluid dust in diffusion approximation
        !--------------------------------------------
-       dustfraci = dustfrac(i)
-       rhodusti = rhoi*dustfraci
-       rhogasi  = rhoi - rhodusti
+       if (use_smoothed_rhodust) then
+          rhodusti = rhodust(i)
+          rhogasi  = rhogas(i)
+       else
+          rhodusti = rhoi*dustfrac(i)
+          rhogasi  = rhoi - rhodusti
+       endif
        !
        !--compute stopping time for drag timestep
        !
+       dustfraci = rhodusti*rho1i
        tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
        ! CAUTION: Line below must be done BEFORE external forces have been applied
-       deltav(:,i) = -1./(1. - dustfraci)*force(:,i)*tstop
+       deltav(:,i) = -rhoi/rhogasi*force(:,i)*tstop
        ratio = max(dustfraci*tstop/dtcourant,ratio)
        dtdrag = min(dtdrag,0.5*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
+       if (dtdrag < 0.) then
+          print*,'WARNING: dtdrag = ',dtdrag,dustfraci,dustfrac(i),rhodust(i),rhogas(i)
+          dtdrag = abs(dtdrag)
+       endif
        dvmax = maxval(abs(deltav(:,i)))
        if (dvmax > 0.) then
           dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
@@ -1966,7 +1984,7 @@ contains
   subroutine artificial_dissipation_dust_diffusion
     implicit none
     real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
-    real :: tstopi,tstopj,vsigeps,alphaB,diffeps
+    real :: vsigeps,alphaB,diffeps!,tstopi,tstopj
 
     if (dvdotr < 0.) then
        !
@@ -2006,7 +2024,7 @@ contains
        !vsigeps = 4.*tstopi*tstopj/(tstopi + tstopj + 1.e-6)*abs(pri - prj)/rij*2./(rhogasi + rhogasj)
        !vsigeps = 0.5*(tstopi + tstopj)*abs(pri - prj)*2./((hi + hj)*(rhogasi + rhogasj))
        !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
-       vsigeps = 0. !5*(spsoundi + spsoundj)
+       vsigeps = 0. !5*(dustfraci + dustfracj)*vsigu !5*(spsoundi + spsoundj)
        !vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
        diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
        ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
@@ -2557,25 +2575,27 @@ contains
   subroutine dust_derivs_diffusion
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
-    real :: si, sj, rhoav1d, grgrkern
+    real :: si, sj, grgrkern
 
     tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
     tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
     
     if (use_sqrtdustfrac) then
-       Di = tstopi*rho1i
-       Dj = tstopj*rho1j
+       Di = rho1i*tstopi
+       Dj = rho1j*tstopj
        Dav = 0.5*(Di + Dj)
-       si = sqrt(dustfraci*rhoi)
-       sj = sqrt(dustfracj*rhoj)
-       !rhoav1d = 0.5*(rho1i + rho1j)
-       rhoav1d = 2./(rhoi + rhoj)
-       diffterm = rhoav1d*2.*Dav*(pri - prj)*grkern/rij
-       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*diffterm
-       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*diffterm
+       si = sqrt(rhodusti)
+       !print*,' si = ',si,dustevol(i)
+       sj = sqrt(rhodustj)
+       grgrkern = -2.*grkern/rij
+       diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
+       ddustevoldt(i) = ddustevoldt(i) + pmassj*sj*diffterm
+       ddustevoldt(j) = ddustevoldt(j) - pmassi*si*diffterm
     else
-       Di = dustfraci*tstopi
-       Dj = dustfracj*tstopj
+       Di = rhodusti*rho1i*tstopi
+       Dj = rhodustj*rho1j*tstopj
+       !Di = dustfraci*tstopi
+       !Dj = dustfracj*tstopj
        !if (Di + Dj > 0.) then
           Dav = 0.5*(Di + Dj)
           !Dav = 2.*Di*Dj/(Di + Dj)
