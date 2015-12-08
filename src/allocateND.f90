@@ -80,6 +80,8 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(newsizein)       :: dumdustfrac,dumdustevol,dumdustevolin,dumddustevoldt
  real, dimension(ndimV,newsizein) :: dumdeltav,dumdeltavin,dumddeltavdt
  real, dimension(newsizein)       :: dumrhodust,dumrhogas
+!--quantum
+ real, dimension(ndim,ndim,newsizein) :: dumP_Q
 
  logical :: reallocate, isortparts
 !
@@ -206,6 +208,8 @@ subroutine alloc(newsizein,sortlist)
     dumdxdx(:,1:idumsize) = dxdx(:,1:idumsize)
     dumx0(:,1:idumsize) = x0(:,1:idumsize)
     if (allocated(rho0)) dumrho0(1:idumsize) = rho0(1:idumsize)
+    
+    if (allocated(P_Q)) dumP_Q(:,:,1:idumsize) = P_Q(:,:,1:idumsize)
 
 !-----------------------------------------------------------------------------
 !  deallocate the arrays
@@ -280,6 +284,10 @@ subroutine alloc(newsizein,sortlist)
     if (allocated(deltavin))    deallocate(deltavin)
     if (allocated(rhodust))     deallocate(rhodust)
     if (allocated(rhogas))      deallocate(rhogas)
+!
+!--quantum
+!
+    if (allocated(P_Q)) deallocate(P_Q)
 !
 !--physical viscosity
 !
@@ -360,13 +368,19 @@ subroutine alloc(newsizein,sortlist)
 !
 !--dust
 !
-   if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+   if (onef_dust) then
       allocate(dustfrac(newsize),dustevol(newsize),dustevolin(newsize))
       allocate(ddustevoldt(newsize))
       allocate(deltav(ndimV,newsize),deltavin(ndimV,newsize))
       allocate(ddeltavdt(ndimV,newsize))
       allocate(rhogas(newsize),rhodust(newsize))
    endif
+!
+!--quantum
+!
+  if (iquantum /= 0) then
+     allocate(P_Q(ndim,ndim,newsize))
+  endif
 !
 !--physical viscosity
 !

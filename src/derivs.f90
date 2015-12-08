@@ -33,11 +33,12 @@ subroutine derivs
  use cons2prim,     only:conservative2primitive
  use resistivity,   only:Bdiffusion
  use timestep,      only:dt
- use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac
+ use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac,iquantum
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
- use part,          only:vel
+ use part,          only:vel,P_Q
  use rates,         only:force
+ use get_quantum,   only:get_quantum_pressure
  implicit none
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,si
@@ -145,6 +146,10 @@ subroutine derivs
        enddo
     endif
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
+ endif
+ 
+ if (iquantum /= 0) then
+    call get_quantum_pressure(iquantum,npart,x,pmass,rho,hh,P_Q)
  endif
 
  if (itiming) then

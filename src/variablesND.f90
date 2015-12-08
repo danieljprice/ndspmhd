@@ -179,6 +179,7 @@ module part
  real, dimension(:,:), allocatable  :: deltav
  real, dimension(:), allocatable    :: dustfrac,dustevol,rhogas,rhodust
  real, dimension(:,:), allocatable  :: del2v,graddivv
+ real, dimension(:,:,:), allocatable :: P_Q
 end module part 
 
 !-------------------------------------------------------------------
