@@ -168,6 +168,7 @@ module part
  integer, parameter :: itypegas1 = 3
  integer, parameter :: itypegas2 = 4
  integer, parameter :: itypebnd2 = 11
+ integer, parameter :: ndust = 1 ! number of dust species
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg
  real, dimension(:,:), allocatable  :: x   
@@ -177,7 +178,8 @@ module part
  real, dimension(:), allocatable    :: rho0
  real, dimension(ndimB)             :: Bconst
  real, dimension(:,:), allocatable  :: deltav
- real, dimension(:), allocatable    :: dustfrac,dustevol,rhogas,rhodust
+ real, dimension(:,:), allocatable  :: dustfrac,dustevol,rhodust
+ real, dimension(:),   allocatable  :: rhogas
  real, dimension(:,:), allocatable  :: del2v,graddivv
  real, dimension(:,:,:), allocatable :: P_Q
 end module part 
@@ -192,7 +194,7 @@ module part_in
  real, dimension(:,:), allocatable :: xin,velin,pmomin,alphain
  real, dimension(:,:), allocatable :: Bevolin
  real, dimension(:,:), allocatable :: deltavin
- real, dimension(:),   allocatable :: dustevolin
+ real, dimension(:,:), allocatable :: dustevolin
 end module
 
 !-------------------------------------------------------------------
@@ -204,7 +206,7 @@ module rates
  real, dimension(:), allocatable :: drhodt,dudt,dendt,dhdt,dpsidt,poten
  real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
  real, dimension(:,:), allocatable :: ddeltavdt
- real, dimension(:), allocatable   :: ddustevoldt
+ real, dimension(:,:), allocatable :: ddustevoldt
  real :: potengrav
 end module rates
 

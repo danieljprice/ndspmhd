@@ -89,24 +89,24 @@ subroutine setup
     pmass(i) = massp
     uu(i) = 1.5*polyk ! isothermal
     Bfield(:,i) = 0.
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+    if (onef_dust) then
        r = sqrt(dot_product(x(:,i),x(:,i)))
        select case(iprofile)
        case(3)
-          dustfrac(i) = 0.5*exp(-(r/0.1)**2)
+          dustfrac(:,i) = 0.5*exp(-(r/0.1)**2)
        case(2)
-          dustfrac(i) = max(dustfrac0*(1. - (r/rcrit)**2),1.e-4)
+          dustfrac(:,i) = max(dustfrac0*(1. - (r/rcrit)**2),1.e-4)
        case(1)
-          dustfrac(i) = r**2/A
+          dustfrac(:,i) = r**2/A
        case default
           if (r < 0.5) then
-             dustfrac(i) = min(sqrt(A**2/r + dustfrac0**2),0.9)      
+             dustfrac(:,i) = min(sqrt(A**2/r + dustfrac0**2),0.9)      
           else
-             dustfrac(i) = dustfrac0
+             dustfrac(:,i) = dustfrac0
           endif
        end select
     else
-       dustfrac(i) = 0.
+       dustfrac(:,i) = 0.
     endif 
  enddo 
 !

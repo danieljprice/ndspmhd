@@ -25,7 +25,7 @@ subroutine setup
  implicit none
  integer :: i
  integer :: ntypes
- integer :: ngas,ndust,jtype
+ integer :: ngas,npdust,jtype
  integer :: iwhichpot,idust_toponly
  real, dimension(ndimV) :: Bzero
  real :: massp,masspdust,massp_without
@@ -103,15 +103,15 @@ subroutine setup
 !
 
  ngas  = 0
- ndust = 0
+ npdust = 0
  do jtype=1,ntypes
     call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
     if (jtype.eq.1) then
        ngas = npart
        itype(1:ngas) = itypegas
     elseif (jtype.eq.2) then
-       ndust = npart - ngas
-       itype(ngas+1:ngas+ndust) = itypedust
+       npdust = npart - ngas
+       itype(ngas+1:ngas+npdust) = itypedust
     endif
  enddo
  
@@ -123,11 +123,11 @@ subroutine setup
     massp = massp*(1. + dust_to_gas_ratio)
  endif
 
- ! two fluid dust (if ndust > 0)
+ ! two fluid dust (if npdust > 0)
  masspdust = 0.
- if (ndust.gt.0) masspdust = dust_to_gas_ratio*voltot/FLOAT(ndust) ! average particle mass
+ if (npdust.gt.0) masspdust = dust_to_gas_ratio*voltot/FLOAT(npdust) ! average particle mass
  denszerodust = dust_to_gas_ratio*denszero
- if (ntypes.gt.1) print*,' ngas = ',ngas,' ndust = ',ndust
+ if (ntypes.gt.1) print*,' ngas = ',ngas,' npdust = ',npdust
 !
 !--allocate memory here
 !
@@ -147,12 +147,12 @@ subroutine setup
        dens(i)  = denszero
        pmass(i) = massp        
        if (idust.eq.1) then
-          dustfrac(i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
+          dustfrac(1,i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
           deltav(1,i)  = 0.
           if (idust_toponly.eq.1) then
              if (x(2,i).lt.0.) then
                 pmass(i)     = massp_without
-                dustfrac(i) = 0.            
+                dustfrac(1,i) = 0.
              endif
           endif      
        endif 

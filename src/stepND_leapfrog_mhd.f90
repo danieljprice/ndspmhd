@@ -52,7 +52,8 @@ subroutine step
  implicit none
  integer :: i,j,nsplit
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
- real, dimension(npart) :: drhodtin,dhdtin,dendtin,dpsidtin,ddustevoldtin
+ real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin
+ real, dimension(ndust,npart) :: ddustevoldtin
  real, dimension(3,npart) :: daldtin
  real :: hdt,tol,errv,errB,errmax,errvmax,errBmax,dttol
  real, dimension(ndim)  :: xcyl,velcyl
@@ -86,11 +87,11 @@ subroutine step
     
     if (onef_dust) then
        if (use_sqrtdustfrac) then
-          dustevolin(i) = sqrt(dustevol(i)**2)
+          dustevolin(:,i) = sqrt(dustevol(:,i)**2)
        else
-          dustevolin(i) = dustevol(i)
+          dustevolin(:,i) = dustevol(:,i)
        endif
-       ddustevoldtin(i) = ddustevoldt(i)
+       ddustevoldtin(:,i) = ddustevoldt(:,i)
        if (idust.eq.1) then
           deltavin(:,i)     = deltav(:,i)
           ddeltavdtin(:,i)  = ddeltavdt(:,i)
@@ -136,7 +137,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i)
+          dustevol(:,i) = dustevolin(:,i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -154,7 +155,7 @@ subroutine step
        where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i) + dt*ddustevoldtin(i)
+          dustevol(:,i) = dustevolin(:,i) + dt*ddustevoldtin(:,i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
        endif
     endif
@@ -181,7 +182,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i)
+          dustevol(:,i) = dustevolin(:,i)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
@@ -205,8 +206,8 @@ subroutine step
        where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
        if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
        
-       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i) + hdt*(ddustevoldt(i) + ddustevoldtin(i))
+       if (onef_dust) then
+          dustevol(:,i) = dustevolin(:,i) + hdt*(ddustevoldt(:,i) + ddustevoldtin(:,i))
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
        endif
     endif

@@ -43,7 +43,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,ngas,ndust
+ integer :: i,ngas,npdust
  real :: massp,volume,totmass,oldtolh,rhodust,masspdust,voldust
  real :: denszero,fext(3),cs,gx,xmindust(ndim),xmaxdust(ndim)
  real :: vdust,vgas,epsi,ts
@@ -150,8 +150,8 @@ subroutine setup
        ngas = npart
        call set_uniform_cartesian(1,psep,xmindust,xmaxdust,fill=.true.)
        npart = ntotal
-       ndust = npart - ngas
-       masspdust = rhodust*voldust/real(ndust)
+       npdust = npart - ngas
+       masspdust = rhodust*voldust/real(npdust)
        do i=ngas+1,npart
           itype(i) = itypedust
           pmass(i) = masspdust
@@ -162,20 +162,21 @@ subroutine setup
           vel(2,i) = -rhodust*gx/Kdrag
        enddo
     case default
-       ndust = 0
+       npdust = 0
        do i=1,npart
           if (x(2,i) >= xmindust(2) .and. x(2,i) <= xmaxdust(2)) then
-             ndust = ndust + 1
+             npdust = npdust + 1
           endif
        enddo
 
-       masspdust = rhodust*voldust/real(ndust)
+       masspdust = rhodust*voldust/real(npdust)
        do i=1,npart
           if (x(2,i) >= xmindust(2) .and. x(2,i) <= xmaxdust(2)) then
              epsi = rhodust/(rhodust + dens(i))
              vdust = -rhodust*gx/Kdrag
              vgas  = 0.
-             dustfrac(i) = epsi
+             dustfrac(:,i) = 0.
+             dustfrac(1,i) = epsi
              deltav(:,i) = 0.
              deltav(2,i) = vdust - vgas
              vel(2,i) = epsi*vdust + (1. - epsi)*vgas
@@ -183,7 +184,7 @@ subroutine setup
              !dens(i)  = dens(i) !+ rhodust
              pmass(i) = pmass(i) + masspdust
           else
-             dustfrac(i) = 0.
+             dustfrac(:,i) = 0.
              deltav(:,i) = 0.
           endif
        enddo

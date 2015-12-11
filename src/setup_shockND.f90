@@ -48,7 +48,7 @@ subroutine setup
  use uniform_distributions
  use cons2prim, only:primitive2conservative
  implicit none
- integer :: i,npartold,nparty,ntypes,ngas,ndust,jtype,npartprev
+ integer :: i,npartold,nparty,ntypes,ngas,npdust,jtype,npartprev
  real :: densleft,densright,prleft,prright
  real :: uuleft, uuright
  real :: dsmooth, exx, delta, const, fac
@@ -232,7 +232,7 @@ subroutine setup
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
 
  ngas = 0
- ndust = 0
+ npdust = 0
  over_types: do jtype=1,ntypes
 !
 !--now setup the shock
@@ -320,12 +320,12 @@ subroutine setup
     ngas = npart
     itype(1:ngas) = itypegas
  elseif (jtype.eq.2) then
-    ndust = npart - ngas
-    itype(ngas+1:ngas+ndust) = itypedust
+    npdust = npart - ngas
+    itype(ngas+1:ngas+npdust) = itypedust
  endif
 
  enddo over_types
- print*,'npart = ',npart,' ngas = ',ngas,' ndust = ',ndust
+ print*,'npart = ',npart,' ngas = ',ngas,' npdust = ',npdust
 !
 !--if using moving boundaries, fix the particles near the boundaries
 !
@@ -437,11 +437,11 @@ subroutine setup
 !
 !--setup dust-to-gas ratio
 !
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfrac(i) = densdust/(dens(i) + densdust)
+    if (onef_dust) then
+       dustfrac(1,i) = densdust/(dens(i) + densdust)
       ! print*,i,densdust,dens(i),dustfrac(i)
        deltav(:,i)  = 0.
-       pmass(i) = pmass(i)/(1. - dustfrac(i))
+       pmass(i) = pmass(i)/(1. - dustfrac(1,i))
     endif
  enddo
 !

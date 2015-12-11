@@ -40,7 +40,8 @@ subroutine step
  real :: errx,errv,errh,erru,errB,errm,errdivtol,errmx,errmv,errmB,errmax
  real :: ratio, dtf21, dtf22, rmod1, rmod, dttol
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin,dum2vel
- real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin,ddustevoldtin
+ real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin
+ real, dimension(ndust,npart) :: ddustevoldtin
  real, dimension(3,npart)     :: daldtin
 !
 !--allow for tracing flow
@@ -59,10 +60,10 @@ subroutine step
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustevolin(i) = dustevol(i)
+    if (onef_dust) then
+       dustevolin(:,i) = dustevol(:,i)
        if (idust.eq.1) deltavin(:,i) = deltav(:,i)
-       ddustevoldtin(i) = ddustevoldt(i)
+       ddustevoldtin(:,i) = ddustevoldt(:,i)
        ddeltavdtin(:,i) = ddeltavdt(:,i)
     endif
     forcein(:,i) = force(:,i)
@@ -92,8 +93,8 @@ subroutine step
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
-       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i)
+       if (onef_dust) then
+          dustevol(:,i) = dustevolin(:,i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
@@ -110,8 +111,8 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + hdt*dendt(i)
        if (any(iavlim.ne.0)) alpha(:,i) = min(alphain(:,i) + hdt*daldt(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + hdt*dpsidt(i) 
-       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i) + hdt*ddustevoldt(i)
+       if (onef_dust) then
+          dustevol(:,i) = dustevolin(:,i) + hdt*ddustevoldt(:,i)
           if (idust.eq.1) then
              deltav(:,i) = deltavin(:,i) + hdt*ddeltavdt(:,i)
           endif
@@ -139,7 +140,7 @@ subroutine step
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i)
+          dustevol(:,i) = dustevolin(:,i)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
        dum2vel(:,i) = vel(:,i)
@@ -161,7 +162,7 @@ subroutine step
        if (idivbzero.ge.2)   psi(i)     = psiin(i) + dtf21*dpsidtin(i) + dtf22*dpsidt(i)
        
        if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-          dustevol(i) = dustevolin(i)  + dtf21*ddustevoldtin(i) + dtf22*ddustevoldt(i)
+          dustevol(:,i) = dustevolin(:,i)  + dtf21*ddustevoldtin(:,i) + dtf22*ddustevoldt(:,i)
           if (idust.eq.1) then
              deltav(:,i)  = deltavin(:,i)   + dtf21*ddeltavdtin(:,i) + dtf22*ddeltavdt(:,i)
           endif

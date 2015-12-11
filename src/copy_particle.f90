@@ -81,12 +81,12 @@ subroutine copy_particle(i,j)
 !  dust
 !
   if (onef_dust) then
-     dustfrac(i)    = dustfrac(j)
-     dustevol(i)    = dustevol(j)
-     ddustevoldt(i) = ddustevoldt(j)
+     dustfrac(:,i)    = dustfrac(:,j)
+     dustevol(:,i)    = dustevol(:,j)
+     ddustevoldt(:,i) = ddustevoldt(:,j)
      deltav(:,i)     = deltav(:,j)
      ddeltavdt(:,i)  = ddeltavdt(:,j)
-     rhodust(i)     = rhodust(j)
+     rhodust(:,i)     = rhodust(:,j)
      rhogas(i)      = rhogas(j)
   endif
 !

@@ -27,7 +27,7 @@
 subroutine derivs
  use loguns,        only:iprint
  use options,       only:ibound,icty,ihvar,imhd
- use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr,spsound
+ use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr,spsound,ndust
  use rates,         only:dBevoldt,ddustevoldt,dendt,drhodt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
@@ -36,12 +36,12 @@ subroutine derivs
  use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac,iquantum
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
- use part,          only:vel,P_Q
+ use part,          only:vel,P_Q,rhodust
  use rates,         only:force
  use get_quantum,   only:get_quantum_pressure
  implicit none
  logical, parameter :: itiming = .false.
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,si
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,si(ndust)
  integer :: i,inext
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
@@ -109,22 +109,22 @@ subroutine derivs
     sum_dustm = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
-             - uu(i)*ddustevoldt(i) &
-             + (1.-dustfrac(i))*dendt(i))
+             - uu(i)*ddustevoldt(1,i) &
+             + (1.-dustfrac(1,i))*dendt(i))
        sum1 = sum1 + pmass(i)*(dot_product(vel(:,i),force(:,i)))
-       sum2 = sum2 - pmass(i)*uu(i)*ddustevoldt(i)
-       sum3 = sum3 + pmass(i)*(1. - dustfrac(i))*dendt(i)
-       sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(i))*ddustevoldt(i)
+       sum2 = sum2 - pmass(i)*uu(i)*ddustevoldt(1,i)
+       sum3 = sum3 + pmass(i)*(1. - dustfrac(1,i))*dendt(i)
+       sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(1,i))*ddustevoldt(1,i)
 
        if (use_sqrtdustfrac) then
        !
        !--convert from deps/dt to ds/dt
        !
-          si = sqrt(dustfrac(i)*rho(i))
-          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*si*drhodt(i)/rho(i)
-          sum_dustm = sum_dustm + pmass(i)*(2.*si/rho(i)*ddustevoldt(i) - si**2/rho(i)**2*drhodt(i))
+          si(:) = sqrt(dustfrac(:,i)*rho(i))
+          ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i) + 0.5*si(:)*drhodt(i)/rho(i)
+          sum_dustm = sum_dustm + pmass(i)*(2.*si(1)/rho(i)*ddustevoldt(1,i) - si(1)**2/rho(i)**2*drhodt(i))
        else
-          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
+          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
        endif
     enddo
     if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
@@ -136,13 +136,13 @@ subroutine derivs
           !
           !--convert from deps/dt to ds/dt
           !
-          si = sqrt(dustfrac(i)*rho(i))
-          ddustevoldt(i) = 0.5*rho(i)*ddustevoldt(i) + 0.5*si*drhodt(i)/rho(i)
-          sum_dustm = sum_dustm + pmass(i)*(2.*si/rho(i)*ddustevoldt(i) - si**2/rho(i)**2*drhodt(i))
+          si(:) = sqrt(rhodust(:,i))
+          ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i) + 0.5*si(:)*drhodt(i)/rho(i)
+          sum_dustm = sum_dustm + pmass(i)*(2.*si(1)/rho(i)*ddustevoldt(1,i) - si(1)**2/rho(i)**2*drhodt(i))
        enddo
     else
        do i=1,npart
-          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(i)
+          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
        enddo
     endif
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm

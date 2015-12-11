@@ -123,13 +123,14 @@ subroutine get_rates
 !  (one fluid dust)
 !
  real, dimension(ndimV) :: deltavi,deltavj
- real :: dustfraci,dustfracj
- real :: rhogrhodonrhoi, rhogrhodonrhoj
+ real :: dustfraci(ndust),dustfracj(ndust)
+ real :: rhogrhodonrhoi(ndust), rhogrhodonrhoj(ndust)
  real :: deltav2i,deltav2j
  real :: dtstop,projdeltavi,projdeltavj
- real :: rhogasi,rhodusti,rhogasj,rhodustj,projdvgas
+ real :: rhogasi,rhogasj,projdvgas
+ real :: rhodusti(ndust),rhodustj(ndust)
  real, dimension(ndimV) :: vgasi,vgasj,dvgas,fextrai,fextraj
- real :: sum,tstop,ratio,dvmax
+ real :: esum,tstop,ratio,dvmax
 
 !
 !  (kernel related quantities)
@@ -218,7 +219,7 @@ subroutine get_rates
      dhdt(i) = 0.
   endif
   if (onef_dust) then
-     ddustevoldt(i) = 0.
+     ddustevoldt(:,i) = 0.
      ddeltavdt(:,i) = 0.
   endif
  enddo
@@ -341,17 +342,17 @@ subroutine get_rates
        sqrtgi = sqrtg(i)
        ! one fluid dust definitions
        if (onef_dust) then
-          dustfraci  = dustfrac(i)
+          dustfraci  = dustfrac(:,i)
           if (use_smoothed_rhodust) then
-             rhodusti = rhodust(i)
+             rhodusti = rhodust(:,i)
              rhogasi  = rhogas(i)
           else
              rhodusti = dustfraci*rhoi
-             rhogasi  = rhoi - rhodusti
+             rhogasi  = (1. - sum(dustfraci))*rhoi
           endif
           deltavi(:)     = deltav(:,i)
           deltav2i       = dot_product(deltavi,deltavi)
-          rhogrhodonrhoi = rhogasi*rhodusti*rho1i
+          rhogrhodonrhoi(:) = rhogasi*rhodusti(:)*rho1i
        else
           rhogasi  = rhoi
           rhodusti = 0.
@@ -506,7 +507,7 @@ subroutine get_rates
  
  fmean(:) = 0.
  dtdrag = huge(dtdrag)
- sum = 0.
+ esum = 0.
  ratio = 0.
  if (idust.eq.2 .and. h_on_csts_max > 1.) then
     print*,' WARNING: violating h < cs*ts resolution criterion by factor of ',h_on_csts_max
@@ -516,7 +517,7 @@ subroutine get_rates
     rhoi  = rho(i)
     rho1i = 1./rhoi
     if (ivisc.gt.0 .and. idust.ne.1 .and. idust.ne.4) then
-       sum = sum + pmass(i)*dot_product(vel(:,i),force(:,i))
+       esum = esum + pmass(i)*dot_product(vel(:,i),force(:,i))
     endif
     fexternal(:) = 0.
 !
@@ -532,25 +533,27 @@ subroutine get_rates
        !  one fluid dust
        !------------------
        if (use_smoothed_rhodust) then
-          rhodusti = rhodust(i)
+          rhodusti = rhodust(:,i)
           rhogasi  = rhogas(i)
        else
-          rhodusti = rhoi*dustfrac(i)
-          rhogasi  = rhoi - rhodusti
+          rhodusti = rhoi*dustfrac(:,i)
+          rhogasi  = (1. - sum(dustfrac(:,i)))*rhoi
        endif
        
-       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
-       dtdrag = min(dtdrag,tstop)
-       !
-       !--d/dt(deltav)  : add terms that do not involve sums over particles
-       !
-       if (dustfraci.gt.0.) then
-          dtstop   = 1./tstop
-          ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
-       else
-          dtstop = 0.
-          ddeltavdt(:,i) = 0.
-       endif
+       do k=1,ndust
+          tstop = get_tstop(idrag_nature,rhogasi,rhodusti(k),spsound(i),Kdrag)
+          dtdrag = min(dtdrag,tstop)
+          !
+          !--d/dt(deltav)  : add terms that do not involve sums over particles
+          !
+          if (dustfraci(k).gt.0.) then
+             dtstop   = 1./tstop
+             ddeltavdt(:,i) = ddeltavdt(:,i) - deltav(:,i)*dtstop
+          else
+             dtstop = 0.
+             ddeltavdt(:,i) = 0.
+          endif
+       enddo
        
        !
        !--du/dt: add thermal energy dissipation from drag
@@ -558,30 +561,32 @@ subroutine get_rates
        !
        if (iener.gt.0) then
           deltav2i = dot_product(deltav(:,i),deltav(:,i))
-          dudt(i) = dudt(i) + rhodusti*rho1i*deltav2i*dtstop
+          dudt(i) = dudt(i) + rhodusti(1)*rho1i*deltav2i*dtstop
        endif
     elseif (idust.eq.3 .or. idust.eq.4) then
        !--------------------------------------------
        !  one fluid dust in diffusion approximation
        !--------------------------------------------
        if (use_smoothed_rhodust) then
-          rhodusti = rhodust(i)
-          rhogasi  = rhogas(i)
+          rhodusti(:) = rhodust(:,i)
+          rhogasi     = rhogas(i)
        else
-          rhodusti = rhoi*dustfrac(i)
-          rhogasi  = rhoi - rhodusti
+          rhodusti(:) = rhoi*dustfrac(:,i)
+          rhogasi     = (1 - sum(dustfrac(:,i)))*rhoi
        endif
        !
        !--compute stopping time for drag timestep
        !
        dustfraci = rhodusti*rho1i
-       tstop = get_tstop(idrag_nature,rhogasi,rhodusti,spsound(i),Kdrag)
-       ! CAUTION: Line below must be done BEFORE external forces have been applied
-       deltav(:,i) = -rhoi/rhogasi*force(:,i)*tstop
-       ratio = max(dustfraci*tstop/dtcourant,ratio)
-       dtdrag = min(dtdrag,0.5*hh(i)**2/(dustfraci*tstop*spsound(i)**2))
+       do k=1,ndust
+          tstop = get_tstop(idrag_nature,rhogasi,rhodusti(k),spsound(i),Kdrag)
+          ! CAUTION: Line below must be done BEFORE external forces have been applied
+          deltav(:,i) = -rhoi/rhogasi*force(:,i)*tstop
+          ratio = max(dustfraci(k)*tstop/dtcourant,ratio)
+          dtdrag = min(dtdrag,0.5*hh(i)**2/(dustfraci(k)*tstop*spsound(i)**2))
+       enddo
        if (dtdrag < 0.) then
-          print*,'WARNING: dtdrag = ',dtdrag,dustfraci,dustfrac(i),rhodust(i),rhogas(i)
+          print*,'WARNING: dtdrag = ',dtdrag,dustfraci,dustfrac(:,i),rhodust(:,i),rhogas(i)
           dtdrag = abs(dtdrag)
        endif
        dvmax = maxval(abs(deltav(:,i)))
@@ -878,25 +883,25 @@ subroutine get_rates
        !--DEBUGGING: CHECK ENERGY CONSERVATION
        !  BY ADDING TERMS (SHOULD GIVE ZERO)
        !
-       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+       esum = esum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
-             + rhogasi*rhodusti*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
-             + ((1. - 2.*dustfraci)*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustevoldt(i) &
+             + rhogasi*rhodusti(1)*rho1i**2*dot_product(deltav(:,i),ddeltavdt(:,i)) &
+             + ((1. - 2.*dustfraci(1))*0.5*dot_product(deltav(:,i),deltav(:,i)) - uu(i))*ddustevoldt(1,i) &
              + rhogasi*rho1i*dudt(i))
     elseif (idust.eq.4) then
-       sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
+       esum = esum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - dot_product(vel(:,i),fexternal(:)) &
-             - uu(i)*ddustevoldt(i) &
-             + (1. - dustfrac(i))*dudt(i))
+             - uu(i)*ddustevoldt(1,i) &
+             + (1. - dustfrac(1,i))*dudt(i))
     endif
  enddo
- if ((idust.eq.1 .or. idust.eq.4) .and. abs(sum).gt.epsilon(sum) .and. (iener.ge.2)) then
-    print*,' SUM (should be zero if conserving energy) = ',sum
+ if ((idust.eq.1 .or. idust.eq.4) .and. abs(esum).gt.epsilon(esum) .and. (iener.ge.2)) then
+    print*,' SUM (should be zero if conserving energy) = ',esum
     !read*
  endif
  if (idust.ne.0 .and. ratio > 1.) print "(a,g8.3,a)",' WARNING: max ts/dt = ',ratio,' approximation not valid'
 
- if (ivisc.gt.0) print*,' dEk/dt = ',sum
+ if (ivisc.gt.0) print*,' dEk/dt = ',esum
  
  if (sqrt(dot_product(fmean,fmean)).gt.1.e-8 .and. mod(nsteps,100).eq.0) print*,'WARNING: fmean = ',fmean(:)
 !
@@ -1131,15 +1136,20 @@ contains
 !!    rhoj5 = sqrt(rhoj)
     rhoij = rhoi*rhoj
     rhoav1 = 0.5*(rho1i + rho1j)   !2./(rhoi + rhoj)
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfracj  = dustfrac(j)
-       rhodustj       = rhoj*dustfracj
-       rhogasj        = rhoj - rhodustj
-       rhogrhodonrhoj = rhogasj*rhodustj*rho1j
+    if (onef_dust) then
+       dustfracj(:) = dustfrac(:,j)
+       if (use_smoothed_rhodust) then
+          rhodustj(:) = rhodust(:,j)
+          rhogasj     = rhogas(j)
+       else
+          rhodustj(:)    = rhoj*dustfracj(:)
+          rhogasj        = (1. - sum(dustfracj))*rhoj
+       endif
+       rhogrhodonrhoj(:) = rhogasj*rhodustj(:)*rho1j
        deltavj(:)     = deltav(:,j)
        deltav2j       = dot_product(deltavj,deltavj)
-       vgasi(:)       = veli(:) - dustfraci*deltavi(:)
-       vgasj(:)       = velj(:) - dustfracj*deltavj(:)
+       vgasi(:)       = veli(:) - sum(dustfraci)*deltavi(:)
+       vgasj(:)       = velj(:) - sum(dustfracj)*deltavj(:)
        dvgas(:)       = vgasi(:) - vgasj(:)
        projdvgas      = dot_product(dvgas,dr)
        projdeltavi    = dot_product(deltavi,dr)
@@ -1822,11 +1832,11 @@ contains
     alphaB = 0.5*(alphaBi + alpha(3,j))
     vsigav = max(alphaav,alphau)*vsig
 
-    dustfracav = 0.5*(dustfraci + dustfracj)
+    dustfracav = 0.5*(dustfraci(1) + dustfracj(1))
     projdvgasav = dvdotr - dustfracav*(projdeltavi - projdeltavj)
     ddeltav     = deltavi(:) - deltavj(:)
     projddeltav = dot_product(ddeltav,dr)
-    projepsdeltav = dustfraci*projdeltavi - dustfracj*projdeltavj
+    projepsdeltav = dustfraci(1)*projdeltavi - dustfracj(1)*projdeltavj
 
     if (iav.eq.3) then
        dpmomdotr = projdvgasav
@@ -1913,8 +1923,8 @@ contains
        !
        !--dissipation term in deltav
        !
-       faci = 1./(dustfraci*(1. - dustfraci))
-       facj = 1./(dustfracj*(1. - dustfracj))
+       faci = 1./(dustfraci(1)*(1. - dustfraci(1)))
+       facj = 1./(dustfracj(1)*(1. - dustfracj(1)))
        if (iav.eq.1 .or. iav.eq.3) then
           if (iav.eq.1) then
              !vissdv = -0.5*(projdeltavi - projdeltavj)**2
@@ -1975,10 +1985,12 @@ contains
           dudt(j) = dudt(j) + facj*pmassi*(termv*(vissv) - termu*vissu + termdv*vissdv)
        endif
 
-       vsigeps = 0.5*(spsoundi + spsoundj)
-       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
-       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
-       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
+       do k=1,ndust
+          vsigeps = 0.5*(spsoundi + spsoundj)
+          diffeps = alphaB*rhoav1*vsigeps*(dustfraci(k) - dustfracj(k))*grkern
+          ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*diffeps
+          ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*diffeps
+       enddo
        
     endif
   end subroutine artificial_dissipation_dust
@@ -2016,8 +2028,8 @@ contains
           cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
           diffu = cfaci*grkerni*rho1i**2 + cfacj*grkernj*rho1j**2
           
-          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni + pmassj*diffu/(1. - dustfraci)
-          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj - pmassi*diffu/(1. - dustfracj)
+          dudt(i) = dudt(i) + 0.5*qi*rho1i/rhogasi*pmassj*dvdotr*grkerni + pmassj*diffu/(1. - sum(dustfraci))
+          dudt(j) = dudt(j) + 0.5*qj*rho1j/rhogasj*pmassi*dvdotr*grkernj - pmassi*diffu/(1. - sum(dustfracj))
        endif
     endif
     
@@ -2032,9 +2044,11 @@ contains
        !vsigeps = 0.5*(dustfraci**2 + dustfracj**2)*0.5*(spsoundi + spsoundj)
        vsigeps = 0. !5*(dustfraci + dustfracj)*vsigu !5*(spsoundi + spsoundj)
        !vsigeps = 0.25*(dustfraci + dustfracj)*(spsoundi + spsoundj)
-       diffeps = alphaB*rhoav1*vsigeps*(dustfraci - dustfracj)*grkern
-       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffeps
-       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffeps
+       do k=1,ndust
+          diffeps = alphaB*rhoav1*vsigeps*(dustfraci(k) - dustfracj(k))*grkern
+          ddustevoldt(k,i) = ddustevoldt(1,i) + pmassj*diffeps
+          ddustevoldt(k,j) = ddustevoldt(1,j) - pmassi*diffeps
+       enddo
     endif
 
   end subroutine artificial_dissipation_dust_diffusion
@@ -2522,29 +2536,31 @@ contains
     !--time derivative of dust to gas ratio
     !  (symmetric derivative to conserve dust/gas mass)
     !
-    if (use_sqrtdustfrac) then
-       si = sqrt(rhoi*dustfraci)
-       sj = sqrt(rhoj*dustfracj)
-       termi = (1. - dustfraci)*rho1i*projdeltavi*grkerni
-       termj = (1. - dustfracj)*rho1j*projdeltavj*grkernj
-       term = termi + termj
-       ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*term
-       ddustevoldt(j) = ddustevoldt(j) + pmassi*si*term
-    else
-       termi = rhogrhodonrhoi*projdeltavi*rho21i*grkerni
-       termj = rhogrhodonrhoj*projdeltavj*rho21j*grkernj
-       term  = termi + termj
-       ddustevoldt(i) = ddustevoldt(i) - pmassj*term
-       ddustevoldt(j) = ddustevoldt(j) + pmassi*term
-    endif
+    do k=1,ndust
+       if (use_sqrtdustfrac) then
+          si = sqrt(rhodusti(k))
+          sj = sqrt(rhodustj(k))
+          termi = (1. - dustfraci(k))*rho1i*projdeltavi*grkerni
+          termj = (1. - dustfracj(k))*rho1j*projdeltavj*grkernj
+          term = termi + termj
+          ddustevoldt(k,i) = ddustevoldt(k,i) - pmassj*sj*term
+          ddustevoldt(k,j) = ddustevoldt(k,j) + pmassi*si*term
+       else
+          termi = rhogrhodonrhoi(k)*projdeltavi*rho21i*grkerni
+          termj = rhogrhodonrhoj(k)*projdeltavj*rho21j*grkernj
+          term  = termi + termj
+          ddustevoldt(k,i) = ddustevoldt(k,i) - pmassj*term
+          ddustevoldt(k,j) = ddustevoldt(k,j) + pmassi*term
+       endif
+    enddo
 
     !
     !--time derivative of deltav
     !  (here only bits that involve sums over particles, i.e. not decay term)
     !
     !--high mach number term
-    termi    = (rhogasi - rhodusti)*rho1i*deltav2i
-    termj    = (rhogasj - rhodustj)*rho1j*deltav2j
+    termi    = (rhogasi - rhodusti(1))*rho1i*deltav2i
+    termj    = (rhogasj - rhodustj(1))*rho1j*deltav2j
     dterm    = 0.5*(termi - termj)
     !
     !--note: need to add term to d/dt(deltav) using the gas-only force 
@@ -2557,8 +2573,8 @@ contains
     !
     !--anisotropic pressure term
     !
-    prdustterm(:) = rhogrhodonrhoi*deltavi(:)*projdeltavi*rho21i*grkerni &
-                  + rhogrhodonrhoj*deltavj(:)*projdeltavj*rho21j*grkernj
+    prdustterm(:) = rhogrhodonrhoi(1)*deltavi(:)*projdeltavi*rho21i*grkerni &
+                  + rhogrhodonrhoj(1)*deltavj(:)*projdeltavj*rho21j*grkernj
 
     fextrai(:) = fextrai(:) - pmassj*(prdustterm(:))
     fextraj(:) = fextraj(:) + pmassi*(prdustterm(:))
@@ -2568,8 +2584,8 @@ contains
     !
     if (iener.gt.0) then
        du = uu(i) - uu(j)
-       dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti*rho21i*du*projdeltavi)*grkerni
-       dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj*rho21j*du*projdeltavj)*grkernj
+       dudt(i) = dudt(i) + pmassj*(pri*rho1i/rhogasi*projdvgas - rhodusti(1)*rho21i*du*projdeltavi)*grkerni
+       dudt(j) = dudt(j) + pmassi*(prj*rho1j/rhogasj*projdvgas - rhodustj(1)*rho21j*du*projdeltavj)*grkernj
     endif
 
   end subroutine dust_derivs
@@ -2582,40 +2598,43 @@ contains
     real :: diffterm, Di, Dj, du, Dav
     real :: tstopi, tstopj, pdvtermi, pdvtermj
     real :: si, sj, grgrkern
+    integer :: k
 
-    tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
-    tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
+    do k=1,ndust
+       tstopi = get_tstop(idrag_nature,rhogasi,rhodusti(k),spsoundi,Kdrag)
+       tstopj = get_tstop(idrag_nature,rhogasj,rhodustj(k),spsoundj,Kdrag)
     
-    if (use_sqrtdustfrac) then
-       Di = rho1i*tstopi
-       Dj = rho1j*tstopj
-       Dav = 0.5*(Di + Dj)
-       si = sqrt(rhodusti)
-       !print*,' si = ',si,dustevol(i)
-       sj = sqrt(rhodustj)
-       grgrkern = -2.*grkern/rij
-       diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
-       ddustevoldt(i) = ddustevoldt(i) + pmassj*sj*diffterm
-       ddustevoldt(j) = ddustevoldt(j) - pmassi*si*diffterm
-    else
-       Di = rhodusti*rho1i*tstopi
-       Dj = rhodustj*rho1j*tstopj
-       !Di = dustfraci*tstopi
-       !Dj = dustfracj*tstopj
-       !if (Di + Dj > 0.) then
+       if (use_sqrtdustfrac) then
+          Di = rho1i*tstopi
+          Dj = rho1j*tstopj
           Dav = 0.5*(Di + Dj)
-          !Dav = 2.*Di*Dj/(Di + Dj)
-          !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
-       !else
-       !   Dav = 0.
-       !endif
-       grgrkern = -2.*grkern/rij
-       !grgrkern = 0.5*(grgrkernalti + grgrkernaltj)
+          si = sqrt(rhodusti(k))
+          !print*,' si = ',si,dustevol(i)
+          sj = sqrt(rhodustj(k))
+          grgrkern = -2.*grkern/rij
+          diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
+          ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*sj*diffterm
+          ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*si*diffterm
+       else
+          Di = rhodusti(k)*rho1i*tstopi
+          Dj = rhodustj(k)*rho1j*tstopj
+          !Di = dustfraci*tstopi
+          !Dj = dustfracj*tstopj
+          !if (Di + Dj > 0.) then
+             Dav = 0.5*(Di + Dj)
+             !Dav = 2.*Di*Dj/(Di + Dj)
+             !Dav = sqrt(0.5*(Di**2 + Dj**2)) !0.5*(Di + Dj) !2.*Di*Dj/(Di + Dj)
+          !else
+          !   Dav = 0.
+          !endif
+          grgrkern = -2.*grkern/rij
+          !grgrkern = 0.5*(grgrkernalti + grgrkernaltj)
 
-       diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
-       ddustevoldt(i) = ddustevoldt(i) + pmassj*diffterm
-       ddustevoldt(j) = ddustevoldt(j) - pmassi*diffterm
-    endif
+          diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
+          ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*diffterm
+          ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*diffterm
+       endif
+    enddo
 
     !
     !--thermal energy equation: add Pg/rhog*div(vgas) and deltav.grad(u) term
@@ -2624,8 +2643,8 @@ contains
        du = uu(i) - uu(j)
        pdvtermi = pri*rho1i/rhogasi*pmassj*dvdotr*grkerni
        pdvtermj = prj*rho1j/rhogasj*pmassi*dvdotr*grkernj
-       dudt(i) = dudt(i) + pdvtermi - 0.5*pmassj*du*diffterm/(1. - dustfraci)
-       dudt(j) = dudt(j) + pdvtermj - 0.5*pmassi*du*diffterm/(1. - dustfracj)
+       dudt(i) = dudt(i) + pdvtermi - 0.5*pmassj*du*diffterm/(1. - sum(dustfraci))
+       dudt(j) = dudt(j) + pdvtermj - 0.5*pmassi*du*diffterm/(1. - sum(dustfracj))
     endif
 
   end subroutine dust_derivs_diffusion

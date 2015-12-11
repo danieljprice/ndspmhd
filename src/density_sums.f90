@@ -43,7 +43,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm,onef_dust
-    use part,         only:Bfield,uu,psi,itype,itypebnd,dustfrac,rhogas,rhodust
+    use part,         only:Bfield,uu,psi,itype,itypebnd,dustfrac,rhogas,rhodust,ndust
     use setup_params, only:hfact
     use rates,        only:dBevoldt
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -122,7 +122,7 @@ contains
           dxdx(:,i) = 0.
           if (onef_dust) then
              rhogas(i) = 0.
-             rhodust(i) = 0.
+             rhodust(:,i) = 0.
           endif
        endif
     enddo
@@ -150,7 +150,7 @@ contains
 !       PRINT*,'Doing particle ',i,nneigh,' neighbours',hh(i)
           idone = idone + 1
           pmassi = pmass(i)
-          if (onef_dust) dustfraci = dustfrac(i)
+          if (onef_dust) dustfraci = sum(dustfrac(:,i))
           xi(:) = x(:,i)
           veli(:) = vel(:,i) 
           hi = hh(i)
@@ -283,8 +283,8 @@ contains
                    densn(i) = densn(i) + wabalti*weight
                    delsqn(i) = delsqn(i) + grgrkerni*weight
                    if (onef_dust) then
-                      dustfracj = dustfrac(j)
-                      rhodust(i) = rhodust(i) + pmassj*dustfracj*wabi*weight
+                      dustfracj = sum(dustfrac(:,j))
+                      rhodust(:,i) = rhodust(:,i) + pmassj*dustfrac(:,j)*wabi*weight
                       rhogas(i)  = rhogas(i)  + pmassj*(1. - dustfracj)*wabi*weight
                    endif
                 endif
@@ -294,7 +294,7 @@ contains
                    densn(j) = densn(j) + wabaltj*weight
                    delsqn(j) = delsqn(j) + grgrkernj*weight
                    if (onef_dust) then
-                      rhodust(j) = rhodust(j) + pmassi*dustfraci*wabj*weight
+                      rhodust(:,j) = rhodust(:,j) + pmassi*dustfrac(:,i)*wabj*weight
                       rhogas(j)  = rhogas(j)  + pmassi*(1. - dustfraci)*wabj*weight
                    endif
                 endif
@@ -379,7 +379,7 @@ contains
     endif
     if (onef_dust) then
        do i=1,npart
-          if (rhodust(i) < 0.) rhodust(i) = 0.
+          !where (rhodust(:,i) < 0.) rhodust(:,i) = 0.
        enddo
     endif
     return
@@ -475,7 +475,7 @@ contains
        if (imhd.eq.5) dBevoldt(:,i) = 0.
        if (imhd.eq.0 .and. iprterm.eq.10) psi(i) = 0.
        if (onef_dust) then
-          rhodust(i) = 0.
+          rhodust(:,i) = 0.
           rhogas(i) = 0.
        endif
        dxdx(:,i) = 0.
@@ -574,8 +574,8 @@ contains
              densn(i) = densn(i) + wabalti
              delsqn(i) = delsqn(i) + grgrkerni
              if (onef_dust) then
-                dustfracj = dustfrac(j)
-                rhodust(i) = rhodust(i) + pmassj*dustfracj*wabi
+                dustfracj = sum(dustfrac(:,j))
+                rhodust(:,i) = rhodust(:,i) + pmassj*dustfrac(:,j)*wabi
                 rhogas(i)  = rhogas(i)  + pmassj*(1. - dustfracj)*wabi
              endif
 !
@@ -652,7 +652,7 @@ contains
     if (onef_dust) then
        do i=1,nlist
           j = ipartlist(i)
-          if (rhodust(j) < 0.) rhodust(j) = 0.
+          !where (rhodust(:,j) < 0.) rhodust(:,j) = 0.
        enddo
     endif
     

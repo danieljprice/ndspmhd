@@ -77,28 +77,32 @@ subroutine conservative2primitive
      !--error checking on dust-to-gas ratio
      do i=1,npart
         if (use_sqrtdustfrac) then
-           dustfrac(i) = dustevol(i)**2/rho(i)
+           dustfrac(:,i) = dustevol(:,i)**2/rho(i)
         else
-           dustfrac(i) = dustevol(i)
+           dustfrac(:,i) = dustevol(:,i)
         endif
-        if (dustfrac(i) < 0.) then
-           nerr = nerr + 1
-           !dustfrac(i) = 0. !abs(dustfrac(i))
-           !if (.not. use_sqrtdustfrac) then
-           !   dustevol(i) = 0.
-           !   dustevolin(i) = 0.
-           !  endif
-           !call quit
-        elseif (dustfrac(i) > 1.) then
-           nerr1 = nerr1 + 1
-           dustfrac(i) = 1. - epsilon(1.)
-           if (.not. use_sqrtdustfrac) then
-              dustevol(i) = 1. - epsilon(1.)
-              dustevolin(i) = 1. - epsilon(1.)
+        do k=1,ndust
+           if (dustfrac(k,i) < 0.) then
+              nerr = nerr + 1
+              !dustfrac(i) = 0. !abs(dustfrac(i))
+              !if (.not. use_sqrtdustfrac) then
+              !   dustevol(i) = 0.
+              !   dustevolin(i) = 0.
+              !  endif
+              !call quit
+           elseif (dustfrac(k,i) > 1.) then
+              nerr1 = nerr1 + 1
+              dustfrac(k,i) = 1. - epsilon(1.)
+              if (.not. use_sqrtdustfrac) then
+                 dustevol(k,i) = 1. - epsilon(1.)
+                 dustevolin(k,i) = 1. - epsilon(1.)
+              endif
            endif
-        endif
+        enddo
      enddo
-     dens = rho*(1. - dustfrac) ! rho = rho_gas + rho_dust, dens is rho_gas
+     do i=1,npart
+        dens(i) = rho(i)*(1. - sum(dustfrac(:,i))) ! rho = rho_gas + rho_dust, dens is rho_gas
+     enddo
   else
      dens = rho
   endif
@@ -427,9 +431,7 @@ subroutine conservative2primitive
            pr(i) = pr(j)
         endif
         Bfield(:,i) = Bfield(:,j)
-        if (idust > 0 .and. idust /= 2) then
-           dustfrac(i) = dustfrac(j)
-        endif
+        if (onef_dust) dustfrac(:,i) = dustfrac(:,j)
         if (all(ibound.eq.3)) call copy_particle(i,j) ! just to be sure
      enddo
   endif
@@ -537,11 +539,15 @@ subroutine primitive2conservative
 
   if (onef_dust) then
      if (use_sqrtdustfrac) then
-        dustevol = sqrt(dustfrac*rho)
+        do i=1,npart
+           dustevol(:,i) = sqrt(dustfrac(:,i)*rho(i))
+        enddo
      else
         dustevol = dustfrac
      endif
-     dens = rho*(1. - dustfrac)
+     do i=1,npart
+        dens(i) = rho(i)*(1. - sum(dustfrac(:,i)))
+     enddo
   else
      dens = rho
   endif

@@ -44,12 +44,14 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
  use options,   only:iener,Kdrag,use_sqrtdustfrac,idrag_nature
  use dust,      only:get_tstop
  use get_neighbour_lists
+ use part,      only:ndust
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
- real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,dustfrac,uu,spsound,pr
+ real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,uu,spsound,pr
+ real, dimension(ndust,ntot), intent(in) :: dustfrac
  real, dimension(ndimV,ntot), intent(in) :: vel
  real, dimension(ndimV,ntot), intent(inout) :: deltav
- real, dimension(ntot),      intent(out) :: ddustevoldt
+ real, dimension(ndust,ntot), intent(out) :: ddustevoldt
  real, dimension(ntot),    intent(inout) :: dudt
 !
 !--define local variables
@@ -119,7 +121,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
        rhoi      = rho(i)
        rho1i     = 1./rhoi
        gradhi    = gradh(i)
-       dustfraci = dustfrac(i)
+       dustfraci = dustfrac(1,i)
        rhogasi   = (1. - dustfraci)*rhoi
        rhodusti  = rhoi - rhogasi
        deltavi   = deltav(:,i)
@@ -150,7 +152,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                 pmassj    = pmass(j)
                 rhoj      = rho(j)
                 rho1j     = 1./rhoj
-                dustfracj = dustfrac(j)
+                dustfracj = dustfrac(1,j)
                 rhogasj   = (1. - dustfracj)*rhoj
                 rhodustj  = rhoj - rhogasj
                 deltavj   = deltav(:,j)
@@ -188,8 +190,8 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                    sj = 1.
                 endif
                 term = termi + termj
-                ddustevoldt(i) = ddustevoldt(i) - pmassj*sj*term
-                ddustevoldt(j) = ddustevoldt(j) + pmassi*si*term
+                ddustevoldt(1,i) = ddustevoldt(1,i) - pmassj*sj*term
+                ddustevoldt(1,j) = ddustevoldt(1,j) + pmassi*si*term
 
                 if (iener.gt.0) then
                    disstermi = 0.!dustfraci*deltav2i/tstopi
@@ -222,7 +224,7 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
 
  do i=npart+1,ntot
     j = ireal(i)
-    ddustevoldt(i) = ddustevoldt(j)
+    ddustevoldt(:,i) = ddustevoldt(:,j)
     dudt(i) = dudt(j)
  enddo
  

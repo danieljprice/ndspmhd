@@ -257,10 +257,10 @@ subroutine modify_dump
     enddo
     npart = j
     ntotal = npart
- elseif (idust==1 .or. idust==3 .or. idust==4) then
+ elseif (onef_dust) then
     write(iprint,"(/,a,/)") ' > MODIFYING dump by adding dust (one-fluid) <'
     do i=1,npart
-       dustfrac(i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
+       dustfrac(1,i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
        pmass(i)    = pmass(i)*(1. + dust_to_gas_ratio)
        deltav(:,i) = 0.
     enddo

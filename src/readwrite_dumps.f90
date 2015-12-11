@@ -83,7 +83,7 @@ subroutine write_dump(t,dumpfile)
  endif
  if (onef_dust) then
     iformat = 5
-    ncolumns = ncolumns + ndimV + 3
+    ncolumns = ncolumns + ndimV + 2*ndust + 1
  endif
  
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
@@ -171,12 +171,16 @@ subroutine write_dump(t,dumpfile)
      enddo
   endif
   if (onef_dust) then
-     write(idatfile) dustfrac(1:nprint)
+     do i=1,ndust
+        write(idatfile) dustfrac(i,1:nprint)
+     enddo
      do i=1,ndimV
         write(idatfile) deltav(i,1:nprint)
      enddo
      write(idatfile) rhogas(1:nprint)
-     write(idatfile) rhodust(1:nprint)
+     do i=1,ndust
+        write(idatfile) rhodust(i,1:nprint)
+     enddo
   endif
   write(idatfile) itype(1:nprint)
 
@@ -397,8 +401,10 @@ subroutine read_dump(dumpfile,tfile,copysetup)
     enddo
     nread = nread + 2
  endif
- if ((idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) .and. iformat.eq.5) then
-    read(ireadf,iostat=ierr) dustfrac(1:npart)
+ if (onef_dust .and. iformat.eq.5) then
+    do i=1,ndust
+       read(ireadf,iostat=ierr) dustfrac(i,1:npart)
+    enddo
     do i=1,ndimV
        read(ireadf,iostat=ierr) deltav(i,1:npart)
     enddo

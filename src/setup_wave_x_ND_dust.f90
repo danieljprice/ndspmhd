@@ -26,7 +26,7 @@ subroutine setup
  integer :: ntypes
 ! real, parameter :: pi = 3.1415926536
  real, parameter :: tol = 1.e-8
- integer :: its,iwave,ngas,ndust,jtype
+ integer :: its,iwave,ngas,npdust,jtype
  real, dimension(ndimV) :: Bzero
  real :: massp,masspdust
  real :: ampl,wk,xlambda,dxmax,denom
@@ -91,22 +91,22 @@ subroutine setup
 !--initially set up a uniform density grid (also determines npart)
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
- if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+ if (onef_dust) then
     ntypes = 1
  else
     ntypes = 2
  endif
 
  ngas = 0
- ndust = 0
+ npdust = 0
  do jtype=1,ntypes
     call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
     if (jtype.eq.1) then
        ngas = npart
        itype(1:ngas) = itypegas
     elseif (jtype.eq.2) then
-       ndust = npart - ngas
-       itype(ngas+1:ngas+ndust) = itypedust
+       npdust = npart - ngas
+       itype(ngas+1:ngas+npdust) = itypedust
     endif
  enddo
  
@@ -115,9 +115,9 @@ subroutine setup
  
  masspdust = 0.
  dust_to_gas_ratio = 1.
- if (ndust.gt.0) masspdust = dust_to_gas_ratio*1.0/FLOAT(ndust) ! average particle mass
+ if (npdust.gt.0) masspdust = dust_to_gas_ratio*1.0/FLOAT(npdust) ! average particle mass
  denszerodust = dust_to_gas_ratio*denszero
- if (ntypes.gt.1) print*,' ngas = ',ngas,' ndust = ',ndust
+ if (ntypes.gt.1) print*,' ngas = ',ngas,' npdust = ',npdust
 !
 !--allocate memory here
 !
@@ -142,12 +142,12 @@ subroutine setup
     else
        Bfield(:,i) = 0.
     endif
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfrac(i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
+    if (onef_dust) then
+       dustfrac(1,i) = dust_to_gas_ratio/(1. + dust_to_gas_ratio)
        deltav(:,i) = 0.
-       pmass(i) = pmass(i)/(1. - dustfrac(i))
+       pmass(i) = pmass(i)/(1. - dustfrac(1,i))
     endif
- ENDDO
+ enddo
 
  ntotal = npart
 !

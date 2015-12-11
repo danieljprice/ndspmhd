@@ -133,8 +133,8 @@ subroutine evwrite(t,etot,momtot)
     endif
     ekin = ekin + 0.5*pmassi*DOT_PRODUCT(veli,veli)
 
-    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
-       dustfraci  = dustfrac(i)
+    if (onef_dust) then
+       dustfraci  = sum(dustfrac(:,i))
        dtgi  = dustfraci/(1. - dustfraci)
        dterm = (1. - dustfraci)
        ekindeltav = 0.5*pmassi*dtgi*dterm**2*dot_product(deltav(:,i),deltav(:,i))

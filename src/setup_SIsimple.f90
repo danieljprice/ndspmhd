@@ -35,7 +35,7 @@ subroutine setup
 !--define local variables
 !            
  implicit none
- integer :: i,ngas,ndust,jtype
+ integer :: i,ngas,npdust,jtype
  real :: massp,masspdust,totmass,totmassdust
  real :: denszero,uuzero,cs0,polyk0,denszeroc
  real :: przero,Bzeroz,asize,betamhd,wavekmin,valfvenz
@@ -120,7 +120,7 @@ subroutine setup
 
 !--setup uniform density grid of gas and dust particles
  ngas  = 0
- ndust = 0
+ npdust = 0
  do jtype=1,ntypes
   call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
   if (jtype.eq.1) then
@@ -129,13 +129,13 @@ subroutine setup
     print *, 'gas ', ngas
     print *, x(1,1:10)
   elseif (jtype.eq.2) then
-    ndust = npart - ngas
-    itype(ngas+1:ngas+ndust) = itypedust
-    print *, 'dust ', ngas, ndust
+    npdust = npart - ngas
+    itype(ngas+1:ngas+npdust) = itypedust
+    print *, 'dust ', ngas, npdust
     print *, x(1,ngas+1:ngas+10)
   endif
  enddo
- ntotal = ngas + ndust
+ ntotal = ngas + npdust
 
  denszero     = 1.0
  denszerodust = denszero*dust_to_gas_ratio
@@ -187,7 +187,7 @@ subroutine setup
  if (idust.eq.1) then ! one fluid dust
     massp = massp*(1. + dust_to_gas_ratio)
  else
-    masspdust   = totmassdust/FLOAT(ndust)
+    masspdust   = totmassdust/FLOAT(npdust)
  endif
 
  print *, 'Particle mass ', massp, totmass, ngas, ntotal
@@ -359,7 +359,7 @@ subroutine setup
     sikx0   = sin(kx*xi)
     cokz0   = cos(kz*zi)
     sikz0   = sin(kz*zi)
-    if (idust.eq.1) dustfrac(i) = dust_to_gas_ratio
+    if (idust.eq.1) dustfrac(1,i) = dust_to_gas_ratio
 !-------------------------------------------------------------
 ! start with the gas particles
 !-------------------------------------------------------------
@@ -461,7 +461,7 @@ subroutine setup
              gdens = denszero + (Rrhog*cokx - Irhog*sikx)
              ddens = denszerodust + (Rrhod*cokx - Irhod*sikx)
              
-             dustfrac(i) = ddens/gdens
+             dustfrac(1,i) = ddens/gdens
           endif
 
 !----for adding a pert in kz only--------------------------- 
@@ -505,7 +505,7 @@ subroutine setup
           deltav(2,i) = vdy - vgy
           deltav(3,i) = vdz - vgz
           
-          rhodonrho = dustfrac(i)/(1.+dustfrac(i))
+          rhodonrho = dustfrac(1,i)/(1.+dustfrac(1,i))
           
           vel(1,i) = vgx + rhodonrho*deltav(1,i) ! v = vg + rhod/rho*deltav
           vel(2,i) = vgy + rhodonrho*deltav(2,i)
@@ -598,7 +598,7 @@ subroutine setup
                 deltav(2,i) = vdy - vgy
                 deltav(3,i) = vdz - vgz
                 
-                rhodonrho = dustfrac(i)/(1.+dustfrac(i))
+                rhodonrho = dustfrac(1,i)/(1.+dustfrac(1,i))
 
                 vel(1,i) = vgx + rhodonrho*deltav(1,i) ! v = vg + rhod/rho*deltav
                 vel(2,i) = vgy + rhodonrho*deltav(2,i)
