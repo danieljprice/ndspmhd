@@ -119,7 +119,7 @@ subroutine write_infile(infile)
   call write_inopt(idrag_nature,'idrag_nature','drag type (0=none 1=const K 2=const ts 3=Epstein)',iread)
   !call write_inopt(idrag_structure,'idrag_structure','drag structure (1=default)',iread)
   call write_inopt(Kdrag,'Kdrag','drag coeff (idrag=1) or ts (idrag=2) or grain size in cm (idrag=3)',iread)
-  call write_inopt(use_sqrtdustfrac,'use_sqrtdustfrac','evolve s=sqrt(rho*eps) instead of eps?',iread)
+  call write_inopt(idustevol,'idustevol','dust variable [0=dustfrac(eps) 1=sqrt(rho*eps) 2=asin(eps)]',iread)
   call write_inopt(use_smoothed_rhodust,'use_smoothed_rhodust','use smoothed dust/gas density estimates?',iread)
 
   write(iread,"(/,a)") '# options affecting self-gravity'
@@ -285,7 +285,7 @@ subroutine read_infile(infile)
         call read_inopt(idrag_nature,'idrag_nature',db,errcount=nerr)
         !call read_inopt(idrag_structure,'idrag_structure',db,errcount=nerr)
         call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
-        call read_inopt(use_sqrtdustfrac,'use_sqrtdustfrac',db,errcount=nerr)
+        call read_inopt(idustevol,'idustevol',db,errcount=nerr)
         call read_inopt(use_smoothed_rhodust,'use_smoothed_rhodust',db,errcount=nerr)
      endif
 

@@ -41,10 +41,10 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
  use bound,     only:ireal
  use kernels,   only:interpolate_kernel,radkern2
  use linklist
- use options,   only:iener,Kdrag,use_sqrtdustfrac,idrag_nature
+ use options
  use dust,      only:get_tstop
  use get_neighbour_lists
- use part,      only:ndust
+ use part,      only:ndust,rhodust,rhogas
  integer, intent(in) :: npart,ntot
  real, dimension(ndim,ntot),  intent(in) :: x
  real, dimension(ntot),       intent(in) :: pmass,rho,hh,gradh,uu,spsound,pr
@@ -122,8 +122,13 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
        rho1i     = 1./rhoi
        gradhi    = gradh(i)
        dustfraci = dustfrac(1,i)
-       rhogasi   = (1. - dustfraci)*rhoi
-       rhodusti  = rhoi - rhogasi
+       if (use_smoothed_rhodust) then
+          rhogasi   = rhogas(i)
+          rhodusti  = rhodust(1,i)
+       else
+          rhogasi   = (1. - dustfraci)*rhoi
+          rhodusti  = rhoi - rhogasi
+       endif
        deltavi   = deltav(:,i)
        deltav2i  = dot_product(deltavi,deltavi)
        vgasi     = vel(:,i) !- dustfraci*deltavi
@@ -153,8 +158,13 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                 rhoj      = rho(j)
                 rho1j     = 1./rhoj
                 dustfracj = dustfrac(1,j)
-                rhogasj   = (1. - dustfracj)*rhoj
-                rhodustj  = rhoj - rhogasj
+                if (use_smoothed_rhodust) then
+                   rhogasj = rhogas(j)
+                   rhodustj = rhodust(1,j)
+                else
+                   rhogasj   = (1. - dustfracj)*rhoj
+                   rhodustj  = rhoj - rhogasj
+                endif
                 deltavj   = deltav(:,j)
                 deltav2j  = dot_product(deltavj,deltavj)
                 tstopj    = get_tstop(idrag_nature,rhogasj,rhodustj,spsound(j),Kdrag)
@@ -178,17 +188,23 @@ subroutine dust_diffusion(npart,ntot,x,pmass,rho,hh,gradh,dustfrac,ddustevoldt,d
                 projdeltavi = dot_product(deltav(:,i),dr)
                 projdeltavj = dot_product(deltav(:,j),dr)
 
-                if (use_sqrtdustfrac) then
+                select case(idustevol)
+                case(2)
+                   si = sqrt(rhodusti*rhogasi)
+                   sj = sqrt(rhodustj*rhogasj)
+                   termi = rho1i**3*projdeltavi*grkerni
+                   termj = rho1j**3*projdeltavj*grkernj
+                case(1)
                    si = sqrt(rhoi*dustfraci)
                    sj = sqrt(rhoj*dustfracj)
                    termi = (1. - dustfraci)*rho1i*rho1i*projdeltavi*grkerni
                    termj = (1. - dustfracj)*rho1j*rho1j*projdeltavj*grkernj
-                else
+                case default
                    termi = dustfraci*(1. - dustfraci)*rho1i*projdeltavi*grkerni
                    termj = dustfracj*(1. - dustfracj)*rho1j*projdeltavj*grkernj
                    si = 1.
                    sj = 1.
-                endif
+                end select
                 term = termi + termj
                 ddustevoldt(1,i) = ddustevoldt(1,i) - pmassj*sj*term
                 ddustevoldt(1,j) = ddustevoldt(1,j) + pmassi*si*term

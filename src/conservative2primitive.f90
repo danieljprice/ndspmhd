@@ -76,16 +76,22 @@ subroutine conservative2primitive
   if (onef_dust) then
      !--error checking on dust-to-gas ratio
      do i=1,npart
-        if (use_sqrtdustfrac) then
+        select case (idustevol)
+        case(3)
+           dustfrac(1,i) = 0.5*(dustevol(1,i) + 1)
+        case(2)
+           dustfrac(1,i) = sin(dustevol(1,i))**2
+        case(1)
            dustfrac(:,i) = dustevol(:,i)**2/rho(i)
-        else
+        case default
            dustfrac(:,i) = dustevol(:,i)
-        endif
+        end select
         do k=1,ndust
            if (dustfrac(k,i) < 0.) then
               nerr = nerr + 1
+              print*, dustfrac(1,i),dustevol(1,i),sin(dustevol(1,i)) + 1.
               !dustfrac(i) = 0. !abs(dustfrac(i))
-              !if (.not. use_sqrtdustfrac) then
+              !if (idustevol==0) then
               !   dustevol(i) = 0.
               !   dustevolin(i) = 0.
               !  endif
@@ -93,7 +99,7 @@ subroutine conservative2primitive
            elseif (dustfrac(k,i) > 1.) then
               nerr1 = nerr1 + 1
               dustfrac(k,i) = 1. - epsilon(1.)
-              if (.not. use_sqrtdustfrac) then
+              if (idustevol==0) then
                  dustevol(k,i) = 1. - epsilon(1.)
                  dustevolin(k,i) = 1. - epsilon(1.)
               endif
@@ -538,13 +544,22 @@ subroutine primitive2conservative
   endif
 
   if (onef_dust) then
-     if (use_sqrtdustfrac) then
+     select case(idustevol)
+     case(3)
+        do i=1,npart
+           dustevol(:,i) = 2.*dustfrac(:,i) - 1.
+        enddo
+     case(2)
+        do i=1,npart
+           dustevol(:,i) = asin(sqrt(dustfrac(:,i)))
+        enddo
+     case(1)
         do i=1,npart
            dustevol(:,i) = sqrt(dustfrac(:,i)*rho(i))
         enddo
-     else
+     case default
         dustevol = dustfrac
-     endif
+     end select
      do i=1,npart
         dens(i) = rho(i)*(1. - sum(dustfrac(:,i)))
      enddo

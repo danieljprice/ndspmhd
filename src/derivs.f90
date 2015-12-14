@@ -26,17 +26,16 @@
 !
 subroutine derivs
  use loguns,        only:iprint
- use options,       only:ibound,icty,ihvar,imhd
- use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,deltav,pr,spsound,ndust
+ use options
+ use part,          only:hh,x,npart,ntotal,rho,Bevol,pmass,uu,dustfrac,dustevol,deltav,pr,spsound,ndust
  use rates,         only:dBevoldt,ddustevoldt,dendt,drhodt
  use setup_params,  only:hfact
  use cons2prim,     only:conservative2primitive
  use resistivity,   only:Bdiffusion
  use timestep,      only:dt
- use options,       only:iresist,etamhd,idust,iener,use_sqrtdustfrac,iquantum
  use dustdiffusion, only:dust_diffusion
  use hterms,        only:gradh
- use part,          only:vel,P_Q,rhodust
+ use part,          only:vel,P_Q,rhodust,rhogas
  use rates,         only:force
  use get_quantum,   only:get_quantum_pressure
  implicit none
@@ -116,35 +115,60 @@ subroutine derivs
        sum3 = sum3 + pmass(i)*(1. - dustfrac(1,i))*dendt(i)
        sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(1,i))*ddustevoldt(1,i)
 
-       if (use_sqrtdustfrac) then
+       select case(idustevol)
+       case(2)
+          ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i)
+          si(:) = sqrt(rhodust(:,i)*rhogas(i))
+          sum_dustm = sum_dustm + pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
+       case(1)
        !
        !--convert from deps/dt to ds/dt
        !
           si(:) = sqrt(dustfrac(:,i)*rho(i))
           ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i) + 0.5*si(:)*drhodt(i)/rho(i)
           sum_dustm = sum_dustm + pmass(i)*(2.*si(1)/rho(i)*ddustevoldt(1,i) - si(1)**2/rho(i)**2*drhodt(i))
-       else
+       case default
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
-       endif
+       end select
     enddo
     if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
  elseif (idust.eq.4 .or. idust.eq.1) then
     sum_dustm = 0.
-    if (use_sqrtdustfrac) then
+    select case(idustevol)
+    case(3)
+       do i=1,npart
+          ddustevoldt(:,i) = 2.*ddustevoldt(:,i)
+          sum_dustm = sum_dustm + pmass(i)*0.5*ddustevoldt(1,i)
+       enddo
+    case(2)
+       do i=1,npart
+          ddustevoldt(:,i) = 0.5*ddustevoldt(:,i)
+          if (use_smoothed_rhodust) then
+             si(:) = sqrt(rhodust(:,i)*rhogas(i))
+          else
+             si(:) = sqrt(rho(i)**2*(dustfrac(:,i)*(1. - dustfrac(:,i))))
+          endif
+          sum_dustm = sum_dustm + pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
+       enddo
+    case(1)
        do i=1,npart
           !
           !--convert from deps/dt to ds/dt
           !
-          si(:) = sqrt(rhodust(:,i))
+          if (use_smoothed_rhodust) then
+             si(:) = sqrt(rhodust(:,i))
+          else
+             si(:) = sqrt(rho(i)*dustfrac(:,i))
+          endif
           ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i) + 0.5*si(:)*drhodt(i)/rho(i)
           sum_dustm = sum_dustm + pmass(i)*(2.*si(1)/rho(i)*ddustevoldt(1,i) - si(1)**2/rho(i)**2*drhodt(i))
        enddo
-    else
+    case default
        do i=1,npart
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
        enddo
-    endif
+    end select
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
  endif
  

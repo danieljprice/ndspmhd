@@ -86,11 +86,12 @@ subroutine step
     dpsidtin(i) = dpsidt(i)
     
     if (onef_dust) then
-       if (use_sqrtdustfrac) then
+       select case(idustevol)
+       case(1)
           dustevolin(:,i) = sqrt(dustevol(:,i)**2)
-       else
+       case default
           dustevolin(:,i) = dustevol(:,i)
-       endif
+       end select
        ddustevoldtin(:,i) = ddustevoldt(:,i)
        if (idust.eq.1) then
           deltavin(:,i)     = deltav(:,i)
@@ -154,7 +155,7 @@ subroutine step
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
        if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
-       if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       if (onef_dust) then
           dustevol(:,i) = dustevolin(:,i) + dt*ddustevoldtin(:,i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
        endif

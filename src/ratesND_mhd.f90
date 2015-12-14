@@ -2033,7 +2033,7 @@ contains
        endif
     endif
     
-    if (.not.use_sqrtdustfrac) then
+    if (idustevol==0) then
        alphaB = 0.5*(alphaBi + alpha(3,j))
        !tstopi = get_tstop(idrag_nature,rhogasi,rhodusti,spsoundi,Kdrag)
        !tstopj = get_tstop(idrag_nature,rhogasj,rhodustj,spsoundj,Kdrag)
@@ -2537,7 +2537,16 @@ contains
     !  (symmetric derivative to conserve dust/gas mass)
     !
     do k=1,ndust
-       if (use_sqrtdustfrac) then
+       select case(idustevol)
+       case(2)
+          si = sqrt(rhogasi*rhodusti(k))
+          sj = sqrt(rhogasj*rhodustj(k))
+          termi = (1. - dustfraci(k))*rho1i*projdeltavi*grkerni
+          termj = (1. - dustfracj(k))*rho1j*projdeltavj*grkernj
+          term = termi + termj
+          ddustevoldt(k,i) = ddustevoldt(k,i) - pmassj*sj*term
+          ddustevoldt(k,j) = ddustevoldt(k,j) + pmassi*si*term
+       case(1)
           si = sqrt(rhodusti(k))
           sj = sqrt(rhodustj(k))
           termi = (1. - dustfraci(k))*rho1i*projdeltavi*grkerni
@@ -2545,13 +2554,13 @@ contains
           term = termi + termj
           ddustevoldt(k,i) = ddustevoldt(k,i) - pmassj*sj*term
           ddustevoldt(k,j) = ddustevoldt(k,j) + pmassi*si*term
-       else
+       case default
           termi = rhogrhodonrhoi(k)*projdeltavi*rho21i*grkerni
           termj = rhogrhodonrhoj(k)*projdeltavj*rho21j*grkernj
           term  = termi + termj
           ddustevoldt(k,i) = ddustevoldt(k,i) - pmassj*term
           ddustevoldt(k,j) = ddustevoldt(k,j) + pmassi*term
-       endif
+       end select
     enddo
 
     !
@@ -2604,7 +2613,19 @@ contains
        tstopi = get_tstop(idrag_nature,rhogasi,rhodusti(k),spsoundi,Kdrag)
        tstopj = get_tstop(idrag_nature,rhogasj,rhodustj(k),spsoundj,Kdrag)
     
-       if (use_sqrtdustfrac) then
+       select case(idustevol)
+       case(2)
+          Di = rho1i*tstopi/rhogasi
+          Dj = rho1j*tstopj/rhogasj
+          Dav = 0.5*(Di + Dj)
+          si = sqrt(rhogasi*rhodusti(k))
+          !print*,' si = ',si,dustevol(i)
+          sj = sqrt(rhogasj*rhodustj(k))
+          grgrkern = -2.*grkern/rij
+          diffterm = Dav*(pri - prj)*grgrkern
+          ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*sj*rho1j*diffterm
+          ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*si*rho1i*diffterm
+       case(1) ! sqrt(rho*eps)
           Di = rho1i*tstopi
           Dj = rho1j*tstopj
           Dav = 0.5*(Di + Dj)
@@ -2615,7 +2636,7 @@ contains
           diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
           ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*sj*diffterm
           ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*si*diffterm
-       else
+       case default
           Di = rhodusti(k)*rho1i*tstopi
           Dj = rhodustj(k)*rho1j*tstopj
           !Di = dustfraci*tstopi
@@ -2633,7 +2654,7 @@ contains
           diffterm = rho1i*rho1j*Dav*(pri - prj)*grgrkern
           ddustevoldt(k,i) = ddustevoldt(k,i) + pmassj*diffterm
           ddustevoldt(k,j) = ddustevoldt(k,j) - pmassi*diffterm
-       endif
+       end select
     enddo
 
     !

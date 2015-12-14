@@ -143,7 +143,7 @@ module options
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
  integer :: ivisc,ibiascorrection,iambipolar,icompute_d2v
- integer :: iquantum
+ integer :: iquantum,idustevol
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
@@ -151,7 +151,7 @@ module options
  real :: shearvisc,bulkvisc
  real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
- logical :: usenumdens,use_sqrtdustfrac,onef_dust,use_smoothed_rhodust
+ logical :: usenumdens,onef_dust,use_smoothed_rhodust
 end module
 
 !-------------------------------------------------------------------

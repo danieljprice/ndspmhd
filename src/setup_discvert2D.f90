@@ -49,7 +49,7 @@ subroutine setup
  real :: massp,rhomin
  real :: partvol,denszero,HonR,H0,omega,cs0,totmass
  real :: sigma!,zmin,zmax,dz,zonh
- real :: t_cour,t_stop,rhogas,rhodust
+ real :: t_cour,t_stop,rhogasi,rhodusti
  logical :: equalmass
  real, parameter :: dust_to_gas_ratio = 1.e-2
 
@@ -145,17 +145,17 @@ subroutine setup
 
     print "(/,a,f6.3)",' CHECK drag routine: gamma = ',gamma
     call init_drag(ierr,gamma)
-    rhogas  = denszero
-    rhodust = dust_to_gas_ratio*rhogas
-    t_stop  = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+    rhogasi  = denszero
+    rhodusti = dust_to_gas_ratio*rhogasi
+    t_stop  = get_tstop(3,rhogasi,0.,cs0,0.) ! assume rhodusti = 0. here to match above
     print*,' ts (z=0)            =',t_stop
-    print*,' equivalent K (z=0)  = ',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+    print*,' equivalent K (z=0)  = ',rhogasi*rhodusti/(t_stop*(rhogasi + rhodusti))
 
-    rhogas  = denszero*exp(-0.5*(2.)**2)
-    rhodust = dust_to_gas_ratio*rhogas
-    t_stop = get_tstop(3,rhogas,0.,cs0,0.) ! assume rhodust = 0. here to match above
+    rhogasi  = denszero*exp(-0.5*(2.)**2)
+    rhodusti = dust_to_gas_ratio*rhogasi
+    t_stop = get_tstop(3,rhogasi,0.,cs0,0.) ! assume rhodusti = 0. here to match above
     print*,' ts (z=2H)           =',t_stop
-    print*,' equivalent K (z=2H) =',rhogas*rhodust/(t_stop*(rhogas + rhodust))
+    print*,' equivalent K (z=2H) =',rhogasi*rhodusti/(t_stop*(rhogasi + rhodusti))
  endif
  
  ! WRITE cs*ts to file
@@ -168,9 +168,9 @@ subroutine setup
  !write(1,"(a)") '# [    z (AU)   ] [ ts*cs (AU) ] [   z (code units)  ] [ ts*cs (code units) ]'
  !do i=1,nz
  !   zonh = zmin + (i-1)*dz
- !   rhogas = denszero*exp(-0.5*(zonh)**2)
- !   rhodust = dust_to_gas_ratio*rhogas
- !   t_stop = get_tstop(3,rhogas,rhodust,cs0,0.)
+ !   rhogasi = denszero*exp(-0.5*(zonh)**2)
+ !   rhodusti = dust_to_gas_ratio*rhogasi
+ !   t_stop = get_tstop(3,rhogasi,rhodusti,cs0,0.)
  !   write(1,*) zonh*H0*udist/AU,t_stop*cs0*udist/au,zonh*H0,t_stop*cs0
  !enddo
  !close(unit=1)
@@ -230,7 +230,7 @@ end subroutine setup
 subroutine modify_dump
  use loguns,       only:iprint
  use part
- use options,        only:idust
+ use options
  use timestep,       only:time
  use mem_allocation, only:alloc
  use eos,            only:gamma
