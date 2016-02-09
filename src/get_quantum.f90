@@ -59,7 +59,7 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
  real, dimension(idim),       intent(in) :: pmass,rho,hh
  real, dimension(ndim,ndim,idim), intent(out) :: P_Q
 
- integer :: i,j,n
+ integer :: i,j,k,l,n
  integer :: icell,iprev,nneigh
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
@@ -70,7 +70,7 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
  real, dimension(ndim) :: dx
  real, dimension(ndimV) :: dr
  real :: q2i,q2j,grkerni,grkernj,grgrkerni,grgrkernj
- real :: rho1i,rho1j,del2Wi,del2Wj,rij1,rhoi,rhoj,drho
+ real :: rho1i,rho1j,rij1,rhoi,rhoj,drho
  real, dimension(ntotal) :: h1
  real, dimension(ndim,ntotal) :: gradrho
  real, dimension(ndim,ndim,ntotal) :: gradgradrho
@@ -165,19 +165,22 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
                 case default  ! "default method"
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
-                   
-                   del2Wi = -2.*grkerni*rij1
-                   del2Wj = -2.*grkernj*rij1
 !
 !--1st derivatives of density
 !
-                   gradrho(:,i) = gradrho(:,i) + pmass(j)*grkerni
-                   gradrho(:,j) = gradrho(:,j) + pmassi*grkernj
+                   gradrho(:,i) = gradrho(:,i) + pmass(j)*dr(1:ndim)*grkerni
+                   gradrho(:,j) = gradrho(:,j) - pmassi*dr(1:ndim)*grkernj
 !
 !--2nd derivatives of density
 !
-                   gradgradrho(:,:,i) = gradgradrho(:,:,i) + 0. ! fix this...
-                   gradgradrho(:,:,j) = gradgradrho(:,:,j) + 0. ! fix this...
+                   do k=1,ndim
+                      do l=1,ndim
+                         gradgradrho(l,k,i) = gradgradrho(l,k,i) + &
+                            pmass(j)/rho(j) * (rho(i) - rho(j))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k,ndim))*grkerni*rij1
+                         gradgradrho(l,k,j) = gradgradrho(l,k,j) + &
+                           pmassi/rho(i) * (rho(j) - rho(i))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k,ndim))*grkernj*rij1
+                      enddo
+                   enddo
                 end select
              endif
           endif! j .ne. i   
@@ -192,14 +195,27 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
  do n=1,npart
     do j=1,ndim
        do i=1,ndim
-          P_Q(i,j,n) = 0.25*(gradgradrho(i,j,n) - gradrho(i,n)*gradrho(j,n)/rho(n))
+       	  !P_Q(i,j,n) = gradrho(i, n)
+          !P_Q(i,j,n) = gradgradrho(i,j,n)
+          P_Q(i,j,n) = - 0.25*(gradgradrho(i,j,n) - gradrho(i,n)*gradrho(j,n)/rho(n))
        enddo
     enddo
  enddo
  
- print*,' P_Q = ',P_Q(:,:,1:10)
+ !print*,' P_Q = ',P_Q(:,:,1:10)
 
  return
 end subroutine get_quantum_pressure
-      
+
+integer function delta_fn(i,j,ndim)
+ integer, intent(in) :: i,j,ndim
+ 
+ if (i==j) then
+    delta_fn = ndim
+ else
+    delta_fn = 0
+ endif
+ 
+end function delta_fn
+     
 end module get_quantum

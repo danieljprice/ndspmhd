@@ -1314,6 +1314,12 @@ contains
 
           !vsigB = sqrt(dot_product(dvel - dvdotr,dvel - dvdotr))
           !vsigB = 0.5*(sqrt(valfven2i) + sqrt(valfven2j))
+       elseif (iquantum > 0) then
+          vsigi = sqrt(spsoundi**2 + 1.0 / (4.0 * hi**2))
+          vsigj = sqrt(spsoundj**2 + 1.0 / (4.0 * hj**2))
+          vsigB = 0.
+          !vsigi = spsoundi
+          !vsigj = spsoundj
        else
           vsigi = spsoundi
           vsigj = spsoundj
@@ -2675,12 +2681,17 @@ contains
 !
 !---------------------------------------------------------------------------
   subroutine quantum_terms
-    real :: qsphterm
+    real :: qsphterm(ndim),termi(ndim),termj(ndim)
 
-    qsphterm = 0.0
+    do k=1,ndim
+       termi(k) = dot_product(P_Q(k,:,i),dr(1:ndim))
+       termj(k) = dot_product(P_Q(k,:,j),dr(1:ndim))
+    enddo
+    
+    qsphterm(:) = termi(:)*rho21i*grkerni + termj(:)*rho21j*grkernj
 
-    forcei(:) = forcei(:) + pmassj*qsphterm
-    forcej(:) = forcej(:) - pmassi*qsphterm
+    forcei(1:ndim) = forcei(1:ndim) - pmassj*qsphterm(:)
+    forcej(1:ndim) = forcej(1:ndim) + pmassi*qsphterm(:)
 
   end subroutine quantum_terms
 
