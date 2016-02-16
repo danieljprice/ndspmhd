@@ -116,9 +116,16 @@ subroutine derivs
        sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(1,i))*ddustevoldt(1,i)
 
        select case(idustevol)
+       case(3)
+          ddustevoldt(:,i) = 2.*ddustevoldt(:,i)
+          sum_dustm = sum_dustm + pmass(i)*0.5*ddustevoldt(1,i)
        case(2)
           ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i)
-          si(:) = sqrt(rhodust(:,i)*rhogas(i))
+          if (use_smoothed_rhodust) then
+             si(:) = sqrt(rhodust(:,i)*rhogas(i))
+          else
+             si(:) = sqrt(rho(i)**2*(dustfrac(:,i)*(1. - dustfrac(:,i))))
+          endif
           sum_dustm = sum_dustm + pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
        case(1)
        !
