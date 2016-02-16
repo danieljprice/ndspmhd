@@ -47,7 +47,7 @@ subroutine write_dump(t,dumpfile)
  implicit none
  real, intent(in) :: t
  character(len=*), intent(in) :: dumpfile
- integer :: i,nprint,ncolumns
+ integer :: i,j,nprint,ncolumns
  integer :: ierr,iformat
 
  if (idumpghost.eq.1) then
@@ -77,6 +77,9 @@ subroutine write_dump(t,dumpfile)
     if (igravity.ne.0) ncolumns = ncolumns + 1
     if (allocated(del2v)) ncolumns = ncolumns + 2*ndimV
  endif
+ if (iquantum > 0) then
+    ncolumns = ncolumns + ndim*ndim
+ endif
  if (geom(1:4).ne.'cart') then
     ncolumns = ncolumns + 2 + ndimV
     iformat = iformat + 2
@@ -84,8 +87,10 @@ subroutine write_dump(t,dumpfile)
  if (onef_dust) then
     iformat = 5
     ncolumns = ncolumns + ndimV + 2*ndust + 1
+ endif 
+ if (ndim==2) then
+    ncolumns = ncolumns + 1
  endif
- 
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
       ncolumns,iformat,ibound,xmin(1:ndim),xmax(1:ndim),len(geom),geom
  if (ierr /= 0) then
@@ -161,6 +166,16 @@ subroutine write_dump(t,dumpfile)
         do i=1,ndimV
            write(idatfile) graddivv(i,1:nprint)
         enddo
+     endif
+     if (iquantum > 0) then
+        do i=1,ndim
+           do j=1,ndim
+              write(idatfile) P_Q(i,j,1:nprint)
+           enddo
+        enddo
+     endif
+     if (ndim==2) then
+        write(idatfile) sqrt(x(1,1:nprint)*x(1,1:nprint)+x(2,1:nprint)*x(2,1:nprint))
      endif
   endif
   if (geom(1:4).ne.'cart') then

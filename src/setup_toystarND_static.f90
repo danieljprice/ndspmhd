@@ -66,10 +66,12 @@ subroutine setup
 !--reset polyk to give r = 1
 !
  gamm1 = gamma - 1.
- polyk = gamm1/(2.*gamma*denscentre**gamm1)
+ !polyk = gamm1/(2.*gamma*denscentre**gamm1)
+ polyk = 0.0000000
  write(iprint,*) 'resetting polyk = ',polyk
  rmax = 1.0
- totmass = pi*rmax**2*gamm1/gamma
+ !totmass = pi*rmax**2*gamm1/gamma
+ totmass = 1.0
  ibound = 0        ! no boundaries 
  iexternal_force = 1        ! use toy star force
 !
@@ -83,13 +85,13 @@ subroutine setup
        xmin(2) = -pi ! phi min
        xmax(2) = pi ! phi max
     endif
-    call set_uniform_cartesian(1,psep,xmin,xmax,perturb=0.5)
+    call set_uniform_cartesian(1,psep,xmin,xmax)
     do i=1,npart
        call coord_transform(x(:,i),ndim,2,xnew(:),ndim,1)
        x(:,i) = xnew(:)
     enddo
  elseif (iequalmass) then
-    call set_uniform_spherical(1,rmax,perturb=0.5)        ! 4 = random
+    call set_uniform_spherical(1,rmax)        ! 4 = random
  else
     call set_uniform_spherical(2,rmax,centred=.true.,trim=0.5*psep) 
  endif
@@ -115,7 +117,7 @@ subroutine setup
  print*,' volpart = ',volpart
 ! volpart = psep**2
 ! print*,' new one = ',volpart
- uuzero = 0.1
+ uuzero = polyk/gamm1*denszero**gamm1
  write(iprint,10) denscentre,totmass
 10 format(/,' Toy star static solution ',/, &
             '     central density: ',f7.3, ' total mass = ',f7.3,/)
@@ -173,7 +175,8 @@ subroutine modify_dump
  real :: Ctstar,Atstar,scalefac,sigma2,sigma,rstar,denscentre,gamm1
  real :: omegasq,cs2centre,ekin,ekin_norm,amplitude,alpha,betatstar
  real :: ctstar1,ctstar2
- real, dimension(ndim) :: xcyl,velcyl,dvel
+ real, dimension(ndim) :: xcyl
+ real, dimension(ndimV) :: velcyl,dvel
  character(len=len(rootname)+6) :: tstarfile
  character(len=30) :: dummy
  logical :: oscills,symmetric
