@@ -21,47 +21,47 @@
 !------------------------------------------------------------------------------!
 
 !------------------------------------------------------------------------
-! Computes an SPH estimate of the divergence of a vector quantity
-! This version computes the divergence for all particles
+! Computes an SPH estimate of the gradient of a vector quantity
+! This version computes the gradient for all particles
 ! and therefore only does each pairwise interaction once
 !
 ! Input:
-!    idivtype - type of divergence operator (see below)
+!    igradtype - type of gradient operator (see below)
 !    npart - number of particles
 !    x     - positions
 !    pmass - particle masses
 !    rho   - density
 !    hh    - smoothing length
-!    a     - scalar quantity to take divergence of
+!    a     - scalar quantity to take gradient of
 !
 ! Output:
-!    diva - divergence of a
+!    grada - gradient of a
 !
-! idivtype = 1 (default): mass-weighted differenced divergence operator:
+! igradtype = 1 (default): mass-weighted differenced gradient operator:
 ! 
-!    -1/(rho_i*Omega_i) \sum m_j (A_i - A_j) .\nabla W_ij (h_i)
+!    -1/(rho_i*Omega_i) \sum m_j (A_i - A_j) \nabla W_ij (h_i)
 !
-! idivtype = 2: mass-weighted symmetric divergence operator:
+! igradtype = 2: mass-weighted symmetric gradient operator:
 ! 
-!    rho_i \sum m_j ((A_i .\nabla W_ij(h_i)) / (rho_i^2 Omega_i) +
-!                   ((A_j .\nabla W_ij(h_j)) / (rho_j^2 Omega_j)
+!    rho_i \sum m_j ((A_i \nabla W_ij(h_i)) / (rho_i^2 Omega_i) +
+!                    ((A_j \nabla W_ij(h_j)) / (rho_j^2 Omega_j)
 !    
-! idivtype = 3: differenced divergence operator with constant weights:
+! igradtype = 3: differenced gradient operator with constant weights:
 ! 
 !    -m_i/(rho_i*h_i**3) \sum (A_i - A_j) \nabla W_ij (h_i)
 !
-! idivtype = 4: differenced divergence operator:
+! igradtype = 4: differenced gradient operator:
 ! 
 !    -rho_i \sum m_j/rho_j**2 (A_i - A_j) \nabla W_ij (h_i)
 !
 !------------------------------------------------------------------------
-module getdiv
+module getgrad
  implicit none
  
 contains
 
-subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
- use dimen_mhd,           only:ndim,ndimV
+subroutine get_gradient(igradtype,npart,x,pmass,rho,hh,a,grada)
+ use dimen_mhd,           only:ndim,idim
  use debug,               only:trace
  use loguns,              only:iprint
  use kernels,             only:interpolate_kernel,radkern2
@@ -74,11 +74,11 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
 !--define local variables
 !
  implicit none
- integer, intent(in) :: npart,idivtype
- real, dimension(:,:), intent(in)  :: x
- real, dimension(:),   intent(in)  :: pmass,rho,hh
- real, dimension(:,:), intent(in)  :: a
- real, dimension(:),   intent(out) :: diva
+ integer, intent(in) :: npart,igradtype
+ real, dimension(ndim,idim), intent(in) :: x
+ real, dimension(idim), intent(in) :: pmass,rho,hh
+ real, dimension(idim), intent(in) :: a
+ real, dimension(ndim,idim), intent(out) :: grada
  real :: weight
 
  integer :: i,j,n
@@ -88,21 +88,21 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
  real :: rij,rij2
  real :: hi1,hj1,hi21
  real :: hfacwabi,hfacwabj
- real :: pmassi,divterm,divai
+ real :: pmassi,gradterm,ai
  real, dimension(ndim) :: dx
- real, dimension(ndimV) :: dr,ai
+ real, dimension(ndim) :: dr,gradai
  real :: q2i,q2j,wi,wj,grkerni,grkernj
- real :: rho21i,rho21gradhi,termi,termj
+ real :: rho21i,rho21gradhi
  real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
 !      
- if (trace) write(iprint,*) ' entering subroutine get_div' 
+ if (trace) write(iprint,*) ' entering subroutine get_grad' 
 !
 !--initialise quantities
 !
  listneigh = 0
- diva = 0.
+ grada = 0.
  dr(:) = 0.
  weight = 1./hfact**ndim
  do i=1,ntotal
@@ -133,10 +133,10 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
        hi21 = hi1*hi1
        hfacwabi = hi1**ndim
        pmassi = pmass(i)
-       ai     = a(:,i)
+       ai     = a(i)
        rho21i = 1./rho(i)**2
        rho21gradhi = rho21i*gradh(i)
-       divai  = 0.
+       gradai(:) = 0.
 !
 !--for each particle in the current cell, loop over its neighbours
 !
@@ -162,58 +162,56 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
                 dr(1:ndim) = dx(1:ndim)/(rij + tiny(rij))  ! unit vector
 !     
 !--interpolate from kernel table          
-!  (use either average h or average kernel divergence)
+!  (use either average h or average kernel gradient)
 !
                 !  (using hi)
                 call interpolate_kernel(q2i,wi,grkerni)
                 !  (using hj)
                 call interpolate_kernel(q2j,wj,grkernj)
 !
-!--calculate divergence of A
+!--calculate gradient of A
 !
-                select case(idivtype)
-                case(2)  ! symmetric divergence operator
+                select case(igradtype)
+                case(2)  ! symmetric gradient operator
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1*gradh(j)
 
-                   termi = dot_product(ai,dr)
-                   termj = dot_product(a(1:ndim,j),dr)
-                   divterm   = termi*rho21gradhi*grkerni + termj/rho(j)**2*grkernj
-                   divai   = divai   + pmass(j)*divterm
-                   diva(j) = diva(j) - pmassi*divterm
+                   gradterm   = ai*rho21gradhi*grkerni + a(j)/rho(j)**2*grkernj
+                   gradai(:)  = gradai(:)  + pmass(j)*gradterm*dr(:)
+                   grada(:,j) = grada(:,j) - pmassi*gradterm*dr(:)
                 
                 case(3)  ! (dB using weights) -- multiply by weight below
                    grkerni = grkerni*hi1
                    grkernj = grkernj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
-                   divai   = divai   + divterm*grkerni
-                   diva(j) = diva(j) + divterm*grkernj
+                   gradterm = ai - a(j)
+                   gradai(:)  = gradai(:)  + gradterm*grkerni*dr(:)
+                   grada(:,j) = grada(:,j) + gradterm*grkernj*dr(:)
 
                 case(4)  ! (dB, m_j/rho_j**2) -- multiply by rho(i) below
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
+                   gradterm = ai - a(j)
                    
-                   divai   = divai   + pmass(j)/rho(j)**2*divterm*grkerni
-                   diva(j) = diva(j) + pmassi*rho21i*divterm*grkernj
+                   gradai(:)  = gradai(:) + pmass(j)/rho(j)**2*gradterm*grkerni*dr(:)
+                   grada(:,j) = grada(:,j) + pmassi*rho21i*gradterm*grkernj*dr(:)
 
-                case default  ! default differenced divergence -- divide by rho(i) below
+                case default  ! default differenced gradient -- divide by rho(i) below
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
+                   gradterm = ai - a(j)
 
-                   divai   = divai   + pmass(j)*divterm*grkerni
-                   diva(j) = diva(j) + pmassi*divterm*grkernj
+                   gradai(:)  = gradai(:)  + pmass(j)*gradterm*grkerni*dr(:)
+                   grada(:,j) = grada(:,j) + pmassi*gradterm*grkernj*dr(:)
                 end select
 
              endif
           endif! j .ne. i   
        enddo loop_over_neighbours
        
-       diva(i) = diva(i) + divai
+       grada(:,i) = grada(:,i) + gradai(:)
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
@@ -221,19 +219,19 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
  enddo loop_over_cells
 
  do i=1,npart
-    select case(idivtype)
+    select case(igradtype)
     case(4)
-       diva(i) = -rho(i)*diva(i)
+       grada(:,i) = -rho(i)*grada(:,i)
     case(3)
-       diva(i) = -weight*diva(i) !!*gradh(i)
+       grada(:,i) = -weight*grada(:,i) !!*gradh(i)
     case(2)
-       diva(i) = rho(i)*diva(i)
+       grada(:,i) = rho(i)*grada(:,i)
     case default
-       diva(i) = -diva(i)*gradh(i)/rho(i)
+       grada(:,i) = -grada(:,i)*gradh(i)/rho(i)
     end select
  enddo
 
  return
-end subroutine get_divergence
+end subroutine get_gradient
       
-end module getdiv
+end module getgrad

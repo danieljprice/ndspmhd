@@ -25,14 +25,15 @@
 ! throughout the code
 !------------------------------------------------------------------
 module utils
- public :: minmaxave,cross_product3D,curl3D_epsijk,det
+ implicit none
+ public :: minmaxave,cross_product3D,curl3D_epsijk,det,delta_fn
 
 contains
+
 !-------------------------------------------------------------------
 ! simple routine to take min, max and average of a quantity
 !-------------------------------------------------------------------
 subroutine minmaxave(x,xmin,xmax,xav,npts)
-  implicit none
   integer :: i
   integer, intent(in) :: npts
   real, intent(in), dimension(npts) :: x
@@ -51,8 +52,12 @@ subroutine minmaxave(x,xmin,xmax,xav,npts)
   return
 end subroutine minmaxave
 
+!-------------------------------
+!+
+!  cross product of two vectors
+!+
+!-------------------------------
 pure subroutine cross_product3D(veca,vecb,vecc)
- implicit none
  real, dimension(3), intent(in) :: veca,vecb
  real, dimension(3), intent(out) :: vecc
  
@@ -63,7 +68,6 @@ pure subroutine cross_product3D(veca,vecb,vecc)
 end subroutine cross_product3D
 
 pure subroutine curl3D_epsijk(gradAvec,curlA)
- implicit none
  real, dimension(3,3), intent(in) :: gradAvec
  real, dimension(3), intent(out) :: curlA
  
@@ -73,13 +77,28 @@ pure subroutine curl3D_epsijk(gradAvec,curlA)
 
 end subroutine curl3D_epsijk
 
+!-------------------------------
+!+
+!  Kronecker delta
+!+
+!-------------------------------
+pure integer function delta_fn(i,j)
+ integer, intent(in) :: i,j
+ 
+ if (i==j) then
+    delta_fn = 1
+ else
+    delta_fn = 0
+ endif
+ 
+end function delta_fn
+
 !----------------------------------------------------------------
 !+
 !  Internal subroutine that inverts a 3x3 matrix
 !+
 !----------------------------------------------------------------
 subroutine matrixinvert3D(A,Ainv,ierr)
- implicit none
  real, intent(in), dimension(3,3) :: A
  real, intent(out), dimension(3,3) :: Ainv
  integer, intent(out) :: ierr
@@ -115,8 +134,12 @@ subroutine matrixinvert3D(A,Ainv,ierr)
  return
 end subroutine matrixinvert3D
 
-real function det(A)
- implicit none
+!-----------------------------------
+!+
+!  get determinant of 3 x 3 matrix
+!+
+!-----------------------------------
+pure real function det(A)
  real, intent(in), dimension(3,3) :: A
  real, dimension(3) :: x0,x1,x2,result
  
