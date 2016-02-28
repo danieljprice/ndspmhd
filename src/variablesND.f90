@@ -135,7 +135,7 @@ end module loguns
 module options
  use dimen_mhd
  implicit none
- integer :: iener,icty,iav,ikernav
+ integer :: iener,icty,iav,ikernav,idiffuse
  integer :: idrag_nature,idrag_structure,ismooth
  integer :: iprterm,idumpghost,ihvar,idust
  integer :: imhd,imagforce,idivbzero   !  (mhd options)

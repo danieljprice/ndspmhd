@@ -51,7 +51,8 @@ subroutine setup
 !
 !--set boundaries
 ! 	    
- ibound = 3     ! boundaries
+ ibound(:) = 3
+ ibound(1) = 1     ! boundaries
  nbpts = 0      ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
@@ -71,12 +72,18 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
-    vel(1,i) = vx(x(:,i))
-    vel(2,i) = vy(x(:,i))
-    vel(3,i) = vz(x(:,i))
+    !vel(1,i) = vx(x(:,i))
+    !vel(2,i) = vy(x(:,i))
+    !vel(3,i) = vz(x(:,i))
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0 ! isothermal
+    !uu(i) = 1. + vx(x(:,i))
+    !if (x(1,i) < 0.5) then
+    !   uu(i) = 1.
+    !else
+    !   uu(i) = 2.
+    !endif
     Bfield(:,i) = 0.
  enddo 
 !
