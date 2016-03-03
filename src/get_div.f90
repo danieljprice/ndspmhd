@@ -176,8 +176,8 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1*gradh(j)
 
-                   termi = dot_product(ai,dr)
-                   termj = dot_product(a(1:ndim,j),dr)
+                   termi = dot_product(ai(1:ndim),dr(1:ndim))
+                   termj = dot_product(a(:,j),dr(1:ndim))
                    divterm   = termi*rho21gradhi*grkerni + termj/rho(j)**2*grkernj
                    divai   = divai   + pmass(j)*divterm
                    diva(j) = diva(j) - pmassi*divterm
@@ -186,7 +186,7 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
                    grkerni = grkerni*hi1
                    grkernj = grkernj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
+                   divterm = dot_product(ai(1:ndim) - a(1:ndim,j),dr(1:ndim))
                    divai   = divai   + divterm*grkerni
                    diva(j) = diva(j) + divterm*grkernj
 
@@ -194,7 +194,7 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
+                   divterm = dot_product(ai(1:ndim) - a(1:ndim,j),dr(1:ndim))
                    
                    divai   = divai   + pmass(j)/rho(j)**2*divterm*grkerni
                    diva(j) = diva(j) + pmassi*rho21i*divterm*grkernj
@@ -203,7 +203,7 @@ subroutine get_divergence(idivtype,npart,x,pmass,rho,hh,a,diva)
                    grkerni = grkerni*hfacwabi*hi1
                    grkernj = grkernj*hfacwabj*hj1
 
-                   divterm = dot_product(ai(:) - a(1:ndim,j),dr)
+                   divterm = dot_product(ai(1:ndim) - a(1:ndim,j),dr(1:ndim))
 
                    divai   = divai   + pmass(j)*divterm*grkerni
                    diva(j) = diva(j) + pmassi*divterm*grkernj
