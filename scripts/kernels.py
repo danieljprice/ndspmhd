@@ -380,7 +380,7 @@ def fmts(e):
 
 def stripcond(e):
     import re
-    s = "%s" %fmt(e,True,True)
+    s = "%s" %fmt(e)
     s = re.sub("q|<|>|\s","",s)
     return s
 
@@ -806,6 +806,14 @@ def f6(R):
     f = Piecewise(((1 - (q/R)**2)**6,q < R), (0, True))
     return(f,'Ferrers n=6')
 
+#-------------------------------------------
+# Jackson-Feyer de la Vallee Poussin kernels
+#-------------------------------------------
+def j4(R):
+#    f = Piecewise(((sin(2*pi*q)/q)**4,q < R), (0, True))
+    f = Piecewise((((1 - q**2/6))**4,q < 1/10),((sin(q)/q)**4,q < R),(0,True))
+    return(f,'Jackson-Feyer')
+
 ########################################################
 #  The actual program 
 #  Change the lines below to print the kernel you want
@@ -819,11 +827,15 @@ R = sympify(2)
 
 # define which kernel to use
 #f, name = sinq(R,3)
-#f, name = m5(R)
-#f, name = w2(R)
+f, name = m5(R)
+#f, name = j4(R)
+#print "done"
+
+#c1D, c2D, c3D = getnorm(f,R)
+#print "[ %s, %s, %s ]" %(c1D,c2D,c3D)
 
 #printvariances(f,R)
-f, name = doublehump(w6,R)
+#f, name = doublehump(w6,R)
 
 # print the desired output
 #printkernel(f,R)
