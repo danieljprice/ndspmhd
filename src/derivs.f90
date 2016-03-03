@@ -47,10 +47,12 @@ subroutine derivs
  implicit none
  logical, parameter :: itiming = .false.
  integer :: i,j,inext
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,si(ndust)
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,dustm,si(ndust)
  real :: k_iso, k_par
- real, dimension(ndim) :: Bvec, tmp
+ real, dimension(3) :: Bvec
+ real, dimension(ndim) :: tmp
  real, dimension(ndim,ndim) :: k_tensor
+ real, save :: dustm_prev = 0.
 !
 !--allow particles to cross boundary (ie. enforce boundary conditions)
 !
@@ -168,6 +170,7 @@ subroutine derivs
     sum3 = 0.
     sum4 = 0.
     sum_dustm = 0.
+    dustm = 0.
     do i=1,npart
        sum = sum + pmass(i)*(dot_product(vel(:,i),force(:,i)) &
              - uu(i)*ddustevoldt(1,i) &
@@ -199,11 +202,14 @@ subroutine derivs
        case default
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
        end select
+       dustm = dustm + pmass(i)*dustfrac(1,i)
     enddo
     if (abs(sum) > epsilon(sum) .and. iener >= 1) print*,' sum = ',sum,sum1,sum2,sum3,sum4
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
+    print*,' dustm = ',dustm
  elseif (idust.eq.4 .or. idust.eq.1) then
     sum_dustm = 0.
+    dustm = 0.
     select case(idustevol)
     case(3)
        do i=1,npart
@@ -216,9 +222,10 @@ subroutine derivs
           if (use_smoothed_rhodust) then
              si(:) = sqrt(rhodust(:,i)*rhogas(i))
           else
-             si(:) = sqrt(rho(i)**2*(dustfrac(:,i)*(1. - dustfrac(:,i))))
+             si(1) = rho(i)*sqrt((dustfrac(1,i)*(1. - dustfrac(1,i))))
           endif
-          sum_dustm = sum_dustm + pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
+          sum_dustm = sum_dustm + 2.*pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
+          dustm = dustm + pmass(i)*dustfrac(1,i)
        enddo
     case(1)
        do i=1,npart
@@ -232,12 +239,16 @@ subroutine derivs
           endif
           ddustevoldt(:,i) = 0.5*rho(i)*ddustevoldt(:,i) + 0.5*si(:)*drhodt(i)/rho(i)
           sum_dustm = sum_dustm + pmass(i)*(2.*si(1)/rho(i)*ddustevoldt(1,i) - si(1)**2/rho(i)**2*drhodt(i))
+          dustm = dustm + pmass(i)*dustfrac(1,i)
        enddo
     case default
        do i=1,npart
           sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
+          dustm = dustm + pmass(i)*dustfrac(1,i)
        enddo
     end select
+    print*,' dustm = ',dustm,(dustm-dustm_prev)*pmass(1),sum_dustm
+    dustm_prev = dustm
     if (abs(sum_dustm) > epsilon(sum)) print*,' ERROR in ddustm/dt = ',sum_dustm
  endif
 
