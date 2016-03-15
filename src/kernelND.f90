@@ -34,7 +34,7 @@
 module kernels
  use erbskernels, only:geterbskernel1,geterbskernel2
  use csplinekernels, only:getcsplinekernel,getcsplinekernelder
- use kernel_utils,   only:differentiate,normalise
+ use kernel_utils,   only:differentiate !,normalise
  implicit none
  integer, parameter :: ikern=4000    ! dimensions of kernel table
  integer :: ianticlump,neps
@@ -130,7 +130,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0,cnormkd(3)
  real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
- real :: bb(0:5),K,theta,dbesj1,ddbesj1
+ real :: bb(0:5),K,theta,dbesj1,ddbesj1,costerm,sinterm
  integer :: ierrf
  integer, parameter :: lu = 55
 
@@ -3174,6 +3174,38 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+ case(99)
+    !
+    !--kernel constructed by convolution of cos(pi*q) with itself
+    !
+    kernellabel = 'cosine convolution (Laibe-Price)'
+    radkern = max(radkern,  2.0)
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)
+    select case(ndim)
+      case(1)
+         cnormk = 1./(16.*pi)
+      case(2)
+         cnormk = (-5./(2.*pi) + 2.*pi/3.)/(16.*pi)
+      case(3)
+         cnormk = (-8./pi + 4./3.*pi)/(16.*pi)*0.370743960
+    end select
+    do i=0,ikern
+       q2 = i*dq2table
+       q  = sqrt(q2)
+       if (q2 < radkern2) then
+          costerm = cos(pi*q)
+          sinterm = sin(pi*q)
+          wkern(i) = -2.*pi*(q - 2.)*(2. + costerm) + 6.*sinterm
+          grwkern(i) = 6.*pi*costerm - 2.*pi*(2. + costerm) + 2.*pi*pi*(q - 2.)*sinterm
+          grgrwkern(i) = -6.*pi*pi*sinterm - 2.*pi*(-pi**2*(q-2.)*costerm - 2.*pi*sinterm)
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+
  case(100)
 !
 !--read the preset table from a data file if it exists
@@ -3353,6 +3385,8 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  wkern = cnormk*wkern
  grwkern = cnormk*grwkern
  grgrwkern = cnormk*grgrwkern
+ !call normalise(ikern,wkern,cnormkd,radkern2)
+ !print*,' norm 3D = ',cnormkd(3)
  
 666 format(/,'ERROR!!! normalisation constant not defined in kernel',/)
 !
