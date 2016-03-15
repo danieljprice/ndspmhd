@@ -112,5 +112,8 @@ subroutine set_default_options
    gamma_ambipolar = 1.
    icompute_d2v = 0
    iquantum = 0
+   idiffuse = 0
+   k_iso = 0.
+   k_par = 0.
    
  end subroutine set_default_options

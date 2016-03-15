@@ -131,7 +131,9 @@ subroutine write_infile(infile)
   call write_inopt(shearvisc,'shearvisc','shear viscosity (nu)',iread)
   call write_inopt(bulkvisc,'bulkvisc','bulk viscosity (zeta)',iread)
   call write_inopt(icompute_d2v,'icompute_d2v','compute velocity derivatives (0:none 1:brookshaw 2:direct)',iread)
-  call write_inopt(idiffuse,'idiffuse','methods for testing diffusion terms',iread) 
+  call write_inopt(idiffuse,'idiffuse','methods for testing diffusion terms (1=2nd derivs 2=two first derivs)',iread) 
+  call write_inopt(k_iso,'k_iso','isotropic diffusion coefficient',iread) 
+  call write_inopt(k_par,'k_par','anisotropic diffusion coefficient',iread) 
 
   write(iread,"(/,a)") '# options affecting particle splitting'
   call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
@@ -281,6 +283,8 @@ subroutine read_infile(infile)
      call read_inopt(bulkvisc,'bulkvisc',db,errcount=nerr)
      call read_inopt(icompute_d2v,'icompute_d2v',db,errcount=nerr)
      call read_inopt(idiffuse,'idiffuse',db,errcount=nerr)
+     call read_inopt(k_iso,'k_iso',db,errcount=nerr)
+     call read_inopt(k_par,'k_par',db,errcount=nerr)
 
      ! dust options
      call read_inopt(idust,'idust',db,errcount=nerr)

@@ -78,12 +78,14 @@ subroutine setup
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = 1.0 ! isothermal
-    !uu(i) = 1. + vx(x(:,i))
-    !if (x(1,i) < 0.5) then
-    !   uu(i) = 1.
-    !else
-    !   uu(i) = 2.
-    !endif
+    if (idiffuse > 0) then
+       !uu(i) = 1. + vx(x(:,i))
+       if (x(1,i) < 0.5) then
+          uu(i) = 1.
+       else
+          uu(i) = 2.
+       endif
+    endif
     Bfield(:,i) = 0.
  enddo 
 !

@@ -48,7 +48,6 @@ subroutine derivs
  logical, parameter :: itiming = .false.
  integer :: i,j,inext
  real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,dustm,si(ndust)
- real :: k_iso, k_par
  real, dimension(3) :: Bvec
  real, dimension(ndim) :: tmp
  real, dimension(ndim,ndim) :: k_tensor
@@ -114,8 +113,8 @@ subroutine derivs
     !
     if (iener /= 2) stop 'anisotropic diffusion assumes iener=2'
     Bvec = (/0.,0.,1./)
-    k_iso = 0.0!2
-    k_par = 0.01
+    !k_iso = 0.1!2
+    !k_par = 0.0 !1
     do i=1,ndim
        do j=1,ndim
           k_tensor(i,j) = k_iso*delta_fn(i,j) + k_par*Bvec(i)*Bvec(j)

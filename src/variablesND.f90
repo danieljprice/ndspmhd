@@ -147,7 +147,7 @@ module options
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
- real :: Kdrag
+ real :: Kdrag,k_iso,k_par
  real :: shearvisc,bulkvisc
  real :: gamma_ambipolar,rho_ion
  character(len=12) :: geom
