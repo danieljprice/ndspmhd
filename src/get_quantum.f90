@@ -50,6 +50,7 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
  use linklist,            only:ll,ifirstincell,ncellsloop
  use get_neighbour_lists, only:get_neighbour_list
  use part,                only:ntotal
+ use utils,               only:delta_fn
 !
 !--define local variables
 !
@@ -176,9 +177,9 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
                    do k=1,ndim
                       do l=1,ndim
                          gradgradrho(l,k,i) = gradgradrho(l,k,i) + &
-                            pmass(j)/rho(j) * (rho(i) - rho(j))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k,ndim))*grkerni*rij1
+                            pmass(j)/rho(j) * (rho(i) - rho(j))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k))*grkerni*rij1
                          gradgradrho(l,k,j) = gradgradrho(l,k,j) + &
-                           pmassi/rho(i) * (rho(j) - rho(i))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k,ndim))*grkernj*rij1
+                           pmassi/rho(i) * (rho(j) - rho(i))*((ndim+2)*dr(l)*dr(k) - delta_fn(l,k))*grkernj*rij1
                       enddo
                    enddo
                 end select
@@ -206,16 +207,5 @@ subroutine get_quantum_pressure(iderivtype,npart,x,pmass,rho,hh,P_Q)
 
  return
 end subroutine get_quantum_pressure
-
-integer function delta_fn(i,j,ndim)
- integer, intent(in) :: i,j,ndim
- 
- if (i==j) then
-    delta_fn = ndim
- else
-    delta_fn = 0
- endif
- 
-end function delta_fn
      
 end module get_quantum
