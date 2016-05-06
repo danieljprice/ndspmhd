@@ -335,7 +335,8 @@ subroutine setup
     do i=1,npart
        if ((x(1,i).lt.(xmin(1) + fac*radkern*hfact*psepleft)).or. &
            (x(1,i).gt.(xmax(1) - fac*radkern*hfact*psepright))) then
-          if (itype(i).eq.itypegas) itype(i) = itypebnd
+          if (itype(i).eq.itypegas)  itype(i) = itypebnd
+          if (itype(i).eq.itypedust) itype(i) = itypebnddust
           nbpts = nbpts + 1
        endif
     enddo
@@ -350,6 +351,7 @@ subroutine setup
     psepreqr = cs_R*tstopr/hfact
     print*,'left, need ',(xshock-xmin)/psepreql,' got ',(xshock-xmin)/psepleft
     print*,'right, need ',(xmax-xmin)/psepreqr,' got ',(xmax-xshock)/psepright
+    print*,'<press any key to continue>'
     read*
  endif
 

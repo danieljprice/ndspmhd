@@ -168,6 +168,7 @@ module part
  integer, parameter :: itypegas1 = 3
  integer, parameter :: itypegas2 = 4
  integer, parameter :: itypebnd2 = 11
+ integer, parameter :: itypebnddust = 12
  integer, parameter :: ndust = 1 ! number of dust species
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg

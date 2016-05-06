@@ -61,7 +61,8 @@ subroutine copy_particle(i,j)
   spsound(i) = spsound(j)
   pr(i) = pr(j)
   dens(i) = dens(j)
-  if (itype(i).ne.itypebnd .and. itype(i).ne.itypebnd2 .and. itype(j).eq.itypegas) itype(i) = itype(j)
+  if (itype(i).ne.itypebnd .and. itype(i).ne.itypebnddust &
+      .and. itype(i).ne.itypebnd2 .and. itype(j).eq.itypegas) itype(i) = itype(j)
   if (allocated(pmom)) pmom(:,i) = pmom(:,j)
 
   force(:,i) = force(:,j)

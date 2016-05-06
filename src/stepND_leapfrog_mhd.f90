@@ -107,8 +107,8 @@ subroutine step
 !--Leapfrog Predictor step
 !
  do i=1,npart
-    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then ! fixed particles
-       if (itype(i).eq.itypebnd) then
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2 .or. itype(i).eq.itypebnddust) then ! fixed particles
+       if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnddust) then
           j = ireal(i)
           if (j > 0) then
              x(:,i) = xin(:,i) + dt*velin(1:ndim,j) + 0.5*dt*dt*forcein(1:ndim,j)
@@ -169,8 +169,8 @@ subroutine step
 !--Leapfrog Corrector step
 !
  do i=1,npart
-    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2) then
-       if (itype(i).eq.itypebnd) vel(:,i) = velin(:,i)
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2 .or. itype(i).eq.itypebnddust) then
+       if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnddust) vel(:,i) = velin(:,i)
        if (imhd.lt.0) then
           call cross_product3D(vel(:,i),Bconst(:),vcrossB)
           Bevol(:,i) = Bevolin(:,i) + hdt*(vcrossB(:) + dBevoldtin(:,i))

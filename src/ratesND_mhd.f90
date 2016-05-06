@@ -72,7 +72,7 @@ subroutine get_rates
  real, dimension(ndim) :: xi, dx
  real, dimension(ndimV) :: fexternal  !!,dri,drj
  real, dimension(ntotal) :: h1
- integer :: itypei
+ integer :: itypei,itypej
 !
 !--gr terms
 !
@@ -429,9 +429,14 @@ subroutine get_rates
               !   dri(idim) = dot_product(1./gradmatrix(idim,1:ndim,i),dr(1:ndim))
               !   drj(idim) = dot_product(1./gradmatrix(idim,1:ndim,j),dr(1:ndim))
               !enddo
-              if (itype(j).eq.itypei &
-                  .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
-                  .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
+              itypej = itype(j)
+              if ((itypej.eq.itypei) .or. (itypei.eq.itypegas .and. itypej.eq.itypebnd) &
+                                     .or. (itypej.eq.itypegas .and. itypei.eq.itypebnd) &
+                                     .or. (itypei.eq.itypedust .and. itypej.eq.itypebnddust) &
+                                     .or. (itypej.eq.itypedust .and. itypei.eq.itypebnddust)) then
+!              if (itype(j).eq.itypei &
+!                  .or.(itype(j).eq.itypebnd .or. itype(j).eq.itypebnd2) &
+!                  .or.(itypei  .eq.itypebnd .or. itype(j).eq.itypebnd2)) then              
                  call rates_core
               elseif (idust.eq.2 .and. idrag_nature.gt.0) then !-- drag step if required
                  call drag_forces
@@ -922,7 +927,7 @@ subroutine get_rates
 !--set rates to zero on ghosts/fixed particles
 !
  do i=1,ntotal      ! using ntotal just makes sure they are zero for ghosts
-    if (itype(i).eq.itypebnd .or. i.gt.npart) then
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnddust .or. i.gt.npart) then
        force(:,i) = 0.0
        drhodt(i) = 0.0
        dhdt(i) = 0.0

@@ -85,29 +85,44 @@ subroutine set_fixedbound
      enddo
      write(iprint,*) nbpts,' fixed particles set: finding nearest real parts' 
      do i=1,npart
-        if (itype(i).eq.itypebnd) then
+        if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnddust) then
            rmin = huge(rmin)
            do j=1,npart
               if (j.ne.i) then   ! find closest real particle
-                 select case(itype(j))
-                 case(itypegas,itypegas1,itypegas2)
+                 if (match_types(itype(i),itype(j))) then
                     dx = x(:,i) - x(:,j)
                     rr = DOT_PRODUCT(dx,dx)
                     if (rr.lt.rmin) then
                        rmin = rr
                        ireal(i) = j
                     endif
-                 end select
+                 endif
               endif
            enddo
            !ireal(i) = 0
            !idebug = 'fixed'
-           !if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
+           if (ireal(i).eq.0) stop 'error finding nearest particle to fixed part'
            if (idebug(1:5).eq.'fixed') write(iprint,*) ' particle ',i,' copied from ',ireal(i)
         endif
      enddo
   endif
 
 10 format(/,a,/)  
-  
+
+contains
+ logical function match_types(itypei,itypej)
+   integer, intent(in) :: itypei,itypej
+
+   match_types = .false.
+   if (itypei.eq.itypebnd) then
+      select case(itypej)
+      case(itypegas,itypegas1,itypegas2)
+         match_types = .true.
+      end select
+   elseif (itypei.eq.itypebnddust) then
+      match_types = (itypej.eq.itypedust)
+   endif
+
+ end function match_types
+
 end subroutine set_fixedbound

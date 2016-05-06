@@ -43,7 +43,7 @@ contains
     use kernels,      only:radkern2,interpolate_kernel,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:ll,ifirstincell,numneigh,ncellsloop
     use options,      only:ikernav,igravity,imhd,ikernel,ikernelalt,iprterm,onef_dust
-    use part,         only:Bfield,uu,psi,itype,itypebnd,dustfrac,rhogas,rhodust,ndust
+    use part,         only:Bfield,uu,psi,itype,itypebnd,itypebnddust,itypegas,itypedust,dustfrac,rhogas,rhodust,ndust
     use setup_params, only:hfact
     use rates,        only:dBevoldt
     use matrixcorr,   only:dxdx,ndxdx,idxdx,jdxdx
@@ -103,7 +103,7 @@ contains
     dustfraci = 0.
 
     do i=1,npart
-       if (itype(i) /= itypebnd) then
+       if (itype(i) /= itypebnd .and. itype(i) /= itypebnddust) then
           rhoin(i) = rho(i)
           rho(i) = 0.
           drhodt(i) = 0.
@@ -166,7 +166,12 @@ contains
              j = listneigh(n)
              !--skip particles of different type
              itypej = itype(j)
-             if (itypej.ne.itypei .and. itypej.ne.itypebnd .and. itypei.ne.itypebnd) cycle loop_over_neighbours
+             if (.not. ((itypej.eq.itypei) .or. (itypei.eq.itypegas .and. itypej.eq.itypebnd) &
+                                           .or. (itypej.eq.itypegas .and. itypei.eq.itypebnd) &
+                                           .or. (itypei.eq.itypedust .and. itypej.eq.itypebnddust) &
+                                           .or. (itypej.eq.itypedust .and. itypei.eq.itypebnddust))) then
+                cycle loop_over_neighbours
+             endif
 
              dx(:) = xi(:) - x(:,j)
 

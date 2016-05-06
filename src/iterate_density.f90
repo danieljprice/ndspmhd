@@ -49,7 +49,7 @@ subroutine iterate_density
   use hterms
   use linklist, only:numneigh
   use options, only:ikernav,ihvar,ibound,maxdensits,tolh,usenumdens,ibiascorrection
-  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,rhoalt,itypebnd
+  use part, only:npart,ntotal,itype,x,pmass,hh,vel,rho,rhoalt,itypebnd,itypebnddust
   use setup_params
   use density_summations
   use rates, only:dhdt,drhodt
@@ -163,7 +163,7 @@ subroutine iterate_density
         do j=1,ncalcprev
            i = redolistprev(j)
 
-           if (itype(i).ne.itypebnd) then
+           if (itype(i).ne.itypebnd .and. itype(i).ne.itypebnddust) then
               if (rho(i).le.1.e-6) then
                  if (rho(i).le.0.) then
                     write(iprint,*) 'error: rho(',i,') = ',rho(i),hh(i),pmass(i)
