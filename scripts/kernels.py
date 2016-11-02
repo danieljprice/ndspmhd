@@ -176,6 +176,54 @@ def doublehump5(wref,R):
     name = "Double-hump-on-overdrive %s" %(name)
     return(g,name)
 
+def linear_combination(wref,yref,R,epsilon):
+    f, namef = wref(R)
+    g, nameg = yref(R)
+    h = f*(1-epsilon) + g*(epsilon)
+    name = "%s+%s" %(namef,nameg)
+    return(h,name)
+
+#-----------------------------
+# second derivative kernels
+#-----------------------------
+def doublehump_second(wref,R):
+    f, name = doublehump(wref,R)
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(g,q))
+    g = intconst(g)
+    name = "Twice-integrated %s" %(name)
+    return(g,name)
+
+def doublehump_second2(wref,R):
+    f, name = doublehump3(wref,R)
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(g,q))
+    g = intconst(g)
+    name = "Twice-integrated %s" %(name)
+    return(g,name)
+
+def doublehump_second3(wref,R):
+    f, name = doublehump5(wref,R)
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(g,q))
+    g = intconst(g)
+    name = "Twice-integrated %s" %(name)
+    return(g,name)
+
+def brookshaw(wref,R):
+    f, name = wref(R)
+    df = piecewise_fold(diff(f,q))
+    g = piecewise_fold(-df/q)
+    g = piecewise_fold(integrate(g,q))
+    g = intconst(g)
+    g = piecewise_fold(integrate(g,q))
+    g = intconst(g)
+    name = "Brookshaw %s" %(name)
+    return(g,name)
+
 ##############################################
 #                                            #
 #  various output functions to print kernel  #
@@ -809,10 +857,11 @@ def f6(R):
 #-------------------------------------------
 # Jackson-Feyer de la Vallee Poussin kernels
 #-------------------------------------------
-def j4(R):
+#def j4(R):
+#    f = Piecewise((sinc(q)**4,q < R), (0, True))
 #    f = Piecewise(((sin(2*pi*q)/q)**4,q < R), (0, True))
-    f = Piecewise((((1 - q**2/6))**4,q < 1/10),((sin(q)/q)**4,q < R),(0,True))
-    return(f,'Jackson-Feyer')
+#    f = Piecewise((((1 - q**2/6))**4,q < 1/10),((sin(q)/q)**4,q < R),(0,True))
+#    return(f,'Jackson-Feyer')
 
 ########################################################
 #  The actual program 
@@ -827,7 +876,8 @@ R = sympify(2)
 
 # define which kernel to use
 #f, name = sinq(R,3)
-f, name = m5(R)
+f, name = w6(R)
+#f, name = linear_combination(w4_1D,m4,R,sympify(1/100))
 #f, name = j4(R)
 #print "done"
 
@@ -835,7 +885,8 @@ f, name = m5(R)
 #print "[ %s, %s, %s ]" %(c1D,c2D,c3D)
 
 #printvariances(f,R)
-#f, name = doublehump(w6,R)
+#f, name = brookshaw(m6,R)
+#f, name = doublehump(w2,R)
 
 # print the desired output
 #printkernel(f,R)
