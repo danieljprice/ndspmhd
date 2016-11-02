@@ -11,10 +11,10 @@ program kernelplot
  logical :: samepage,plotstability,plotkernel,plotgaussian
 !! character(len=50) :: text
 
- !data iplotorder /0, 2, 3, 69, 52, 65, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 2, 3, 64, 65, 100, 14, 13, 16, 16/   ! order in which kernels are plotted
 ! data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
 
- data iplotorder /0, 2, 67, 19, 20, 100, 74, 13, 16, 16/   ! order in which kernels are plotted
+ !data iplotorder /0, 105, 101, 104, 59, 3, 74, 13, 16, 16/   ! order in which kernels are plotted
  !!iplotorder = 0 ! override data statement if all the same kernel
  nkernels = 6
  ianticlump = 0
