@@ -27,8 +27,10 @@ subroutine print_plot_options()
  print*,' 4) density as function of r/h'
  print*,' 5) gradw normalisation condition'
  print*,' 6) gradgradw normalisation condition'
- print*,' 7) del^2 rho/dh^2 as a function of r/h'
- print*,' 8) del^2 kernel stuff as a function of r/h'
+ print*,' 7) off-diagonal gradgradw normalisation condition'
+ print*,' 8) del^2 rho/dh^2 as a function of r/h'
+ print*,' 9) del^2 kernel stuff as a function of r/h'
+ print*,' 10) softening kernel functions'
 
 end subroutine print_plot_options
 
@@ -37,16 +39,18 @@ end subroutine print_plot_options
 !  select which sum is used for which plot
 !+
 !-------------------------------------------
-subroutine select_plot(iplot,sums,wsum,grad2sum,yploti)
+subroutine select_plot(iplot,sums,wsum,grad2sum,grad2sumoff,yploti)
  integer, intent(in)  :: iplot
- real,    intent(in)  :: sums(:),wsum,grad2sum
+ real,    intent(in)  :: sums(:),wsum,grad2sum,grad2sumoff
  real(4),    intent(out) :: yploti
 
  select case(iplot)
- case(8)
+ case(9)
     yploti = sums(9)
- case(7)
+ case(8)
     yploti = sums(7)
+ case(7)
+    yploti = grad2sumoff
  case(6)
     yploti = grad2sum
  case(5)
@@ -75,9 +79,9 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
  real,     intent(in) :: psep,hmin,dh,radkern2
  real    :: q2,q,xi(3),rij2,mi,rhoi,rhoj
  real    :: hi,hi1,hi21,hnew
- real    :: dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact
+ real    :: dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact,del2w
  real    :: volfrac,dzmax,dymax,erri,errmin
- real    :: dwdhi,d2wdh2i,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum
+ real    :: dwdhi,d2wdh2i,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum,grad2wsumoff
  real    :: xyzpart(3,2*nx**3+1)
  real    :: sums(10)
  integer :: i,n,nneigh,np,idim,imin,ipt
@@ -101,7 +105,11 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
        !print*,' xi = ',xi
        !xi = 0.5
     endif
-    maxiterations = 1
+    !if (isetup==1) then
+    !   maxiterations = 1
+    !else
+    !   maxiterations = 10
+    !endif
     
     !print*,' np  = ',np,' vol = ',volfrac
     mi   = 1./real(np)*volfrac
@@ -129,6 +137,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
           gradhsum = 0.
           gradwsum(:) = 0.
           grad2wsum = 0.
+          grad2wsumoff = 0.
           sums(:) = 0.
           nneigh = 0
           do n=1,np
@@ -149,6 +158,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
                 gradgradwi = gradgradwi*hi1**(ndim+2)
                 dwdhi  = -rij*gradwi*hi1 - ndim*wabi*hi1
                 d2wdh2i = ndim*(ndim+1)*wabi*hi21 + 2.*(ndim+1)*q*gradwi*hi1 + gradgradwi*q2
+                del2w   = gradgradwi + (ndim - 1)*gradwi*rij1
                 
                 wsum = wsum + mi*wabi
                 gradhsum = gradhsum + mi*dwdhi
@@ -156,8 +166,9 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
                    do idim=1,ndim
                       gradwsum(idim)  = gradwsum(idim) - mi/rhoi*dx(idim)*dx(idim)*rij1*gradwi
                    enddo
-                   grad2wsum = grad2wsum + 0.5*mi/rhoi*dx(1)*dx(1)*gradgradwi
-                   sums(1) = sums(1) + mi/rhoi*wabi*dx(1)*dx(1)/rij2
+                   grad2wsum = grad2wsum + 0.5*mi/rhoi*dx(1)*dx(1)*del2w
+                   grad2wsumoff = grad2wsumoff + 0.5*mi/rhoi*dx(1)*dx(2)*del2w
+                   sums(1) = sums(1) + mi/rhoi*wabi*dx(1)*dx(1)/rij2  ! rhat rhat
                    sums(2) = sums(2) + mi/rhoi*wabi*dx(1)*dx(2)/rij2
                    sums(3) = sums(3) + mi/rhoi*wabi*dx(1)*dx(3)/rij2
                    sums(4) = sums(4) - mi/rhoi*gradwi*dx(1)*dx(1)*rij1
@@ -166,7 +177,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
                    rhoj = rhoi
                    sums(7) = sums(7) + rhoi*mi*(gradwi/rhoi**2 + gradwi/rhoj**2)*dx(1)*rij1
                    sums(8) = sums(8) + mi*d2wdh2i
-                   sums(9) = sums(9) + mi*(gradgradwi + (ndim - 1)*gradwi*rij1) !hi1/sqrt(q2))
+                   sums(9) = sums(9) + mi*del2w   !hi1/sqrt(q2))
                    !if (iteration==maxiterations .and. isetup==2 .and. i==ipt) then
                    !print*,q2,gradgradwi/hi1**(ndim+2),mi*gradgradwi,mi*(ndim - 1)*gradwi*rij1
                    !endif
@@ -202,15 +213,17 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
 
           wnorm(i,isetup) = wsum
           gradwnorm(i,isetup) = gradwsum(1)
-          grad2wnorm(i,isetup) = 0.5*grad2wsum
+          grad2wnorm(i,isetup) = grad2wsum
 
           if (isetup.eq.1) then
-             call select_plot(iplot,sums,wsum,0.5*grad2wsum,yplot(i))
+             call select_plot(iplot,sums,wsum,grad2wsum,grad2wsumoff,yplot(i))
           elseif (isetup.eq.2) then
-             call select_plot(iplot,sums,wsum,0.5*grad2wsum,yplot2(i))
+             call select_plot(iplot,sums,wsum,grad2wsum,grad2wsumoff,yplot2(i))
+          endif
+          if (isetup.eq.2 .and. iteration.eq.maxiterations .and. i.eq.ipt) then
+             print*,'iteration ',iteration,' h/psep = ',hi/psep,' was ',hfact,' ratio = ',hfact/(hi/psep)
           endif
           if (i.eq.ipt .and. iteration.eq.maxiterations .and. isetup.eq.2) then
-              !print*,'iteration ',iteration,' h/psep = ',hi/psep,' R = ',sqrt(radkern2)
              print*,'rho = ',wsum,' grad1 = ',sums(7),' yplot = ',yplot2(i),' del2rho = ',sums(9),hi1,' nneigh = ',nneigh
           endif
        enddo its
