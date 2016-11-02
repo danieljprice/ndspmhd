@@ -52,7 +52,7 @@ subroutine setup
 !--set boundaries
 ! 	    
  ibound(:) = 3
- ibound(1) = 1     ! boundaries
+ !ibound(1) = 1     ! boundaries
  nbpts = 0      ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
  xmax(:) = 1.
@@ -72,12 +72,13 @@ subroutine setup
 ! 
  do i=1,ntotal
     vel(:,i) = 0.
+    vel(1,i) = 1.e-4*sin(2.*pi*x(1,i))
     !vel(1,i) = vx(x(:,i))
     !vel(2,i) = vy(x(:,i))
     !vel(3,i) = vz(x(:,i))
     dens(i) = denszero
     pmass(i) = massp
-    uu(i) = 1.0 ! isothermal
+    uu(i) = 1.5 ! isothermal
     if (idiffuse > 0) then
        !uu(i) = 1. + vx(x(:,i))
        if (x(1,i) < 0.5) then
@@ -120,7 +121,7 @@ real function vy(xyzhi)
  real, intent(in) :: xyzhi(3)
  real :: dxbound(3)
  
- dxbound(:) = xmax(:) - xmin(:)
+ dxbound(1:ndim) = xmax(:) - xmin(:)
 
  vy = 0.5/pi*dxbound(1)*sin(2.*pi*(xyzhi(1)-xmin(1))/dxbound(1)) &
      - 0.5/pi*dxbound(3)*sin(2.*pi*(xyzhi(3)-xmin(3))/dxbound(3))
@@ -133,7 +134,7 @@ real function vz(xyzhi)
  real, intent(in) :: xyzhi(3)
  real :: dxbound(3)
  
- dxbound(:) = xmax(:) - xmin(:)
+ dxbound(1:ndim) = xmax(:) - xmin(:)
 
  vz = 0.05/pi*dxbound(2)*cos(4.*pi*(xyzhi(2)-xmin(2))/dxbound(2))
 
