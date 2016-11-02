@@ -66,6 +66,11 @@ OBJBREED=${SRCBREED:.f90=.o}
 breed: $(OBJBREED)
 	$(FC) $(FFLAGS) -o $@ $(OBJBREED)
 
+SRCMATE=kernel_utils.f90 mate_kernels.f90
+OBJMATE=${SRCMATE:.f90=.o}
+mate: $(OBJMATE)
+	$(FC) $(FFLAGS) -o $@ $(OBJMATE)
+
 kernelplot.o : kernelND.o
 
 sametime : sametime.o
