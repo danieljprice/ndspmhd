@@ -19,6 +19,10 @@ DBLFLAGS = -fdefault-real-8 -fdefault-double-8
 ifndef SPLASH_DIR
 SPLASH_DIR=$(HOME)/splash/src
 endif
+ifeq ($(DOUBLEPRECISION),yes)
+FFLAGS+=$(DBLFLAGS)
+endif
+
 
 .SUFFIXES:
 .SUFFIXES:.f .f90 .o .mod
@@ -61,7 +65,7 @@ OBJSORT=${SRCSORT:.f90=.o}
 sort: $(OBJSORT)
 	$(FC) $(FFLAGS) -o $@ $(OBJSORT)
 
-SRCBREED=random.f90 breed.f90
+SRCBREED=kernel_utils.f90 random.f90 breed.f90
 OBJBREED=${SRCBREED:.f90=.o}
 breed: $(OBJBREED)
 	$(FC) $(FFLAGS) -o $@ $(OBJBREED)

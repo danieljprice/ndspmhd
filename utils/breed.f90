@@ -24,6 +24,7 @@
 ! equally spaced in q2 for use in ndspmhd
 !------------------------------------------
 module genalg
+ use kernel_utils, only:normalise,differentiate,diff,integrate
  implicit none
  integer, parameter :: dp = 8
  real(dp), parameter :: mut_prob = 0.4
