@@ -11,7 +11,7 @@ program kernelcalc3D
  integer, parameter :: nsetups = 2
  integer, parameter :: maxkernels = 121
  real, dimension(npts) :: xplot,yplot,yplot2
- real, dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
+ real, dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm,grad2wnormb
  integer, parameter :: nx = 32
  integer :: iplot,nargs,ndim,i1,i2
  character(len=32) :: string
@@ -52,7 +52,7 @@ program kernelcalc3D
 
  psep = 1./real(nx)
  rhoi = 1.
- hmin = 1.0*psep
+ hmin = 1.05*psep
  hmax = 2.*psep
  dh   = (hmax-hmin)/real(npts - 1)
  
@@ -63,7 +63,7 @@ program kernelcalc3D
  print "(60('-'))"
 
  call get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2,&
-                      wnorm,gradwnorm,grad2wnorm,psep,hmin,dh,radkern2)
+                      wnorm,gradwnorm,grad2wnorm,grad2wnormb,psep,hmin,dh,radkern2)
  
  select case(iplot)
  case (7,8)
