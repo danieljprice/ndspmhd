@@ -34,13 +34,14 @@
 #     line=`nsplash -y 19 -x 1 -dev /null $file -p ../../diff | grep L2`;
 ##----------------
 NDSPMHD_DIR=~/ndspmhd;
+nkids=20;
 #
 # run a complete generation of children
 #
 run_gen() 
 {
  rm -f score.list;
- for child in `seq -w 1 20`; do
+ for child in `seq -w 1 $nkids`; do
      if [ ! -d $child ]; then
         mkdir $child;
      fi
