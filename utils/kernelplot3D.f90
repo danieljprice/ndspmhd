@@ -18,15 +18,18 @@ program kernelplot3D
  integer, parameter :: npts = 101 !241 !76 !51
  integer, parameter :: nsetups = 1
  real(kind=4), dimension(npts) :: xplot,yplot,yplot2,cubic1,cubic2
- real(kind=4), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
+ real(kind=4), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm,grad2wnormb
  integer, parameter :: nx = 32
  integer :: iplot
  real, parameter :: pi = 3.1415926536
 
  !data iplotorder /0, 105, 59, 104, 103, 3, 94, 62, 63, 13/   ! order in which kernels are plotted
- data iplotorder /0, 2, 3, 61, 62, 100, 64, 65, 14, 13/   ! order in which kernels are plotted
+ !data iplotorder /0, 3, 106, 107, 94, 108, 64, 65, 14, 13/   ! order in which kernels are plotted
  !data iplotorder /0, 2, 3, 61, 62, 63, 64, 65, 14, 13/   ! order in which kernels are plotted
  !data iplotorder /41, 42, 43, 70, 71, 72, 64, 65, 14, 13/   ! order in which kernels are plotted
+ !data iplotorder /4,93,5,95,60,3,92,43,2,20/   ! order in which kernels are plotted
+ data iplotorder /20,94,99,91,3,100,31,90,3,100/   ! order in which kernels are plotted
+ !data iplotorder /100,11,98,42,09,64,61,24,30,33/
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
 
@@ -72,8 +75,8 @@ program kernelplot3D
 
  psep = 1./real(nx)
  rhoi = 1.
- hmin = 0.8*psep
- hmax = 4.8*psep
+ hmin = 1.0*psep
+ hmax = 2.8*psep
  dh   = (hmax-hmin)/real(npts - 1)
  
  if (iplot==1 .or. iplot==10) then
@@ -105,7 +108,7 @@ program kernelplot3D
        print*,'Using kernel ',ikernel,': '//trim(kernelname)//' kernel, r^2 = ',radkern2
 
        call get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2,&
-                            wnorm,gradwnorm,grad2wnorm,psep,hmin,dh,radkern2)
+                            wnorm,gradwnorm,grad2wnorm,grad2wnormb,psep,hmin,dh,radkern2)
        if (ikernel.eq.0) then
           cubic1 = yplot
           cubic2 = yplot2
@@ -116,7 +119,7 @@ program kernelplot3D
           case(3)
              call plot_moments(j,xplot,yplot,yplot2,cubic1,cubic2)
           case(2)
-             call plot_normalisations(nkernels+j,xplot,wnorm,gradwnorm,grad2wnorm)
+             call plot_normalisations(nkernels+j,xplot,wnorm,gradwnorm,grad2wnorm,grad2wnormb)
              !call plotit(nkernels+j,xplot,yplot,yplot2,cubic1,cubic2)
           case default
              print*,yplot(:)
@@ -166,13 +169,16 @@ subroutine plotit(j,iplot,nsetups,xplot,yplot,yplot2,cubic1,cubic2)
     ymax = 1.1
     ylabel = '\nabla^2 W_{norm}'
  case(5)
-    ymin = 0.9
-    ymax = 1.1
+    ymin = 0.98
+    ymax = 1.02
     ylabel = '\nabla W_{norm}'
  case default
-    ymin = 0.999
-    ymax = 1.001
+    ymin = 0.99
+    ymax = 1.01
     ylabel = 'W(norm)'
+    !ymin = 0.999
+    !ymax = 1.001
+    !ylabel = 'W(norm)'
  end select
 
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'\eta',trim(ylabel), &
@@ -225,8 +231,8 @@ subroutine plot_kernel(j)
     ymin = 0.
     ymax = 0.39 
  else
-    ymin = -2.19 !-0.8 !-2.2
-    ymax = 2.19 !0.8 !1.4
+    ymin = -5.19 !-0.8 !-2.2
+    ymax = 5.19 !0.8 !1.4
  endif
  !ylabel = 'W, grad W, del^2 W'
  ylabel = 'f(q)'
@@ -239,9 +245,11 @@ subroutine plot_kernel(j)
     q = sqrt(q2)
     dqkern(i) = q
     !--this is h^ndim * W + h^(ndim+2) * del^2 W
-    wstuff(i) = wij(i) + grgrwij(i) + (ndim - 1)/q*grwij(i)
+    !wstuff(i) = wij(i) + grgrwij(i) + (ndim - 1)/q*grwij(i)
     !--this is h^ndim * W + h^(ndim+2) * d^2 W/dh^2
-    wstuff2(i) = 0.*wij(i) + ndim*(ndim+1)*wij(i) + 2.*(ndim+1)*q*grwij(i) + q**2*grgrwij(i)
+    !wstuff2(i) = 0.*wij(i) + ndim*(ndim+1)*wij(i) + 2.*(ndim+1)*q*grwij(i) + q**2*grgrwij(i)
+    wstuff(i) = -2.*grwij(i)/q
+    wstuff2(i) = grgrwij(i) + (ndim-1)*grwij(i)/q
  enddo
  call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'r/h',trim(ylabel), &
                trim(kernelname),0,1,&
@@ -263,10 +271,12 @@ subroutine plot_kernel(j)
  call pgsls(4)
  call pgline(ikern+1,dqkern(0:ikern),grgrwij(0:ikern))
  !--other term
- !call pgsci(4)
- !call pgsls(4)
- !call pgline(ikern+1,dqkern(0:ikern),wstuff(0:ikern))
- !call pgline(ikern+1,dqkern(0:ikern),wstuff2(0:ikern))
+ call pgsci(4)
+ call pgsls(4)
+ call pgline(ikern+1,dqkern(0:ikern),wstuff(0:ikern))
+ call pgsci(5)
+ call pgsls(5)
+ call pgline(ikern+1,dqkern(0:ikern),wstuff2(0:ikern))
  !--restore settings
  call pgsci(1)
  call pgsls(1)
@@ -345,21 +355,21 @@ end subroutine plot_softening
 !  Plot kernel normalisation functions
 !+
 !---------------------------------------
-subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
+subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm,gr2wnormb)
  implicit none
  integer, intent(in) :: j
  real(kind=4), dimension(:), intent(in) :: xplot
- real(kind=4), dimension(:,:), intent(in) :: wnormi,grwnorm,gr2wnorm
- real(kind=4) :: xmin,xmax,ymin,ymax
+ real(kind=4), dimension(:,:), intent(in) :: wnormi,grwnorm,gr2wnorm,gr2wnormb
+ real(kind=4) :: xmin,xmax,ylim(2)
  character(len=20) :: ylabel
 
  xmin = minval(xplot)
  xmax = maxval(xplot)
- ymin = 0.98
- ymax = 1.02
+ ylim = (/0.98,1.02/)
+ !ylim = (/0.9,1.1/)
  ylabel = 'W_{norm}'
 
- call setpage2(j,nacross,ndown,xmin,xmax,ymin,ymax,'h/\gDx',trim(ylabel), &
+ call setpage2(j,nacross,ndown,xmin,xmax,ylim(1),ylim(2),'h/\gDx',trim(ylabel), &
                trim(kernelname),0,1,&
                0._4,0._4,0._4,0._4,0._4,0._4,.false.,.true.)
 
@@ -378,7 +388,12 @@ subroutine plot_normalisations(j,xplot,wnormi,grwnorm,gr2wnorm)
    !--normalisation of del^2 W (dotted line)
     call pgsls(4)
     call pgline(size(xplot),xplot,gr2wnorm(:,i))
-    print*,i,' gr2wnorm = ',gr2wnorm(1:10,i)
+    print*,i,' gr2wnorm = ',gr2wnorm(:,i)
+
+   !--normalisation of del^2 W using Brookshaw method (dash-dotted line)
+    !call pgsls(5)
+    !call pgline(size(xplot),xplot,gr2wnormb(:,i))
+    !print*,i,' gr2wnormb = ',gr2wnormb(:,i)
  enddo
 
  call pgsci(1)
