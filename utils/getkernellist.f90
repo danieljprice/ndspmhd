@@ -1,5 +1,5 @@
 program getkernellist
- use kernels, only:setkern,kernelname
+ use kernels, only:setkern,kernelname,radkern2
  implicit none
  integer :: i,ndim,ierr
  integer, parameter :: lu = 1
@@ -11,7 +11,9 @@ program getkernellist
     kernelname=''
     call setkern(i,ndim,ierr)
     if (len_trim(kernelname).gt.0) then
-       write(lu,"(a)") trim(kernelname)
+       if (radkern2 <= 4. .and. .not. (kernelname=='M_4 cubic spline')) then
+       write(lu,"(i3,':',a)") i,trim(kernelname)
+       endif
     else
        write(lu,"(a,i3)") 'nokernel ',i
     endif
