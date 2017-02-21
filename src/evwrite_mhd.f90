@@ -277,7 +277,7 @@ subroutine evwrite(t,etot,momtot)
     !betatstarav = betatstarav/float(npart)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
-    if (idust.eq.1) then
+    if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
        write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,&
                          totmassgas,totmassdust    
     else
