@@ -71,16 +71,16 @@ end subroutine select_plot
 !+
 !-------------------------------------------
 subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
-                           wnorm,gradwnorm,grad2wnorm,psep,hmin,dh,radkern2)
+                           wnorm,gradwnorm,grad2wnorm,grad2normb,psep,hmin,dh,radkern2)
  use kernels, only:interpolate_kernels,interpolate_kernel_curl
  integer, intent(in)  :: iplot,nsetups,nx,ndim,npts
  real(kind=4), intent(out), dimension(npts) :: xplot,yplot,yplot2
- real(kind=4), intent(out), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm
+ real(kind=4), intent(out), dimension(npts,nsetups) :: wnorm,gradwnorm,grad2wnorm,grad2normb
  real,     intent(in) :: psep,hmin,dh,radkern2
  real    :: q2,q,xi(3),rij2,mi,rhoi,rhoj
  real    :: hi,hi1,hi21,hnew
  real    :: dx(3),wsum,wabi,gradwi,gradgradwi,dum,rij,rij1,hfact,del2w
- real    :: volfrac,dzmax,dymax,erri,errmin
+ real    :: volfrac,dzmax,dymax,erri,errmin,brookshaw
  real    :: dwdhi,d2wdh2i,gradhsum,omegai,func,dfdh,dhdrhoi,rhohi,gradwsum(3),grad2wsum,grad2wsumoff
  real    :: xyzpart(3,2*nx**3+1)
  real    :: sums(10)
@@ -96,11 +96,11 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
     call setpart(isetup,nx,np,ndim,xyzpart,ipart,dymax,dzmax)
     volfrac = dymax*dzmax
     if (ipart.ne.0) then
-       maxiterations = 10
+       maxiterations = 1
        xi(:) = xyzpart(:,ipart)
        !print*,' using particle ',ipart,' x,y,z = ',xi(1:ndim)
     else
-       maxiterations = 10
+       maxiterations = 1
        xi(:) = (nx/2 - 1)*psep + 0.25*psep
        !print*,' xi = ',xi
        !xi = 0.5
@@ -138,6 +138,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
           gradwsum(:) = 0.
           grad2wsum = 0.
           grad2wsumoff = 0.
+          brookshaw = 0.
           sums(:) = 0.
           nneigh = 0
           do n=1,np
@@ -168,6 +169,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
                    enddo
                    grad2wsum = grad2wsum + 0.5*mi/rhoi*dx(1)*dx(1)*del2w
                    grad2wsumoff = grad2wsumoff + 0.5*mi/rhoi*dx(1)*dx(2)*del2w
+                   brookshaw = brookshaw + 0.5*mi/rhoi*dx(1)*dx(1)*(-2.*gradwi*rij1)
                    sums(1) = sums(1) + mi/rhoi*wabi*dx(1)*dx(1)/rij2  ! rhat rhat
                    sums(2) = sums(2) + mi/rhoi*wabi*dx(1)*dx(2)/rij2
                    sums(3) = sums(3) + mi/rhoi*wabi*dx(1)*dx(3)/rij2
@@ -214,6 +216,7 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
           wnorm(i,isetup) = wsum
           gradwnorm(i,isetup) = gradwsum(1)
           grad2wnorm(i,isetup) = grad2wsum
+          grad2normb(i,isetup) = brookshaw
 
           if (isetup.eq.1) then
              call select_plot(iplot,sums,wsum,grad2wsum,grad2wsumoff,yplot(i))
@@ -232,8 +235,8 @@ subroutine get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2, &
           imin = i
           errmin = erri
        endif
-       !print*,i,' h = ',xplot(i),' wsum= ',wsum,' moments=',sums(1:3),' gradw = ',sums(4:6),&
-       !         ' nneigh = ',nneigh,4./3.*pi*(radkern*hi)**3/mi
+       !print*,i,' h = ',xplot(i),hi/psep,' wsum= ',wsum,' moments=',sums(1:3),' gradw = ',sums(4:6),&
+       !         ' nneigh = ',nneigh !,4./3.*pi*(radkern*hi)**3/mi
     enddo
     if (errmin.lt.0.1) print*,' best eta for lattice ',isetup,' at ',xplot(imin),' err = ',errmin
     
