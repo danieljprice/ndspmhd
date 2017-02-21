@@ -202,15 +202,15 @@ subroutine initialise
     case(3)
        call setkerndrag(43,ndim,ierr)
     case(99)
-        call setkerndrag(99,ndim,ierr)
-      print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'    
+       call setkerndrag(99,ndim,ierr)
+       print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'    
     case(100)
        call setkerndrag(100,ndim,ierr)
        print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'
     case default
        call setkerndrag(41,ndim,ierr)
        if (idrag_nature.gt.0) stop 'cannot get matching drag kernel'
-    endif
+    end select
     if (radkern.ne.radkernold) stop 'drag kernel has different support radius'
     write(iprint,"(' Drag kernel = ',a)") trim(kernelnamedrag)
  endif
