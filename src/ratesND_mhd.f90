@@ -586,18 +586,23 @@ subroutine get_rates
        do k=1,ndust
           tstop = get_tstop(idrag_nature,rhogasi,rhodusti(k),spsound(i),Kdrag)
           ! CAUTION: Line below must be done BEFORE external forces have been applied
-          deltav(:,i) = -rhoi/rhogasi*force(:,i)*tstop
+          if (rhogasi > tiny(rhogasi)) then
+             deltav(:,i) = -rhoi/rhogasi*force(:,i)*tstop
+          else
+             !stop 'rhogas < 0'
+             deltav(:,i) = 0.
+          endif
           ratio = max(dustfraci(k)*tstop/dtcourant,ratio)
           dtdrag = min(dtdrag,0.5*hh(i)**2/(dustfraci(k)*tstop*spsound(i)**2))
        enddo
        if (dtdrag < 0.) then
-          print*,'WARNING: dtdrag = ',dtdrag,dustfraci,dustfrac(:,i),rhodust(:,i),rhogas(i)
+          !print*,'WARNING: dtdrag = ',dtdrag,dustfraci,dustfrac(:,i),rhodust(:,i),rhogas(i)
           dtdrag = abs(dtdrag)
        endif
-       dvmax = maxval(abs(deltav(:,i)))
-       if (dvmax > 0.) then
-          dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
-       endif
+       !dvmax = maxval(abs(deltav(:,i)))
+       !if (dvmax > 0.) then
+       !   dtdrag = min(dtdrag,0.1*hh(i)/dvmax)
+       !endif
        if (idrag_nature==4) then
           ! this is constant ts but keeping the particles fixed
           force(:,i) = 0.
@@ -1782,26 +1787,26 @@ contains
 
     dudti = 0.
     dudtj = 0.
-    if (dvdotr < 0.) then
+    !if (dvdotr < 0.) then
        !
        ! artificial viscosity, as in Phantom
        !
        vsi = max(alphai*spsoundi - beta*dvdotr,0.)
        vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
-       qi = -rhoi*vsi*dvdotr
-       qj = -rhoj*vsj*dvdotr
+       qi = -2.*rhoi*vsi*dvdotr
+       qj = -2.*rhoj*vsj*dvdotr
 
-       visc = 0.5*(qi*rho21i*grkerni + qj*rho21j*grkernj)
+       visc = (qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
        forcej(:) = forcej(:) + pmassi*visc*dr(:)
        !
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          dudti = 0.5*qi*rho21i*pmassj*dvdotr*grkerni
-          dudtj = 0.5*qj*rho21j*pmassi*dvdotr*grkernj
+          dudti = qi*rho21i*pmassj*dvdotr*grkerni
+          dudtj = qj*rho21j*pmassi*dvdotr*grkernj
        endif
-    endif
+    !endif
 
     if (damp < tiny(damp)) then
        !
@@ -2077,8 +2082,8 @@ contains
     !real :: v2i,v2j
     real :: qdiffi,qdiffj,qdiff
     real :: term,dpmomdotr,dens1j
-    real :: lorentzfactorstari,lorentzfactorstarj,estari,estarj
-    real :: lorentzi,lorentzj
+    real :: lorentzfactorstari,lorentzfactorstarj,estari,estarj,destar
+    real :: lorentzi,lorentzj,enthi,enthj
     real,dimension(ndimV) :: pmomstari,pmomstarj
     !
     !--definitions
@@ -2086,6 +2091,10 @@ contains
     alphaav = 0.5*(alphai + alpha(1,j))
     alphau = 0.5*(alphaui + alpha(2,j))
     vsigav = max(alphaav,alphau)*vsig
+
+    enthi = 1. + uu(i) + pri*dens1i
+    enthj = 1. + uu(j) + prj*dens1j
+
     !!rhoav1 = 2./(rhoi + rhoj)
 !    if (geom(1:4).ne.'cart') then
 !    dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
@@ -2101,18 +2110,28 @@ contains
     
     lorentzfactorstari=1.0/(sqrt(1.0-(projvi**2)))
     lorentzfactorstarj=1.0/(sqrt(1.0-(projvj**2)))
+    if (v2i.le.1.0) lorentzi=1.0/(sqrt(1.0-(v2i)))
+    if (v2j.le.1.0) lorentzj=1.0/(sqrt(1.0-(v2j)))
     
     dens1j = 1./dens(j)
-    estari=lorentzfactorstari*(1.0+alphau*(uu(i))+0.*(pri*dens1i))-0.*(pri*rho1i)
-    estarj=lorentzfactorstarj*(1.0+alphau*(uu(j))+0.*(prj*dens1j))-0.*(prj*rho1j)
+    !estari=lorentzfactorstari*(1.0+alphau*(uu(i))+0.*(pri*dens1i))-0.*(pri*rho1i)
+    !estarj=lorentzfactorstarj*(1.0+alphau*(uu(j))+0.*(prj*dens1j))-0.*(prj*rho1j)
+    !estari = lorentzfactorstari*enthi - pri*rho1i
+    !estarj = lorentzfactorstarj*enthj - prj*rho1j
+    !estari = lorentzfactorstari
+    !estarj = lorentzfactorstarj
+    !destar = alphaav*(estari - estarj)
+    
+    destar=alphaav*0.5*(enthi + enthj)*(lorentzfactorstari - lorentzfactorstarj) &
+          + alphau*(uu(i)/lorentzi - uu(j)/lorentzj)
     
 !    pmomstari=veli*(estari+0.*(pri*rho1i))
 !    pmomstarj=velj*(estarj+0.*(prj*rho1j))
     
-    pmomstari = veli*lorentzfactorstari
-    pmomstarj = velj*lorentzfactorstarj
+    pmomstari = veli*lorentzfactorstari !*enthi
+    pmomstarj = velj*lorentzfactorstarj !*enthj
 
-    dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))
+    dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))*0.5*(enthi + enthj)
     
     if (dvdotr.lt.0) then
        visc = alphaav*term*dpmomdotr
@@ -2133,7 +2152,7 @@ contains
        !  kinetic energy terms - applied only when particles approaching
        !
        if (dvdotr.lt.0) then
-          qdiff = qdiff + alphaav*(estari-estarj)
+          qdiff = qdiff + destar
        endif
        !
        !  add to total energy equation
@@ -2148,22 +2167,20 @@ contains
        qdiff = 0
        qdiffi = 0
        qdiffj = 0    
-       if (dvdotr.lt.0) then       
-          qdiffi=(estari-estarj)+(projvi*dpmomdotr)
-          qdiffj=(estarj-estari)-(projvj*dpmomdotr)
+       if (dvdotr.lt.0) then
+          qdiffi=destar+(projvi*dpmomdotr)
+          qdiffj=-destar-(projvj*dpmomdotr)
        endif
        
-       if (v2i.le.1.0) lorentzi=1.0/(sqrt(1.0-(v2i)))
-       if (v2j.le.1.0) lorentzj=1.0/(sqrt(1.0-(v2j)))
        !
        !  add to entropy equation
        !
        !if (qdiffi.gt.1.e-8 .or. qdiffj.gt.1.e-8) then
        !   print*,'error, negative entropy generation ',qdiffi,qdiffj
-          !stop
+       !   stop
        !endif
-       dudt(i) = (dudt(i) + alphaav*lorentzi*pmassj*term*qdiffi)
-       dudt(j) = (dudt(j) + alphaav*lorentzj*pmassi*term*qdiffj)
+       dudt(i) = (dudt(i) + lorentzi*pmassj*term*qdiffi)
+       dudt(j) = (dudt(j) + lorentzj*pmassi*term*qdiffj)
 
     else 
        stop 'wrong iener in special relativity'
