@@ -2642,7 +2642,7 @@ contains
        tstopj = get_tstop(idrag_nature,rhogasj,rhodustj(k),spsoundj,Kdrag)
     
        select case(idustevol)
-       case(2)
+       case(2,4)
           Di = rho1i*tstopi/rhogasi
           Dj = rho1j*tstopj/rhogasj
           Dav = 0.5*(Di + Dj)

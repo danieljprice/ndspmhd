@@ -47,7 +47,7 @@ subroutine derivs
  implicit none
  logical, parameter :: itiming = .false.
  integer :: i,j,inext
- real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,dustm,si(ndust)
+ real :: t1,t2,t3,t4,t5,sum,sum1,sum2,sum3,sum4,sum_dustm,dustm,si(ndust),term
  real, dimension(3) :: Bvec
  real, dimension(ndim) :: tmp
  real, dimension(ndim,ndim) :: k_tensor
@@ -180,6 +180,10 @@ subroutine derivs
        sum4 = sum4 + pmass(i)*0.5*(1. - 2.*dustfrac(1,i))*ddustevoldt(1,i)
 
        select case(idustevol)
+       case(4)
+          stop 'idustevol=4 not implemented with idust=3'
+          !ddustevoldt(:,i) = 2.*ddustevoldt(:,i)
+          !sum_dustm = sum_dustm + pmass(i)*0.5*ddustevoldt(1,i)
        case(3)
           ddustevoldt(:,i) = 2.*ddustevoldt(:,i)
           sum_dustm = sum_dustm + pmass(i)*0.5*ddustevoldt(1,i)
@@ -210,6 +214,24 @@ subroutine derivs
     sum_dustm = 0.
     dustm = 0.
     select case(idustevol)
+    case(5)
+       do i=1,npart
+          sum_dustm = sum_dustm + pmass(i)*ddustevoldt(1,i)
+          dustm = dustm + pmass(i)*dustfrac(1,i)
+          term = dustfrac(1,i)*(1. - dustfrac(1,i))
+          if (term > epsilon(term)) then
+             ddustevoldt(:,i) = 0.25/term*ddustevoldt(:,i)
+          else
+             ddustevoldt(:,i) = 0.
+          endif
+       enddo
+    case(4)
+       do i=1,npart
+          if (idustevol==5) ddustevoldt(:,i) = 2.*ddustevoldt(:,i)
+          si(1) = rho(i)*sqrt((dustfrac(1,i)*(1. - dustfrac(1,i))))
+          sum_dustm = sum_dustm + 2.*pmass(i)*si(1)/rho(i)*ddustevoldt(1,i)
+          dustm = dustm + pmass(i)*dustfrac(1,i)
+       enddo
     case(3)
        do i=1,npart
           ddustevoldt(:,i) = 2.*ddustevoldt(:,i)

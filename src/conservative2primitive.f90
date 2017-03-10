@@ -77,6 +77,10 @@ subroutine conservative2primitive
      !--error checking on dust-to-gas ratio
      do i=1,npart
         select case (idustevol)
+        case(5)
+           dustfrac(1,i) = 0.5*(1. + tanh(2.*dustevol(1,i) - 1.))
+        case(4)
+           dustfrac(1,i) = 0.5*(1. + tanh(dustevol(1,i)))
         case(3)
            dustfrac(1,i) = 0.5*(dustevol(1,i) + 1)
         case(2)
@@ -89,7 +93,7 @@ subroutine conservative2primitive
         do k=1,ndust
            if (dustfrac(k,i) < 0.) then
               nerr = nerr + 1
-              print*, dustfrac(1,i),dustevol(1,i),sin(dustevol(1,i)) + 1.
+              !print*, dustfrac(1,i),dustevol(1,i),sin(dustevol(1,i)) + 1.
               !dustfrac(i) = 0. !abs(dustfrac(i))
               !if (idustevol==0) then
               !   dustevol(i) = 0.
@@ -98,10 +102,10 @@ subroutine conservative2primitive
               !call quit
            elseif (dustfrac(k,i) > 1.) then
               nerr1 = nerr1 + 1
-              dustfrac(k,i) = 1. - epsilon(1.)
+              dustfrac(k,i) = 1. ! - epsilon(1.)
               if (idustevol==0) then
-                 dustevol(k,i) = 1. - epsilon(1.)
-                 dustevolin(k,i) = 1. - epsilon(1.)
+                 dustevol(k,i) = 1. !- epsilon(1.)
+                 dustevolin(k,i) = 1.! - epsilon(1.)
               endif
            endif
         enddo
@@ -545,6 +549,14 @@ subroutine primitive2conservative
 
   if (onef_dust) then
      select case(idustevol)
+     case(5)
+        do i=1,npart
+           dustevol(1,i) = 0.5*(1. + atanh(2.*dustfrac(1,i) - 1.))
+        enddo
+     case(4)
+        do i=1,npart
+           dustevol(:,i) = atanh(2.*dustfrac(:,i) - 1.)
+        enddo
      case(3)
         do i=1,npart
            dustevol(:,i) = 2.*dustfrac(:,i) - 1.
