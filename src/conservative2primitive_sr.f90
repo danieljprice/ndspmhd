@@ -151,7 +151,7 @@ subroutine primitive2conservative
 
   if (trace) write(iprint,*) ' Entering subroutine primitive2conservative (sr)'
 
-  call test_conservative2primitive
+  !call test_conservative2primitive
 !
 !--set initial h and rho (conservative) from dens (primitive) as given in setup/ data read
 !
