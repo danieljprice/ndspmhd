@@ -176,7 +176,7 @@ subroutine get_rates
     allocate( dveldx(ndim,ndimV,ntotal), STAT=ierr )
     if (ierr.ne.0) write(iprint,*) ' Error allocating dveldx, ierr = ',ierr
  endif
- listneigh = 0
+ listneigh = 0 
 !
 !--initialise quantities
 !      
@@ -495,9 +495,6 @@ subroutine get_rates
  if (itiming) call cpu_time(t4)
 
  if (trace) write(iprint,*) 'Finished main rates loop'
- fhmax = 0.0
- dtforce = 1.e6
-!! dtcourant2 = 1.e6
 
 !----------------------------------------------------------------------------
 !  loop over the particles again, subtracting external forces and source terms
@@ -510,8 +507,10 @@ subroutine get_rates
     vsig2max = vsigmax**2
  endif
  
+ fhmax = 0.0
  fmean(:) = 0.
  dtdrag = huge(dtdrag)
+ dtforce= huge(dtforce)
  esum = 0.
  ratio = 0.
  if (idust.eq.2 .and. h_on_csts_max > 1.) then
@@ -668,13 +667,6 @@ subroutine get_rates
     fonh = forcemag/hh(i)
     if (fonh.gt.fhmax .and. itype(i).ne.1) fhmax = fonh
 !
-!--calculate resistive timestep (bootstrap onto force timestep)
-!
-    if (iresist.gt.0 .and. iresist.ne.2 .and. etamhd.gt.tiny(etamhd)) then
-       fhmax = max(fhmax,etai/(hh(i)**2))
-    endif
-
-!
 !--calculate simpler estimate of vsig for divergence cleaning and 
 !  in the dissipation switches
 !
@@ -797,6 +789,17 @@ subroutine get_rates
     case default
        dBevoldt(:,i) = 0.
     end select
+!
+!--calculate resistive timestep (bootstrap onto force timestep)
+!
+    if (iresist.gt.0 .and. iresist.ne.2 .and. etamhd.gt.tiny(etamhd)) then
+       if (iresist.eq.1) then
+          etai = etamhd
+       elseif (iresist.eq.3) then
+          etai = etafunc(x(1,i),etamhd)
+       endif
+       dtforce = min(dtforce,hh(i)**2/etai)
+    endif
 !
 !--if using the thermal energy equation, set the energy derivative
 !  (note that dissipative terms are calculated in rates, but otherwise comes straight from cty)
@@ -922,9 +925,7 @@ subroutine get_rates
     write(iprint,*) 'rates: fhmax <=0 :',fhmax
     call quit
  elseif (fhmax.gt.0.) then
-    if (dtforce.gt.0.0) dtforce = sqrt(1./fhmax)    
- else
-    dtforce = 1.e6
+    dtforce = min(dtforce,sqrt(1./fhmax))
  endif    
  !!print*,'dtcourant = ',dtcourant,dtcourant2,0.2*dtcourant2
  !!dtcourant = 0.2*dtcourant2
@@ -1793,8 +1794,8 @@ contains
        !
        vsi = max(alphai*spsoundi - beta*dvdotr,0.)
        vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
-       qi = -2.*rhoi*vsi*dvdotr
-       qj = -2.*rhoj*vsj*dvdotr
+       qi = -0.5*rhoi*vsi*dvdotr
+       qj = -0.5*rhoj*vsj*dvdotr
 
        visc = (qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
@@ -2083,8 +2084,9 @@ contains
     real :: qdiffi,qdiffj,qdiff
     real :: term,dpmomdotr,dens1j
     real :: lorentzfactorstari,lorentzfactorstarj,estari,estarj,destar
-    real :: lorentzi,lorentzj,enthi,enthj
+    real :: lorentzi,lorentzj,enthi,enthj,enthav,qa,qb
     real,dimension(ndimV) :: pmomstari,pmomstarj
+    integer :: iavtype
     !
     !--definitions
     !       
@@ -2092,15 +2094,11 @@ contains
     alphau = 0.5*(alphaui + alpha(2,j))
     vsigav = max(alphaav,alphau)*vsig
 
+    dens1i = 1./dens(i)
+    dens1j = 1./dens(j)
     enthi = 1. + uu(i) + pri*dens1i
     enthj = 1. + uu(j) + prj*dens1j
 
-    !!rhoav1 = 2./(rhoi + rhoj)
-!    if (geom(1:4).ne.'cart') then
-!    dpmomdotr = abs(dot_product(pmom(:,i)-pmom(:,j),dr(:)))
-!    else
-!       dpmomdotr = -dvdotr
-!    endif
     term = vsig*rhoav1*grkern
 
     !----------------------------------------------------------------
@@ -2113,25 +2111,49 @@ contains
     if (v2i.le.1.0) lorentzi=1.0/(sqrt(1.0-(v2i)))
     if (v2j.le.1.0) lorentzj=1.0/(sqrt(1.0-(v2j)))
     
-    dens1j = 1./dens(j)
-    !estari=lorentzfactorstari*(1.0+alphau*(uu(i))+0.*(pri*dens1i))-0.*(pri*rho1i)
-    !estarj=lorentzfactorstarj*(1.0+alphau*(uu(j))+0.*(prj*dens1j))-0.*(prj*rho1j)
-    !estari = lorentzfactorstari*enthi - pri*rho1i
-    !estarj = lorentzfactorstarj*enthj - prj*rho1j
-    !estari = lorentzfactorstari
-    !estarj = lorentzfactorstarj
-    !destar = alphaav*(estari - estarj)
     
-    destar=alphaav*0.5*(enthi + enthj)*(lorentzfactorstari - lorentzfactorstarj) &
-          + alphau*(uu(i)/lorentzi - uu(j)/lorentzj)
-    
-!    pmomstari=veli*(estari+0.*(pri*rho1i))
-!    pmomstarj=velj*(estarj+0.*(prj*rho1j))
-    
-    pmomstari = veli*lorentzfactorstari !*enthi
-    pmomstarj = velj*lorentzfactorstarj !*enthj
-
-    dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))*0.5*(enthi + enthj)
+    iavtype = 4
+    select case(iavtype)
+    case(4) ! qa and qb with qa*vb and qb*vb in energy equation
+       ! Siegler/Riffert style
+       pmomstari = veli*lorentzfactorstari !*enthi
+       pmomstarj = velj*lorentzfactorstarj !*enthj
+       dpmomdotr=dot_product(pmomstari-pmomstarj,dr)
+       if (dpmomdotr < 0.) then
+          qa = -0.5*dpmomdotr*enthi
+          qb = -0.5*dpmomdotr*enthj
+       else
+          qa = 0.
+          qb = 0.
+       endif
+       dpmomdotr = (qa + qb)
+       destar=-alphaav*(qa*dot_product(veli,dr) + qb*dot_product(velj,dr)) &
+            + alphau*(uu(i)/lorentzi - uu(j)/lorentzj)
+    case(3) ! mine but with enthalpy in right place
+       pmomstari = veli*lorentzfactorstari*enthi
+       pmomstarj = velj*lorentzfactorstarj*enthj
+       dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))
+       estari = lorentzfactorstari*enthi - pri*rho1i
+       estarj = lorentzfactorstarj*enthj - prj*rho1j
+       destar=alphaav*(estari - estarj)
+       !destar=alphaav*(lorentzfactorstari*enthi - lorentzfactorstarj*enthj) !&
+            !- alphau*(uu(i)/lorentzi - uu(j)/lorentzj)
+    case(2) ! Chow/Monaghan
+       pmomstari = veli*lorentzfactorstari*enthi
+       pmomstarj = velj*lorentzfactorstarj*enthj    
+       dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))
+       estari = lorentzfactorstari*enthi - pri*rho1i
+       estarj = lorentzfactorstarj*enthj - prj*rho1j
+       destar=alphaav*(estari - estarj)
+    case default
+       ! my best one so far
+       pmomstari = veli*lorentzfactorstari
+       pmomstarj = velj*lorentzfactorstarj
+       enthav = 0.5*(enthi + enthj)
+       dpmomdotr=abs(dot_product(pmomstari-pmomstarj,dr))*enthav
+       destar=alphaav*enthav*(lorentzfactorstari - lorentzfactorstarj) &
+            + alphau*(uu(i)/lorentzi - uu(j)/lorentzj)
+    end select
     
     if (dvdotr.lt.0) then
        visc = alphaav*term*dpmomdotr
@@ -2517,10 +2539,10 @@ contains
     !  real resistivity in induction equation
     !--------------------------------------------
     if (iresist.gt.0 .and. iresist.ne.2) then
-       !etaij = 0.5*(etai + etaj)
-       etaij = 2.*etai*etaj/(etai + etaj)
+       etaij = 0.5*(etai + etaj)
+       !etaij = 2.*etai*etaj/(etai + etaj)
        if (imhd.gt.0) then
-          dBdtvisc(:) = -2.*etaij*dB(:)/rij
+          dBdtvisc(:) = -2.*etaij*dB(:)/(rij + epsilon(rij))
        else !--vector potential resistivity
           dBdtvisc(:) = 2.*etaij*dBevol(:)/rij
        endif
