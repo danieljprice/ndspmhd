@@ -110,7 +110,7 @@ subroutine write_infile(infile)
   call write_inopt(psidecayfact,'psidecayfact','decay factor in hyperbolic/parabolic cleaning',iread)
   call write_inopt(nsteps_remap,' nsteps_remap','remapping interval (0:never)',iread)
   call write_inopt(iuse_exact_derivs,'iuse_exact_derivs','use exact derivatives for MHD (0:off 1:on)',iread)
-  call write_inopt(iresist,'iresist','resistivity (0:off 1:explicit 2:implicit)',iread)
+  call write_inopt(iresist,'iresist','resistivity (0:off 1:explicit 2:implicit 3:variable eta 4:two first derivs)',iread)
   call write_inopt(etamhd,'etamhd','eta for resistivity',iread)
   call write_inopt(iambipolar,'iambipolar','ambipolar diffusion',iread)
 
@@ -361,7 +361,7 @@ subroutine read_infile(infile)
     write(iprint,100) 'tolh really, really tiny (probably zero)!!'
     stop
  endif
- if (iresist.lt.0 .or. iresist.gt.3) then
+ if (iresist.lt.0 .or. iresist.gt.4) then
     write(iprint,100) 'invalid choice of resistivity formulation'
     stop
  endif

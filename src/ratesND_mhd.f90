@@ -200,7 +200,7 @@ subroutine get_rates
   gradpsi(:,i) = 0.0
   fmag(:,i) = 0.0
   divB(i) = 0.0
-  if (imhd.gt.0 .and. iambipolar.eq.0) curlB(:,i) = 0.0
+  if (imhd.gt.0 .and. iambipolar.eq.0 .and. iresist.ne.4) curlB(:,i) = 0.0
   if (allocated(curlBsym)) curlBsym(:,i) = 0.
   if (allocated(divBsym)) divBsym(i) = 0.
   if (allocated(dveldx)) then
@@ -372,10 +372,10 @@ subroutine get_rates
           Brho2i = B2i*rho21i
           valfven2i = B2i*rho1i
           if (imhd.lt.0) Bevoli(:) = Bevol(:,i)
-          if (iresist.eq.1) then
-             etai = etamhd
-          elseif (iresist.eq.3) then
+          if (iresist.eq.3) then
              etai = etafunc(x(1,i),etamhd)
+          elseif (iresist > 0) then
+             etai = etamhd
           endif
        endif
        gradhi = gradh(i)
@@ -623,7 +623,7 @@ subroutine get_rates
              call cross_product3D(curlB(:,i),Bfield(:,i),fmagi(:)) ! J x B
              force(:,i) = force(:,i) + fmagi(:)*rho1i  ! (J x B)/rho
              fmag(:,i) = fmagi(:)*rho1i
-          elseif (imhd.gt.0) then ! not for vector potential
+          elseif (imhd.gt.0 .and. .not.(iresist==4)) then ! not for vector potential
              curlB(:,i) = curlB(:,i)*rho1i
           endif
        endif
@@ -793,10 +793,10 @@ subroutine get_rates
 !--calculate resistive timestep (bootstrap onto force timestep)
 !
     if (iresist.gt.0 .and. iresist.ne.2 .and. etamhd.gt.tiny(etamhd)) then
-       if (iresist.eq.1) then
-          etai = etamhd
-       elseif (iresist.eq.3) then
+       if (iresist.eq.3) then
           etai = etafunc(x(1,i),etamhd)
+       elseif (iresist > 0) then
+          etai = etamhd
        endif
        dtforce = min(dtforce,hh(i)**2/etai)
     endif
@@ -1203,10 +1203,10 @@ contains
        if (imhd.lt.0) then
           dBevol(:) = Bevoli(:) - Bevol(:,j)
        endif
-       if (iresist.eq.1) then
-          etaj = etamhd
-       elseif (iresist.eq.3) then
+       if (iresist.eq.3) then
           etaj = etafunc(x(1,j),etamhd)
+       elseif (iresist > 0) then
+          etaj = etamhd
        endif
     endif
     forcej(:) = 0.
@@ -2434,20 +2434,29 @@ contains
           stop 'JxB force not yet implemented in 3D'
        endif
     else
-       if (iambipolar > 0) then
+       if (iambipolar > 0 .or. iresist==4) then
        !
        !--curl B has already been calculated, here we use it to compute
        !  the ambipolar diffusion term
        !
-          call cross_product3D(curlB(:,i),Bi,vec) ! J x B
-          call cross_product3D(vec,Bi,JxBxBi)     ! J x B x B
-          call cross_product3D(curlB(:,j),Bj,vec) ! J x B
-          call cross_product3D(vec,Bj,JxBxBj)     ! J x B x B
-          call cross_product3D(JxBxBi,dr,curlBi)  ! misuse of curlBi variable to store (JxB) x B x \nabla
-          call cross_product3D(JxBxBj,dr,curlBj)  ! misuse of curlBi variable to store (JxB) x B x \nabla
-          termi = 1./(rhoi*rho_ion*gamma_ambipolar)
-          termj = 1./(rhoj*rho_ion*gamma_ambipolar)
-          dBdtambi(:) = termi*curlBi(:)*rho21i*grkerni + termj*curlBj(:)*rho21j*grkernj
+          if (iambipolar > 0) then
+             call cross_product3D(curlB(:,i),Bi,vec) ! J x B
+             call cross_product3D(vec,Bi,JxBxBi)     ! J x B x B
+             call cross_product3D(curlB(:,j),Bj,vec) ! J x B
+             call cross_product3D(vec,Bj,JxBxBj)     ! J x B x B
+             call cross_product3D(JxBxBi,dr,curlBi)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+             call cross_product3D(JxBxBj,dr,curlBj)  ! misuse of curlBi variable to store (JxB) x B x \nabla
+             termi = 1./(rhoi*rho_ion*gamma_ambipolar)
+             termj = 1./(rhoj*rho_ion*gamma_ambipolar)
+             dBdtambi(:) = termi*curlBi(:)*rho21i*grkerni + termj*curlBj(:)*rho21j*grkernj
+          endif
+          if (iresist==4) then
+             call cross_product3D(curlB(:,i),dr,curlBi)
+             call cross_product3D(curlB(:,j),dr,curlBj)
+             termi = etamhd
+             termj = etamhd
+             dBdtambi(:) = dBdtambi(:) - termi*curlBi(:)*rho21i*grkerni - termj*curlBj(:)*rho21j*grkernj
+          endif
        else
        !
        !--calculate curl B for current (only if field is 3D)
@@ -2538,7 +2547,7 @@ contains
     !--------------------------------------------
     !  real resistivity in induction equation
     !--------------------------------------------
-    if (iresist.gt.0 .and. iresist.ne.2) then
+    if (iresist.gt.0 .and. (iresist.ne.2 .and. iresist.ne.4)) then
        etaij = 0.5*(etai + etaj)
        !etaij = 2.*etai*etaj/(etai + etaj)
        if (imhd.gt.0) then
@@ -2549,8 +2558,10 @@ contains
        !
        !--add to dB/dt (converted to d(B/rho)/dt later if required)
        !
-       dBevoldti(:) = dBevoldti(:) - pmassj*rho1j*dBdtvisc(:)*grkerni
-       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*rho1i*dBdtvisc(:)*grkernj
+       dBevoldti(:) = dBevoldti(:) - rhoi*pmassj*0.5*(rho1i**2*grkerni + rho1j**2*grkernj)*dBdtvisc(:)
+       dBevoldt(:,j) = dBevoldt(:,j) + rhoj*pmassi*0.5*(rho1i**2*grkerni + rho1j**2*grkernj)*dBdtvisc(:)
+!       dBevoldti(:) = dBevoldti(:) - pmassj*rho1j*dBdtvisc(:)*grkerni
+!       dBevoldt(:,j) = dBevoldt(:,j) + pmassi*rho1i*dBdtvisc(:)*grkernj
        !
        !  add to thermal energy equation
        !

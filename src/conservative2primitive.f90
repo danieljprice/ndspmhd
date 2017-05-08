@@ -296,7 +296,7 @@ subroutine conservative2primitive
 !
 !--get magnetic current, needed for ambipolar diffusion calculation
 !
-  if (iambipolar > 0 .or. iavlim(3)==2) then
+  if (iambipolar > 0 .or. iavlim(3)==2 .or. iresist==4) then
      if (iavlim(3)==2) then
         !--get J and grad(B) using standard (differenced) curl operator
         call get_curl(1,npart,x,pmass,rho,hh,Bfield,curlB,gradB=gradB)
