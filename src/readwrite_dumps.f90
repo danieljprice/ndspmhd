@@ -40,7 +40,7 @@ subroutine write_dump(t,dumpfile)
  use setup_params
  use derivb
  use rates
- use hterms, only:gradh,gradsoft
+ use hterms, only:gradh
 !
 !--define local variables
 !
@@ -88,9 +88,7 @@ subroutine write_dump(t,dumpfile)
     iformat = 5
     ncolumns = ncolumns + ndimV + 2*ndust + 1
  endif 
- if (ndim==2) then
-    ncolumns = ncolumns + 1
- endif
+
  write(idatfile,iostat=ierr) t,npart,nprint,gamma,hfact,ndim,ndimV, &
       ncolumns,iformat,ibound,xmin(1:ndim),xmax(1:ndim),len(geom),geom
  if (ierr /= 0) then
@@ -173,9 +171,6 @@ subroutine write_dump(t,dumpfile)
               write(idatfile) P_Q(i,j,1:nprint)
            enddo
         enddo
-     endif
-     if (ndim==2) then
-        write(idatfile) sqrt(x(1,1:nprint)*x(1,1:nprint)+x(2,1:nprint)*x(2,1:nprint))
      endif
   endif
   if (geom(1:4).ne.'cart') then
