@@ -44,10 +44,10 @@ subroutine evwrite(t,etot,momtot)
  integer :: i
  real, intent(in) :: t
  real, intent(out) :: etot,momtot
- real :: ekin,etherm,emag,epot
+ real :: ekin,etherm,emag,epot,dmomtot
  real :: pmassi,rhoi,epoti!,rr
 ! real, dimension(ndim) :: rhat
- real, dimension(ndimV) :: veli,mom,ang,angi
+ real, dimension(ndimV) :: veli,mom,ang,angi,dmom
 ! real :: betai,alphai,alphatstarav,betatstarav
 !
 !--mhd
@@ -68,6 +68,7 @@ subroutine evwrite(t,etot,momtot)
 !--one fluid dust
 !
  real :: totmassgas,totmassdust,dustfraci,dterm,ekindeltav
+ logical, save :: init = .false.
 
 !
 !--allow for tracing flow
@@ -85,6 +86,7 @@ subroutine evwrite(t,etot,momtot)
     epot = 0.
  endif
  mom(:) = 0.0
+ dmom(:) = 0.
  momtot = 0.0
  ang(:) = 0.
  ekiny = 0.
@@ -125,6 +127,7 @@ subroutine evwrite(t,etot,momtot)
     rhoi = rho(i)
     veli(:) = vel(:,i)  
     mom(:) = mom(:) + pmassi*veli(:)
+    dmom(:) = dmom(:) + pmassi*force(:,i)
     if (ndim.eq.3) then
        call cross_product3D(x(:,i),veli(:),angi(:))
        ang(:) = ang(:) + pmassi*angi(:)
@@ -247,6 +250,8 @@ subroutine evwrite(t,etot,momtot)
  etot = ekin + emag + epot
  if (iprterm.ge.0 .or. iprterm.lt.-1) etot = etot + etherm
  momtot = sqrt(dot_product(mom,mom))
+ dmomtot = sqrt(dot_product(dmom,dmom))
+ !print*,'dpdt = ',dmomtot
  call minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
  angtot = sqrt(dot_product(ang,ang))
 !
@@ -263,7 +268,13 @@ subroutine evwrite(t,etot,momtot)
     force_err_av = force_err_av/FLOAT(npart)
 
 !!    print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
-
+    if (.not.init) then
+       write(ievfile,"('#',24(a18,1x))") 't','ekin','etherm','emag','epot','etot','momtot',&
+          'angtot','rhomax','rhomean','dt','emagp','crosshel','betamhdmin','betamhdav',&
+          'divBav','divBmax','divBtot','fdotBav','fdotBmax','force_err_av','force_err_max',&
+          'omegamhdav','omegamhdmax','fracdivBok'
+       init = .true.
+    endif
     write(ievfile,30) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt, &
           emagp,crosshel,betamhdmin,betamhdav,  &
           divBav,divBmax,divBtot,     &
@@ -277,10 +288,20 @@ subroutine evwrite(t,etot,momtot)
    !! print*,'t=',t,' emag =',emag,' etot = ',etot, 'ekin = ',ekin,' etherm = ',etherm
 
     if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
+       if (.not.init) then
+          write(ievfile,"('#',24(a18,1x))") 't','ekin','etherm','emag','epot','etot','momtot',&
+             'angtot','rhomax','rhomean','dt','ekiny','totmassgas','totmassdust'
+          init = .true.
+       endif
        write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,&
-                         totmassgas,totmassdust    
+                         totmassgas,totmassdust
     else
-       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny
+       if (.not.init) then
+          write(ievfile,"('#',24(a18,1x))") 't','ekin','etherm','emag','epot','etot','momtot',&
+             'angtot','rhomax','rhomean','dt','ekiny','dmomtot'
+          init = .true.
+       endif
+       write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,dmomtot
     endif
 40  format(24(1pe18.10,1x))        
 
