@@ -314,7 +314,6 @@ subroutine get_rates
     if (i.ne.-1) iprev = i
 
     loop_over_cell_particles: do while (i.ne.-1)      ! loop over home cell particles
-
        !!print*,'Doing particle ',i,'of',npart,x(:,i),rho(i),hh(i)
        idone = idone + 1
        xi(:) = x(:,i)
@@ -455,7 +454,6 @@ subroutine get_rates
        force(:,i) = force(:,i) + fextrai(:) + forcei(:)
        dBevoldt(:,i) = dBevoldt(:,i) + dBevoldti(:)
        if (idust.eq.1) ddeltavdt(:,i) = ddeltavdt(:,i) - rhoi/rhogasi*forcei(:)
-
 
        iprev = i
        if (iprev.ne.-1) i = ll(i) ! possibly should be only IF (iprev.NE.-1)
@@ -972,6 +970,56 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
+ real function slope_limiter(sl,sr) result(s)
+  real, intent(in) :: sl,sr
+  integer, parameter :: ilimiter = 2
+  
+  s = 0.
+  select case(ilimiter)
+  case(4)
+     ! UMIST
+     if (sl*sr > 0.) s = sign(1.0,sl)*min(2.*abs(sr),&
+                         (0.25*abs(sl) + 0.75*abs(sr)),&
+                         (0.75*abs(sl) + 0.25*abs(sr)),2.*abs(sl))
+  case(3)
+     ! Superbee
+     if (sl*sr > 0.) s = sign(1.0,sl)*max(min(abs(sr),2.*abs(sl)),min(2.*abs(sr),abs(sl)))
+  case(2)
+     ! Van Leer monotonised central (MC)
+     if (sl*sr > 0.) s = sign(1.0,sl)*min(abs(0.5*(sl + sr)),2.*abs(sl),2.*abs(sr))
+  case(1)
+     ! minmod
+     if (sl > 0. .and. sr > 0.) then
+        s = min(abs(sl),abs(sr))
+     elseif (sl < 0. .and. sr < 0.) then
+        s = -min(abs(sl),abs(sr))
+     endif
+  case default
+     ! van leer
+     if (sl*sr > 0.) s = 2.*sl*sr/(sl + sr)
+  end select
+
+ end function slope_limiter
+
+ subroutine reconstruct_dv(ndimV,ndim,vi,vj,dr,dx,dvdxi,dvdxj,projvstar)
+  integer, intent(in)  :: ndimV,ndim
+  real,    intent(in)  :: vi(ndimV),vj(ndimV),dr(ndimV),dx(ndim)
+  real,    intent(in)  :: dvdxi,dvdxj
+  real,    intent(out) :: projvstar
+  real :: projvi,projvj,projv,si,sj,slope
+  
+  if (ndim > 1) stop 'reconstruction not implemented for > 1D'
+  projv = dot_product(vi,dr) - dot_product(vj,dr)
+  projvstar = projv - 0.5*dx(1)*dr(1)*(dvdxi + dvdxj)
+  
+  si = dvdxi
+  sj = dvdxj
+  slope = slope_limiter(si,sj) !0.5*(si + sj) !
+  projvi = dot_product(vi,dr) - 0.5*dx(1)*dr(1)*slope
+  projvj = dot_product(vj,dr) + 0.5*dx(1)*dr(1)*slope
+  projvstar = projvi - projvj
+ 
+ end subroutine reconstruct_dv
 
 !----------------------------------------------
 ! Evaluate drag forces on a pair of particles
@@ -984,7 +1032,7 @@ contains
     integer :: itypej
     real    :: dv2,vij,projv,dragterm,dragterm_en
     real    :: spsoundgas,ts
-    real    :: wabj,wab,hfacwabj
+    real    :: wabj,wab,hfacwabj,rho1j
     real, dimension(ndimV) :: drdrag
     real, parameter :: pi  = 3.141592653589
 !
@@ -1024,17 +1072,20 @@ contains
     itypej = itype(j)
     pmassj = pmass(j)
     rhoj   = rho(j)
+    rho1j  = 1./rhoj
 !
 !--calculate the stopping time for use in the drag force
 !
     projv = dot_product(dvel,drdrag)
-    if (itypei.eq.itypegas) then
+    call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv)
+
+    if (itypei.eq.itypegas .or. itypei.eq.itypebnd) then
        spsoundgas = spsound(i)
        wab = wabi
        ts = get_tstop(idrag_nature,rhoi,rhoj,spsoundgas,Kdrag)
        h_on_csts_max = max(h_on_csts_max,hh(i)/(spsoundgas*ts))
     else
-       if (itypej.ne.itypegas) return
+       if (itypej.ne.itypegas .and. itypej.ne.itypebnd) return
        spsoundgas = spsound(j)
        wab = wabj
        ts = get_tstop(idrag_nature,rhoj,rhoi,spsoundgas,Kdrag)
@@ -1046,7 +1097,7 @@ contains
 !
     dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projv
     dragterm_en = dragterm*projv
-    forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)   
+    forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)
     force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
        dudt(i)   = dudt(i) + pmassj*dragterm_en
@@ -1784,7 +1835,7 @@ contains
   subroutine artificial_dissipation_phantom
     implicit none
     real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
-    real :: dudti,dudtj
+    real :: dudti,dudtj,projv
 
     dudti = 0.
     dudtj = 0.
@@ -1794,8 +1845,12 @@ contains
        !
        vsi = max(alphai*spsoundi - beta*dvdotr,0.)
        vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
-       qi = -0.5*rhoi*vsi*dvdotr
-       qj = -0.5*rhoj*vsj*dvdotr
+
+       projv = dvdotr
+       !call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv)
+
+       qi = -0.5*rhoi*vsi*projv
+       qj = -0.5*rhoj*vsj*projv
 
        visc = (qi*rho21i*grkerni + qj*rho21j*grkernj)
        forcei(:) = forcei(:) - pmassj*visc*dr(:)
@@ -1804,8 +1859,8 @@ contains
        !  add to thermal energy equation
        !
        if (damp.lt.tiny(0.)) then
-          dudti = qi*rho21i*pmassj*dvdotr*grkerni
-          dudtj = qj*rho21j*pmassi*dvdotr*grkernj
+          dudti = qi*rho21i*pmassj*projv*grkerni
+          dudtj = qj*rho21j*pmassi*projv*grkernj
        endif
     !endif
 
