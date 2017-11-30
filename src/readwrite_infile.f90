@@ -121,6 +121,8 @@ subroutine write_infile(infile)
   call write_inopt(Kdrag,'Kdrag','drag coeff (idrag=1) or ts (idrag=2) or grain size in cm (idrag=3)',iread)
   call write_inopt(idustevol,'idustevol','dust variable [0=dustfrac(eps) 1=sqrt(rho*eps) 2=asin(eps)]',iread)
   call write_inopt(use_smoothed_rhodust,'use_smoothed_rhodust','use smoothed dust/gas density estimates?',iread)
+  call write_inopt(islope_limiter,'islope_limiter',&
+   'reconstruction/slope limiter (-1=none,0=recon w/out limiter,1=van leer,2=van leer mc 3=minmod',iread)
 
   write(iread,"(/,a)") '# options affecting self-gravity'
   call write_inopt(igravity,'igravity','self-gravity',iread)
@@ -294,6 +296,7 @@ subroutine read_infile(infile)
         call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
         call read_inopt(idustevol,'idustevol',db,errcount=nerr)
         call read_inopt(use_smoothed_rhodust,'use_smoothed_rhodust',db,errcount=nerr)
+        call read_inopt(islope_limiter,'islope_limiter',db,errcount=nerr)
      endif
 
      ! Quantum SPH options

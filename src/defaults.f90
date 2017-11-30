@@ -115,5 +115,6 @@ subroutine set_default_options
    idiffuse = 0
    k_iso = 0.
    k_par = 0.
+   islope_limiter = -1
    
  end subroutine set_default_options

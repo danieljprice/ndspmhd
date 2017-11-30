@@ -970,30 +970,30 @@ subroutine get_rates
 !--------------------------------------------------------------------------------------
 
 contains
- real function slope_limiter(sl,sr) result(s)
+ real function slope_limiter(sl,sr,ilimiter) result(s)
   real, intent(in) :: sl,sr
-  integer, parameter :: ilimiter = 2
+  integer, intent(in) :: ilimiter
   
   s = 0.
   select case(ilimiter)
-  case(4)
+  case(5)
      ! UMIST
      if (sl*sr > 0.) s = sign(1.0,sl)*min(2.*abs(sr),&
                          (0.25*abs(sl) + 0.75*abs(sr)),&
                          (0.75*abs(sl) + 0.25*abs(sr)),2.*abs(sl))
-  case(3)
+  case(4)
      ! Superbee
      if (sl*sr > 0.) s = sign(1.0,sl)*max(min(abs(sr),2.*abs(sl)),min(2.*abs(sr),abs(sl)))
-  case(2)
-     ! Van Leer monotonised central (MC)
-     if (sl*sr > 0.) s = sign(1.0,sl)*min(abs(0.5*(sl + sr)),2.*abs(sl),2.*abs(sr))
-  case(1)
+  case(3)
      ! minmod
      if (sl > 0. .and. sr > 0.) then
         s = min(abs(sl),abs(sr))
      elseif (sl < 0. .and. sr < 0.) then
         s = -min(abs(sl),abs(sr))
      endif
+  case(2)
+     ! Van Leer monotonised central (MC)
+     if (sl*sr > 0.) s = sign(1.0,sl)*min(abs(0.5*(sl + sr)),2.*abs(sl),2.*abs(sr))
   case default
      ! van leer
      if (sl*sr > 0.) s = 2.*sl*sr/(sl + sr)
@@ -1001,8 +1001,8 @@ contains
 
  end function slope_limiter
 
- subroutine reconstruct_dv(ndimV,ndim,vi,vj,dr,dx,dvdxi,dvdxj,projvstar)
-  integer, intent(in)  :: ndimV,ndim
+ subroutine reconstruct_dv(ndimV,ndim,vi,vj,dr,dx,dvdxi,dvdxj,projvstar,ilimiter)
+  integer, intent(in)  :: ndimV,ndim,ilimiter
   real,    intent(in)  :: vi(ndimV),vj(ndimV),dr(ndimV),dx(ndim)
   real,    intent(in)  :: dvdxi,dvdxj
   real,    intent(out) :: projvstar
@@ -1014,7 +1014,11 @@ contains
   
   si = dvdxi
   sj = dvdxj
-  slope = slope_limiter(si,sj) !0.5*(si + sj) !
+  if (ilimiter > 0) then
+     slope = slope_limiter(si,sj,ilimiter)
+  else
+     slope = 0.5*(si + sj)
+  endif
   projvi = dot_product(vi,dr) - 0.5*dx(1)*dr(1)*slope
   projvj = dot_product(vj,dr) + 0.5*dx(1)*dr(1)*slope
   projvstar = projvi - projvj
@@ -1077,8 +1081,9 @@ contains
 !--calculate the stopping time for use in the drag force
 !
     projv = dot_product(dvel,drdrag)
-    call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv)
-
+    if (islope_limiter >= 0) then
+       call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv,islope_limiter)
+    endif
     if (itypei.eq.itypegas .or. itypei.eq.itypebnd) then
        spsoundgas = spsound(i)
        wab = wabi
@@ -1096,7 +1101,7 @@ contains
 !--update the force and the energy
 !
     dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projv
-    dragterm_en = dragterm*projv
+    dragterm_en = dragterm*projv !dvdotr
     forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)
     force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
     if (itypei.eq.itypegas) then
@@ -1847,8 +1852,9 @@ contains
        vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
 
        projv = dvdotr
-       !call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv)
-
+       !if (islope_limiter >= 0) then
+       !   call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv,islope_limiter)
+       !endif
        qi = -0.5*rhoi*vsi*projv
        qj = -0.5*rhoj*vsj*projv
 
