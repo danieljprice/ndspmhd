@@ -284,7 +284,9 @@ subroutine write_header(icall,infile,evfile,logfile)
     if (iprterm.ge.0) then
        do i=1,npart
           v2i = dot_product(vel(:,i),vel(:,i))
-          dummy(i) = sqrt(v2i)/spsound(i)
+          if (spsound(i) > 0.) then
+             dummy(i) = sqrt(v2i)/spsound(i)
+          endif
        enddo
        call minmaxave(dummy(1:npart),hmin,hmax,have,npart)
        write(iprint,250) 'Mach #',hmin,hmax,have
