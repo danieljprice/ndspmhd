@@ -154,6 +154,9 @@ subroutine set_ghost_particles
            call makeghost(i,xpart,vpart)
         endif
      enddo
+!--set type of ghost particles to be same as gas
+     itype(npart+1:ntotal) = itype(ireal(npart+1:ntotal))
+
      return
   endif
 !
