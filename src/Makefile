@@ -22,7 +22,7 @@ ifeq ($(SYSTEM), gfortran)
    #DBLFLAG=-freal-4-real-16
    DBLFLAG= -fdefault-real-8 -fdefault-double-8
    SYSTEMFILE= system_unix.f90
-   DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid
+   DEBUGFLAG= -g -fcheck=all -ffpe-trap=invalid,denormal,zero
    ENDIANFLAGBIG= -fconvert=big-endian
    ENDIANFLAGLITTLE= -fconvert=little-endian
    KNOWN_SYSTEM=yes
