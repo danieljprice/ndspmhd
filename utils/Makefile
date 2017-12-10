@@ -22,6 +22,7 @@ endif
 ifeq ($(DOUBLEPRECISION),yes)
 FFLAGS+=$(DBLFLAGS)
 endif
+OPENMP=-fopenmp
 
 
 .SUFFIXES:
@@ -31,7 +32,7 @@ CC = $(FC)
 
 # define the implicit rule to make a .o file from a .f90 file
 %.o : %.f90
-	$(FC) -c $(FFLAGS) $< -o $@
+	$(FC) -c $(FFLAGS) $(OPENMP) $< -o $@
 
 # define the implicit rule for compiling directly from a single .f90 file
 #%.f90 :
@@ -79,6 +80,9 @@ kernelplot.o : kernelND.o
 
 sametime : sametime.o
 	$(FC) $(FFLAGS) -o $@ sametime.o $(LDFLAGS)
+
+create_exact_kernel: $(OBJECTS) Gaussm3.o romberg.o create-perfect-kernel.o 
+	$(FC) $(FFLAGS) $(OPENMP) -o $@ $(OBJECTS) Gaussm3.o romberg.o create-perfect-kernel.o
 
 plotfreq : plotfreq.o danpgtile.o
 	$(FC) $(FFLAGS) -o $@ plotfreq.o danpgtile.o $(LDFLAGS)

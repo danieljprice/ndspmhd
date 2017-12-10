@@ -4033,6 +4033,46 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+ case(200)
+!
+!--read the preset table from a data file if it exists
+!   
+    kernellabel = 'Tabulated exact 2D kernel'
+    radkern = max(radkern,  1. + sqrt(2.))
+    radkern2 = radkern*radkern
+    dq2table = radkern*radkern/real(ikern)
+
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
+    cnormk = cnormkd(ndim)
+!
+!--if file not found or errors reading from it, recreate the kernel table
+!  and write a new data file
+!
+    if (ierrf.ne.0) then
+       cnormkd(1) = 0.66666666666
+       cnormkd(2) = 10./(7.*pi)
+       cnormkd(3) = 1./pi
+       do i=0,ikern
+          q2 = i*dq2table
+          q = sqrt(q2)
+          if (q.lt.1.0) then
+             wkern(i) = 1. - 1.5*q2 + 0.75*q*q2
+             grwkern(i) = -3.*q+ 2.25*q2
+             grgrwkern(i) = -3. + 4.5*q
+          elseif ((q.ge.1.0).and.(q.le.2.0)) then
+             wkern(i) = 0.25*(2.-q)**3
+             grwkern(i) = -0.75*(2.-q)**2
+             grgrwkern(i) = 1.5*(2.-q)
+          else
+             wkern(i) = 0.0
+             grwkern(i) = 0.0
+             grgrwkern(i) = 0.
+          endif
+       enddo
+       cnormk = cnormkd(ndim)
+       call write_kernel_to_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern)
+    endif
+
   case default
 !    
 !--default is cubic spline (see monaghan 1992; monaghan & lattanzio 1985)
