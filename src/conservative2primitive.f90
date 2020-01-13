@@ -29,7 +29,7 @@
 ! total energy, whilst the magnetic field B is calculated from
 ! the conserved variable B/rho.
 !
-! These subroutines would be used in the GR case, for all the 
+! These subroutines would be used in the GR case, for all the
 ! variables. The evaluation would be far more complicated, however.
 !---------------------------------------------------------------------
 module cons2prim
@@ -52,7 +52,7 @@ subroutine conservative2primitive
   use getlambda,     only:get_lambda
   use get2ndderivs,  only:get_2ndderivs
   use smooth, only:smooth_variable
-  use rates,  only:gradpsi
+  use rates,  only:gradpsi,drhodt
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB,gradB
   use timestep, only:nsteps
@@ -118,7 +118,7 @@ subroutine conservative2primitive
   endif
   if (nerr > 0) print*,'ERROR: dust fraction < 0 on ',nerr,' particles'
   if (nerr1 > 0) print*,'ERROR: dust fraction > 1 on ',nerr1,' particles'
-! 
+!
 !--set x0 correctly on ghost particles
 !  (needed for remapped B or remapped euler potentials evolution)
 !
@@ -131,7 +131,7 @@ subroutine conservative2primitive
            if (abs(dx).gt.0.5*dxbound(k)) then
               x0(k,i) = x0(k,j) - dxbound(k)*SIGN(1.,dx)
            else
-              x0(k,i) = x0(k,j)              
+              x0(k,i) = x0(k,j)
            endif
         enddo
      enddo
@@ -372,6 +372,18 @@ subroutine conservative2primitive
     call get_2ndderivs(icompute_d2v,npart,x,pmass,rho,hh,vel,del2v,graddivv)
  endif
 !
+!--get first derivatives of velocity, when required
+!
+ if (islope_limiter >= 0) then
+    print*,'computing gradients of v'
+    if (imhd > 0) stop 'mhd+slope limiters not yet compatible (re-use of gradB and curlB arrays)'
+    call get_curl(1,npart,x,pmass,rho,hh,vel,curlB,gradB=gradB)
+ elseif (islope_limiter >= 0 .and. ndim==1) then
+    gradB = 0.
+    gradB(1,1,:) = -drhodt(:)/rho(:)
+    print*,'using divv for dvdx'
+ endif
+!
 !--call equation of state calculation
 !
 !
@@ -400,7 +412,7 @@ subroutine conservative2primitive
        !
        !--for one fluid dust dens(i) is the GAS density, while rho(i) is the TOTAL density
        !
-       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))    
+       call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),dens(1:npart))
     else
        call equation_of_state(pr(1:npart),spsound(1:npart),uu(1:npart),rho(1:npart))
     endif
@@ -423,11 +435,12 @@ subroutine conservative2primitive
   endif
 !
 !--copy the primitive variables onto the ghost particles
-! 
+!
   if (any(ibound.gt.1)) then
      do i=npart+1,ntotal
         j = ireal(i)
         curlB(:,i) = curlB(:,j)
+        gradB(:,:,i) = gradB(:,:,j)
         if (allocated(zeta)) zeta(i) = zeta(j)
         psi(i) = psi(j)
         if (allocated(dens)) dens(i) = dens(j)
@@ -445,7 +458,7 @@ subroutine conservative2primitive
         if (all(ibound.eq.3)) call copy_particle(i,j) ! just to be sure
      enddo
   endif
-  
+
   return
 end subroutine conservative2primitive
 
@@ -486,10 +499,10 @@ subroutine primitive2conservative
   do i=1,npart
      if (onef_dust) then
         ! Note: for most of the one-fluid dust setups, we set dens to mean the
-        ! total density. This is only fixed once conservative2primitive has 
-        ! been called. Hence do NOT divide by (1 - eps) below so that 
+        ! total density. This is only fixed once conservative2primitive has
+        ! been called. Hence do NOT divide by (1 - eps) below so that
         ! smoothing lengths can be guessed correctly
-        rho(i) = dens(i)  !/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only  
+        rho(i) = dens(i)  !/(1. - dustfrac(i)) ! rho is total mass density, dens is gas density only
      else
         rho(i) = dens(i)
      endif
@@ -529,17 +542,17 @@ subroutine primitive2conservative
 
 !
 !--overwrite this with a direct summation
-!  
+!
   if (icty.eq.0 .or. ndirect.lt.100000) then
      if (any(hh(1:npart).le.tiny(hh))) stop 'h < 0 in primitive2conservative'
-     write(iprint,*) 'Calculating initial density...' 
+     write(iprint,*) 'Calculating initial density...'
      if (any(ibound > 1)) call set_ghost_particles
      call set_linklist
      iktemp = ikernav
      ikernav = 3                ! consistent with h for first density evaluation
      call iterate_density        ! evaluate density by direct summation
 !     call densityiterate
-     ikernav = iktemp  
+     ikernav = iktemp
 !!     hh(1:ntotal) = hfact*(pmass(1:ntotal)/(rho(1:ntotal)+rhomin))**dndim
      if (ihvar.le.0) then
         call minmaxave(hh(1:npart),hmin,hmax,hav,npart)
@@ -580,7 +593,7 @@ subroutine primitive2conservative
   endif
 !
 !--calculate conserved variable from the magnetic flux density B
-!  
+!
   remap = .false.
   x0 = x     ! setup initial positions for Jacobian mapping for all particles
   rho0 = rho ! initial densities for checking the Jacobian mapping
@@ -654,7 +667,7 @@ subroutine primitive2conservative
      write(iprint,*) 'getting B field from Generalised Euler Potentials (init)... '
      nremap = 1
      remap = (nremap.gt.1)
-     
+
      do iremap=1,nremap
         call get_B_eulerpots(1,npart,x,pmass,rho,hh,Bevol,x0,Bfield,remap)
 
@@ -688,7 +701,7 @@ subroutine primitive2conservative
            endif
         endif
      enddo
-     
+
      !--copy Bfield onto ghosts
      if (any(ibound.eq.1)) then
         do i=1,npart
@@ -738,7 +751,7 @@ subroutine primitive2conservative
   endif
 !
 !--copy the conservative variables onto the ghost particles
-!  
+!
   if (any(ibound > 1)) then
      do i=npart+1,ntotal
         j = ireal(i)
@@ -777,8 +790,8 @@ subroutine primitive2conservative
 !--call rates to get initial timesteps, div B etc
 !
   call derivs
- 
-  return  
+
+  return
 end subroutine primitive2conservative
 
 real function emag_calc(pmass,rho,Bfield,npart)
@@ -788,7 +801,7 @@ real function emag_calc(pmass,rho,Bfield,npart)
   real, dimension(:,:), intent(in) :: Bfield
   real :: emag, B2i
   integer :: i
-  
+
   emag = 0.
   do i=1,npart
      B2i = dot_product(Bfield(:,i),Bfield(:,i))

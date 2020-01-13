@@ -23,7 +23,7 @@
 module density_summations
   use get_neighbour_lists
   implicit none
-    
+
 contains
 !!------------------------------------------------------------------------
 !! Computes the density by direct summation over the particles neighbours
@@ -55,7 +55,7 @@ contains
     real, dimension(:,:), intent(in) :: x, vel
     real, dimension(:), intent(in) :: pmass, hh
     real, dimension(:), intent(out) :: rho,drhodt,densn,dndt,delsqn,gradh,gradhn,gradsoft,gradgradh
- 
+
     integer :: i,j,k,n
     integer :: icell,iprev,nneigh
     integer, dimension(ntotal) :: listneigh
@@ -63,7 +63,7 @@ contains
     integer, parameter :: itemp = 121
 !
 !  (particle properties - local copies)
-!      
+!
     real :: rij,rij2
     real :: hi,hi1,hav,hav1,hj,hj1,hi21
     real :: hfacwab,hfacwabi,hfacwabj
@@ -78,15 +78,15 @@ contains
 !
 !  (kernel quantities)
 !
-    real :: q2,q2i,q2j      
+    real :: q2,q2i,q2j
     real :: wab,wabi,wabj,weight,wabalti,wabaltj
     real :: grkern,grkerni,grkernj,grkernalti,grkernaltj,grgrkerni,grgrkernj
     real :: dwdhi,dwdhj,dwaltdhi,dwaltdhj,dphidhi,dphidhj,dwdhdhi,dwdhdhj ! grad h terms
     real :: wconst
 !
 !--allow for tracing flow
-!      
-    if (trace) write(iprint,*) ' Entering subroutine density'  
+!
+    if (trace) write(iprint,*) ' Entering subroutine density'
 !
 !--initialise quantities
 !
@@ -134,7 +134,7 @@ contains
 !
     loop_over_cells: do icell=1,ncellsloop   ! step through all cells
 !
-!--get the list of neighbours for this cell 
+!--get the list of neighbours for this cell
 !  (common to all particles in the cell)
 !
        call get_neighbour_list(icell,listneigh,nneigh)
@@ -152,7 +152,7 @@ contains
           pmassi = pmass(i)
           if (onef_dust) dustfraci = sum(dustfrac(:,i))
           xi(:) = x(:,i)
-          veli(:) = vel(:,i) 
+          veli(:) = vel(:,i)
           hi = hh(i)
           hi1 = h1(i)
           hfacwabi = hi1**ndim
@@ -182,7 +182,7 @@ contains
              q2i = rij2*hi21
              q2j = rij2*hj1*hj1
 !          PRINT*,' neighbour,r/h,dx,hi,hj ',j,SQRT(q2i),dx,hi,hj
-!       
+!
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
@@ -197,7 +197,7 @@ contains
                 if (j.LE.npart .and. j.ne.i) numneigh(j) = numneigh(j) + 1
                 rij = sqrt(rij2)
                 dr(1:ndim) = dx(1:ndim)/(rij + epsilon(rij))
-                hfacwabj = hj1**ndim         
+                hfacwabj = hj1**ndim
 !
 !--weight self contribution by 1/2
 !
@@ -207,11 +207,11 @@ contains
                    weight = 1.0
                 endif
                 pmassj = pmass(j)
-!       
-!--interpolate from kernel table              
+!
+!--interpolate from kernel table
 !  (use either average h or average kernel gradient)
 !
-                if (ikernav.EQ.1) then              
+                if (ikernav.EQ.1) then
 !  (using average h)
                    hav = 0.5*(hi + hj)
                    hav1 = 1./hav
@@ -269,12 +269,12 @@ contains
                    endif
               !
               !--derivative w.r.t. h for grad h correction terms (and dhdrho)
-              !              
+              !
                    dwdhi = -rij*grkerni*hi1 - ndim*wabi*hi1
                    dwdhj = -rij*grkernj*hj1 - ndim*wabj*hj1
                    dwaltdhi = -rij*grkernalti*hi1 - ndim*wabalti*hi1
                    dwaltdhj = -rij*grkernaltj*hj1 - ndim*wabaltj*hj1
-                   
+
                    dwdhdhi = ndim*(ndim+1)*wabi*hi1**2 + 2.*(ndim+1)*rij*hi1**2*grkerni &
                            + rij**2*hi1**2*grgrkerni
                    dwdhdhj = ndim*(ndim+1)*wabj*hj1**2 + 2.*(ndim+1)*rij*hj1**2*grkernj &
@@ -286,18 +286,19 @@ contains
                 if (itypei /= itypebnd) then
                    rho(i) = rho(i) + pmassj*wabi*weight
                    densn(i) = densn(i) + wabalti*weight
-                   delsqn(i) = delsqn(i) + grgrkerni*weight
+                   !print*,delsqn(i),grgrkerni,weight
+                   !delsqn(i) = delsqn(i) + grgrkerni*weight
                    if (onef_dust) then
                       dustfracj = sum(dustfrac(:,j))
                       rhodust(:,i) = rhodust(:,i) + pmassj*dustfrac(:,j)*wabi*weight
                       rhogas(i)  = rhogas(i)  + pmassj*(1. - dustfracj)*wabi*weight
                    endif
                 endif
-                
+
                 if (itypej /= itypebnd) then
                    rho(j) = rho(j) + pmassi*wabj*weight
                    densn(j) = densn(j) + wabaltj*weight
-                   delsqn(j) = delsqn(j) + grgrkernj*weight
+                   !delsqn(j) = delsqn(j) + grgrkernj*weight
                    if (onef_dust) then
                       rhodust(:,j) = rhodust(:,j) + pmassi*dustfrac(:,i)*wabj*weight
                       rhogas(j)  = rhogas(j)  + pmassi*(1. - dustfraci)*wabj*weight
@@ -341,7 +342,7 @@ contains
                       gradgradh(j) = gradgradh(j) + weight*pmassi*dwdhdhj
                    endif
                 endif
-                
+
                 if (imhd.eq.0) then
                    if (iprterm.eq.10) then
                       psi(i) = psi(i) + pmassj*wabi*uu(j)
@@ -354,7 +355,7 @@ contains
                       psi(i) = psi(i) + wconst*wabi/hfacwabi
                       if (i.ne.j) then
                          psi(j) = psi(j) + wconst*wabj/hfacwabj
-                      endif                   
+                      endif
                    endif
                 endif
                 if (i.ne.j) then
@@ -364,10 +365,10 @@ contains
                    enddo
                 endif
 !        ELSE
-!           PRINT*,' r/h > 2 '      
-        
+!           PRINT*,' r/h > 2 '
+
              endif
-           
+
           enddo loop_over_neighbours
 
           dxdx(:,i) = dxdx(:,i) + dxdxi(:)
@@ -389,14 +390,14 @@ contains
     endif
     return
   end subroutine density
-      
+
 
 !!------------------------------------------------------------------------
 !! Computes the density by direct summation over the particles neighbours
 !! ie. rho_a = sum_b m_b W_ab (h_a)
 !!
 !! This version computes the density only on a selected list of particles
-!! given by the contents of the array ipartlist (enables iteration on 
+!! given by the contents of the array ipartlist (enables iteration on
 !! unconverged particles only). It is therefore slightly slower
 !! since some particle pairs may be done twice, once for each particle.
 !!
@@ -404,13 +405,13 @@ contains
 !!
 !! This version must be used for individual particle timesteps
 !!------------------------------------------------------------------------
-  
+
   subroutine density_partial(x,pmass,hh,vel,rho,drhodt,densn,dndt,delsqn, &
                              gradh,gradhn,gradsoft,gradgradh,ntotal,nlist,ipartlist)
     use dimen_mhd,  only:ndim,ndimV
     use debug,      only:trace
     use loguns,     only:iprint
- 
+
     use kernels,      only:radkern2,interpolate_kernels_dens,interpolate_kernel_soft
     use linklist,     only:iamincell,numneigh
     use options,      only:igravity,imhd,ikernel,ikernelalt,iprterm,onef_dust
@@ -435,7 +436,7 @@ contains
     integer :: icellprev
 !
 !  (particle properties - local copies)
-!      
+!
     real :: rij,rij2
     real :: hi,hi1,hi2,hi21
     real :: hfacwabi,hfacgrkerni,pmassj,dustfracj
@@ -449,14 +450,14 @@ contains
 !
 !  (kernel quantities)
 !
-    real :: q2i      
-    real :: wabi,wabalti,grkerni,grgrkerni,grkernalti 
+    real :: q2i
+    real :: wabi,wabalti,grkerni,grgrkerni,grkernalti
     real :: dwdhi,dwaltdhi,dphidhi,dwdhdhi ! grad h terms
     real :: wconst,unityi
 !
 !--allow for tracing flow
-!      
-    if (trace) write(iprint,*) ' Entering subroutine density_partial'  
+!
+    if (trace) write(iprint,*) ' Entering subroutine density_partial'
 !
 !--initialise quantities
 !
@@ -516,7 +517,7 @@ contains
        hfacwabi = hi1**ndim
        hfacgrkerni = hfacwabi*hi1
        xi = x(:,i)
-       veli(:) = vel(:,i) 
+       veli(:) = vel(:,i)
        dxdxi(:) = 0.
        itypei = itype(i)
        if (itypei.eq.itypebnd) cycle loop_over_particles
@@ -531,10 +532,10 @@ contains
           dx(:) = xi(:) - x(:,j)
 !
 !--calculate averages of smoothing length if using this averaging
-!                           
+!
           rij2 = dot_product(dx,dx)
           q2i = rij2*hi21
-!      
+!
 !--do interaction if r/h < compact support size
 !
           if (q2i.LT.radkern2) then
@@ -543,20 +544,20 @@ contains
              !!!if (i.eq.416) PRINT*,' neighbour,r/h,hi ',j,SQRT(q2i),hi
              numneigh(i) = numneigh(i) + 1
              pmassj = pmass(j)
-!      
+!
 !--interpolate from kernel table (using hi)
 !
              if (igravity.ne.0) then
                 call interpolate_kernel_soft(q2i,wabi,grkerni,dphidhi)
                 gradsoft(i) = gradsoft(i) + pmassj*dphidhi/hi2
                 if (ikernel.ne.ikernelalt) then
-                   call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)             
+                   call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
                 else
                    wabalti = wabi
                    grkernalti = grkerni
                 endif
              else
-                call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)             
+                call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
              endif
              wabi = wabi*hfacwabi
              wabalti = wabalti*hfacwabi
@@ -618,7 +619,7 @@ contains
                 enddo
              endif
           endif
-          
+
        enddo loop_over_neighbours
 
        dxdx(:,i) = dxdx(:,i) + dxdxi(:)
@@ -660,7 +661,7 @@ contains
           !where (rhodust(:,j) < 0.) rhodust(:,j) = 0.
        enddo
     endif
-    
+
     !do i=1,nlist
     !   j = ipartlist(i)
     !   psi(j) = abs(uu(j) - psi(j)) !/psi(j)
@@ -668,6 +669,6 @@ contains
 
     return
   end subroutine density_partial
-      
-  
+
+
 end module density_summations
