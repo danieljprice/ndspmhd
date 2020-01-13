@@ -39,26 +39,26 @@
 !    (optional) curlBgradh - term required for vector potential stuff
 !
 ! icurltype = 1 (default): mass-weighted differenced curl operator:
-! 
+!
 !    1/(rho_i*Omega_i) \sum m_j (B_i - B_j) x \nabla W_ij (h_i)
 !
 ! icurltype = 2: mass-weighted symmetric curl operator:
-! 
+!
 !    -rho_i \sum m_j ((B_i x \nabla W_ij(h_i)) / (rho_i^2 Omega_i) +
 !                    ((B_j x \nabla W_ij(h_j)) / (rho_j^2 Omega_j)
-!    
+!
 ! icurltype = 3: differenced curl operator with constant weights:
-! 
+!
 !    m_i/(rho_i*h_i**3) \sum (B_i - B_j) x \nabla W_ij (h_i)
 !
 ! icurltype = 4: differenced curl operator:
-! 
+!
 !    rho_i \sum m_j/rho_j**2 (B_i - B_j) x \nabla W_ij (h_i)
 !
 !------------------------------------------------------------------------
 module getcurl
  implicit none
- 
+
 contains
 
 subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
@@ -70,7 +70,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
  use get_neighbour_lists, only:get_neighbour_list
  use hterms,              only:gradh
  use setup_params,        only:hfact
- use part,                only:ntotal
+ use part,                only:ntotal,itype,itypebnd,itypebnddust,itypegas,itypedust
  use utils,               only:cross_product3D
 !
 !--define local variables
@@ -86,7 +86,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
  real :: weight
 
  integer :: i,j,n,k
- integer :: icell,iprev,nneigh
+ integer :: icell,iprev,nneigh,itypei,itypej
  integer, dimension(npart) :: listneigh ! neighbour list
  integer :: idone
  real :: rij,rij2
@@ -101,8 +101,8 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
  real, dimension(ntotal) :: h1
 !
 !--allow for tracing flow
-!      
- if (trace) write(iprint,*) ' entering subroutine get_curl' 
+!
+ if (trace) write(iprint,*) ' entering subroutine get_curl'
 !
 !--initialise quantities
 !
@@ -120,7 +120,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
 !
  loop_over_cells: do icell=1,ncellsloop ! step through all cells
 !
-!--get the list of neighbours for this cell 
+!--get the list of neighbours for this cell
 !  (common to all particles in the cell)
 !
     call get_neighbour_list(icell,listneigh,nneigh)
@@ -146,22 +146,31 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
        curlBi(:) = 0.
        curlBgradhi(:) = 0.
        gradBi(:,:) = 0.
+       itypei = itype(i)
 !
 !--for each particle in the current cell, loop over its neighbours
 !
        loop_over_neighbours: do n = idone+1,nneigh
           j = listneigh(n)
+          !--skip particles of different type
+          itypej = itype(j)
+          if (.not. ((itypej.eq.itypei) .or. (itypei.eq.itypegas .and. itypej.eq.itypebnd) &
+                                        .or. (itypej.eq.itypegas .and. itypei.eq.itypebnd) &
+                                        .or. (itypei.eq.itypedust .and. itypej.eq.itypebnddust) &
+                                        .or. (itypej.eq.itypedust .and. itypei.eq.itypebnddust))) then
+             cycle loop_over_neighbours
+          endif
           if ((j.ne.i).and..not.(j.gt.npart .and. i.gt.npart)) then
-             ! don't count particle with itself       
+             ! don't count particle with itself
              dx(:) = x(:,i) - x(:,j)
              !!hj = hh(j)
              hj1 = h1(j) !!1./hj
-             
+
              rij2 = dot_product(dx,dx)
              q2i = rij2*hi21
-             q2j = rij2*hj1*hj1    
+             q2j = rij2*hj1*hj1
              !          print*,' neighbour,r/h,dx,hi,hj ',j,sqrt(q2),dx,hi,hj
-!     
+!
 !--do interaction if r/h < compact support size
 !  don't calculate interactions between ghost particles
 !
@@ -170,8 +179,8 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
                 hfacwabj = hj1**ndim
                 rij = sqrt(rij2)
                 dr(1:ndim) = dx(1:ndim)/(rij + tiny(rij))  ! unit vector
-!     
-!--interpolate from kernel table          
+!
+!--interpolate from kernel table
 !  (use either average h or average kernel gradient)
 !
                 !       print*,' neighbour,r/h,dx,hi,hj ',i,j,sqrt(q2),dx,hi,hj
@@ -192,7 +201,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
                    curlBterm(:) = (curlBtermi(:)*rho21gradhi*grkerni + curlBtermj(:)/rho(j)**2*grkernj)
                    curlBi(:) = curlBi(:) + pmass(j)*curlBterm(:)
                    curlB(:,j) = curlB(:,j) - pmassi*curlBterm(:)
-                
+
                 case(3)  ! (dB using weights) -- multiply by weight below
                    grkerni = grkerni*hi1
                    grkernj = grkernj*hj1
@@ -208,7 +217,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
 
                    dB(1:ndimV) = Bi(1:ndimV) - Bvec(1:ndimV,j)
                    call cross_product3D(dB,dr,curlBterm)
-                   
+
                    curlBi(:) = curlBi(:) + pmass(j)/rho(j)**2*curlBterm(:)*grkerni
                    curlB(:,j) = curlB(:,j) + pmassi*rho21i*curlBterm(:)*grkernj
 
@@ -229,7 +238,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
                       curlBgradhi(:) = curlBgradhi(:) + pmass(j)*curlBterm(:)*dgradwdhi
                       curlBgradh(:,j) = curlBgradh(:,j) + pmassi*curlBterm(:)*dgradwdhj
                    endif
-                   
+
                    if (present(gradB)) then
                       do k=1,ndimV
                          gradBi(:,k) = gradBi(:,k) + pmass(j)*dB(k)*dr(:)*grkerni
@@ -239,20 +248,20 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
                 end select
 
              endif
-          endif! j .ne. i   
+          endif! j .ne. i
        enddo loop_over_neighbours
-       
+
        curlB(:,i) = curlB(:,i) + curlBi(:)
        if (present(curlBgradh)) then
           curlBgradh(:,i) = curlBgradh(:,i) + curlBgradhi(:)
        endif
        if (present(gradB)) then
-          gradB(:,:,i) = gradB(:,:,i) + gradBi(:,:)       
+          gradB(:,:,i) = gradB(:,:,i) + gradBi(:,:)
        endif
        iprev = i
        if (iprev.ne.-1) i = ll(i)          ! possibly should be only if (iprev.ne.-1)
     enddo loop_over_cell_particles
-    
+
  enddo loop_over_cells
 
  do i=1,npart
@@ -262,7 +271,7 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
     case(3)
        curlB(:,i) = weight*curlB(:,i) !!*gradh(i)
     case(2)
-       curlB(:,i) = -rho(i)*curlB(:,i)    
+       curlB(:,i) = -rho(i)*curlB(:,i)
     case default
        curlB(:,i) = curlB(:,i)*gradh(i)/rho(i)
        if (present(curlBgradh)) then
@@ -276,5 +285,5 @@ subroutine get_curl(icurltype,npart,x,pmass,rho,hh,Bvec,curlB,curlBgradh,gradB)
 
  return
 end subroutine get_curl
-      
+
 end module getcurl
