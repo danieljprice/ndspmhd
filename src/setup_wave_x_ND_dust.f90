@@ -19,12 +19,11 @@ subroutine setup
  use uniform_distributions, only:set_uniform_cartesian
 !
 !--define local variables
-!            
+!
  implicit none
  integer :: i
  integer, parameter :: itsmax = 100
  integer :: ntypes
-! real, parameter :: pi = 3.1415926536
  real, parameter :: tol = 1.e-8
  integer :: its,iwave,ngas,npdust,jtype
  real, dimension(ndimV) :: Bzero
@@ -34,7 +33,7 @@ subroutine setup
  real :: spsoundi,valfven2i,vamplx,vamply,vamplz
  real :: vfast,vslow,vcrap,vwave,term,dens1
  real :: denszero,uuzero,przero,Rzero,denszerodust
- real :: dust_to_gas_ratio
+ real :: dust_to_gas_ratio,mgastot
 !
 !--allow for tracing flow
 !
@@ -56,10 +55,12 @@ subroutine setup
     ampl = 0.0055
     denszero = 1.0
     uuzero = 0.3
-    if (imhd.ne.0) Bzero(1:3) = 0.5  
+    if (imhd.ne.0) Bzero(1:3) = 0.5
     write(iprint,10) 'MHD fast wave'
  else                        ! Sound wave
-    ampl = 0.0001
+    !ampl = 0.1
+    ampl = 1.e-4
+    !ampl = 1.e-6
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
        uuzero = 1.0/((gamma-1.)*gamma)
@@ -75,7 +76,7 @@ subroutine setup
     Bzero(1) = sqrt(2.*(1.-Rzero))
     write(iprint,10) 'sound wave'
  endif
- xlambda = 1.0    
+ xlambda = 1.0
  wk = 2.0*pi/xlambda        !         wave number
 !
 !--set boundaries
@@ -83,7 +84,7 @@ subroutine setup
  ibound = 3        ! periodic boundaries
  nbpts = 0                ! use ghosts not fixed
  xmin(:) = 0.   ! set position of boundaries
- xmax(1) = 1.0 
+ xmax(1) = 1.0
  if (ndim.GE.2) then
     xmax(2:ndim) = 11.*psep ! would need to adjust this depending on grid setup
  endif
@@ -100,7 +101,7 @@ subroutine setup
  ngas = 0
  npdust = 0
  do jtype=1,ntypes
-    call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+    call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
     if (jtype.eq.1) then
        ngas = npart
        itype(1:ngas) = itypegas
@@ -109,13 +110,14 @@ subroutine setup
        itype(ngas+1:ngas+npdust) = itypedust
     endif
  enddo
- 
+
 ! npart = INT((xmax(1)-xmin(1))/psep)
- massp = 1.0/FLOAT(ngas)        ! average particle mass
- 
+ mgastot = denszero*product(xmax-xmin)
+ massp = mgastot/real(ngas)   ! average particle mass
+
  masspdust = 0.
  dust_to_gas_ratio = 1.
- if (npdust.gt.0) masspdust = dust_to_gas_ratio*1.0/FLOAT(npdust) ! average particle mass
+ if (npdust.gt.0) masspdust = dust_to_gas_ratio*mgastot/real(npdust) ! average particle mass
  denszerodust = dust_to_gas_ratio*denszero
  if (ntypes.gt.1) print*,' ngas = ',ngas,' npdust = ',npdust
 !
@@ -124,20 +126,20 @@ subroutine setup
 ! call alloc(npart)
 !
 !--setup uniform density grid of particles
-! 
+!
  do i=1,npart
-!    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
+!    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep
     vel(:,i) = 0.
     if (itype(i).eq.itypedust) then
        dens(i) = denszerodust
        pmass(i) = masspdust
-       uu(i) = 0. 
+       uu(i) = 0.
     else
        dens(i) = denszero
        pmass(i) = massp
        uu(i) = uuzero
     endif
-    if (imhd.GT.0) then 
+    if (imhd.GT.0) then
        Bfield(:,i) = Bzero
     else
        Bfield(:,i) = 0.
@@ -161,7 +163,7 @@ subroutine setup
 !--work out MHD wave speeds
 !
  dens1 = 1./denszero
- 
+
  valfven2i = dot_product(Bzero,Bzero)*dens1
  vfast = sqrt(0.5*(spsoundi**2 + valfven2i             &
                  + sqrt((spsoundi**2 + valfven2i)**2   &
@@ -174,7 +176,7 @@ subroutine setup
 !----------------------------
 ! set the wave speed to use
 !----------------------------
-                    
+
  if (iwave.EQ.1) then
     vwave = vslow
     if (imhd.le.0) write(iprint,*) 'Error: can''t have slow wave if no mhd'
@@ -187,7 +189,7 @@ subroutine setup
     write(iprint,*) 'Error in setup: vwave = ',vwave
     stop
  endif
-  
+
  dxmax = xmax(1) - xmin(1)
  denom = dxmax - ampl/wk*(COS(wk*dxmax)-1.0)
  write (iprint,*) 'Wave number = ',wk
@@ -196,7 +198,7 @@ subroutine setup
 !--now perturb the particles appropriately
 !
  do i=1,npart
-    
+
     dxi = x(1,i)-xmin(1)
     dxprev = dxmax*2.
     xmassfrac = dxi/dxmax        ! current mass fraction(for uniform density)
@@ -204,29 +206,29 @@ subroutine setup
 !
 !--Use rootfinder on the integrated density perturbation
 !  to find the new position of the particle
-!    
+!
     its = 0
-         
+
     do while ((abs(dxi-dxprev).gt.tol).and.(its.lt.itsmax))
        dxprev = dxi
        func = xmassfrac*denom - (dxi - ampl/wk*(COS(wk*dxi)-1.0))
        fderiv = -1.0 - ampl*SIN(wk*dxi)
        dxi = dxi - func/fderiv        ! Newton-Raphson iteration
-       its = its + 1 
-!      PRINT*,'iteration',its,'dxi =',dxi 
+       its = its + 1
+!      PRINT*,'iteration',its,'dxi =',dxi
     enddo
-                           
+
     if (its.GE.itsmax) then
        write(iprint,*) 'Error: soundwave - too many iterations'
-       call quit 
+       call quit
     endif
-          
+
 !    if (idebug(1:5).EQ.'sound') then
 !       write(*,99002) i,its,dxi-dxprev,x(1,i),xmin(1)+dxi
 !99002  FORMAT('Particle',i5,' converged in ',i4,        &
 !       ' iterations, error in x =',1(1pe10.2,1x),/,        &
 !       'previous x = ',1(0pf8.5,1x),                        &
-!       'moved to x = ',1(0pf8.5,1x)) 
+!       'moved to x = ',1(0pf8.5,1x))
 !    endif
     x(1,i) = xmin(1)+dxi
 
@@ -237,18 +239,18 @@ subroutine setup
     vamplx = vwave*ampl
     vamply = -vamplx*Bfield(1,i)*Bfield(2,i)/(dens(i)*term)
     vamplz = -vamplx*Bfield(1,i)*Bfield(3,i)/(dens(i)*term)
-    
+
     vel(1,i) = vamplx*SIN(wk*dxi)
 !    vel(2,i) = vamply*SIN(wk*dxi)
 !    vel(3,i) = vamplz*SIN(wk*dxi)
 !
-!--perturb internal energy if not using a polytropic equation of state 
+!--perturb internal energy if not using a polytropic equation of state
 !  (do this before density is perturbed)
 !
     if (itype(i).eq.itypegas) then
        uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)        ! if not polytropic
     endif
-!    
+!
 !--perturb density if not using summation
 !
 !    Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
@@ -263,7 +265,7 @@ subroutine setup
  write(iprint,*) ' fast speed   = ',vfast
  write(iprint,*) ' slow speed   = ',vslow
  write(iprint,*) ' wave speed   = ',vwave,iwave
- 
+
  return
 end subroutine setup
 
