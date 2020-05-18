@@ -69,7 +69,28 @@ contains
      wksinc = 1.
   endif
 
- end function wksinc 
+ end function wksinc
+ 
+ ! exact 3D kernel
+ real function w3D(x)
+  real, intent(in) :: x
+
+  if (x < 0.5*(1. + sqrt(2.) - sqrt(3.))) then
+     w3d = 0.5*(-3. + sqrt(2.) + sqrt(3.) + sqrt(6.) - 2.*x**2)
+  elseif (x < 0.5*(1. - sqrt(2.) + sqrt(3.))) then
+     w3d = 0.25*(-3. + 3.*sqrt(2.) + sqrt(3.) + sqrt(6.) - 2.*x &
+           - 2.*sqrt(2.)*x + 2.*sqrt(3.)*x - 2.*x**2)  
+  elseif (x < 0.5*(-1. + sqrt(2.) + sqrt(3.))) then
+     w3d = 0.5*(sqrt(2.) + sqrt(3.) - 2.*x)
+  elseif (x < 0.5*(1. + sqrt(2.) + sqrt(3.))) then
+     w3d = 0.25*(3. + sqrt(2.) + sqrt(3.) + sqrt(6.) &
+          - 2.*x - 2.*sqrt(2.)*x - 2.*sqrt(3.)*x  + 2.*x**2)
+  else
+     w3d = 0.
+  endif
+  w3d = w3d / ( sqrt(6.) * pi )
+  
+ end function w3d
 
  real function integrate_kernel(w,r,kmin,kmax,npts) result(wint)
   real, external :: w
@@ -106,7 +127,8 @@ program create_perfect_kernel
  real(dp), dimension(3) :: cnormkd
  real(dp) :: radkern,radkern2
  
- radkern = 0.5 + 0.5*sqrt(2.) + 0.5*sqrt(5.) !0.5 + 0.5*sqrt(2.) + 0.5*sqrt(5.) 
+ radkern = 0.5*(1. + sqrt(2.) + sqrt(3.))
+ !radkern = 0.5 + 0.5*sqrt(2.) + 0.5*sqrt(5.) !0.5 + 0.5*sqrt(2.) + 0.5*sqrt(5.) 
  !radkern = 1._dp + sqrt(2._dp)
  print*,' Rkern = ',radkern
  radkern2 = radkern*radkern
@@ -124,7 +146,7 @@ program create_perfect_kernel
 ! print*,nrom
  cnormkd(2) = 1./(2.*pi)
  call test_kernel()
- stop
+ !stop
 ! print*,'wk(0),k=10000 = ',qgauss(wk1,0.,2000.,1000),romberg_trap(0.,2000.,wk1,1.e-12,nrom)
  
 ! !$omp parallel do default(none) shared(dq2table,wkern) private(i,q2,q)
@@ -132,9 +154,9 @@ program create_perfect_kernel
     q2 = i*dq2table
     q  = sqrt(q2)
     r1 = q
-    !wkern(i) = qgauss(wk1,0.,1000.,1000)
-    wkern(i) = romberg_trap(0.,100.,wk1,1.e-12,nrom)
-    if (mod(i,100).eq.0) print*,i,'nrom =',nrom
+    wkern(i) = w3d(q) !qgauss(wk1,0.,1000.,1000)
+    !wkern(i) = romberg_trap(0.,100.,wk1,1.e-12,nrom)
+    !if (mod(i,100).eq.0) print*,i,'nrom =',nrom
     !wkern(i) = integrate_kernel(wk,q,0.,100.,100000)
  enddo
 ! !$omp end parallel do
@@ -142,38 +164,76 @@ program create_perfect_kernel
  call diff(ikern,wkern,grkern,grgrkern,radkern2)
  call normalise(ikern,wkern,cnormkd,radkern2)
  print*,' got norm = ',1./cnormkd(2),' should be ',2.*pi
- cnormkd(2) = 1./(2.*pi)
+ !cnormkd(2) = 1./(2.*pi)
  call write_kernel_to_file(200,lu,cnormkd,wkern,grkern,grgrkern)
 
 contains
 
  subroutine test_kernel()
   integer, parameter :: nx = 10
-  real, dimension(nx**2) :: x,y
-  real :: dx,rmin,r2,q2,xi,yi,hi,mi,rhoi
+  real, dimension(nx**3) :: x,y,z
+  real :: dx,rmin,r2,q2,xi,yi,zi,hi,mi,rhoi
   real :: wij,wij1,wij2,wij3,wij4,wij5,kmax
   real :: tol,rhogi
-  integer :: i,j,n,ip,nrom,nneigh
+  integer :: i,j,k,n,ip,nrom,nneigh
   
   dx = 1./nx  ! unit square
   rmin = huge(rmin)
   n = 0
   ip = 0
-  do j=1,nx
-     yi = (j-1)*dx
-     do i=1,nx
-        xi = (i-1)*dx
-        n = n + 1
-        x(n) = xi
-        y(n) = yi
-        r2 = (xi-0.5)**2 + (yi-0.5)**2
-        if (r2 < rmin) then
-           rmin = r2
-           ip = n
-        endif
+  do k=1,nx
+     zi = (k-1)*dx
+     do j=1,nx
+        yi = (j-1)*dx
+        do i=1,nx
+           xi = (i-1)*dx
+           n = n + 1
+           x(n) = xi
+           y(n) = yi
+           z(n) = zi
+           r2 = (xi-0.5)**2 + (yi-0.5)**2 + (zi - 0.5)**2
+           if (r2 < rmin) then
+              rmin = r2
+              ip = n
+           endif
+        enddo
      enddo
   enddo
-  
+  hi = dx
+
+  print*,'testing 3D density estimate ' !,ip,' x,y = ',x(ip),y(ip)
+  print*,' kmax = ',2.*pi/dx
+  print*,0.5*(1. + sqrt(2.) - sqrt(3.))
+  print*,0.5*(1. - sqrt(2.) + sqrt(3.))
+  print*,0.5*(-1. + sqrt(2.) + sqrt(3.))
+  print*,0.5*(1. + sqrt(2.) + sqrt(3.))
+
+  xi = x(ip)
+  yi = y(ip)
+  zi = z(ip)
+  mi = 1.*dx*dx*dx
+  rhoi = 0.
+  rhogi = 0.
+  nneigh = 0
+  do j=1,n
+     r2 = (xi-x(j))**2 + (yi - y(j))**2 + (zi - z(j))**2
+     q2 = r2/dx**2
+     if (q2 <= radkern2) then
+        nneigh = nneigh + 1
+        r1 = sqrt(q2)
+        wij = w3D(r1)
+        !wij = wij + qgauss(wk1,10.,10000.,4000)
+        !wij = romberg_trap(0.,1000.,wk1,1.e-13,nrom)
+        !wij = wij + romberg_trap(100.,100000.,wk1,1.e-12,nrom)
+        !print*,j,r1,wij,cnormkd(2)
+        print*,rhoi,mi*wij/hi**3,r1
+        rhoi = rhoi + mi*wij/hi**3
+        rhogi = rhogi + 1./(pi*sqrt(pi))*mi*exp(-q2)/hi**3
+     endif
+  enddo
+  print*,' GOT rhoi = ',rhoi,' nneigh = ',nneigh
+  print*,' truncated gaussian rhogi = ',rhogi
+
   print*,'testing 2D density estimate ' !,ip,' x,y = ',x(ip),y(ip)
   print*,' kmax = ',2.*pi/dx
   xi = x(ip)
@@ -183,7 +243,7 @@ contains
   rhoi = 0.
   rhogi = 0.
   nneigh = 0
-  do j=1,n
+  do j=1,nx*nx
      r2 = (xi-x(j))**2 + (yi - y(j))**2
      q2 = r2/dx**2
      if (q2 <= radkern2) then

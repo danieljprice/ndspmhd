@@ -28,7 +28,7 @@ module genalg
  implicit none
  integer, parameter :: dp = 8
  real(dp), parameter :: mut_prob = 0.4
- real(dp), parameter :: mut_ampl = 0.5
+ real(dp), parameter :: mut_ampl = 0.5 !0.1 !a5
  
  
  real(dp), parameter :: radkern = 2.
@@ -112,26 +112,45 @@ contains
   integer, intent(in)  :: ikern
   real(dp),intent(inout) :: wkern(0:ikern),grkern(0:ikern),grgrwkern(0:ikern)
   integer, intent(inout) :: iseed,iseed2
-  integer :: i,imethod
-  real(dp), parameter :: pindex = 1.5
+  integer :: i,imethod,mode
+  real(dp), parameter :: pindex = 0. !-0.5 !1.5
   real(dp) :: h,ampl,q2,q,dq2table,f,phi,kx,pow,k0
+  logical :: do_integ
   
   imethod = 0
   f = ran2(iseed)
   !print*,'f = ',f,iseed,iseed2
+  do_integ = .true.
   if (f < mut_prob) then
      phi = -pi + 2.*pi*ran2(iseed)
-     h = ran2(iseed)*radkern
-     kx = 2.*pi/h
+     ! make long wavelength perturbations more likely
+     mode = int((ran2(iseed)*10.)) + 1
+     kx = 2.*pi*mode/radkern
      k0 = 2.*pi/radkern
      !mode = int(radkern/h) + 1
      !kx = mode*k0
      ! power law decay in amplitudes
      pow = 1./(kx/k0)**pindex
-     imethod = int(ran2(iseed)*2.) + 1
+     imethod = int(ran2(iseed)*3.) + 1
      select case(imethod)
+     case(4)
+        !ampl = mut_ampl*rayleigh_deviate(iseed2)*pow
+        !! use gaussian deviate as mutation can be either + or -
+        !ampl = mut_ampl*gauss_dev(iseed2)*pow
+        !dq2table = radkern2/real(ikern,kind=dp)
+        !print*,'MUTATE = ',phi,'mode=',mode,' lambda = ',h,2.*pi/kx,' ampl = ',ampl
+        !do i=0,ikern
+        !   q2 = i*dq2table
+        !   q  = sqrt(q2)
+        !   grkern(i) = grkern(i)*(1. + 0.05*ampl*sin(kx*q + phi))
+        !enddo
+        do_integ = .false.
+        call smooth(ikern,wkern,100)
+     case(3)
+        grgrwkern(0) = grgrwkern(0) + 0.5*(ran2(iseed)-0.5)
+        call smooth(ikern,grgrwkern,5)
      case(2)
-        call smooth(ikern,grgrwkern)
+        call smooth(ikern,grgrwkern,1000)
      case default
         ampl = mut_ampl*rayleigh_deviate(iseed2)*pow
         !! use gaussian deviate as mutation can be either + or -
@@ -142,13 +161,18 @@ contains
            q2 = i*dq2table
            q  = sqrt(q2)
            !grgrwkern(i) = grgrwkern(i)*(1. + ampl*exp(-(q - q0)**2/(2.*h**2)))
-           grgrwkern(i) = grgrwkern(i)*(1. + ampl*sin(kx*q + phi))
+           grgrwkern(i) = grgrwkern(i)*(1. + ampl*cos(kx*q + phi))
         enddo
+        call smooth(ikern,grgrwkern,100)
      end select
-     ! integrate to get gradient
-     call integrate(ikern,grgrwkern,grkern,radkern2)
-     ! integrate to get kernel
-     call integrate(ikern,grkern,wkern,radkern2)
+     if (do_integ) then
+        ! integrate to get gradient
+        call integrate(ikern,grgrwkern,grkern,radkern2)
+        ! integrate to get kernel
+        call integrate(ikern,grkern,wkern,radkern2)
+        !call smooth(ikern,wkern)
+     endif
+!     endif
   endif
 
  end subroutine mutate2
@@ -175,7 +199,7 @@ contains
   !print*,'f = ',f,iseed,iseed2
   if (f < mut_prob) then
      phi = -pi + 2.*pi*ran2(iseed)
-     h = ran2(iseed)*radkern
+     h = ran2(iseed)**2*radkern
      kx = 2.*pi/h
      k0 = 2.*pi/radkern
      !mode = int(radkern/h) + 1
@@ -194,7 +218,7 @@ contains
      imethod = int(ran2(iseed)*4.) + 1
      
      if (imethod==4) then
-        call smooth(ikern,grgrwkern)
+        call smooth(ikern,grgrwkern,1000)
      else
         do i=0,ikern
            q2 = i*dq2table
@@ -229,8 +253,8 @@ contains
  ! equation, evolving for several steps
  ! to eliminate high frequency noise
  !-----------------------------------------
- subroutine smooth(ikern,wkern)
-  integer,  intent(in)    :: ikern
+ subroutine smooth(ikern,wkern,nsteps)
+  integer,  intent(in)    :: ikern,nsteps
   real(dp), intent(inout) :: wkern(0:ikern)
   real(dp) :: dq2table,wnew(0:ikern) !,ddq22
   integer :: i,j
@@ -239,19 +263,19 @@ contains
   !ddq22 = dq2table
   !dt = deltax^2/kappa, but coeff is 0.5*dt*kappa/deltax^2
   
-  do j=1,10
+  do j=1,nsteps
      do i=0,ikern
         if (i==0) then
-           wnew(i) = wkern(i+1) !+ 0.1*(2.*wkern(i) - 5.*wkern(i+1) + 4.*wkern(i+2) - wkern(i+3))
+           wnew(i) = wkern(i) !+ 0.5*(2.*wkern(i) - 5.*wkern(i+1) + 4.*wkern(i+2) - wkern(i+3))
         elseif (i==ikern) then
-           wnew(i) = wkern(i-1) ! + 0.1*(wkern(i-3) + 4.*wkern(i-2) - 5.*wkern(i-1) + 2.*wkern(i))     
+           wnew(i) = 0. !wkern(i) ! + 0.1*(wkern(i-3) + 4.*wkern(i-2) - 5.*wkern(i-1) + 2.*wkern(i))     
         else
            wnew(i) = wkern(i) + 0.25*(wkern(i-1) - 2.*wkern(i) + wkern(i+1))
         endif
      enddo
      wkern = wnew
   enddo
-  
+
  end subroutine smooth
  
  !-----------------------------
@@ -344,15 +368,26 @@ contains
  ! procedure just to copy a kernel unchanged
  ! into the next generation
  !--------------------------------------------
- subroutine save_child(filein,fileout,ierr1)
+ subroutine save_child(filein,fileout,ierr1,mutate,iseed,iseed2)
   integer, parameter :: ikern = 4000
   character(len=*), intent(in)    :: filein,fileout
   real(dp), dimension(0:ikern)    :: wkern,grkern,grgrkern
+  logical, intent(in), optional :: mutate
+  integer, intent(inout), optional :: iseed,iseed2
   real(dp) :: c(3)
-  integer :: ierr1,ierrw
+  integer :: ierr1,ierrw,imethod
 
   call read_kernel(filein,ikern,wkern,ierr1)
   if (ierr1 /= 0) stop 'error reading kernel files'
+
+  if (present(mutate) .and. present(iseed) .and. present(iseed2)) then
+     call normalise(ikern,wkern,c,radkern2)
+     wkern = wkern*c(3)
+     c(:) = c(:)/c(3)
+     call diff(ikern,wkern,grkern,grgrkern,radkern2)
+     call mutate2(ikern,wkern,grkern,grgrkern,iseed,iseed2,imethod)
+     print*,'mutating...',imethod
+  endif
 
   call normalise(ikern,wkern,c,radkern2)
   wkern = wkern*c(3)
@@ -389,7 +424,7 @@ contains
      read(lu,*,iostat=ierr) label(i),err(i)
   enddo
   best(1) = label(1)
-  best(2) = label(2)
+  best(2) = label(2) ! second worst
   close(lu)
   if (ierr /= 0) return
   
@@ -414,9 +449,9 @@ contains
      i1 = int(nkids*ran2(iseed))+1
      i2 = int(nkids*ran2(iseed))+1
      myran = ran2(iseed)
-     prob  = sqrt(score(i1)*score(i2))
-     !print*,'trying ',i1,i2,myran,prob
+     prob  = sqrt(score(i1)**2 + score(i2)**2)
      if (myran < prob .and. i1 /= i2) then
+        !print*,'BREED ',i1,i2,prob
         npairs = npairs + 1
         pairs(1,npairs) = label(i1)
         pairs(2,npairs) = label(i2)
@@ -450,6 +485,7 @@ program breed
  logical  :: iexist
  integer, parameter :: nkids = 20
  integer :: pairs(2,nkids),best(2)
+ logical, parameter :: mutate_worst = .true.
  
  iseed = -2345
  iseed2 = -125
@@ -477,7 +513,7 @@ program breed
 
     if (index(dir,'kernel')/=0) then
        ! just normalise an existing kernel
-       call save_child(dir,'kernel-new.dat',ierr)
+       call save_child(dir,'kernel-new.dat',ierr,mutate_worst,iseed,iseed2)
     else
        call select_pairs(dir,iseed,nkids,pairs,ierr,best)
        if (ierr /= 0) then
@@ -499,6 +535,7 @@ program breed
 
        write(file2,"(a,'/',i2.2,'.dat')") trim(dir),best(2)
        write(fileout,"(i2.2,'.dat')") nkids
+!       call save_child(file2,fileout,ierr,mutate_worst,iseed,iseed2)
        call save_child(file2,fileout,ierr)
 
        ! print*,' WRITING ',-abs(iseed),-abs(iseed2)

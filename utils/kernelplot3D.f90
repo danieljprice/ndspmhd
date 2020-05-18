@@ -28,7 +28,7 @@ program kernelplot3D
  !data iplotorder /0, 2, 3, 61, 62, 63, 64, 65, 14, 13/   ! order in which kernels are plotted
  !data iplotorder /41, 42, 43, 70, 71, 72, 64, 65, 14, 13/   ! order in which kernels are plotted
  !data iplotorder /4,93,5,95,60,3,92,43,2,20/   ! order in which kernels are plotted
- data iplotorder /20,94,99,91,3,100,31,90,3,100/   ! order in which kernels are plotted
+ data iplotorder /20,94,99,0,3,200,31,90,3,100/   ! order in which kernels are plotted
  !data iplotorder /100,11,98,42,09,64,61,24,30,33/
  !!iplotorder = 0 ! override data statement if all the same kernel
  plotall = .false.
@@ -105,7 +105,7 @@ program kernelplot3D
        call setkernels(ikernel,ikernel,ndim,ierr,ierr)
    !    call setkern(ikernel,ndim,ierr)
        print "(60('-'))"
-       print*,'Using kernel ',ikernel,': '//trim(kernelname)//' kernel, r^2 = ',radkern2
+       print*,'Using kernel ',ikernel,': '//trim(kernelname)//' kernel, R = ',sqrt(radkern2)
 
        call get_kernel_sums(iplot,nsetups,nx,ndim,npts,xplot,yplot,yplot2,&
                             wnorm,gradwnorm,grad2wnorm,grad2wnormb,psep,hmin,dh,radkern2)
@@ -231,8 +231,8 @@ subroutine plot_kernel(j)
     ymin = 0.
     ymax = 0.39 
  else
-    ymin = -5.19 !-0.8 !-2.2
-    ymax = 5.19 !0.8 !1.4
+    ymin = -0.8 ! -5.19 !-0.8 !-2.2
+    ymax = 1.4 !5.19 !0.8 !1.4
  endif
  !ylabel = 'W, grad W, del^2 W'
  ylabel = 'f(q)'

@@ -11,7 +11,7 @@ program kernelplot
  logical :: samepage,plotstability,plotkernel,plotgaussian
 !! character(len=50) :: text
 
- data iplotorder /0, 2, 3, 104, 65, 100, 14, 13, 16, 16/   ! order in which kernels are plotted
+ data iplotorder /0, 112, 110, 104, 109, 100, 14, 13, 16, 16/   ! order in which kernels are plotted
 ! data iplotorder /0, 3, 42, 43, 44, 13, 3, 16, 16, 16/   ! order in which kernels are plotted
 
  !data iplotorder /0, 105, 101, 104, 59, 3, 74, 13, 16, 16/   ! order in which kernels are plotted
