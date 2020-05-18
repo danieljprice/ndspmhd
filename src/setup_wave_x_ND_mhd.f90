@@ -41,7 +41,7 @@ subroutine setup
  use uniform_distributions, only:set_uniform_cartesian
 !
 !--define local variables
-!            
+!
  implicit none
  integer :: i
  integer, parameter :: itsmax = 100
@@ -61,7 +61,7 @@ subroutine setup
  if (trace) write(iprint,*) ' Entering subroutine setup'
 10 format(/,'-------------- ',a,' ----------------')
 
- iwave = 3                ! preset wave parameters
+ iwave = 0                ! preset wave parameters
 !
 !--setup parameters (could read in from a file)
 !
@@ -76,18 +76,18 @@ subroutine setup
     ampl = 0.0055
     denszero = 1.0
     uuzero = 0.3
-    if (imhd.ne.0) Bzero(1:3) = 0.5  
+    if (imhd.ne.0) Bzero(1:3) = 0.5
     write(iprint,10) 'MHD fast wave'
  elseif (iwave.EQ.3) then    ! MHD fast wave from Athena
-    ampl = 1.e-6
+    ampl = 3.e-2 !1.e-6
     denszero = 1.0
     gamma = 5./3.
     przero = 1./gamma
     uuzero = przero/((gamma-1.)*denszero)
-    if (imhd.ne.0) Bzero(1:3) = (/1.0,sqrt(2.),0.5/) 
+    if (imhd.ne.0) Bzero(1:3) = (/1.0,sqrt(2.),0.5/)
     write(iprint,10) 'MHD fast wave'
  else                        ! Sound wave
-    ampl = 0.0001
+    ampl = 0.1 !0001
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
        uuzero = 1.0/((gamma-1.)*gamma)
@@ -103,7 +103,7 @@ subroutine setup
     Bzero(1) = sqrt(2.*(1.-Rzero))
     write(iprint,10) 'sound wave'
  endif
- xlambda = 1.0    
+ xlambda = 1.0
  wk = 2.0*pi/xlambda        !         wave number
 !
 !--set boundaries
@@ -111,7 +111,7 @@ subroutine setup
  ibound = 3        ! periodic boundaries
  nbpts = 0                ! use ghosts not fixed
  xmin(:) = -0.5   ! set position of boundaries
- xmax(1) = 0.5 
+ xmax(1) = 0.5
  if (ndim.GE.2) then
     xmax(2:ndim) = 6.*psep ! would need to adjust this depending on grid setup
  endif
@@ -120,7 +120,7 @@ subroutine setup
 !  (the call to set_uniform_cartesian means this works in 1,2 and 3D)
 !
  call set_uniform_cartesian(2,psep,xmin,xmax,.true.)
- 
+
 ! npart = INT((xmax(1)-xmin(1))/psep)
  massp = 1.0/FLOAT(npart)        ! average particle mass
 !
@@ -129,18 +129,18 @@ subroutine setup
 ! call alloc(npart)
 !
 !--setup uniform density grid of particles
-! 
+!
  do i=1,npart
-!    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep 
+!    x(1,i) = xmin(1) + (i-1)*psep  + 0.5*psep
     vel(:,i) = 0.
     dens(i) = denszero
     pmass(i) = massp
     uu(i) = uuzero
-    if (imhd.GT.0) then 
+    if (imhd.GT.0) then
        Bfield(:,i) = Bzero
     else
        Bfield(:,i) = 0.
-    endif 
+    endif
  enddo
 
  ntotal = npart
@@ -155,7 +155,7 @@ subroutine setup
 !--work out MHD wave speeds
 !
  dens1 = 1./denszero
- 
+
  valfven2i = dot_product(Bzero,Bzero)*dens1
  vfast = sqrt(0.5*(spsoundi**2 + valfven2i             &
                  + sqrt((spsoundi**2 + valfven2i)**2   &
@@ -168,7 +168,7 @@ subroutine setup
 !----------------------------
 ! set the wave speed to use
 !----------------------------
-                    
+
  if (iwave.EQ.1) then
     vwave = vslow
     if (imhd.le.0) write(iprint,*) 'Error: can''t have slow wave if no mhd'
@@ -179,9 +179,10 @@ subroutine setup
  endif
  if (vwave.le.0.) then
     write(iprint,*) 'Error in setup: vwave = ',vwave
-    stop
+    vwave = 1.
+!    stop
  endif
-  
+
  dxmax = xmax(1) - xmin(1)
  denom = dxmax - ampl/wk*(COS(wk*dxmax)-1.0)
  write (iprint,*) 'Wave number = ',wk
@@ -192,7 +193,7 @@ subroutine setup
  xcom(:) = 0.
  vcom(:) = 0.
  do i=1,npart
-    
+
     dxi = x(1,i)-xmin(1)
     dxprev = dxmax*2.
     xmassfrac = dxi/dxmax        ! current mass fraction(for uniform density)
@@ -200,29 +201,29 @@ subroutine setup
 !
 !--Use rootfinder on the integrated density perturbation
 !  to find the new position of the particle
-!    
+!
     its = 0
-         
+
     do while ((abs(dxi-dxprev).gt.tol).and.(its.lt.itsmax))
        dxprev = dxi
        func = xmassfrac*denom - (dxi - ampl/wk*(COS(wk*dxi)-1.0))
        fderiv = -1.0 - ampl*SIN(wk*dxi)
        dxi = dxi - func/fderiv        ! Newton-Raphson iteration
-       its = its + 1 
-!      PRINT*,'iteration',its,'dxi =',dxi 
+       its = its + 1
+!      PRINT*,'iteration',its,'dxi =',dxi
     enddo
-                           
+
     if (its.GE.itsmax) then
        write(iprint,*) 'Error: soundwave - too many iterations'
-       call quit 
+       call quit
     endif
-          
+
 !    if (idebug(1:5).EQ.'sound') then
 !       write(*,99002) i,its,dxi-dxprev,x(1,i),xmin(1)+dxi
 !99002  FORMAT('Particle',i5,' converged in ',i4,        &
 !       ' iterations, error in x =',1(1pe10.2,1x),/,        &
 !       'previous x = ',1(0pf8.5,1x),                        &
-!       'moved to x = ',1(0pf8.5,1x)) 
+!       'moved to x = ',1(0pf8.5,1x))
 !    endif
     x(1,i) = xmin(1)+dxi
 
@@ -233,16 +234,16 @@ subroutine setup
     vamplx = vwave*ampl
     vamply = -vamplx*Bfield(1,i)*Bfield(2,i)/(dens(i)*term)
     vamplz = -vamplx*Bfield(1,i)*Bfield(3,i)/(dens(i)*term)
-    
+
     vel(1,i) = vamplx*SIN(wk*dxi)
     vel(2,i) = vamply*SIN(wk*dxi)
     vel(3,i) = vamplz*SIN(wk*dxi)
 !
-!--perturb internal energy if not using a polytropic equation of state 
+!--perturb internal energy if not using a polytropic equation of state
 !  (do this before density is perturbed)
 !
    uu(i) = uu(i) + przero/dens(i)*ampl*SIN(wk*dxi)        ! if not polytropic
-!    
+!
 !--perturb density if not using summation
 !
     Bfield(2,i) = Bfield(2,i) + vwave*Bfield(2,i)*vamplx/term*SIN(wk*dxi)
@@ -251,12 +252,12 @@ subroutine setup
     xcom(:) = xcom(:) + x(:,i)
     vcom(:) = vcom(:) + vel(:,i)
  enddo
- xcom = xcom/npart
- vcom = vcom/npart
- do i=1,npart
-    x(:,i) = x(:,i) - xcom
-    vel(:,i) = vel(:,i) - vcom
- enddo
+ !xcom = xcom/npart
+ !vcom = vcom/npart
+ !do i=1,npart
+!    x(:,i) = x(:,i) - xcom
+!    vel(:,i) = vel(:,i) - vcom
+! enddo
 
  write(iprint,*) ' Wave set: Amplitude = ',ampl,' Wavelength = ',xlambda,' k = ',wk
  write(iprint,*) ' sound speed  = ',spsoundi
@@ -264,7 +265,7 @@ subroutine setup
  write(iprint,*) ' fast speed   = ',vfast
  write(iprint,*) ' slow speed   = ',vslow
  write(iprint,*) ' wave speed   = ',vwave,iwave
- 
+
  return
 end subroutine setup
 

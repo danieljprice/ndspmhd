@@ -59,8 +59,8 @@ subroutine setup
     write(iprint,10) 'MHD fast wave'
  else                        ! Sound wave
     !ampl = 0.1
-    ampl = 1.e-4
-    !ampl = 1.e-6
+    !ampl = 1.e-4
+    ampl = 1.e-6
     denszero = 1.0
     if (abs(gamma-1.).gt.1e-3) then
        uuzero = 1.0/((gamma-1.)*gamma)

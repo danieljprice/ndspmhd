@@ -35,7 +35,7 @@ subroutine write_infile(infile)
  use dimen_mhd
  use debug
  use loguns
- 
+
  use artvi
  use eos
  use options
@@ -45,15 +45,15 @@ subroutine write_infile(infile)
  use infile_utils, only:write_inopt
 !
 !--define local variables
-!      
+!
  implicit none
  character(len=*), intent(in) :: infile
  integer :: i
 !
 !--allow for tracing flow
-!      
+!
  if (trace) write(iprint,*) ' entering subroutine write_infile'
-              
+
  open(unit=iread,err=999,file=infile,status='replace',form='formatted')
   write(iread,"(a)") '# input file for ndspmhd, options not present assume default values'
   write(iread,"(/,a)") '# options affecting setup'
@@ -126,32 +126,32 @@ subroutine write_infile(infile)
 
   write(iread,"(/,a)") '# options affecting self-gravity'
   call write_inopt(igravity,'igravity','self-gravity',iread)
-  call write_inopt(hsoft,'hsoft','fixed softening length',iread)  
+  call write_inopt(hsoft,'hsoft','fixed softening length',iread)
 
   write(iread,"(/,a)") '# options affecting physical viscosity'
   call write_inopt(ivisc,'ivisc','use physical viscosity?',iread)
   call write_inopt(shearvisc,'shearvisc','shear viscosity (nu)',iread)
   call write_inopt(bulkvisc,'bulkvisc','bulk viscosity (zeta)',iread)
   call write_inopt(icompute_d2v,'icompute_d2v','compute velocity derivatives (0:none 1:brookshaw 2:direct)',iread)
-  call write_inopt(idiffuse,'idiffuse','methods for testing diffusion terms (1=2nd derivs 2=two first derivs)',iread) 
-  call write_inopt(k_iso,'k_iso','isotropic diffusion coefficient',iread) 
-  call write_inopt(k_par,'k_par','anisotropic diffusion coefficient',iread) 
+  call write_inopt(idiffuse,'idiffuse','methods for testing diffusion terms (1=2nd derivs 2=two first derivs)',iread)
+  call write_inopt(k_iso,'k_iso','isotropic diffusion coefficient',iread)
+  call write_inopt(k_par,'k_par','anisotropic diffusion coefficient',iread)
 
   write(iread,"(/,a)") '# options affecting particle splitting'
   call write_inopt(isplitpart,'isplitpart','particle splitting',iread)
   call write_inopt(rhocrit,'rhocrit','critical density for particle splitting',iread)
 
   write(iread,"(/,a)") '# options affecting Quantum SPH'
-  call write_inopt(iquantum,'iquantum','quantum SPH term',iread) 
+  call write_inopt(iquantum,'iquantum','quantum SPH term',iread)
 
-    
+
  close(unit=iread)
 
  write(iprint,"(/,a)") ' input file '//trim(infile)//' created successfully'
  return
-      
+
 999   stop 'error creating input file, exiting...'
-      
+
 end subroutine write_infile
 
 !!-----------------------------------------------------------------
@@ -162,7 +162,7 @@ subroutine read_infile(infile)
  use dimen_mhd
  use debug
  use loguns
- 
+
  use artvi
  use eos
  use options
@@ -172,9 +172,9 @@ subroutine read_infile(infile)
  use infile_utils
 !
 !--define local variables
-!      
+!
  implicit none
- character(len=*), intent(in) :: infile 
+ character(len=*), intent(in) :: infile
  character(len=len(infile)+3) :: infilebak
  character(len=2*len(infile)+12) :: command
  character(len=1) :: ians
@@ -183,20 +183,20 @@ subroutine read_infile(infile)
  type(inopts), allocatable :: db(:)
 !
 !--allow for tracing flow
-!      
+!
  if (trace) write(iprint,*) ' entering subroutine read_infile'
-              
+
  inquire(file=infile,exist=iexist)
  if (.not.iexist) then
     print "(' input file ',a20,' not found')",infile
-    if (adjustl(infile(1:1)).ne.' ') then 
+    if (adjustl(infile(1:1)).ne.' ') then
        write(*,*) ' would you like to create one with default options?'
        read*,ians
        if (ians.eq.'y'.or.ians.eq.'y') call write_infile(infile)
     endif
     stop 'exiting...'
  endif
- 
+
   nerr = 0
   !print "(a)",'reading setup options from '//trim(infile)
   call open_db_from_file(db,infile,iread,ierr)
@@ -206,7 +206,7 @@ subroutine read_infile(infile)
      if (ierrold /= 0) then
         write(*,*) 'ERROR reading old format'
      else
-        write(*,*) 'OK'     
+        write(*,*) 'OK'
      endif
   else
      ! particle setup
@@ -247,6 +247,7 @@ subroutine read_infile(infile)
      do i=1,3
         call read_inopt(iavlim(i),'iavlim'//trim(disschar(i)),db,iread)
      enddo
+     call read_inopt(islope_limiter,'islope_limiter',db,errcount=nerr)
      call read_inopt(avdecayconst,'avdecayconst',db,errcount=nerr)
      call read_inopt(ixsph,'ixsph',db,errcount=nerr)
      call read_inopt(xsphfac,'xsphfac',db,errcount=nerr)
@@ -296,11 +297,10 @@ subroutine read_infile(infile)
         call read_inopt(Kdrag,'Kdrag',db,errcount=nerr)
         call read_inopt(idustevol,'idustevol',db,errcount=nerr)
         call read_inopt(use_smoothed_rhodust,'use_smoothed_rhodust',db,errcount=nerr)
-        call read_inopt(islope_limiter,'islope_limiter',db,errcount=nerr)
      endif
 
      ! Quantum SPH options
-     call read_inopt(iquantum,'iquantum',db,errcount=nerr) 
+     call read_inopt(iquantum,'iquantum',db,errcount=nerr)
 
   endif
   call close_db(db)
@@ -330,7 +330,7 @@ subroutine read_infile(infile)
   endif
 !
 !--check options for possible errors
-!      
+!
  if (psep.lt.1.e-5) write(iprint,100) 'psep < 1.e-5'
  if (tout.gt.tmax) write(iprint,100) 'no output tout > tmax'
  if (nout.gt.nmax) write(iprint,100) 'no output nout > nmax'
@@ -340,17 +340,17 @@ subroutine read_infile(infile)
  if ((iener.gt.0).and.(alphaumin.lt.0.).or.(alphabmin.lt.0.)) then
     write(iprint,100) 'alphaumin or alphabmin < 0.'
  elseif ((iener.eq.0).and.(polyk.lt.0.)) then
-    write(iprint,100) 'polyk < 0.'      
+    write(iprint,100) 'polyk < 0.'
  endif
  if ((iav.ne.0).and.(alphamin.lt.0. .or. beta.lt.0.) ) then
-    write(iprint,100) 'av alpha or beta < 0.'      
+    write(iprint,100) 'av alpha or beta < 0.'
  endif
  if ((iavlim(1).gt.0).and.(alphamin.ge.1.)) then
     write(iprint,100) 'using av limiter, but alphamin set > 1.0'
  endif
  if (any(iavlim.gt.0).and.((avdecayconst.le.0.01).or.(avdecayconst.gt.0.5))) then
     write(iprint,100) 'av decay constant not in range 0.01-0.5'
- endif     
+ endif
  if ((ikernav.le.0).or.(ikernav.gt.3)) then
     write(iprint,100) 'kernel averaging not set (ikernav)'
  endif
@@ -399,7 +399,7 @@ subroutine read_infile(infile)
  endif
 100   format(/' read_infile: warning: ',a)
  return
-      
+
 end subroutine read_infile
 
 
@@ -412,7 +412,7 @@ subroutine read_infile_old(infile,ierr)
  use dimen_mhd
  use debug
  use loguns
- 
+
  use artvi
  use eos
  use options
@@ -482,12 +482,12 @@ subroutine read_infile_old(infile,ierr)
 999   write(iprint,1000) infile
 1000  format (' input file ',a20,' not found')
  ierr = 2
- if (adjustl(infile(1:1)).ne.' ') then 
+ if (adjustl(infile(1:1)).ne.' ') then
     write(*,*) ' would you like to create one with default options?'
     read*,ians
     if (ians.eq.'y'.or.ians.eq.'y') call write_infile(infile)
  endif
-      
+
 end subroutine read_infile_old
 
 end module infiles

@@ -413,11 +413,14 @@ subroutine get_rates
              !----------------------------------------------------------------------------
            if ((q2i.lt.radkern2).or.(q2j.lt.radkern2)) then  ! if < 2h
               rij = sqrt(rij2)
-              if (rij.le.1.e-8 .and. itype(j).eq.itypei) then
+              if (rij.le.epsilon(rij) .and. itype(j).eq.itypei) then
                  nclumped = nclumped + 1
                  if (rij.lt.tiny(rij)) then
-                    write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj
-                    call quit
+                    dr = 0.
+                    if (itypei /= 2) then
+                       write(iprint,*) 'rates: dx = 0 i,j,dx,hi,hj=',i,j,dx,hi,hj,' type=',itypei
+                       call quit
+                    endif
                  endif
               elseif (rij.le.epsilon(rij)) then
                  dr = 0.  ! can happen with gas/dust if particles on top of each other
@@ -514,6 +517,7 @@ subroutine get_rates
  if (idust.eq.2 .and. h_on_csts_max > 1.) then
     print*,' WARNING: violating h < cs*ts resolution criterion by factor of ',h_on_csts_max
  endif
+
  do i=1,npart
 
     rhoi  = rho(i)
@@ -1014,7 +1018,7 @@ contains
   real,    intent(in)  :: dvdxi(ndimV,ndimV),dvdxj(ndimV,ndimV)
   real,    intent(out) :: projvstar
   integer, intent(in), optional :: i,j
-  real :: projvi,projvj,projv,si,sj,slope,projdvi(ndimV),projdvj(ndimV),sep
+  real :: projvi,projvj,projv,si,sj,slope,projdvi(ndimV),projdvj(ndimV),absdx
 
   !if (ndim > 1) stop 'reconstruction not implemented for > 1D'
   projv = dot_product(vi,dr) - dot_product(vj,dr)
@@ -1028,20 +1032,27 @@ contains
   sj = dot_product(projdvj,dr)
   !si = dvdxj(1,1)
   !sj = dvdxj(1,1)
-  sep = sqrt(dot_product(dx,dx))
+  absdx = sqrt(dot_product(dx,dx))
   !sep = dx(1)*dr(1)
   if (ilimiter > 0 .and. ilimiter < 10) then
      slope = slope_limiter(si,sj,ilimiter)
   else
      slope = 0.5*(si + sj)
   endif
-  projvi = dot_product(vi,dr) - 0.5*sep*slope
-  projvj = dot_product(vj,dr) + 0.5*sep*slope
-  projvstar = projvi - projvj
+  projvi = dot_product(vi,dr) - 0.5*absdx*slope
+  projvj = dot_product(vj,dr) + 0.5*absdx*slope
+  !projvstar = projvi - projvj
+
+  projvstar = projv - absdx*slope
+  !if (abs(absdx*slope) > abs(projv)) then
+     !projvstar = sign(1.0,projv)*min(abs(projv),abs(projvstar))
+     !print*,projvstar,projv,dot_product(vi,dr),projvi,dot_product(vj,dr),projvj
+     !read*
+  !endif
   !
   ! case 10 gives entropy limiter (projv and projvstar must have same sign)
   !
-  if (ilimiter==10 .and. projvstar*projv < 0.) projvstar = projv
+  if (ilimiter==10 .and. projvstar*projv < 0.) projvstar = projv !min(abs(projv),abs(projvstar))
 
  end subroutine reconstruct_dv
 
@@ -1054,11 +1065,11 @@ contains
     use dust,    only:get_tstop
     implicit none
     integer :: itypej
-    real    :: dv2,vij,projv,dragterm,dragterm_en
+    real    :: dv2,vij,projv,projvstar,dragterm,dragterm_en
     real    :: spsoundgas,ts
     real    :: wabj,wab,hfacwabj,rho1j,gkerni,gkernj
     real, dimension(ndimV) :: drdrag
-    real, parameter :: pi  = 3.141592653589
+    real, parameter :: pi  = 4.*atan(1.)
 !
 !--differential velocities
 !
@@ -1103,8 +1114,9 @@ contains
 !
     projv = dot_product(dvel,drdrag)
     if (islope_limiter >= 0) then
-       call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,gradB(:,:,i),gradB(:,:,j),projv,islope_limiter)
-!       call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv,islope_limiter)
+       call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,gradB(:,:,i),gradB(:,:,j),projvstar,islope_limiter)
+    else
+       projvstar = projv
     endif
     if (itypei.eq.itypegas .or. itypei.eq.itypebnd) then
        spsoundgas = spsound(i)
@@ -1129,10 +1141,11 @@ contains
        forcei(:)   = forcei(:)  - dragterm*pmassj*dvel(:)
        force(:,j)  = force(:,j) + dragterm*pmassi*dvel(:)
     else
-       dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projv
+       dragterm    = ndim*wab/((rhoi + rhoj)*ts)*projvstar
        dragterm_en = dragterm*projv !dvdotr
        forcei(:)   = forcei(:)  - dragterm*pmassj*drdrag(:)
        force(:,j)  = force(:,j) + dragterm*pmassi*drdrag(:)
+       if (dragterm_en < -1.) print*,' warning: dragterm_en = ',dragterm_en,i,j,projv,projvstar/projv
     endif
     if (itypei.eq.itypegas) then
        dudt(i)   = dudt(i) + pmassj*dragterm_en
@@ -1883,7 +1896,7 @@ contains
        vsj = max(alpha(1,j)*spsoundj - beta*dvdotr,0.)
 
        projv = dvdotr
-       if (islope_limiter >= 0) then
+       if (islope_limiter >= 0 .and. .false.) then
           call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,gradB(:,:,i),gradB(:,:,j),projv,islope_limiter,i,j)
 !          call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv,islope_limiter,i,j)
 !          if (j==120 .and. i==121) then
