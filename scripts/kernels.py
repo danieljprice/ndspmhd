@@ -103,7 +103,7 @@ def getkernelfuncs(w,R):
            parg[i] = (ep, c)
        tuple(parg)
        dpotdh = Piecewise(*parg)
-    
+
     return (dw, d2w, c1D, c2D, c3D, fsoft, pot, dpotdh)
 
 #---------------------------------------------
@@ -224,6 +224,49 @@ def brookshaw(wref,R):
     name = "Brookshaw %s" %(name)
     return(g,name)
 
+def brookshaw2D(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-f/q,q))
+    g = intconst(g)
+    name = "Brookshaw2D %s" %(name)
+    return(g,name)
+
+#def brookshaw3D(wref,R):
+#    f, name = wref(R)
+#    g = piecewise_fold(integrate(-f/q,q))
+#    g = intconst(g)
+#    name = "Brookshaw2D %s" %(name)
+#    return(g,name)
+
+def dan_secondderiv2D(wref,R):
+    f, name = wref(R)
+    g = piecewise_fold(integrate(-2*f*q,q))
+    g = intconst(g)
+#    h = piecewise_fold(integrate(g/q,q))
+#    h = intconst(h)
+    name = "Dan second deriv %s" %(name)
+    return(g,name)
+
+def w_as_second(wref,R):
+    f, name=wref(R)
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    h = piecewise_fold(integrate(g,q))
+    h = intconst(h)
+    name = "W as 2nd %s" %(name)
+    return(h,name)
+
+def w_as_second2D(wref,R):
+    f, name=wref(R)
+    g = piecewise_fold(integrate(q*f,q))
+    g = intconst(g)
+    g = piecewise_fold(g/q)
+    #g = intconst(g)
+    h = piecewise_fold(integrate(g,q))
+    h = intconst(h)
+    name = "W as 2nd 2D %s" %(name)
+    return(h,name)
+
 ##############################################
 #                                            #
 #  various output functions to print kernel  #
@@ -232,7 +275,7 @@ def brookshaw(wref,R):
 ##############################################
 
 #-------------------------------------------------------
-# function to print the variance and standard deviation 
+# function to print the variance and standard deviation
 # of a kernel, and to print these relative to the cubic
 #-------------------------------------------------------
 def printvariances(w,R):
@@ -343,7 +386,7 @@ def fmte(e,useqsub,useodd):
        s = re.sub("q\*\*8","q8", s)
        if (useodd):
           s = re.sub("q\*\*9","q9", s)
-          s = re.sub("q\*\*7","q7", s)    
+          s = re.sub("q\*\*7","q7", s)
           s = re.sub("q\*\*5","q5", s)
           s = re.sub("q\*\*3","q3", s)
        else:
@@ -813,6 +856,23 @@ def bcubic(R):
     f = Piecewise(((sympify(10) - sympify(13)*q**2 + sympify(6)*q**3)/16,q < 1), ((2 - q)**2*(5 - sympify(2)*q)/16, q < 2),(0, True))
     return(f,'Better cubic')
 
+# dan linear 2nd deriv
+def linsecond(R):
+    f = Piecewise(((R-q),q < R), (0, True))
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    h = piecewise_fold(integrate(g,q))
+    h = intconst(h)
+    return(h,'Linear second deriv')
+
+def quadsecond(R):
+    f = Piecewise(((R-q)**2,q < R), (0, True))
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    h = piecewise_fold(integrate(g,q))
+    h = intconst(h)
+    return(h,'Quad second deriv')
+
 #-----------------------------
 # integrated B-spline kernels
 #-----------------------------
@@ -854,6 +914,24 @@ def f6(R):
     f = Piecewise(((1 - (q/R)**2)**6,q < R), (0, True))
     return(f,'Ferrers n=6')
 
+#----------------
+# Sergei kernel
+#----------------
+def sergei(R):
+    f = Piecewise(((R-q)**2,q < R), (0, True))
+    g = piecewise_fold(integrate(f,q))
+    g = intconst(g)
+    h = piecewise_fold(integrate(g,q))
+    h = intconst(h)
+    return(h,'Sergei kernel')
+
+#
+# Hermite kernel
+#
+def h4(R):
+    f = Piecewise((16.*q**4 - 48.*q**2 + 12.,q < R), (0, True))
+    return(f,'Hermite n=4')
+
 #-------------------------------------------
 # Jackson-Feyer de la Vallee Poussin kernels
 #-------------------------------------------
@@ -864,19 +942,19 @@ def f6(R):
 #    return(f,'Jackson-Feyer')
 
 ########################################################
-#  The actual program 
+#  The actual program
 #  Change the lines below to print the kernel you want
 ########################################################
 
 # set kernel range
 #R = sympify(3)
 #R = sympify(5)/2
-R = sympify(2)
+R = sympify(1.22474)
 #R = symbols('R')
 
 # define which kernel to use
 #f, name = sinq(R,3)
-f, name = w6(R)
+f, name = h4(R)
 #f, name = linear_combination(w4_1D,m4,R,sympify(1/100))
 #f, name = j4(R)
 #print "done"
@@ -885,12 +963,16 @@ f, name = w6(R)
 #print "[ %s, %s, %s ]" %(c1D,c2D,c3D)
 
 #printvariances(f,R)
-#f, name = brookshaw(m6,R)
+#f, name = brookshaw2D(m4,R)
 #f, name = doublehump(w2,R)
+#f, name = dan_secondderiv2D(m4,R)
+#f, name = quadsecond(R)
+#f, name = w_as_second2D(m4,R)
+#f, name = doublehump_second3(m4,R)
+#f, name = sergei(R)
 
 # print the desired output
-#printkernel(f,R)
-printkernel_ndspmhd(f,R,name)
+printkernel(f,R)
 #printkernel_phantom(f,R,name)
 #printkernel_sphNG(f,R,name)
 #printalltex()
