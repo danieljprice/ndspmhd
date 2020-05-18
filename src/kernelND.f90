@@ -2878,7 +2878,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !
 !--read the preset table from a data file if it exists
 !   
-    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,radkern,ierrf)
     cnormk = cnormkd(ndim)
 !
 !--if file not found or errors reading from it, recreate the kernel table
@@ -3338,11 +3338,12 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--read the preset table from a data file if it exists
 !   
     kernellabel = 'Tabulated kernel'
+
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,radkern,ierrf)
     radkern = max(radkern,  2.0)
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
 
-    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
     cnormk = cnormkd(ndim)
 !
 !--if file not found or errors reading from it, recreate the kernel table
@@ -4038,11 +4039,11 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
 !--read the preset table from a data file if it exists
 !   
     kernellabel = 'Tabulated exact 2D kernel'
-    radkern = max(radkern,  1. + sqrt(2.))
+
+    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,radkern,ierrf)
+    !radkern = max(radkern,  0.5*(1. + sqrt(2.) + sqrt(5.)))
     radkern2 = radkern*radkern
     dq2table = radkern*radkern/real(ikern)
-
-    call read_kernel_from_file(ikernel,lu,cnormkd,wkern,grwkern,grgrwkern,ierrf)
     cnormk = cnormkd(ndim)
 !
 !--if file not found or errors reading from it, recreate the kernel table
@@ -4259,12 +4260,13 @@ end subroutine write_kernel_to_file
 !-----------------------------
 ! read kernel back from file
 !-----------------------------
-subroutine read_kernel_from_file(ikernel,lu,cnormkd,w,grw,grgrw,ierrf)
+subroutine read_kernel_from_file(ikernel,lu,cnormkd,w,grw,grgrw,radk,ierrf)
  integer, intent(in)  :: ikernel,lu
  integer, intent(out) :: ierrf
  character(len=120)   :: filename
  real, intent(out)    :: cnormkd(3)
  real, intent(out), dimension(0:ikern) :: w,grw,grgrw
+ real, intent(inout)  :: radk
  logical :: iexist
  real    :: dum
  integer :: i
@@ -4279,6 +4281,7 @@ subroutine read_kernel_from_file(ikernel,lu,cnormkd,w,grw,grgrw,ierrf)
        do i=0,ikern
           read(lu,*,iostat=ierrf) dum,w(i),grw(i),grgrw(i)
        enddo
+       radk = max(radk,dum)
     endif
     close(unit=lu)
  else
