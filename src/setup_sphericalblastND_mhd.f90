@@ -59,7 +59,7 @@ subroutine setup
 !
 !--set boundaries
 !
- geom = 'sphrpt'
+ !geom = 'sphrpt'
  nbpts = 0
  select case(geom)
  case('sphrpt')
@@ -70,8 +70,8 @@ subroutine setup
     ibound = 3     ! fixed ghosts
     xmin(:) = -0.5     ! same xmin in all dimensions
     xmax(:) = 0.5
-!   xmin(2) = -0.75
-!   xmax(2) = 0.75
+   xmin(2) = -0.75
+   xmax(2) = 0.75
  end select
  denszero = 1.0
  przero = 0.1
@@ -131,7 +131,7 @@ subroutine modify_dump
  real :: rbuffer, exx, hsmooth
  real :: q2, wab, grkern
  logical, parameter :: dosedov = .false.
- logical, parameter :: terryparams= .true.
+ logical, parameter :: terryparams= .false.
  logical, parameter :: delzanna_bucciantini_2002 = .true.
  
  write(iprint,*) 'modifying dump by adding blast'
