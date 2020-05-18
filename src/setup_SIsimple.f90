@@ -56,13 +56,14 @@ subroutine setup
 
  integer                     :: ntypes
  integer, parameter          :: itsmax = 20
- real, parameter             :: ampl   = 1.!d-3
+ real, parameter             :: ampl   = 1.d-3
  real, parameter             :: tol    = 1.e-8
 ! real, parameter             :: corr   = 0.99975747 !--correction to handle the real SPH density
  real, parameter             :: corr   = 0.99994416703041011
  real, parameter             :: vcorrg   = 0.99930182
  real, parameter             :: vcorrd   = 0.99930212
- character(len=20),parameter :: lin    = 'kxkzgasIdRvz'
+ !character(len=20),parameter :: lin    = 'kxkzgasIdRvz'
+ character(len=20),parameter :: lin    = 'linA'
  
 !--one fluid approach
  if (idust.eq.1) then
@@ -122,7 +123,7 @@ subroutine setup
  ngas  = 0
  npdust = 0
  do jtype=1,ntypes
-  call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+  call set_uniform_cartesian(2,psep,xmin,xmax,adjustbound=.true.)
   if (jtype.eq.1) then
     ngas = npart
     itype(1:ngas) = itypegas
@@ -223,9 +224,15 @@ subroutine setup
 ! setup the gas quantities
 !-------------------------------------------------------------
  cs0    = 0.1   !--cfJY07
- przero = denszero*cs0*cs0/gamma
- uuzero = przero/(denszero*(gamma-1.))
- polyk0 = przero/denszero**gamma
+ if (gamma > 1.) then
+    przero = denszero*cs0*cs0/gamma
+    uuzero = przero/(denszero*(gamma-1.))
+    polyk0 = przero/denszero**gamma
+ else
+    przero = denszero*cs0*cs0
+    uuzero = 1.5*cs0*cs0
+    polyk0 = cs0*cs0 
+ endif
 
  write(iprint,*) ' kx, kz = ', kx, kz
  write(iprint,*) ' gamma = ', gamma

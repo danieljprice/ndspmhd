@@ -25,7 +25,7 @@ subroutine setup
  use bound
  use eos
  use options
- use part
+ use part, only:x,uu,vel,itype,pmass,Bevol,itypedust,itypegas,nbpts,ntotal,dens,npart,Bfield
  use setup_params
  use streaming
  
@@ -56,7 +56,7 @@ subroutine setup
  real, parameter             :: corr   = 0.99994416703041011
  real, parameter             :: vcorrg   = 0.99930182
  real, parameter             :: vcorrd   = 0.99930212
- character(len=10),parameter :: lin    = 'appB'
+ character(len=10),parameter :: lin    = 'nodrag'
  
 !-------------------------------------------------------------
 ! set the external forces and the boundary conditions
@@ -103,8 +103,11 @@ subroutine setup
 !--setup uniform density grid of gas and dust particles
  ngas  = 0
  ndust = 0
- do jtype=1,ntypes
-  call set_uniform_cartesian(1,psep,xmin,xmax,adjustbound=.true.)
+ numtypes = 1
+ if (idust==2) numtypes = 2
+
+ do jtype=1,numtypes
+  call set_uniform_cartesian(1,psep,xmin,xmax)
   if (jtype.eq.1) then
     ngas = npart
     itype(1:ngas) = itypegas
