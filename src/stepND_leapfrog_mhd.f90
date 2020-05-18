@@ -27,12 +27,12 @@
 !! At the moment there is no XSPH and no direct summation replacements
 !! Note that we cannot use leapfrog for the GR code as force.ne.dvel/dt
 !!--------------------------------------------------------------------
-         
+
 subroutine step
  use dimen_mhd
  use debug
  use loguns
- 
+
  use bound
  use eos
  use hterms
@@ -60,13 +60,13 @@ subroutine step
  real, dimension(ndimV) :: vcrossB
 !
 !--allow for tracing flow
-!      
+!
  if (trace) write(iprint,*) ' Entering subroutine step'
 !
 !--set initial quantities
 !
  hdt = 0.5*dt
- 
+
  do i=1,npart
     xin(:,i) = x(:,i)
     velin(:,i) = vel(:,i)
@@ -76,7 +76,7 @@ subroutine step
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
-    
+
     forcein(:,i) = force(:,i)
     dBevoldtin(:,i) = dBevoldt(:,i)
     drhodtin(i) = drhodt(i)
@@ -84,7 +84,7 @@ subroutine step
     dendtin(i) = dendt(i)
     daldtin(:,i) = daldt(:,i)
     dpsidtin(i) = dpsidt(i)
-    
+
     if (onef_dust) then
        select case(idustevol)
        case(1)
@@ -101,7 +101,7 @@ subroutine step
  enddo
 !
 !--if doing divergence correction then do correction to magnetic field
-! 
+!
  if (idivbzero.eq.10) call divBcorrect(npart,ntotal)
 !
 !--Leapfrog Predictor step
@@ -133,7 +133,7 @@ subroutine step
           Bevol(:,i) = Bevolin(:,i)
        endif
        rho(i) = rhoin(i)
-       hh(i) = hhin(i)            
+       hh(i) = hhin(i)
        en(i) = enin(i)
        alpha(:,i) = alphain(:,i)
        psi(i) = psiin(i)
@@ -142,19 +142,19 @@ subroutine step
           if (idust.eq.1) deltav(:,i) = deltavin(:,i)
        endif
     else
-       x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)           
+       x(:,i) = xin(:,i) + dt*velin(1:ndim,i) + 0.5*dt*dt*forcein(1:ndim,i)
        vel(:,i) = (velin(:,i) + dt*forcein(:,i))/(1.+damp)
        if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
        if (ihvar.eq.1) then
 !           hh(i) = hfact*(pmass(i)/rho(i))**dndim        ! my version
-          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's           
+          hh(i) = hhin(i)*(rhoin(i)/rho(i))**dndim                ! joe's
        elseif (ihvar.eq.2 .or. ihvar.eq.3) then
           hh(i) = hhin(i) + dt*dhdtin(i)
        endif
        if (iener.ne.0) en(i) = enin(i) + dt*dendtin(i)
        where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + dt*daldtin(:,i),1.0)
-       if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i) 
+       if (idivBzero.ge.2) psi(i) = psiin(i) + dt*dpsidtin(i)
        if (onef_dust) then
           dustevol(:,i) = dustevolin(:,i) + dt*ddustevoldtin(:,i)
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + dt*ddeltavdtin(:,i)
@@ -205,8 +205,8 @@ subroutine step
        endif
        if (iener.ne.0) en(i) = enin(i) + hdt*(dendt(i)+dendtin(i))
        where(iavlim.ne.0) alpha(:,i) = min(alphain(:,i) + hdt*(daldt(:,i)+daldtin(:,i)),1.0)
-       if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))           
-       
+       if (idivbzero.ge.2) psi(i) = psiin(i) + hdt*(dpsidt(i)+dpsidtin(i))
+
        if (onef_dust) then
           dustevol(:,i) = dustevolin(:,i) + hdt*(ddustevoldt(:,i) + ddustevoldtin(:,i))
           if (idust.eq.1) deltav(:,i) = deltavin(:,i) + hdt*(ddeltavdt(:,i) + ddeltavdtin(:,i))
@@ -216,7 +216,7 @@ subroutine step
  enddo
 !
 !--if doing divergence correction then do correction to magnetic field
-! 
+!
 ! IF (idivBzero.NE.0) CALL divBcorrect
  if (any(ibound.ne.0)) call boundary        ! inflow/outflow/periodic boundary conditions
 
@@ -248,8 +248,8 @@ subroutine step
     else
        dttol = huge(dttol)
     endif
-    
-    dt = min(C_force*dtforce,C_cour*dtcourant,C_force*dtdrag,C_force*dtvisc)
+
+    dt = min(C_force*dtforce,C_cour*dtcourant,0.9*dtdrag,C_force*dtvisc)
     !if (dttol < dt) then
     !   dt = dttol
     !   print "(5(a,es10.3))",'dt (tol) = ',dt,' fac=',sqrt(tol/errmax),' Errmax = ',errmax,' Err v:',errvmax,' Err B:',errBmax
@@ -270,6 +270,6 @@ subroutine step
  endif
 
  if (trace) write (iprint,*) ' Exiting subroutine step'
-      
+
  return
 end subroutine step
