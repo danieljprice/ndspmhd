@@ -44,7 +44,7 @@ subroutine setup
  use setup_params
  use timestep, only:tmax
  use kernels, only:radkern
- 
+
  use uniform_distributions
  use cons2prim, only:primitive2conservative
  implicit none
@@ -61,7 +61,7 @@ subroutine setup
  real :: densdustleft,densdustright,densdust,masspdustleft,masspdustright
  character(len=20) :: shkfile
  logical :: equalmass, stretchx, weird_shock
- 
+
  ntypes = 1
  if (idust.eq.2 .and. idrag_nature.gt.0) ntypes = 2
 !
@@ -79,7 +79,7 @@ subroutine setup
  const = sqrt(4.*pi)
  gamm1 = gamma - 1.
  weird_shock = .false.
- 
+
  if (weird_shock) then
     mach_R = 5.
     mach_L = sqrt((2. + gamm1*mach_R**2)/(2.*gamma*mach_R**2 - gamm1))
@@ -122,7 +122,7 @@ subroutine setup
     Bzleft = 0.
     Bzright = 0.
  endif
- 
+
  if (idust.ne.0) then
     densdustleft = densleft
     densdustright = densright
@@ -134,7 +134,7 @@ subroutine setup
 !--read shock parameters from the .shk file
 !
  shkfile = rootname(1:LEN_TRIM(rootname))//'.shk'
- 
+
  open(UNIT=ireadf,FILE=shkfile,STATUS='old',FORM='formatted',ERR=666)
    read(ireadf,*,ERR=667,END=667) densleft,densright
    read(ireadf,*,ERR=667,END=667) prleft,prright
@@ -165,10 +165,10 @@ subroutine setup
        write(ireadf,*) vzleft,vzright
        write(ireadf,*) Bxinit
        write(ireadf,*) Byleft,Byright
-       write(ireadf,*) Bzleft,Bzright  
-       write(ireadf,*) densdustleft,densdustright     
+       write(ireadf,*) Bzleft,Bzright
+       write(ireadf,*) densdustleft,densdustright
     close(UNIT=ireadf)
-    
+
 
     goto 668
 667 write(iprint,*) 'error in shock parameters file, using some defaults...'
@@ -191,13 +191,13 @@ subroutine setup
            '           vx  L: ',f8.3,' R: ',f8.3,/,   &
            '           vy  L: ',f8.3,' R: ',f8.3,/,   &
            '           vz  L: ',f8.3,' R: ',f8.3)
-20 FORMAT( '           Bx   : ',f8.3,/,   &                                 
+20 FORMAT( '           Bx   : ',f8.3,/,   &
            '           By  L: ',f8.3,' R: ',f8.3,/,   &
            '           Bz  L: ',f8.3,' R: ',f8.3,/)
 30 FORMAT( '     dust dens L: ',f8.3,' R: ',f8.3,/)
 !
 !--set boundaries
-!                        
+!
  if ((abs(vxleft).gt.tiny(vxleft)).or.(abs(vxright).gt.tiny(vxright)).or. (imhd < 0) .or. (ndim>1)) then
     ibound(1) = 1               ! fixed x particles
  else
@@ -205,7 +205,7 @@ subroutine setup
  endif
  if (ndim.ge.2) ibound(2:ndim) = 3        ! periodic in yz
  nbpts = 0                ! must use fixed particles if inflow/outflow at boundaries
- boxlength = 1.0
+ boxlength = 1. ! 350.0
  xmin(1) = -0.5
  xmax(1) = xmin(1) + boxlength
  nparty = 24
@@ -228,7 +228,7 @@ subroutine setup
  else
     xmax(1) = xmax(1) + fac*radkern*psep
  endif
- 
+
  xshock = 0.0 !!(xmax(1) + xmin(1))/2.0
 
  ngas = 0
@@ -236,7 +236,7 @@ subroutine setup
  over_types: do jtype=1,ntypes
 !
 !--now setup the shock
-! 
+!
 !--set boundaries of regions to initially cover the whole domain
  xminleft(:) = xmin(:)
  xmaxleft(:) = xmax(:)
@@ -247,7 +247,7 @@ subroutine setup
 !
  xmaxleft(1) = xshock
  xminright(1) = xshock
- 
+
  if (idust.eq.1 .or. idust.eq.3 .or. idust.eq.4) then
     psepleft = psep
     psepright = psep*(densleft/densright)**(1./ndim)
@@ -283,9 +283,9 @@ subroutine setup
        npartold = npart
        call set_uniform_cartesian(1,psep,xminright,xmaxright,psepx=pseprightx) ! set right half
        xmax = xmaxright
-       xmax(1) = xshock + (npart-npartold)/nparty*pseprightx 
+       xmax(1) = xshock + (npart-npartold)/nparty*pseprightx
     else
-       !--this sets up a square lattice    
+       !--this sets up a square lattice
        print*,' left half  ',xminleft,' to ',xmaxleft,' psepleft = ',psepleft
        print*,' right half ',xminright,' to ',xmaxright,' psepright = ',psepright
        call set_uniform_cartesian(2,psepleft,xminleft,xmaxleft,fill=.true.)
@@ -293,14 +293,14 @@ subroutine setup
        volume = PRODUCT(xmaxleft-xminleft)
        if (jtype.eq.2) then
           total_mass = volume*densdustleft
-          massp = total_mass/(npart - npartprev)       
+          massp = total_mass/(npart - npartprev)
           masspdustleft  = massp
           masspdustright = masspdustleft
        else
           total_mass = volume*densleft
           massp = total_mass/(npart - npartprev)
           masspleft = massp
-          masspright = massp  
+          masspright = massp
        endif
        xmin = xminleft
 
@@ -366,7 +366,7 @@ subroutine setup
     uuleft = 3.*prleft/(2.*densleft)
     uuright = 3.*prright/(2.*densright)
  endif
- 
+
  do i=1,npart
     jtype = itype(i)
     delta = (x(1,i) - xshock)/psep
@@ -408,26 +408,26 @@ subroutine setup
        endif
 
        if (abs(gam1).lt.1.e-3) then
-          uu(i) = (uuleft + uuright*exx)/(1.0 + exx)    
+          uu(i) = (uuleft + uuright*exx)/(1.0 + exx)
        else
           uu(i) = (prleft + prright*exx)/((1.0 + exx)*gam1*dens(i))
        endif
-!       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
 !       if (ndimV.ge.2) vel(2,i) = (vyleft + vyright*exx)/(1.0 + exx)
 !       if (ndimV.ge.3) vel(3,i) = (vzleft + vzright*exx)/(1.0 + exx)
        if (delta.GT.0.) THEN
           vel(1,i) = vxright
           if (ndimV.ge.2) vel(2,i) = vyright
-          if (ndimV.ge.3) vel(3,i) = vzright 
+          if (ndimV.ge.3) vel(3,i) = vzright
        else
           vel(1,i) = vxleft
           if (ndimV.ge.2) vel(2,i) = vyleft
-          if (ndimV.ge.3) vel(3,i) = vzleft       
+          if (ndimV.ge.3) vel(3,i) = vzleft
        endif
+       vel(1,i) = (vxleft + vxright*exx)/(1.0 + exx)
        if (ndimV.ge.2) Bfield(2,i) = (Byleft + Byright*exx)/(1.0 + exx)
        if (ndimV.ge.3) Bfield(3,i) = (Bzleft + Bzright*exx)/(1.0 + exx)
        densdust = (densdustleft + densdustright*exx)/(1.0 +exx)
-    endif           
+    endif
     Bfield(1,i) = Bxinit
     !
     !--override settings for dust particles
@@ -496,9 +496,9 @@ subroutine setup
           uu(i) = 0.
        endif
     enddo
- endif 
- 
- 
+ endif
+
+
  return
 end subroutine setup
 
