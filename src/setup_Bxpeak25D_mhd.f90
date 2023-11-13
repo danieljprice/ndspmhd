@@ -40,35 +40,38 @@ subroutine setup
  use options
  use part
  use setup_params
- 
+
  use uniform_distributions
 !
 !--define local variables
-!      
+!
  implicit none
- integer :: ipart,ibump,ierr
+ integer :: ipart,ibump
  real :: denszero,przero
- real :: pri,rbump,rr,rbump2
+ real :: pri,rbump,rr,rbump2,spsound2,va2
  real :: totmass,gam1,massp,const
  real, dimension(ndim) :: xorigin, dx
  real, dimension(ndimv) :: Bzero
+ logical :: perturb_psi_not_B
 !
 !--check number of dimensions is right
 !
  if (ndimv.ne.3) stop ' need ndimv=3 for this problem'
 !
 !--set boundaries
-!                        
+!
  ibound = 3     ! reflective ghosts (boundaries not important in this problem)
  nbpts = 0      ! no fixed particles
  xmin(:) = -0.5 ! unit square
  xmax(:) = 1.5
- const = sqrt(4.*pi) 
+ const = sqrt(4.*pi)
+ perturb_psi_not_B = .true.
+ if (perturb_psi_not_B) have_setup_psi = .true.
 !
 !--setup parameters for the problem
-! 
- xorigin(:) = 0.0 ! co-ordinates of the centre of the initial blast
- rbump = 1./sqrt(8.)        ! radius of the initial bump
+!
+ xorigin(:) = 0.5 ! co-ordinates of the centre of the initial blast
+ rbump = 0.0625*1./sqrt(8.)        ! radius of the initial bump
 ! read(rootname(6:7),*,iostat=ierr) ibump
 ! if (ierr.eq.0) then
 !    print*,'ibump = ',ibump
@@ -86,15 +89,19 @@ subroutine setup
  if (imhd.ne.0) Bzero(3) = 1.0/const        ! uniform field in bz direction
  przero = 6.0                ! initial pressure
  denszero = 1.0                ! ambient density
- 
+
  gam1 = gamma - 1.
 
  write(iprint,*) 'Two dimensional div B advection problem '
  write(iprint,10) denszero,rbump,Bzero(3),przero
 10 format(/,' density  = ',f10.3,', size of bump = ',f6.3,/, &
             ' initial Bz   = ',f6.3,', pressure = ',f6.3,/)
+
+ spsound2 = gamma*przero/denszero
+ va2 = dot_product(Bzero,Bzero)/denszero
+ print*,' cs = ',sqrt(spsound2),' va = ',sqrt(va2),' vfast = ',sqrt(spsound2 + va2)
 !
-!--setup uniform density grid of particles (2D) 
+!--setup uniform density grid of particles (2D)
 !  (determines particle number and allocates memory)
 !
  call set_uniform_cartesian(2,psep,xmin,xmax,fill=.true.)        ! 2 = close packed arrangement
@@ -107,26 +114,31 @@ subroutine setup
  massp = totmass/float(ntotal) ! average particle mass
 !
 !--now assign particle properties
-! 
+!
  do ipart=1,ntotal
-    dx(:) = x(:,ipart)-xorigin(:) 
+    dx(:) = x(:,ipart)-xorigin(:)
     rr = dot_product(dx,dx)
     Bfield(:,ipart) = bzero(:)
     if (rr.le.rbump2) then
-       Bfield(1,ipart) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 + 1.)/const
-    endif  
+       if (perturb_psi_not_B) then
+          !psi(ipart) = 0.05*(1. + cos(pi*sqrt(rr/rbump2)))
+          psi(ipart) = 0.5*((rr/rbump2)**4 - 2.*(rr/rbump2)**2 + 1.)/const
+       else
+          Bfield(1,ipart) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 + 1.)/const
+       endif
+    endif
     pmass(ipart) = massp
     dens(ipart) = denszero
     vel(:,ipart) = 0.
-    vel(1:ndim,ipart) = 1.0
-    pri = przero 
+    !vel(1:ndim,ipart) = 1.0
+    pri = przero
     uu(ipart) = pri/(gam1*denszero)
  enddo
 !
 !--allow for tracing flow
 !
  if (trace) write(iprint,*) '  exiting subroutine setup'
-            
+
  return
 end
 
