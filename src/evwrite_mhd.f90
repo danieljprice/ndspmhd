@@ -254,6 +254,10 @@ subroutine evwrite(t,etot,momtot)
  !print*,'dpdt = ',dmomtot
  call minmaxave(rho(1:npart),rhomin,rhomax,rhomean,npart)
  angtot = sqrt(dot_product(ang,ang))
+
+ !print*,' etot = ',etot,' sum of en(i) = ',sum(pmass(1:npart)*en(1:npart)),' potengrav=',potengrav,&
+!        sum(pmass(1:npart)*0.5*poten(1:npart))
+ !print*,'energy conservation=',sum(pmass(1:npart)*dendt(1:npart))
 !
 !--write line to .ev file
 !
