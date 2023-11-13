@@ -37,7 +37,7 @@ module artvi
 end module artvi
 
 !-------------------------------------------------------------------
-! boundary related quantities (boundary positions, array storing the 
+! boundary related quantities (boundary positions, array storing the
 !   real particle which is mirrored by the ghost)
 !-------------------------------------------------------------------
 
@@ -45,13 +45,13 @@ module bound
  use dimen_mhd
  implicit none
  integer, dimension(:), allocatable :: ireal
- real, dimension(ndim) :: xmin, xmax 
+ real, dimension(ndim) :: xmin, xmax
  real :: hhmax,pext
 end module bound
 
 !-------------------------------------------------------------------
 !  debugging quantities
-!-------------------------------------------------------------------     
+!-------------------------------------------------------------------
 
 module debug
  implicit none
@@ -82,7 +82,7 @@ end module
 
 !-------------------------------------------------------------------
 !  correction terms when using a spatially variable smoothing length
-!-------------------------------------------------------------------     
+!-------------------------------------------------------------------
 
 module hterms
  implicit none
@@ -93,7 +93,7 @@ end module hterms
 
 !-------------------------------------------------------------------
 !  correction terms to make linear functions exact
-!-------------------------------------------------------------------     
+!-------------------------------------------------------------------
 
 module matrixcorr
  use dimen_mhd, only:ndim
@@ -126,7 +126,7 @@ module loguns
  integer :: iprint,ievfile,idatfile,iread,ireadf
  integer :: ifile
  character(len=120) :: rootname       ! name of the run
-end module loguns   
+end module loguns
 
 !-------------------------------------------------------------------
 !  program options
@@ -172,7 +172,7 @@ module part
  integer, parameter :: ndust = 1 ! number of dust species
  integer, dimension(:), allocatable :: itype
  real, dimension(:), allocatable    :: pmass,sqrtg
- real, dimension(:,:), allocatable  :: x   
+ real, dimension(:,:), allocatable  :: x
  real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound,rhoalt
  real, dimension(:,:), allocatable  :: vel,pmom,sourceterms,alpha
  real, dimension(:,:), allocatable  :: Bfield, Bevol, x0
@@ -183,7 +183,7 @@ module part
  real, dimension(:),   allocatable  :: rhogas
  real, dimension(:,:), allocatable  :: del2v,graddivv
  real, dimension(:,:,:), allocatable :: P_Q
-end module part 
+end module part
 
 !-------------------------------------------------------------------
 !  particle properties at the beginning of the time step
@@ -237,11 +237,12 @@ module setup_params
  real, parameter :: Rcentre = 1.
  real, parameter :: Omega2 = 1./Rcentre**3
  real, parameter :: Omega0 = Rcentre**(-1.5)
-!--for a Keplerian rotation, domegadr = -dlnOmega/dlnr = q = -2A/Omega0 = 1.5 
+!--for a Keplerian rotation, domegadr = -dlnOmega/dlnr = q = -2A/Omega0 = 1.5
  real, parameter :: domegadr = 1.5 !--1.5
  real :: psep,hfact, R_grav,xlayer,Alayercs,dwidthlayer
  real, parameter :: omegafixed = 1.0
- 
+ logical :: have_setup_psi = .false.  ! can be changed
+
 end module setup_params
 
 !-------------------------------------------------------------------
@@ -252,7 +253,7 @@ module timestep
  implicit none
 !
 !  (max tsteps, number of steps before output, current number of steps,
-!   number of steps before using a direct summation)   
+!   number of steps before using a direct summation)
 !
  integer :: nmax,nout,nsteps,ndirect,nsubsteps_divB,iseedMC
 !
@@ -294,4 +295,3 @@ module streaming
   implicit none
   real, parameter :: eta=0.005
 end module streaming
-
