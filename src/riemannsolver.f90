@@ -61,6 +61,8 @@ subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,rho_L,rho_R,pr,vstar)
   prnew = ((c_L + c_R + (v_L - v_R)*0.5*(gamma-1.))/denom)**(1./power)
   pr = p_L
   its = 0
+  call f_and_df(prnew,p_L,c_L,gamma,f_L,dfdp_L)
+
 
   !!print*,'initial guess = ',prnew
 
@@ -89,7 +91,7 @@ subroutine riemannsolver(gamma,p_L,p_R,v_L,v_R,rho_L,rho_R,pr,vstar)
   if (its.eq.maxits) print*,'WARNING: its not converged in riemann solver'
   if (prnew.le.0.) then
      print*,'ERROR: pr < 0 in riemann solver'
-     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar,v_R + f_R
+     print*,'its = ',its,'p_L, p_R = ',p_L,p_R,' v_L, v_R = ',v_L,v_R,' p* = ',prnew,'v = ',vstar !,v_R + f_R
   endif
   pr = prnew
   vstar = v_L - f_L
@@ -154,3 +156,58 @@ subroutine get_pstar_isothermal(cs2,v_L,v_R,rho_L,rho_R,pstar,vstar)
   !print*,' pstar = ',pstar,' v_R,v_L = ',v_L,v_R,cs2,' vstar = ',vstar
   
 end subroutine get_pstar_isothermal
+
+!-------------------------------------------------------------------
+! Implementation of the HLLC Riemann solver given in Toro (2019)
+!
+! Solves for the post-shock pressure (pr) and velocity (vstar)
+! given the initial left and right states
+!
+! Does not matter if high P / high rho is on left or right
+!
+! Daniel Price, Nov 2023
+!-------------------------------------------------------------------
+subroutine hllc_solver(gamma,p_L,p_R,v_L,v_R,rho_L,rho_R,pstar,vstar)
+  implicit none
+  real, intent(in) :: gamma,p_L,p_R,v_L,v_R,rho_L,rho_R
+  real, intent(out) :: pstar,vstar
+  real :: c_L,c_R,s_L,s_R,q_L,q_R,rho_L_term,rho_R_term
+  real :: power,denom,cs2
+!
+!--use isothermal solver if appropriate
+!
+  c_L = sqrt(gamma*p_L/rho_L)
+  c_R = sqrt(gamma*p_R/rho_R)
+  if (gamma.lt.1.0001) then
+     cs2 = p_L/rho_L
+     call get_pstar_isothermal(cs2,v_L,v_R,rho_L,rho_R,pstar,vstar)
+     return
+  endif
+!
+!--get an initial starting estimate of intermediate pressure
+!  this one is from Toro(1992) - gives basically the right answer
+!  for pressure jumps below about 4
+!
+  power = (gamma-1.)/(2.*gamma)
+  denom = c_L/p_L**power + c_R/p_R**power
+  pstar = ((c_L + c_R + (v_L - v_R)*0.5*(gamma-1.))/denom)**(1./power)
+  if (pstar > p_L) then
+     q_L = sqrt(1. + (gamma+1.)/(2*gamma)*(pstar/p_L - 1.))
+  else
+     q_L = 1.
+  endif
+  if (pstar > p_R) then
+     q_R = sqrt(1. + (gamma+1.)/(2*gamma)*(pstar/p_R - 1.))
+  else
+     q_R = 1.
+  endif
+
+  s_L = v_L - c_L*q_L
+  s_R = v_R + c_R*q_R
+
+  rho_L_term = rho_L*(s_L - v_L)
+  rho_R_term = rho_R*(s_R - v_R)
+  vstar = (p_R - p_L + rho_L_term*v_L - rho_R_term*v_R) &
+          /(rho_L_term - rho_R_term)
+
+end subroutine hllc_solver

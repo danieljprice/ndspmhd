@@ -1911,12 +1911,7 @@ contains
        if (islope_limiter >= 0 .and. .false.) then
           call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,gradB(:,:,i),gradB(:,:,j),projv,islope_limiter,i,j)
 !          call reconstruct_dv(ndimV,ndim,vel(:,i),vel(:,j),dr,dx,-drhodt(i)*rho1i,-drhodt(j)*rho1j,projv,islope_limiter,i,j)
-!          if (j==120 .and. i==121) then
-!             print*,i,j,x(1,j),x(1,i),vel(1,j),vel(1,i)
-!             read*
-!          endif
           !if (-dvdotr > 0.1) print*,dvdotr,projv
-          !print*,' here ',dvdotr,projv
        endif
        !call riemannsolver(gamma,prneti,prnetj,-projvi,-projvj, &
        !                   rhoi,rhoj,prstar,vstar)
@@ -1941,6 +1936,10 @@ contains
        !
        ! artificial thermal conductivity, as in PL15
        !
+       !call riemannsolver(gamma,prneti,prnetj,projvi,projvj, &
+       !                   rhoi,rhoj,prstar,vstar)
+       !call hllc_solver(gamma,prneti,prnetj,projvi,projvj,rhoi,rhoj,prstar,vstar)
+       !vsigu = max(vstar,0.) !vsigu = max(vstar,0.) !abs(vstar)
        du = uu(i) - uu(j)
        cfaci = 0.5*alphaui*rhoi*vsigu*du
        cfacj = 0.5*alpha(2,j)*rhoj*vsigu*du
