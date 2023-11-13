@@ -152,6 +152,7 @@ subroutine get_rates
  real :: stressmax,stressterm
  logical, parameter :: itiming = .false.
  real :: t1,t2,t3,t4,t5
+ real, allocatable :: fprev(:,:)
 !
 !--allow for tracing flow
 !
@@ -475,6 +476,7 @@ subroutine get_rates
 !----------------------------------------------------------------------------
 
  if (igravity.ne.0) then
+    fprev = force
     select case(igravity)
     case(1) ! fixed plummer
        call direct_sum_poisson(x(1:ndim,1:npart),pmass(1:npart), &
@@ -492,6 +494,15 @@ subroutine get_rates
     case default
         stop 'unknown igravity setting in forces'
     end select
+
+    !
+    !--add v.fgrav term if evolving total energy
+    !
+    !if (iener==3) then
+      ! do i=1,npart
+      !    dendt(i) = dendt(i) + dot_product(vel(:,i),force(:,i)-fprev(:,i))
+      ! enddo
+    !endif
  endif
  if (itiming) call cpu_time(t4)
 
@@ -809,9 +820,10 @@ subroutine get_rates
     if (iener.eq.3) then
        ! could do this in principle but does not work with
        ! faniso modified by subtraction of Bconst
-       !dendt(i) = dot_product(vel(:,i),force(:,i)) + dudt(i) &
-       !         + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
-       !         + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
+       if (damp.lt.tiny(0.)) dudt(i) = dudt(i) + pr(i)*rho1i**2*drhodt(i)
+       dendt(i) = dot_product(vel(:,i),fprev(:,i)) + dudt(i) !&
+         !       + 0.5*(dot_product(Bfield(:,i),Bfield(:,i))*rho1i**2) &
+         !       + dot_product(Bfield(:,i),dBevoldt(:,i))*rho1i
     elseif (iener.eq.1) then ! entropy variable (just dissipative terms)
        if (damp.lt.tiny(0.)) dendt(i) = dendt(i) + (gamma-1.)/dens(i)**(gamma-1.)*dudt(i)
     elseif (iener.eq.4) then
@@ -1591,7 +1603,7 @@ contains
 !                         outside loop and in artificial_dissipation)
 !------------------------------------------------------------------------
 
-    if (iener.eq.3) then
+    if (iener.eq.3 .and. .false.) then
        call energy_equation
     elseif (iener.gt.0 .and. iav.lt.0) then
        dudt(i) = dudt(i) + pmassj*prstari*(rho21i)*dvdotr*grkerni
@@ -1883,7 +1895,7 @@ contains
   subroutine artificial_dissipation_phantom
     implicit none
     real :: vsi,vsj,qi,qj,visc,du,cfaci,cfacj,diffu
-    real :: dudti,dudtj,projv
+    real :: dudti,dudtj,projv,prstar,vstar
 
     dudti = 0.
     dudtj = 0.
@@ -1906,6 +1918,10 @@ contains
           !if (-dvdotr > 0.1) print*,dvdotr,projv
           !print*,' here ',dvdotr,projv
        endif
+       !call riemannsolver(gamma,prneti,prnetj,-projvi,-projvj, &
+       !                   rhoi,rhoj,prstar,vstar)
+       !qi = prstar - prneti
+       !qj = prstar - prnetj
        qi = -0.5*rhoi*vsi*projv
        qj = -0.5*rhoj*vsj*projv
 

@@ -33,16 +33,16 @@ subroutine setup
  use dimen_mhd
  use debug
  use loguns
- 
+
  use eos
  use options
  use part
  use setup_params
- 
+
  use uniform_distributions
 !
 !--define local variables
-!      
+!
  implicit none
  real :: rmax,totmass,totvol
  real :: denszero,uuzero,massp
@@ -50,17 +50,17 @@ subroutine setup
  write(iprint,*) 'uniform spherical distribution'
 !
 !--set bounds of initial setup
-!                   
+!
  rmax = 1.0
- ibound = 0 ! no boundaries 
+ ibound = 0 ! no boundaries
 !
 !--setup a uniform sphere of particles
-! 
+!
 ! call set_uniform_spherical(1,rmax,centred=.true.,perturb=0.2) ! 4 = random
  call set_uniform_spherical(2,rmax,centred=.true.) ! 4 = random
 !
 !--set particle properties
-! 
+!
  select case (ndim)
   case(1)
     totvol = 2.*rmax
@@ -69,7 +69,7 @@ subroutine setup
   case(3)
     totvol = 4./3.*pi*rmax**3
  end select
-  
+
  totmass = 1.0
  denszero = totmass/totvol
  massp = totmass/real(npart)
@@ -78,7 +78,7 @@ subroutine setup
 10 format(/,' initial density = ',f7.3, ' initial u = ',f7.3,/)
 !
 !--set these for all particles
-! 
+!
 ! polyk = 0.001
  vel(:,:) = 0.
  dens(:) = denszero
@@ -91,7 +91,7 @@ subroutine setup
  Bfield(:,:) = 0.
  print*,' free fall time = ',sqrt(3.*pi/(32.*denszero))
  call reset_centre_of_mass(x,pmass)
- 
+
  return
 end subroutine setup
 
@@ -113,6 +113,6 @@ subroutine modify_dump
  do i=1,npart
     vel(1:ndim,i) = ampl*x(:,i)
  enddo
- 
+
  return
 end subroutine modify_dump

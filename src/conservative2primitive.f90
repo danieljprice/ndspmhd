@@ -52,7 +52,7 @@ subroutine conservative2primitive
   use getlambda,     only:get_lambda
   use get2ndderivs,  only:get_2ndderivs
   use smooth, only:smooth_variable
-  use rates,  only:gradpsi,drhodt
+  use rates,  only:gradpsi,drhodt,poten
   use hterms, only:gradgradh,gradh,zeta
   use derivB, only:curlB,gradB
   use timestep, only:nsteps
@@ -331,6 +331,13 @@ subroutine conservative2primitive
         v2i = DOT_PRODUCT(vel(:,i),vel(:,i))
         B2i = DOT_PRODUCT(Bfield(:,i),Bfield(:,i))/rho(i)
         uu(i) = en(i) - 0.5*v2i - 0.5*B2i
+        if (igravity >= 3) then
+           uu(i) = uu(i) - 0.5*poten(i)
+           !if (i==101) then
+             !print*,'cons2prim',i,'e=',en(i),'poten=',poten(i),uu(i)
+             ! read*
+           !endif
+        endif
         if (uu(i).lt.0.) then
            nerr = nerr + 1
            uu(i) = 0.
@@ -481,7 +488,7 @@ subroutine primitive2conservative
   use timestep
   use getcurl
   use getBeulerpots, only:get_B_eulerpots
-  use rates, only:gradpsi
+  use rates, only:gradpsi,poten
   use derivB, only:curlB
   use utils,  only:minmaxave
 !  use resistivity, only:Bdiffusion

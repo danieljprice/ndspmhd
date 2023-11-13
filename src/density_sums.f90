@@ -230,22 +230,9 @@ contains
                       gradsoft(i) = gradsoft(i) + weight*pmassj*dphidhi*hi21
                       call interpolate_kernel_soft(q2j,wabj,grkernj,dphidhj)
                       gradsoft(j) = gradsoft(j) + weight*pmassi*dphidhj*hj1*hj1
-                      if (ikernelalt.ne.ikernel) then
-                         call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
-                         call interpolate_kernels_dens(q2j,wabj,grkernj,grgrkernj,wabaltj,grkernaltj)
-                      else
-                         stop 'grgrkerni will not work here'
-                         wabalti = wabi
-                         grkernalti = grkerni
-                         wabaltj = wabj
-                         grkernaltj = grkernj
-                         grgrkerni = 0.
-                         grgrkernj = 0.
-                      endif
-                   else
-                      call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
-                      call interpolate_kernels_dens(q2j,wabj,grkernj,grgrkernj,wabaltj,grkernaltj)
                    endif
+                   call interpolate_kernels_dens(q2i,wabi,grkerni,grgrkerni,wabalti,grkernalti)
+                   call interpolate_kernels_dens(q2j,wabj,grkernj,grgrkernj,wabaltj,grkernaltj)
               !  (using hi)
                    wabi = wabi*hfacwabi
                    wabalti = wabalti*hfacwabi

@@ -23,16 +23,16 @@
 !!--------------------------------------------------------------------
 !! Calculate conserved quantities etc and write to .ev file
 !!--------------------------------------------------------------------
-  
+
 subroutine evwrite(t,etot,momtot)
  use dimen_mhd, only:ndim,ndimV
  use debug, only:trace
  use loguns, only:iprint,ievfile
- 
+
  use derivB
  use options
  use part
- use rates, only:force,potengrav
+ use rates, only:force,potengrav,poten,dendt
  use fmagarray
  use timestep, only:dt
  use utils,    only:cross_product3D,minmaxave
@@ -72,9 +72,9 @@ subroutine evwrite(t,etot,momtot)
 
 !
 !--allow for tracing flow
-!      
+!
  if (trace) write(iprint,*) ' Entering subroutine evwrite'
-       
+
  ekin = 0.0
  etherm = 0.0
  emag = 0.0
@@ -96,7 +96,7 @@ subroutine evwrite(t,etot,momtot)
 ! betatstarav = 0.
 !
 !--mhd parameters
-!     
+!
  if (imhd.ne.0) then
     betamhdav = 0.
     betamhdmin = huge(betamhdmin)
@@ -112,20 +112,20 @@ subroutine evwrite(t,etot,momtot)
     fracdivBok = 0.
     fluxtot(:) = 0.
     fluxtotmag = 0.
-    crosshel = 0.      
- endif 
+    crosshel = 0.
+ endif
 
 !
 !--should really recalculate the thermal energy from the total energy here
 !  (otherwise uu is from the half time step and same with Bfield)
-! 
+!
 ! CALL conservative2primitive
-      
+
  do i=1,npart
 
     pmassi = pmass(i)
     rhoi = rho(i)
-    veli(:) = vel(:,i)  
+    veli(:) = vel(:,i)
     mom(:) = mom(:) + pmassi*veli(:)
     dmom(:) = dmom(:) + pmassi*force(:,i)
     if (ndim.eq.3) then
@@ -151,10 +151,10 @@ subroutine evwrite(t,etot,momtot)
     endif
 !
 !--potential energy from external forces
-!    
+!
     call external_potentials(iexternal_force,x(:,i),epoti,ndim)
     epot = epot + pmassi*epoti
-    
+
 !    rr = dot_product(x(1:ndim,i),x(1:ndim,i))
 !    if (rr.gt.tiny(rr)) then
 !       rhat(1:ndim) = x(1:ndim,i)/rr
@@ -175,22 +175,22 @@ subroutine evwrite(t,etot,momtot)
        Bmagi = SQRT(B2i)
        forcemagi = SQRT(DOT_PRODUCT(force(:,i),force(:,i)))
        divBi = abs(divB(i))
- 
+
        emag = emag + 0.5*pmassi*B2i/rhoi
        emagp = emagp + 0.5*pmassi*dot_product(Bi(1:2),Bi(1:2))/rhoi
 !
 !--Plasma beta minimum/maximum/average
-!  
+!
        if (B2i.LT.tiny(B2i)) then
           betamhdi = 0.
-       else 
-          betamhdi = pr(i)/(0.5*B2i)     
+       else
+          betamhdi = pr(i)/(0.5*B2i)
        endif
        betamhdav = betamhdav + betamhdi
        if (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
 !
 !--Maximum divergence of B
-!  
+!
        if (divBi.GT.divBmax) divBmax = divBi
        divBav = divBav + divBi
 !
@@ -202,18 +202,18 @@ subroutine evwrite(t,etot,momtot)
 !
        fmagabs = SQRT(DOT_PRODUCT(fmag(:,i),fmag(:,i)))
        if (fmagabs.GT.1.e-8 .and. Bmagi.gt.1.e-8) then
-          fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)   
+          fdotBi = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(fmagabs*Bmagi)
        else
           FdotBi = 0.
        endif
        fdotBav = fdotBav + fdotBi
-       if (fdotBi.GT.fdotBmax) fdotBmax = fdotBi  
+       if (fdotBi.GT.fdotBmax) fdotBmax = fdotBi
 !
 !--Compute total error in the force due to the B(div B) term
 !  only slight worry with this is that fmag is calculated in rates, whilst
 !  B has been evolved a bit further since then. A possible solution is to
 !  evaluate these quantities just after the call to rates.
-!       
+!
        if (forcemagi.GT.1.e-8 .AND. Bmagi.GT.1e-8) then
           force_erri = ABS(DOT_PRODUCT(fmag(:,i),Bi(:)))/(forcemagi*Bmagi)
        else
@@ -222,17 +222,17 @@ subroutine evwrite(t,etot,momtot)
        force_err_av = force_err_av + force_erri
        if (force_erri.GT.force_err_max) force_err_max = force_erri
 !
-!--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
+!--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999)
 !  this quantity should be less than ~0.01.
 !
        if (Bmagi.lt.1e-8) then
           omegamhdi = 0.
        else
-          omegamhdi = divBi*hh(i)/Bmagi     
-       endif    
+          omegamhdi = divBi*hh(i)/Bmagi
+       endif
        if (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
        if (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
-       omegamhdav = omegamhdav + omegamhdi   
+       omegamhdav = omegamhdav + omegamhdi
 !
 !--Conserved magnetic flux (int B dV)
 !
@@ -246,7 +246,7 @@ subroutine evwrite(t,etot,momtot)
     endif
 
  enddo
- 
+
  etot = ekin + emag + epot
  if (iprterm.ge.0 .or. iprterm.lt.-1) etot = etot + etherm
  momtot = sqrt(dot_product(mom,mom))
@@ -256,8 +256,8 @@ subroutine evwrite(t,etot,momtot)
  angtot = sqrt(dot_product(ang,ang))
 !
 !--write line to .ev file
-!     
- if (imhd.ne.0) then      
+!
+ if (imhd.ne.0) then
 
     fluxtotmag = SQRT(DOT_PRODUCT(fluxtot,fluxtot))
     betamhdav = betamhdav/FLOAT(npart)
@@ -281,7 +281,7 @@ subroutine evwrite(t,etot,momtot)
           fdotBav,FdotBmax,force_err_av,force_err_max,   &
           omegamhdav,omegamhdmax,fracdivBok
 30  format(24(1pe18.10,1x),1pe8.2)
-      
+
  else
     !alphatstarav = alphatstarav/float(npart)
     !betatstarav = betatstarav/float(npart)
@@ -303,7 +303,7 @@ subroutine evwrite(t,etot,momtot)
        endif
        write(ievfile,40) t,ekin,etherm,emag,epot,etot,momtot,angtot,rhomax,rhomean,dt,ekiny,dmomtot
     endif
-40  format(24(1pe18.10,1x))        
+40  format(24(1pe18.10,1x))
 
  endif
 
@@ -311,6 +311,6 @@ subroutine evwrite(t,etot,momtot)
 !--flush the buffer so that the line is written to the file immediately
 !
  call flush(ievfile)
- 
+
  return
 end subroutine evwrite

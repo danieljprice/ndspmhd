@@ -31,7 +31,7 @@ subroutine initialise
 ! use dimen_mhd
  use debug, only:trace
  use loguns, only:iprint,ievfile,ifile,rootname
- 
+
  use artvi
  use bound
  use derivb
@@ -46,7 +46,7 @@ subroutine initialise
  use part
  use part_in
  use setup_params
- 
+
  use infiles,   only:read_infile
  use dumpfiles, only:read_dump
  use convert,   only:convert_setup
@@ -54,7 +54,7 @@ subroutine initialise
  use dust,      only:init_drag
 !
 !--define local variables
-!      
+!
  implicit none
  character(len=len(rootname)+3) :: infile,evfile,dumpfile
  character(len=len(rootname)+6) :: logfile   ! rootname is global in loguns
@@ -74,13 +74,13 @@ subroutine initialise
     else
        dumpfile = trim(rootname)
     endif
-    read(rootname(idash+1:idot-1),*,iostat=ierr) ifile   
+    read(rootname(idash+1:idot-1),*,iostat=ierr) ifile
     if (ierr /=0) then
        print*,'***could not extract dump number ***'
        print*,'***starting new run using dumpfile***'
        ifile = 0
     endif
-    rootname = rootname(1:idash-1)    
+    rootname = rootname(1:idash-1)
     print*,'ifile = ',ifile,'rootname = ',trim(rootname)
     !!ifile = ifile - 1
     !stop
@@ -98,7 +98,7 @@ subroutine initialise
  infile = TRIM(rootname)//'.in'
  evfile = TRIM(rootname)//'.ev'
 !! datfile = TRIM(rootname)//'.dat'
- logfile = TRIM(rootname)//'.log'      
+ logfile = TRIM(rootname)//'.log'
 !
 !--Initialise log file (if used)
 !
@@ -144,7 +144,7 @@ subroutine initialise
 !
  call set_default_options   ! set the default options
  call read_infile(infile)
-! geom = 'cylrpz' 
+! geom = 'cylrpz'
  onef_dust = (idust==1 .or. idust==3 .or. idust==4)
 !
 !--Open data/ev files
@@ -168,12 +168,12 @@ subroutine initialise
  if (abs(gamma-1.).gt.1.e-3) then   ! adiabatic
     avfact = log(4.)/(log((gamma+1.)/(gamma-1.)))
  else
-    avfact = 1.0   ! isothermal 
+    avfact = 1.0   ! isothermal
  endif
 !
 !--write first header to logfile/screen
 !
- call write_header(1,infile,evfile,logfile)    
+ call write_header(1,infile,evfile,logfile)
 !
 !--setup kernel tables
 !
@@ -203,7 +203,7 @@ subroutine initialise
        call setkerndrag(43,ndim,ierr)
     case(99)
        call setkerndrag(99,ndim,ierr)
-       print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'    
+       print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'
     case(100)
        call setkerndrag(100,ndim,ierr)
        print*,'CAREFUL, HEXIC/HEPTIC DOUBLE HUMP NOT IMPLEMENTED YET'
@@ -215,7 +215,7 @@ subroutine initialise
     write(iprint,"(' Drag kernel = ',a)") trim(kernelnamedrag)
  endif
  if (ikernelalt.ne.ikernel) write(iprint,"(' Number density kernel = ',a)") trim(kernelnamealt)
- if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup' 
+ if (ierr1.ne.0 .or. ierr2.ne.0 .or. ierr.ne.0) stop 'error with kernel setup'
  npart = 0
 !
 !--initialise drag terms
@@ -235,7 +235,7 @@ subroutine initialise
  if (ifile.eq.0) call modify_dump
  print*,'geometry = ',geomsetup,geom
  if (geomsetup.ne.geom) call convert_setup(geomsetup,geom)
- 
+
  call check_setup       ! check for errors in the particle setup
 !
 !--setup additional quantities that are not done in setup
@@ -246,7 +246,7 @@ subroutine initialise
  divB = 0.
  curlB = 0.
  fmag = 0.
- if (iprterm.ne.11) psi = 0.
+ if (iprterm.ne.11 .and. .not.have_setup_psi) psi = 0.
  sqrtg = 1.
  if (imhd.eq.0) then
     Bfield = 0.  ! zero mag field if turned off
@@ -278,13 +278,13 @@ subroutine initialise
  if (any(ibound.eq.1)) call set_fixedbound
 !
 !--Set derivatives to zero until calculated
-!      
+!
  drhodt = 0.
  dudt = 0.
  dendt = 0.
  force = 0.
  dhdt = 0.
- daldt = 0.    
+ daldt = 0.
  dBevoldt = 0.
  dpsidt = 0.
  gradpsi = 0.
@@ -305,13 +305,13 @@ subroutine initialise
     enin(i) = en(i)
     alphain(:,i) = alpha(:,i)
     psiin(i) = psi(i)
- enddo         
+ enddo
 !
 !--make sure ghost particle quantities are the same
 !  (copy both conservative and primitive here)
 !
  if (any(ibound.gt.1) .and. .not.any(ibound.eq.6)) then
-    do i=npart+1,ntotal   
+    do i=npart+1,ntotal
        j = ireal(i)
        call copy_particle(i,j)
     enddo
@@ -319,15 +319,15 @@ subroutine initialise
 !
 !--write second header to logfile/screen
 !
- call write_header(2,infile,evfile,logfile)    
-      
+ call write_header(2,infile,evfile,logfile)
+
  return
 !
 !--error control
 !
 668   write(iprint,*) 'Initialise: Error opening ev file, exiting...'
-      call quit 
+      call quit
 669   write(iprint,*) 'Initialise: Error opening log file, exiting...'
-      call quit       
-      
+      call quit
+
 end subroutine initialise
