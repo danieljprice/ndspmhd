@@ -797,6 +797,14 @@ subroutine primitive2conservative
 !--call rates to get initial timesteps, div B etc
 !
   call derivs
+!
+!--if using total energy + self-gravity, add the potential energy
+!
+  if (iener == 3 .and. igravity >= 3) then
+     do i=1,npart
+        en(i) = en(i) + 0.5*poten(i)
+     enddo
+  endif
 
   return
 end subroutine primitive2conservative
