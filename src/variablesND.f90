@@ -143,7 +143,7 @@ module options
  integer :: igravity,ikernel,ikernelalt,iresist
  integer :: maxdensits,iuse_exact_derivs,nsteps_remap
  integer :: ivisc,ibiascorrection,iambipolar,icompute_d2v
- integer :: iquantum,idustevol,islope_limiter
+ integer :: iquantum,idustevol,islope_limiter,ind_timesteps
  integer, dimension(ndim) :: ibound
  integer, dimension(3) :: iavlim
  real :: damp,dampz,dampr,psidecayfact,tolh,hsoft,etamhd,rhocrit
@@ -170,7 +170,9 @@ module part
  integer, parameter :: itypebnd2 = 11
  integer, parameter :: itypebnddust = 12
  integer, parameter :: ndust = 1 ! number of dust species
- integer, dimension(:), allocatable :: itype
+ integer, parameter :: maxlevels = 12 ! number of timestep bins
+ integer, dimension(:), allocatable :: itype,ibin
+ logical, dimension(:), allocatable :: iactive
  real, dimension(:), allocatable    :: pmass,sqrtg
  real, dimension(:,:), allocatable  :: x
  real, dimension(:), allocatable    :: dens,rho,pr,uu,en,hh,psi,spsound,rhoalt
@@ -208,6 +210,7 @@ module rates
  real, dimension(:,:), allocatable :: force,dBevoldt,daldt,gradpsi
  real, dimension(:,:), allocatable :: ddeltavdt
  real, dimension(:,:), allocatable :: ddustevoldt
+ real, dimension(:,:,:), allocatable :: force_bins
  real :: potengrav
 end module rates
 

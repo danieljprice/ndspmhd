@@ -70,10 +70,12 @@ subroutine alloc(newsizein,sortlist)
  real, dimension(ndimv,newsizein) :: dumforce,dumBevol,dumdBevoldt,dumfmag
  real, dimension(ndimv,newsizein) :: dumBfield,dumcurlB,dumxsphterm,dumgradpsi
  real, dimension(ndimv,ndimv,newsizein) :: dumgradB
+ real, dimension(ndimV,newsizein,maxlevels) :: dumforce_bins
 !--gr terms
  real, dimension(newsizein) :: dumsqrtg,dumdens
  real, dimension(ndimv,newsizein) :: dumsourceterms,dumpmom,dumpmomin
- integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh
+ integer, dimension(newsizein) :: idumireal,idumitype,idumnumneigh,idumibin
+ logical, dimension(newsizein) :: idumiactive
  real, dimension(ndxdx,newsizein) :: dumdxdx
  real, dimension(ndim,newsizein) :: dumx0
 !--dust
@@ -180,6 +182,7 @@ subroutine alloc(newsizein,sortlist)
     dumgradhn(1:idumsize) = gradhn(1:idumsize)
     dumgradsoft(1:idumsize) = gradsoft(1:idumsize)
     dumgradgradh(1:idumsize) = gradgradh(1:idumsize)
+    if (allocated(force_bins)) dumforce_bins(:,1:idumsize,:) = force_bins(:,1:idumsize,:)
 
     dumpr(1:idumsize) = pr(1:idumsize)
     dumspsound(1:idumsize) = spsound(1:idumsize)
@@ -187,6 +190,8 @@ subroutine alloc(newsizein,sortlist)
     dumdivB(1:idumsize) = divB(1:idumsize)
     idumireal(1:idumsize) = ireal(1:idumsize)
     idumitype(1:idumsize) = itype(1:idumsize)
+    idumibin(1:idumsize) = ibin(1:idumsize)
+    idumiactive(1:idumsize) = iactive(1:idumsize)
     idumnumneigh(1:idumsize) = numneigh(1:idumsize)
     dumsqrtg(1:idumsize) = sqrtg(1:idumsize)
     dumdens(1:idumsize) = dens(1:idumsize)
@@ -229,6 +234,7 @@ subroutine alloc(newsizein,sortlist)
     deallocate(x,vel,force,rho,drhodt,uu,dudt,en,dendt)
     deallocate(alpha,daldt,psi,dpsidt,hh,dhdt,gradh,gradhn,gradsoft,pr)
     deallocate(gradgradh)
+    if (allocated(force_bins)) deallocate(force_bins)
     if (allocated(rhoalt)) deallocate(rhoalt)
     if (allocated(zeta)) deallocate(zeta)
     if (allocated(poten)) deallocate(poten)
@@ -249,6 +255,8 @@ subroutine alloc(newsizein,sortlist)
 !--itype is particle type (normal, fixed particle etc)
 !
     if (allocated(itype)) deallocate(itype)
+    if (allocated(ibin)) deallocate(ibin)
+    if (allocated(iactive)) deallocate(iactive)
     if (allocated(numneigh)) deallocate(numneigh)
 !
 !--mhd quantities and derivatives
@@ -332,6 +340,10 @@ subroutine alloc(newsizein,sortlist)
     allocate(gradpsi(ndimb,newsize))
     if (igravity.ne.0) allocate(poten(newsize))
 !
+!--individual timesteps
+!
+    if (ind_timesteps.ne.0) allocate(force_bins(ndimV,newsize,maxlevels))
+!
 !--equation of state
 !
     allocate(spsound(newsize))
@@ -343,8 +355,10 @@ subroutine alloc(newsizein,sortlist)
 !
 !--particle type
 !
-    allocate(itype(newsize),numneigh(newsize))
+    allocate(itype(newsize),numneigh(newsize),ibin(newsize),iactive(newsize))
     itype(:) = 0 ! give type 0 by default
+    ibin(:) = 0
+    iactive(:) = .true.
 !
 !--mhd quantities and derivatives
 !
@@ -444,6 +458,9 @@ subroutine alloc(newsizein,sortlist)
     divB(1:idumsize) = dumdivB(iorder(1:idumsize))
     ireal(1:idumsize) = idumireal(iorder(1:idumsize))
     itype(1:idumsize) = idumitype(iorder(1:idumsize))
+    ibin(1:idumsize) = idumibin(iorder(1:idumsize))
+    iactive(1:idumsize) = idumiactive(iorder(1:idumsize))
+
     numneigh(1:idumsize) = idumnumneigh(iorder(1:idumsize))
     sqrtg(1:idumsize) = dumsqrtg(iorder(1:idumsize))
     dens(1:idumsize) = dumdens(iorder(1:idumsize))
@@ -451,6 +468,9 @@ subroutine alloc(newsizein,sortlist)
     pmomin(:,1:idumsize) = dumpmomin(:,iorder(1:idumsize))
     if (allocated(sourceterms)) then
        sourceterms(:,1:idumsize) = dumsourceterms(:,iorder(1:idumsize))
+    endif
+    if (allocated(force_bins)) then
+       force_bins(:,1:idumsize,:) = dumforce_bins(:,iorder(1:idumsize),:)
     endif
     dxdx(:,1:idumsize) = dumdxdx(:,iorder(1:idumsize))
     x0(:,1:idumsize) = dumx0(:,iorder(1:idumsize))
@@ -472,6 +492,8 @@ subroutine alloc(newsizein,sortlist)
     ! no need to copy physical viscosity stuff
  else
     itype(:) = 0 ! on first memory allocation, set all parts = normal
+    ibin(:) = 0
+    iactive(:) = .true.
     numneigh(:) = 0
     dxdx(:,:) = 1.
  endif
@@ -480,8 +502,6 @@ subroutine alloc(newsizein,sortlist)
 !--debugging information
 !
  if (trace) write(iprint,*) '  memory allocated, size(x,v)=',size(x),size(vel) 
- 
- return
 
 end subroutine alloc
 

@@ -1177,6 +1177,7 @@ contains
     use options, only:usenumdens
     use cons2prim, only:specialrelativity
     implicit none
+    integer :: level
     real :: prstar,prstari,prstarj,vstar
     real :: dvsigdtc
     real :: hav,hav1,h21,q2
@@ -1597,6 +1598,13 @@ contains
 !
 !   here forcej is the gas-only forces, fextraj are forces that act on the total fluid
     force(:,j) = force(:,j) + fextraj(:) + forcej(:)
+
+    if (ind_timesteps.ne.0) then
+       level = min(ibin(i),ibin(j))
+       !print*,' level = ',level
+       force_bins(:,j,level+1) = force_bins(:,j,level+1) + fextraj(:) + forcej(:)
+       force_bins(:,i,level+1) = force_bins(:,i,level+1) - pmassj/pmassi*(fextraj(:) + forcej(:))
+    endif
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
