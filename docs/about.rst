@@ -8,7 +8,8 @@ Features include:
 - Full implementations of 1D, 2D and 3D hydrodynamics and magnetohydrodynamics as described in Price (2012)
 - (v2.1) Implementations of two fluid and one fluid dust-gas algorithms and test problems, as described in Laibe & Price (2012a,b,2014a,b) and Price & Laibe (2015)
 
-Note, however, that ndspmhd is *not* meant as a "production" SPH code in 3D, since much better codes exist for this purpose (e.g. the GADGET code by Volker Springel, and my own `PHANTOM <../phantom/>`_ code that can be made available on request). ndspmhd is not parallel nor particularly optimised and is meant as a code for algorithmic experimentation, not production runs. 
+Note, however, that ndspmhd is *not* meant as a "production" SPH code in 3D, since much better codes exist
+for this purpose (e.g. my own `PHANTOM <https://github.com/danieljprice/phantom>`_ code). ndspmhd is not parallel nor particularly optimised and is meant as a code for algorithmic experimentation, not production runs. 
 
 Licence/conditions of use
 --------------------------
@@ -22,7 +23,7 @@ The code is distributed under the GNU general public licence (v2.0). The only co
 History
 --------
 
-ndspmhd was developed as part of my PhD research at the University of Cambridge from 2001-2004. It has been used in nearly `every paper I have published since <../pubs/index.html>`_ and contains complete working versions of most of the algorithms I have described in print.
+ndspmhd was developed as part of my PhD research at the University of Cambridge from 2001-2004. It was used in nearly every paper I published during a 10-year period afterwards and contains complete working versions of most of the algorithms described in print in those papers.
 
 The history of the public code is as follows:
 
