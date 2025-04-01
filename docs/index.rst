@@ -12,7 +12,6 @@ Welcome to NDSPMHD's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    about
    install
