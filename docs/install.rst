@@ -23,10 +23,10 @@ Download the code file
    * - File
      - Description
      - Date
-   * - `ndspmhd-v2.1.tar.gz <https://users.monash.edu.au/~dprice/ndspmhd/ndspmhd-v2.1.tar.gz>`_ (143Kb)
+   * - `ndspmhd-v2.1.tar.gz <https://github.com/danieljprice/ndspmhd/releases/download/v2.1/ndspmhd-v2.1.tar.gz>`_ (143Kb)
      - The code
      - 08/05/2015
-   * - `ndspmhd-examples-v2.1.tar.gz <https://users.monash.edu.au/~dprice/ndspmhd/ndspmhd-examples-v2.1.tar.gz>`_ (184Kb)
+   * - `ndspmhd-examples-v2.1.tar.gz <https://github.com/danieljprice/ndspmhd/releases/download/v2.1/ndspmhd-examples-v2.1.tar.gz>`_ (184Kb)
      - Exercises and examples associated with the code.
      - 05/05/2015
 
