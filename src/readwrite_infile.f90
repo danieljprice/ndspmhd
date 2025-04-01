@@ -67,6 +67,7 @@ subroutine write_infile(infile)
   call write_inopt(C_cour,'C_cour','Courant factor on timestep',iread)
   call write_inopt(C_force,'C_force','Factor in force timestep condition',iread)
   call write_inopt(idumpghost,'idumpghost','dump ghost particles? (0: no 1: yes)',iread)
+  call write_inopt(ind_timesteps,'ind_timesteps','individual timesteps (0: no 1: yes)',iread)
 
   write(iread,"(/,a)") '# options affecting density calculation'
   call write_inopt(icty,'icty','type of cty equation (0:direct sum 1:time deriv)',iread)
@@ -220,6 +221,8 @@ subroutine read_infile(infile)
      call read_inopt(C_cour,'C_cour',db,errcount=nerr)
      call read_inopt(C_force,'C_force',db,errcount=nerr)
      call read_inopt(idumpghost,'idumpghost',db,errcount=nerr)
+     call read_inopt(ind_timesteps,'ind_timesteps',db,errcount=nerr)
+
 
      ! equation of state
      call read_inopt(iener,'iener',db,errcount=nerr)

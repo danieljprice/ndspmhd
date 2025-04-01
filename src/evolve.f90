@@ -30,7 +30,7 @@ subroutine evolve
  use dimen_mhd, only:ndim
  use debug, only:trace
  use loguns, only:iprint,ifile
- use options, only:idumpghost,ibound
+ use options, only:idumpghost,ibound,ind_timesteps
  use timestep
 !
 !--define local variables
@@ -100,8 +100,11 @@ subroutine evolve
 !    if (nsort.gt.0 .and. mod(nsteps,nsort).eq.0) then
 !       call sort_particles()
 !    endif
-    
-    call step ()      !  evolve data for one timestep
+    if (ind_timesteps.ne.0) then
+       call step_ind
+    else
+       call step ()      !  evolve data for one timestep
+    endif
 !
 !--write log every step in 2D/3D
 !

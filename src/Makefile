@@ -15,6 +15,10 @@ ifndef SPLASH_DIR
 endif
 DOUBLEPRECISION= yes
 
+ifndef SYSTEM
+   SYSTEM=gfortran # use gfortran by default
+endif
+
 ifeq ($(SYSTEM), gfortran)
 #  gfortran compiler (part of gcc 4.x.x)
    FC= gfortran
@@ -256,7 +260,8 @@ SOURCES= ndspmhd.f90 utils.f90 geometry.f90 \
 
 # these are the ordinary cartesian versions
 #SOURCES2 = step-relax.f90 evwrite_mhd.f90
-SOURCES2 = stepND_leapfrog_mhd.f90 evwrite_mhd.f90 
+STEP=stepND_rrespa.f90 stepND_leapfrog_mhd.f90
+SOURCES2 = $(STEP) evwrite_mhd.f90 
 
 # these files are for the sr/gr version of the code
 SOURCESGR = stepND_mhd_gr.f90 evwrite_mhd_gr.f90

@@ -1177,6 +1177,7 @@ contains
     use options, only:usenumdens
     use cons2prim, only:specialrelativity
     implicit none
+    integer :: level
     real :: prstar,prstari,prstarj,vstar
     real :: dvsigdtc
     real :: hav,hav1,h21,q2
@@ -1597,6 +1598,13 @@ contains
 !
 !   here forcej is the gas-only forces, fextraj are forces that act on the total fluid
     force(:,j) = force(:,j) + fextraj(:) + forcej(:)
+
+    if (ind_timesteps.ne.0) then
+       level = min(ibin(i),ibin(j))
+       !print*,' level = ',level
+       force_bins(:,j,level+1) = force_bins(:,j,level+1) + fextraj(:) + forcej(:)
+       force_bins(:,i,level+1) = force_bins(:,i,level+1) - pmassj/pmassi*(fextraj(:) + forcej(:))
+    endif
 
 !------------------------------------------------------------------------
 !  total energy equation (thermal energy equation terms calculated
@@ -2717,8 +2725,8 @@ contains
 !----------------------------------------------------------------
   subroutine dust_derivs
     implicit none
-    real :: termi,termj,term,dterm,du,si,sj
-    real, dimension(ndimV) :: prdustterm
+    real :: termi,termj,term,dterm,du,si,sj,deps
+    real, dimension(ndimV) :: prdustterm,dtermvec,termivec,termjvec
 
     !
     !--time derivative of dust to gas ratio
@@ -2764,8 +2772,19 @@ contains
     !  i.e. before we add the anisotropic pressure term to the forces.
     !  Using forcei and forcej directly means that we automatically include viscosity, MHD etc.
     !
+    ! ORIGINAL LP14b VERSION
     ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi + dterm*dr(:))*grkerni ! add forcei term once finished
     ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj + dterm*dr(:))*grkernj - rhoj/rhogasj*forcej(:)
+
+    ! TIMOTHEE VERSION
+    !termivec = (rhogasi - rhodusti(1))*rho1i*deltavi(:)
+    !termjvec = (rhogasj - rhodustj(1))*rho1j*deltavj(:)
+    !dtermvec = (termivec - termjvec)
+    !deps = dustfraci(1) - dustfracj(1)
+    !ddeltavdt(:,i) = ddeltavdt(:,i) + rho1i*pmassj*(dvel(:)*projdeltavi + dtermvec(:)*projdeltavi &
+    !               + deltavi(:)*deps*projdeltavi)*grkerni ! add forcei term once finished
+    !ddeltavdt(:,j) = ddeltavdt(:,j) + rho1j*pmassi*(dvel(:)*projdeltavj + dtermvec(:)*projdeltavj &
+    !               + deltavj(:)*deps*projdeltavj)*grkernj - rhoj/rhogasj*forcej(:)
 
     !
     !--anisotropic pressure term
