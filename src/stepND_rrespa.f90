@@ -40,9 +40,76 @@ subroutine step_ind
  dtmax = tout
  !dt = dtmax/2**nlevels
  print*,' calling substep: dt = ',dt,' maxlevel = ',nlevels
- call substep_respa(level)
+ if (abs(dt) <= 0.) then
+    call substep_respa(level)
+ else
+    call recursive_respa(0)
+ endif
 
 end subroutine step_ind
+
+recursive subroutine recursive_respa(level)
+ use part
+ use part_in
+ use rates
+ use timestep, only:tout,dt
+ use bound
+ use options
+ implicit none
+ integer, intent(in) :: level
+ integer :: i,j,nlevels
+ real :: dti
+ !real, allocatable :: dendtin(:)
+
+ nlevels = maxval(ibin)
+ dt = 0.0001
+ dti = 0.0001/2**level
+ print*,'level ',level,' dt = ',dti,' nlevels = ',nlevels
+
+ !dendtin = dendt
+ ! push velocity
+ do i=1,npart
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2 .or. itype(i).eq.itypebnddust) then
+       j = ireal(i)
+       vel(:,i) = velin(:,j)
+    else
+       vel(:,i) = vel(:,i) + 0.5*dti*force_bins(:,i,level+1)
+       if (iener.ne.0) en(i) = en(i) + 0.5*dti*dendt(i)
+    endif
+ enddo
+
+ if (level==nlevels) then
+    do i=1,npart
+       if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2 .or. itype(i).eq.itypebnddust) then
+          j = ireal(i)
+          if (j > 0) then
+             x(:,i) = x(:,i) + dti*velin(1:ndim,j) !+ 0.5*dt*dt*forcein(1:ndim,j)
+          else
+             x(:,i) = x(:,i) + dti*velin(:,i)
+          endif
+       else
+          x(:,i) = x(:,i) + dti*vel(:,i)
+          hh(i) = hh(i) + dti*dhdt(i)
+       endif
+    enddo
+    call derivs()
+    !read*
+ else
+    call recursive_respa(level+1)
+ endif
+
+ do i=1,npart
+    if (itype(i).eq.itypebnd .or. itype(i).eq.itypebnd2 .or. itype(i).eq.itypebnddust) then
+       j = ireal(i)
+       vel(:,i) = velin(:,j)
+    else
+       vel(:,i) = vel(:,i) + 0.5*dti*force_bins(:,i,level+1)
+       if (iener.ne.0) en(i) = en(i) + 0.5*dti*dendt(i)
+    endif
+ enddo
+ 
+
+end subroutine recursive_respa
 
 subroutine substep_respa(level)
  use dimen_mhd
@@ -67,6 +134,7 @@ subroutine substep_respa(level)
  real, dimension(ndimV,npart) :: forcein,dBevoldtin,ddeltavdtin
  real, dimension(npart)       :: drhodtin,dhdtin,dendtin,dpsidtin
  real, dimension(ndust,npart) :: ddustevoldtin
+ real, dimension(3,npart,maxlevels) :: force_bins_in
  real, dimension(3,npart) :: daldtin
  real :: hdt,tol,errv,errB,errmax,errvmax,errBmax,dttol
 !
@@ -90,6 +158,7 @@ subroutine substep_respa(level)
     psiin(i) = psi(i)
 
     forcein(:,i) = force(:,i)
+    force_bins_in(:,i,:) = force_bins(:,i,:)
     dBevoldtin(:,i) = dBevoldt(:,i)
     drhodtin(i) = drhodt(i)
     dhdtin(i) = dhdt(i)
@@ -140,7 +209,7 @@ subroutine substep_respa(level)
     else
        vel(:,i) = velin(:,i) + 0.5*dt*force_bins(:,i,level)
        x(:,i) = xin(:,i) + dt*vel(1:ndim,i)
-       vel(:,i) = velin(:,i) + 0.5*dt*force_bins(:,i,level)
+       vel(:,i) = vel(:,i) + 0.5*dt*force_bins(:,i,level)
 
        if (imhd.ne.0 .and. iresist.ne.2) Bevol(:,i) = Bevolin(:,i) + dt*dBevoldtin(:,i)
        if (icty.ge.1) rho(i) = rhoin(i) + dt*drhodtin(i)
@@ -181,7 +250,7 @@ subroutine substep_respa(level)
           if (idust.eq.1) deltav(:,i)  = deltavin(:,i)
        endif
     else
-       vel(:,i) = (velin(:,i) + hdt*(force(:,i) + forcein(:,i)))/(1.+damp)
+       vel(:,i) = vel(:,i) + hdt*(force_bins(:,i,level) - force_bins_in(:,i,level))
        if (imhd.ne.0) then
           if (iresist.eq.2) then
              Bevol(:,i) = Bevolin(:,i) + dt*dBevoldt(:,i)
