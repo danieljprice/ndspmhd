@@ -79,7 +79,7 @@ You can also specify the setup in the local Makefile by giving an extra argument
 
    ~/where-I-put-it/ndspmhd/scripts/writemake.sh 1D setup_blah.f90 > Makefile
 
-Then when you type "make" the code will always build using setup_blah.f90 as the initial conditions. This is how the Makefiles in the `examples <examples>`_ directories have been written.
+Then when you type "make" the code will always build using setup_blah.f90 as the initial conditions. This is how the Makefiles in the :ref:`examples <examples>` directories have been written.
 
 Running parameter sweeps
 ------------------------

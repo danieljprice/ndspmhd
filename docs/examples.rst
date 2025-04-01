@@ -46,7 +46,8 @@ and for dust-gas (in the DUST directory) there are 5:
 
    test1_dustybox/  test2_dustywave/  test3_dustyshock/  test4_dustdiffusion/  test5_dustsettle/
 
-These are all standard test problems in the computational astrophysics literature and appropriate references can be found alongside these tests in my `papers <../pubs/index.html>`_ on SPH and SPMHD algorithms. The `reference list <references>`_ gives the most useful of these.
+These are all standard test problems in the computational astrophysics literature and appropriate
+references can be found alongside these tests in my :ref:`papers <https://ui.adsabs.harvard.edu/public-libraries/bRgpY8A3SYGxgGd3LOMQAw>`_ on SPH and SPMHD algorithms. The :ref:`reference list <references>` gives the most useful of these.
 
 Running the tests
 -----------------
