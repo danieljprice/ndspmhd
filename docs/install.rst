@@ -39,7 +39,7 @@ Uncompress the tar file:
 
 .. code-block:: bash
 
-   tar xvfz ndspmhd-v2.0.tar.gz
+   tar xvfz ndspmhd-v2.1.tar.gz
 
 and enter the directory
 
