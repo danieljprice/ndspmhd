@@ -135,7 +135,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
  real :: term1,term2,term3,term4,term
  real :: dterm1,dterm2,dterm3,dterm4
  real :: ddterm1,ddterm2,ddterm3,ddterm4,w0,cnormkd(3)
- real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint
+ real :: alpha,beta,gamma,a,b,c,d,e,f,u,u2,qs,wdenom,wint,eps,w
  real :: bb(0:5),K,theta,dbesj1,ddbesj1,costerm,sinterm
  integer :: ierrf
  integer, parameter :: lu = 55
@@ -406,7 +406,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
       if (verbose) print*,'beta = ',beta, ' calculating alpha'
       term1 = (beta+2.)*(beta**3 - 2.*beta**2 - 4.*beta + 128)
       alpha = -0.5*(4.*beta + beta**2 + 4. - sqrt(term1))/(beta + 2.)
-   
+
       term2 = (beta-2.)*(beta+2.)*(beta-alpha)*(beta+alpha)
       dterm2 = (alpha+2)*(-alpha**2 + beta**2 - 4.)
       q = 2.*alpha*(-alpha**2 - 2.*alpha + beta**2 - 4. + sqrt(term2))/dterm2
@@ -1331,6 +1331,72 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
        endif
     enddo
 
+ case(28)
+!
+!--Hermitian wavelet Psi_2 (https://en.wikipedia.org/wiki/Hermitian_wavelet)
+!
+    kernellabel = 'Hermitian wavelet'
+    radkern = 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+
+    select case(ndim)
+      case(1)
+         cnormk = 2./3.*sqrt(3.)*pi**(-0.25)
+    end select
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       if (q < 2.0) then
+          wkern(i) = (4.-q2)*exp(-0.5*q2)
+          grwkern(i) = (-2.*q)*exp(-0.5*q2) + (1.-q2)*(-q)*exp(-0.5*q2)
+          grgrwkern(i) = -2.*exp(-0.5*q2) - 2.*q*(-0.5*2.*q)*exp(-0.5*q2) 
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
+ case(29)
+!
+!--Exponential of semicircle (Barnett, Magland & Klinteberg)
+!
+    kernellabel = 'exponential of semicircle'
+    radkern = max(radkern, 2.0)  ! Allow arbitrary radius but minimum of 2.0
+    radkern2 = radkern*radkern
+    dq2table = radkern2/real(ikern)
+    eps = 1.e-6
+    w = log10(1./eps)
+    beta = 2.3*w/radkern
+    print*,' w = ',w,' beta = ',beta
+
+    select case(ndim)
+      case(1)
+         cnormk = beta/(2.0*sqrt(radkern2))
+      case(2)
+         cnormk = beta/(2.0*pi*radkern)
+      case(3)
+         cnormk = beta/(4.0*pi*radkern2)
+      case default
+         if (verbose) write(*,666)
+         ierr = 1
+         return
+    end select
+    
+    do i=0,ikern
+       q2 = i*dq2table
+       q = sqrt(q2)
+       if (q2 <= radkern2 .and. i < ikern) then ! avoid -ve sqrt at last point in table
+          term = sqrt(radkern2-q2)
+          wkern(i) = exp(beta*(term - radkern))
+          grwkern(i) = -beta*q/term * wkern(i)         
+          grgrwkern(i) = -beta*wkern(i)*(1.0/term - beta*q2/(term*term))
+       else
+          wkern(i) = 0.
+          grwkern(i) = 0.
+          grgrwkern(i) = 0.
+       endif
+    enddo
   case(30)
 !
 !--these are the Ferrer's spheres from Dehnen (2001)
@@ -3041,7 +3107,7 @@ subroutine setkerntable(ikernel,ndim,wkern,grwkern,grgrwkern,kernellabel,ierr)
           fsoft(i)     = (-90.*q**10 + 1050.*q**9 - 4725.*q**8 + 9450.*q**7 - 5250.*q2*q2*q2 - &
                          6426.*q2*q2*q + 14190.*q2*q + 5.)/(17640.*q2) 
           potensoft(i) = (-40.*q**10 + 525.*q**9 - 2700.*q**8 + 6300.*q**7 - 4200.*q2*q2*q2 - &
-                         6426.*q2*q2*q + 28380.*q2*q - 83055.*q - 20.)/(70560.*q) 
+                         6426.*q2*q2*q + 201264.*q2*q - 83055.*q - 20.)/(70560.*q) 
           dphidh(i)    = 5.*q**9/882. - 15.*q**8/224. + 15.*q**7/49. - 5.*q2*q2*q2/8. + &
                          5.*q2*q2*q/14. + 51.*q2*q2/112. - 473.*q2/392. + 113./96. 
        elseif (q < 3.0) then
