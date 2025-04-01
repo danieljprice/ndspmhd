@@ -84,4 +84,4 @@ Compiling the code will produce a binary called either 1DSPMHD, 2DSPMHD or 3DSPM
 Running the exercises...
 ------------------------
 
-Once the code has compiled successfully, you should proceed to `running the examples <examples.rst>`_. 
+Once the code has compiled successfully, you should proceed to :ref:`running the examples <examples>`. 

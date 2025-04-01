@@ -1,3 +1,5 @@
+.. _examples:
+
 Running the examples
 =====================
 
@@ -81,9 +83,9 @@ you will find the following files:
    Plot the results using "nsplash random_0*.dat"
    ...
 
-Note that you will need to have `SPLASH <../splash/>`_ installed to view the code output.
+Note that you will need to have `SPLASH <https://github.com/danieljprice/splash>`_ installed to view the code output.
 
 Next steps...
 -------------
 
-After running a few of the examples, you will have a rough idea of how the code works and what the important input options are. From there you can proceed to explore the tests further or continue towards `setting up your own problem <tutorial>`_... 
+After running a few of the examples, you will have a rough idea of how the code works and what the important input options are. From there you can proceed to explore the tests further or continue towards :ref:`setting up your own problem <tutorial>`... 

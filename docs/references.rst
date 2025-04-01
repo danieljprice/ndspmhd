@@ -1,12 +1,9 @@
+.. _references:
+
 Papers describing algorithms in NDSPMHD
 =======================================
 
-See the `main NDSPMHD page <index.html>`_ for details about the code.
-
-Reference list
---------------
-
-The main reference for NDSPMHD is the accompanying review paper, which should be cited whenever NDSPMHD is used for scientific purposes:
+The main reference for NDSPMHD is the accompanying review paper, which should be cited whenever the code is used for scientific purposes:
 
 - Price, D. J., 2012, `Smoothed Particle Hydrodynamics and Magnetohydrodynamics <http://adsabs.harvard.edu/abs/2012JCoPh.231..759P>`_, J. Comp. Phys. 231, 759 (`arXiv:1012.1885 <http://arxiv.org/abs/1012.1885>`_, `ADS <http://adsabs.harvard.edu/abs/2012JCoPh.231..759P>`_)
 

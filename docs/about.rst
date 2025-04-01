@@ -17,7 +17,7 @@ Licence/conditions of use
 The code is distributed under the GNU general public licence (v2.0). The only conditions of use aside from this are that you:
 
 - Cite the paper (Price D.J, 2012, J. Comp. Phys. 231, 759-794, `arXiv:1012.1885 <http://www.arxiv.org/abs/1012.1885>`_) if you publish anything based on the code;
-- Cite the `dust papers <references>`_ if you use the dust algorithms (and likewise for MHD); and
+- Cite the :ref:`dust papers <references>` if you use the dust algorithms (and likewise for MHD); and
 - Kindly send me a copy of any such manuscript *prior to acceptance* (i.e., on submission to a journal/proceedings). 
 
 History

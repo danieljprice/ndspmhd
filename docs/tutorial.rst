@@ -1,3 +1,5 @@
+.. _tutorial:
+
 Running your own setups
 =======================
 
