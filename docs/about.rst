@@ -9,7 +9,7 @@ Features include:
 - (v2.1) Implementations of two fluid and one fluid dust-gas algorithms and test problems, as described in Laibe & Price (2012a,b,2014a,b) and Price & Laibe (2015)
 
 Note, however, that ndspmhd is *not* meant as a "production" SPH code in 3D, since much better codes exist
-for this purpose (e.g. my own `PHANTOM <https://github.com/danieljprice/phantom>`_ code). ndspmhd is not parallel nor particularly optimised and is meant as a code for algorithmic experimentation, not production runs. 
+for this purpose (e.g. my own `PHANTOM <https://phantomsph.github.io>`_ code). ndspmhd is not parallel nor particularly optimised and is meant as a code for algorithmic experimentation, not production runs. 
 
 Licence/conditions of use
 --------------------------

@@ -9,7 +9,8 @@ The main reference for NDSPMHD is the accompanying review paper, which should be
 
 Apart from this, the following papers describe in detail the algorithms developed in NDSPMHD and the supplied test problems:
 
-- Price, Daniel J.; Laibe, Guillaume; 2015, `A fast and explicit algorithm for simulating the dynamics of small dust grains with smoothed particle hydrodynamics <http://adsabs.harvard.edu/abs/2015MNRAS>`_, accepted to MNRAS (`ADS <http://adsabs.harvard.edu/abs/2015MNRAS>`_)
+- Price, Daniel J.; Laibe, Guillaume; 2020, `A solution to the overdamping problem when simulating dust-gas mixtures with smoothed particle hydrodynamics <https://ui.adsabs.harvard.edu/abs/2020MNRAS.495.3929P>`_, MNRAS 495, 3929 (`ADS <https://ui.adsabs.harvard.edu/abs/2020MNRAS.495.3929P>`_)
+- Price, Daniel J.; Laibe, Guillaume; 2015, `A fast and explicit algorithm for simulating the dynamics of small dust grains with smoothed particle hydrodynamics <http://adsabs.harvard.edu/abs/2015MNRAS.451.5332P>`_, MNRAS 451, 5332 (`ADS <http://adsabs.harvard.edu/abs/2015MNRAS.451.5332P>`_)
 - James Wurster, Daniel Price and Ben Ayliffe; 2014, `Ambipolar diffusion in smoothed particle magnetohydrodynamics <http://adsabs.harvard.edu/abs/2014MNRAS.444.1104W>`_, MNRAS 444, 1104 (`arXiv:1408.1807 <http://arxiv.org/abs/1408.1807>`_, `ADS <http://adsabs.harvard.edu/abs/2014MNRAS.444.1104W>`_)
 - Laibe, Guillaume; Price, Daniel J.; 2014, `Dusty gas with one fluid in smoothed particle hydrodynamics <http://adsabs.harvard.edu/abs/2014MNRAS.440.2147L>`_, MNRAS 440, 2147-2163 (`arXiv:1402.5249 <http://arxiv.org/abs/1402.5249>`_, `ADS <http://adsabs.harvard.edu/abs/2014MNRAS.440.2147L>`_)
 - Laibe, Guillaume; Price, Daniel J.; 2014, `Dusty gas with one fluid <http://adsabs.harvard.edu/abs/2014MNRAS.440.2136L>`_, MNRAS 440, 2136-2146 (`arXiv:1402.5248 <http://arxiv.org/abs/1402.5248>`_, `ADS <http://adsabs.harvard.edu/abs/2014MNRAS.440.2136L>`_)

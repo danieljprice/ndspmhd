@@ -84,7 +84,7 @@ you will find the following files:
    Plot the results using "nsplash random_0*.dat"
    ...
 
-Note that you will need to have `SPLASH <https://github.com/danieljprice/splash>`_ installed to view the code output.
+Note that you will need to have `SPLASH <https://splash-viz.readthedocs.io>`_ installed to view the code output.
 
 Next steps...
 -------------
